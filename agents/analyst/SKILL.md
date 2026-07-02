@@ -11,7 +11,12 @@ tools:
   - mcp__dashboard_qa__report_spec_search
 ---
 
-# Analyst — phân tích template lạ
+# Analyst — phân tích file Excel theo guideline
+
+> **Nguồn guideline:** `DashBoard_AI/guideline.xlsx` (sheet "Quản trị Tài Chính") → sinh ra
+> `kpi_glossary.json` bằng `scripts/gen_kpi_glossary.py`. Đây là hướng dẫn chính thức:
+> chỉ tiêu nào, công thức, **nguon_du_lieu** (sheet/file nào). KHÔNG hard-code mapping cột
+> trong prompt — luôn tra glossary + sheet_profile + report_spec_search.
 
 ## Input / Output
 
