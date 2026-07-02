@@ -15,6 +15,7 @@ _HERE = os.path.dirname(os.path.abspath(__file__))
 _AGENT_ROOT = os.path.normpath(os.path.join(_HERE, "..", ".."))
 DISCOVERIES_DIR = os.path.join(_AGENT_ROOT, "memory", "discoveries")
 REPORT_SPECS_DIR = os.path.join(_AGENT_ROOT, "memory", "report_specs")
+BINDINGS_DIR = os.path.join(_AGENT_ROOT, "memory", "bindings")
 
 
 def _slug(file_name: str) -> str:
@@ -97,12 +98,28 @@ def _report_spec_path(fingerprint: str) -> str:
     return os.path.join(REPORT_SPECS_DIR, f"{fingerprint[:16]}.json")
 
 
-def report_spec_save(fingerprint: str, sheet_mapping: dict) -> dict:
+def report_spec_save(fingerprint: str, sheet_mapping: dict, verified: bool = True) -> dict:
+    """Lưu 1 SheetMapping đã học vào catalog. verified=True nghĩa là mapping này đã được
+    dùng để GHI THẬT vào raw_rows (đáng tin cậy nhất). verified=False nghĩa là mapping mới
+    chỉ qua dry-run thành công (row_count>0) — khép vòng học sớm hơn (không phải chờ người
+    approve ghi thật mới học được), nhưng CHƯA chắc chắn 100% nên autobatch vẫn có thể muốn
+    ưu tiên bản verified=True nếu có nhiều bản ghi trùng canonical_kind/sheet."""
+    existing = None
+    path = _report_spec_path(fingerprint)
+    if os.path.exists(path):
+        try:
+            with open(path, encoding="utf-8") as fh:
+                existing = json.load(fh)
+        except (OSError, json.JSONDecodeError):
+            existing = None
+    # Không để 1 dry-run (verified=False) đè lên 1 bản ghi đã verified=True trước đó.
+    if existing and existing.get("verified") and not verified:
+        return existing
     record = {
-        "fingerprint": fingerprint, "sheet_mapping": sheet_mapping,
+        "fingerprint": fingerprint, "sheet_mapping": sheet_mapping, "verified": verified,
         "saved_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
     }
-    with open(_report_spec_path(fingerprint), "w", encoding="utf-8") as fh:
+    with open(path, "w", encoding="utf-8") as fh:
         json.dump(record, fh, ensure_ascii=False, indent=2)
     return record
 
@@ -139,3 +156,38 @@ def report_spec_search(query: str = None, sheet: str = None, target_report_type:
         nq = _norm(query)
         records = [r for r in records if nq in _norm(json.dumps(r, ensure_ascii=False))]
     return records
+
+
+# ---- Extension 3: bindings — xác nhận scope/basis/screen cho 1 canonical_kind ----
+# Khác report_specs (mapping cột→raw_rows, kỹ thuật): binding là QUYẾT ĐỊNH NGHIỆP VỤ do
+# NGƯỜI xác nhận 1 lần (hợp nhất/riêng, lũy kế/theo kỳ, phục vụ chỉ tiêu/màn hình nào) — lưu
+# theo canonical_kind (không theo fingerprint file) để dùng lại cho MỌI công ty/kỳ cùng loại
+# báo cáo, không phải hỏi lại. KHÔNG tự động ghi số vào KPI — chỉ là siêu dữ liệu phân loại.
+
+def _binding_path(canonical_kind: str) -> str:
+    os.makedirs(BINDINGS_DIR, exist_ok=True)
+    return os.path.join(BINDINGS_DIR, f"{canonical_kind}.json")
+
+
+def binding_get(canonical_kind: str):
+    path = _binding_path(canonical_kind)
+    if not os.path.exists(path):
+        return None
+    try:
+        with open(path, encoding="utf-8") as fh:
+            return json.load(fh)
+    except (OSError, json.JSONDecodeError):
+        return None
+
+
+def binding_save(canonical_kind: str, scope: str = None, basis: str = None,
+                 target_screen: str = None, chi_tieu: str = None, kpi_id=None) -> dict:
+    record = {
+        "canonical_kind": canonical_kind, "scope": scope, "basis": basis,
+        "target_screen": target_screen, "chi_tieu": chi_tieu, "kpi_id": kpi_id,
+        "confirmed": True,
+        "confirmed_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+    }
+    with open(_binding_path(canonical_kind), "w", encoding="utf-8") as fh:
+        json.dump(record, fh, ensure_ascii=False, indent=2)
+    return record

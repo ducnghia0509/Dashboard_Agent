@@ -498,14 +498,20 @@ def generic_import_execute(
         for m in melted[:5]
     ]
 
+    fp = bb.fingerprint([file_name, sheet, orientation,
+                         json.dumps(mapping.get("columns") or mapping.get("row_roles") or [],
+                                    ensure_ascii=False)])
+
     if dry_run:
+        # Khép vòng học sớm: dry-run thành công (có dòng melt được) -> lưu mapping ngay
+        # (verified=False), không cần chờ ai bấm "ghi thật". Nhờ vậy autobatch/propose không
+        # phải chạy lại LLM cho cùng 1 sheet đã verify đúng qua dry-run trước đó.
+        if melted:
+            memory.report_spec_save(fp, mapping, verified=False)
         return {"dry_run": True, "target_report_type": target_rt, "row_count": len(melted),
                 "sample_mapped_rows": sample_mapped_rows, "skipped_duplicate": False,
                 "message": f"Dry-run: dự kiến ghi {len(melted)} dòng report_type={target_rt}."}
 
-    fp = bb.fingerprint([file_name, sheet, orientation,
-                         json.dumps(mapping.get("columns") or mapping.get("row_roles") or [],
-                                    ensure_ascii=False)])
     content_hash = hashlib.sha1(data).hexdigest()
     dup = _ledger_find("generic", target_rt, period_val, fp, content_hash)
     if dup:
@@ -533,7 +539,7 @@ def generic_import_execute(
                      "fingerprint": fp, "content_hash": content_hash, "dataset_id": ds["id"],
                      "file_name": file_name, "sheet": sheet})
     _ledger_save(entries)
-    memory.report_spec_save(fp, mapping)
+    memory.report_spec_save(fp, mapping, verified=True)
 
     return {"dry_run": False, "dataset_id": ds["id"], "row_count": len(to_insert),
             "sample_mapped_rows": sample_mapped_rows, "skipped_duplicate": False,
