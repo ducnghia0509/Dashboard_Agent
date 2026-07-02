@@ -1,0 +1,32 @@
+# Python
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Test / runtime outputs
+memory/discoveries/*.json
+!memory/discoveries/.gitkeep
+memory/report_specs/*.json
+!memory/report_specs/.gitkeep
+memory/imports_ledger.json
+*.log
+
+# File du lieu that do user tha vao thu muc nay de test - khong commit (thong tin tai chinh nhay cam)
+*.xlsx
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

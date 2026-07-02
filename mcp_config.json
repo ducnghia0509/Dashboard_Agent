@@ -1,0 +1,17 @@
+{
+  "_note": "Che do Claude Code local (stdio). Che do OpenClaw gateway KHONG dung file nay - MCP server chay tren host qua HTTP/SSE va dang ky bang `openclaw mcp add --url ... --transport sse` (xem scripts/serve_http.py).",
+  "mcpServers": {
+    "dashboard_ingest": {
+      "command": ".venv/bin/python",
+      "args": ["-m", "servers.ingest_server"],
+      "cwd": ".",
+      "env": {}
+    },
+    "dashboard_qa": {
+      "command": ".venv/bin/python",
+      "args": ["-m", "servers.qa_server"],
+      "cwd": ".",
+      "env": {}
+    }
+  }
+}

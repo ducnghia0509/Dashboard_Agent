@@ -1,0 +1,22 @@
+[
+  {"q": "Doanh thu thuần tháng này theo khối là bao nhiêu?", "expected_kind": "sql"},
+  {"q": "Tổng chi phí quý này là bao nhiêu?", "expected_kind": "sql"},
+  {"q": "Lợi nhuận trước thuế của Khối KD Vận tải Taxi tháng trước là bao nhiêu?", "expected_kind": "sql"},
+  {"q": "Số dư tiền mặt và tiền gửi hiện tại là bao nhiêu?", "expected_kind": "sql"},
+  {"q": "Hệ số nợ được tính như thế nào?", "expected_kind": "glossary", "term": "he so no"},
+  {"q": "Tuổi nợ trên 6 tháng lấy nguồn từ đâu?", "expected_kind": "glossary", "term": "tuoi no"},
+  {"q": "DTHU là báo cáo gì?", "expected_kind": "glossary", "term": "DTHU"},
+  {"q": "Công thức tính tỷ lệ hoàn thành kế hoạch doanh thu là gì?", "expected_kind": "glossary", "term": "hoan thanh ke hoach doanh thu"},
+  {"q": "Số ngày phải thu bình quân tính ra sao?", "expected_kind": "glossary", "term": "so ngay phai thu binh quan"},
+  {"q": "Chỉ tiêu cảnh báo đỏ cho tỷ lệ giá vốn/doanh thu là gì?", "expected_kind": "glossary", "term": "ty le gia von"},
+  {"q": "Khối KD Vinfast - XDV là khối nào trong công ty?", "expected_kind": "glossary", "term": "khoi"},
+  {"q": "Vay ngắn/trung/dài hạn hiện lấy nguồn dữ liệu từ đâu?", "expected_kind": "glossary", "term": "vay va lai vay"},
+  {"q": "Hàng tồn kho luân chuyển trong kỳ được tính từ đâu?", "expected_kind": "glossary", "term": "luan chuyen"},
+  {"q": "Có bao nhiêu công ty trong master data?", "expected_kind": "glossary", "term": "cong ty"},
+  {"q": "Đầu tư ra bên ngoài hiện có nguồn dữ liệu tự động chưa?", "expected_kind": "glossary", "term": "dau tu ra ben ngoai"},
+  {"q": "File 'HQKD Line (report.hqkd.line).xlsx' được map vào report_type nào?", "expected_kind": "discovery", "query": "HQKD Line"},
+  {"q": "File báo cáo doanh thu đã được phân tích chưa, mapping ra sao?", "expected_kind": "discovery", "query": "doanhthu"},
+  {"q": "Đã có discovery nào cho report_type PTRA chưa?", "expected_kind": "discovery", "report_type": "PTRA"},
+  {"q": "Xem thử 5 dòng đầu của file 'Chi tiết Phải trả (report.phaitra.line).xlsx'.", "expected_kind": "source", "file_name": "Chi tiết Phải trả (report.phaitra.line).xlsx", "max_rows": 5},
+  {"q": "File 'HQKD Line (report.hqkd.line).xlsx' có những sheet nào?", "expected_kind": "source", "file_name": "HQKD Line (report.hqkd.line).xlsx", "max_rows": 1}
+]

@@ -1,0 +1,179 @@
+{
+  "_note": "Sinh tu khao sat truc tiep backend/app/main.py + metrics.py + src/pages/*.tsx cua DashBoard_AI (khong suy doan). 'wired_fields' = field lay tu API that; 'static_fields' = bien hard-code trong FE (file:line), can luong ingest bo sung nguon roi FE moi hien thi that.",
+  "screens": {
+    "overview": {
+      "route": "/",
+      "endpoint": "/metrics/overview",
+      "builder": "metrics.build_overview",
+      "query_params": ["from", "to", "cong_ty", "khoi", "kind", "dataset_id"],
+      "wired_fields": [
+        "kpis[].{key,actual,plan,status,noData,prev,title,subtitle}",
+        "khois[].{khoi,revenue,profit,planRevenue,progressPct,warnings}",
+        "redCount", "totalIndicators",
+        "revenueDaily[] ([date,amount])", "revenueByKhoi", "profitByKhoiCash[]"
+      ],
+      "static_fields": [
+        "Overview.tsx:56-62 nhan cung ('DOANH THU LUY KE'...) - chi la label, khong phai du lieu",
+        "Overview.tsx:113 mo ta canh bao dang text tinh"
+      ]
+    },
+    "revenue": {
+      "route": "/hieuqua/doanhthu",
+      "endpoint": "/metrics/revenue + /metrics/pnl",
+      "builder": "metrics.build_revenue, metrics.build_pnl",
+      "query_params": ["from", "to", "cong_ty", "khoi", "kind", "dataset_id"],
+      "wired_fields": [
+        "revenue.{total,plan,byKhoi,byCostCenter,byType}",
+        "pnl.{netRevenue,structDT[],cogs,grossProfit}"
+      ],
+      "static_fields": [
+        "Revenue.tsx:36-40 cards[].delta/up hard-code '+12.4%'",
+        "Revenue.tsx:144 so du dau ky = v*0.88 (ty le gia dinh, khong tu API)"
+      ]
+    },
+    "expense": {
+      "route": "/hieuqua/chiphi",
+      "endpoint": "/metrics/expense + /metrics/pnl",
+      "builder": "metrics.build_expense, metrics.build_pnl",
+      "query_params": ["from", "to", "cong_ty", "khoi", "kind", "dataset_id"],
+      "wired_fields": [
+        "expense.{total,plan,byKhoi}",
+        "pnl.{costGroups[].{name,val,items[]},cogs,fixedCost,finCost}"
+      ],
+      "static_fields": [
+        "Expense.tsx:34 plan = rev_plan*0.92 (ty le gia dinh, chua co ke hoach chi phi that)",
+        "Expense.tsx:14-18 COMBO chart 6 thang: mock hoan toan",
+        "Expense.tsx:138 blur 'Chua co quy tac canh bao'",
+        "Expense.tsx:156 blur 'Chua co ngan sach thang'"
+      ]
+    },
+    "profit": {
+      "route": "/hieuqua",
+      "endpoint": "/metrics/pnl + /metrics/overview",
+      "builder": "metrics.build_pnl",
+      "query_params": ["from", "to", "cong_ty", "khoi", "kind", "dataset_id"],
+      "wired_fields": [
+        "pnl.{netRevenue,cogs,variableCost,fixedCost,finCost,lntt,cogsRatio,grossRatio,grossProfit,cogsByKhoi,grossByKhoi}",
+        "overview.khois[]"
+      ],
+      "static_fields": [
+        "Profit.tsx:13-15 revSpark/costSpark/profitSpark hard-code",
+        "Profit.tsx:16-20 cumDataMock hard-code",
+        "Profit.tsx:27-29 revAct/costAct sinh boi mk() (gia lap), xT hard-code",
+        "Profit.tsx:100 blur 'Chua co so ke hoach/thuc hien'",
+        "Profit.tsx:111-112 blur 'Chua co chuoi ngay'"
+      ]
+    },
+    "cashflow": {
+      "route": "/dongtien",
+      "endpoint": null,
+      "builder": null,
+      "query_params": [],
+      "wired_fields": [],
+      "static_fields": [
+        "CashFlow.tsx:83 BLUR TOAN BO TRANG 'Chua noi nguon dong tien chi tiet & vay'",
+        "CashFlow.tsx:9-17 cashCards (7 the)",
+        "CashFlow.tsx:18-22 offBal (so du ngoai bang)",
+        "CashFlow.tsx:24-33 cashCos (9 cong ty)",
+        "CashFlow.tsx:34-35 thuBar/chiBar",
+        "CashFlow.tsx:37-44 thuTri/chiTri",
+        "CashFlow.tsx:45-52 vayKpis",
+        "CashFlow.tsx:54-69 vayTermRows/vayBank/diVay/traNo/duHan/laiKpis/laiBank/laiRatio/vayCty"
+      ],
+      "kpi_glossary_refs": ["DÒNG TIỀN", "VAY VÀ LÃI VAY"]
+    },
+    "finance": {
+      "route": "/taisan-nguonvon",
+      "endpoint": "/metrics/finance",
+      "builder": "metrics.build_finance",
+      "query_params": [],
+      "wired_fields": ["finance.{receivable,payable} (chi dung tong, khong dung chi tiet)"],
+      "static_fields": [
+        "Finance.tsx:89 BLUR chi tiet 'Chua noi nguon CDKT chi tiet'",
+        "Finance.tsx:7-10 finCards",
+        "Finance.tsx:11-22 assetItems/sourceItems",
+        "Finance.tsx:23-46 balanceGroups",
+        "Finance.tsx:95,99,139,146 tong so du hard-code '459.60 ty'",
+        "Finance.tsx:100,139,146 % bien dong hard-code '+7.1%'"
+      ],
+      "kpi_glossary_refs": ["TÀI SẢN - NGUỒN VỐN / TỔNG QUAN CHUNG"]
+    },
+    "debt": {
+      "route": "/taisan-nguonvon/congno",
+      "endpoint": "/metrics/finance",
+      "builder": "metrics.build_debt",
+      "query_params": [],
+      "wired_fields": ["finance.{receivable,payable} (chi dung tong)"],
+      "static_fields": [
+        "Debt.tsx:70 BLUR chi tiet 'Chua noi nguon cong no theo doi tac (PTHU/PTRA)'",
+        "Debt.tsx:9-14 payableMatrix",
+        "Debt.tsx:15-22 recvBienDong/payBienDong",
+        "Debt.tsx:24 agingRaw",
+        "Debt.tsx:27-30 thuStacked",
+        "Debt.tsx:31-42 debtRows (10 dong)",
+        "Debt.tsx:77-78 tong + % hard-code"
+      ],
+      "kpi_glossary_refs": ["NỢ PHẢI THU KHÁCH HÀNG", "NỢ PHẢI TRẢ NHÀ CUNG CẤP"]
+    },
+    "inventory": {
+      "route": "/taisan-nguonvon/tonkho",
+      "endpoint": "/metrics/inventory",
+      "builder": "metrics.build_inventory",
+      "query_params": ["from", "to", "cong_ty", "khoi", "kind", "dataset_id"],
+      "wired_fields": ["total (snapshot HH)", "byCc (snapshot_by_costcenter top20)"],
+      "static_fields": [
+        "Inventory.tsx:43 BLUR chi tiet 'Chua noi nguon Ton kho chi tiet (loai/aging/vong quay)'",
+        "Inventory.tsx:8-13 topCards", "Inventory.tsx:14-18 kpis", "Inventory.tsx:19-22 bySite",
+        "Inventory.tsx:24 typeRaw", "Inventory.tsx:27-36 aging (4 muc tuoi x 3 cot)",
+        "Inventory.tsx:79-86 'VÒNG QUAY HTK'=4.14, 'NGÀY LƯU KHO BQ'=88 hard-code"
+      ],
+      "kpi_glossary_refs": ["HÀNG TỒN KHO"]
+    },
+    "asset": {
+      "route": "/taisan-nguonvon/taisan",
+      "endpoint": "/metrics/asset",
+      "builder": "metrics.build_asset",
+      "query_params": ["from", "to", "cong_ty", "khoi", "kind", "dataset_id"],
+      "wired_fields": ["total (snapshot TS)", "nhapMoi (flow_sum amount2)", "byCc"],
+      "static_fields": [
+        "Asset.tsx:36 BLUR chi tiet 'Chua noi nguon Tai san chi tiet (loai/khau hao/bien dong)'",
+        "Asset.tsx:8-13 topCards", "Asset.tsx:14-18 kpis", "Asset.tsx:19-22 bySite",
+        "Asset.tsx:24 typeRaw", "Asset.tsx:27-30 bienDong", "Asset.tsx:50 tong hard-code '153.7 ty'"
+      ],
+      "kpi_glossary_refs": ["TÀI SẢN"]
+    },
+    "investment": {
+      "route": "/taisan-nguonvon/dautu",
+      "endpoint": "/metrics/investment",
+      "builder": "metrics.build_investment",
+      "query_params": ["from", "to", "cong_ty", "khoi", "kind", "dataset_id"],
+      "wired_fields": [],
+      "static_fields": [
+        "Investment.tsx:37 BLUR chi tiet 'Chua noi nguon Dau tu tai chinh (CDKT)'",
+        "Investment.tsx:8-13 topCards", "Investment.tsx:14-18 kpis", "Investment.tsx:19-22 byUnit",
+        "Investment.tsx:24 typeRaw", "Investment.tsx:27-31 bienDong", "Investment.tsx:51 tong hard-code '67.3 ty'"
+      ],
+      "kpi_glossary_refs": ["ĐẦU TƯ RA BÊN NGOÀI"]
+    },
+    "operations": {
+      "route": "/kdvh",
+      "endpoint": "/metrics/operations",
+      "builder": "metrics.build_operations",
+      "query_params": ["from", "to", "cong_ty", "khoi", "kind", "dataset_id"],
+      "wired_fields": ["taxiRev (flow_sum DTHU khoi=Khối KD Vận tải Taxi)"],
+      "static_fields": [
+        "Operations.tsx:13-16 toan trang la placeholder text, chua co UI/KPI that"
+      ]
+    },
+    "detailed": {
+      "route": "/baocao",
+      "endpoint": "/rows",
+      "builder": null,
+      "query_params": ["from", "to", "cong_ty", "khoi", "type (required)", "limit", "kind", "dataset_id"],
+      "wired_fields": ["rows[].{ngay,khoi,cost_center,dim1,amount,payload}"],
+      "static_fields": [
+        "Detailed.tsx:10-13 TYPES enum tinh (9 report_type) - dung de chon filter, khong phai du lieu gia"
+      ]
+    }
+  }
+}

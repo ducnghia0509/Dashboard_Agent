@@ -1,0 +1,32 @@
+[
+  {
+    "file_name": "Chi tiết báo cáo doanh thu (report.doanhthu.line).xlsx",
+    "expected_report_type": "DTHU",
+    "required_covered": true
+  },
+  {
+    "file_name": "Chi tiết báo cáo SDT (report.sdt.line).xlsx",
+    "expected_report_type": "SDT",
+    "required_covered": true
+  },
+  {
+    "file_name": "Chi tiết Phải thu (report.phaithu.line).xlsx",
+    "expected_report_type": "PTHU",
+    "required_covered": true
+  },
+  {
+    "file_name": "Chi tiết Phải trả (report.phaitra.line).xlsx",
+    "expected_report_type": "PTRA",
+    "required_covered": true
+  },
+  {
+    "file_name": "HQKD Line (report.hqkd.line).xlsx",
+    "expected_report_type": "HQKD",
+    "required_covered": true
+  },
+  {
+    "file_name": "Report Thu Chi Line (report.thuchi.line).xlsx",
+    "expected_report_type": "THUCHI",
+    "required_covered": true
+  }
+]
