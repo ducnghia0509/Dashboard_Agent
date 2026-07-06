@@ -1,0 +1,14 @@
+{
+  "fingerprint": "93dd33229fb1ffdb",
+  "source_sheet": "T01.",
+  "target_sheet": "01_HQKD",
+  "mapping": {
+    "Chỉ tiêu KQKD": "D",
+    "Thực hiện (tỷ)": "F",
+    "reason": "Điền báo cáo HQKD (01_HQKD) từ sheet 'T01.' cho công ty TC, kỳ 2026-01, dựa trên cấu trúc cột từ kết quả profile: Chỉ tiêu lấy ở cột D, Thực hiện lấy ở cột F (Kỳ này)."
+  },
+  "canonical_kind": null,
+  "value_scale": 1e-09,
+  "constants": {},
+  "saved_at": "2026-07-06T07:37:59+00:00"
+}

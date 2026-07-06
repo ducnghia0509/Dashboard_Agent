@@ -1,0 +1,15 @@
+{
+  "fingerprint": "2347d585feaa754d",
+  "source_sheet": "1. HQKD Cao Bằng",
+  "target_sheet": "01_HQKD",
+  "mapping": {
+    "Chỉ tiêu KQKD": "H",
+    "Kế hoạch (tỷ)": "M",
+    "Thực hiện (tỷ)": "L",
+    "reason": "Thực hiện fill template cho sheet 1. HQKD Cao Bằng với Chỉ tiêu (cột H), Thực hiện (cột L) và Kế hoạch (cột M)"
+  },
+  "canonical_kind": null,
+  "value_scale": 1e-09,
+  "constants": {},
+  "saved_at": "2026-07-06T07:27:17+00:00"
+}

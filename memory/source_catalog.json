@@ -1,0 +1,6720 @@
+{
+  "53ffe2c43f2f509a": {
+    "file": "01_TC01_BÁO CÁO TIỀN TẬP ĐOÀN_THÁNG 03 NĂM 2026 1.xlsx",
+    "path": "/home/sysadmin/Connect_VPS/received_reports/THUCHI/baocaothuchi/01_TC01_BÁO CÁO TIỀN TẬP ĐOÀN_THÁNG 03 NĂM 2026 1.xlsx",
+    "company": "THUCHI",
+    "report_type": "baocaothuchi",
+    "month": 3,
+    "period_type": "từng tháng",
+    "sheets": [
+      {
+        "name": "TC01_SD TIỀN",
+        "columns": [
+          "BÁO CÁO TIỀN   :",
+          "Z:\\2. KHOI TAI CHINH KE TOAN\\2.6 BÁO CÁO NGÀY\\TC01_BC Tiền"
+        ],
+        "nrows": 112,
+        "canonical_kind": null
+      },
+      {
+        "name": "BC THU CHI (TỔNG)_T3.2026",
+        "columns": [
+          "THỊNH CƯỜNG GROUP",
+          "12156452000"
+        ],
+        "nrows": 240,
+        "canonical_kind": null
+      },
+      {
+        "name": "BC THU CHI_T3_TC",
+        "columns": [
+          "BÁO CÁO THU - CHI",
+          "Z:\\2. KHOI TAI CHINH KE TOAN\\2.6 BÁO CÁO NGÀY\\TC01_BC Tiền"
+        ],
+        "nrows": 207,
+        "canonical_kind": null
+      },
+      {
+        "name": "BC THU CHI_T3_VFQN",
+        "columns": [
+          "BÁO CÁO THU - CHI",
+          "Z:\\2. KHOI TAI CHINH KE TOAN\\2.6 BÁO CÁO NGÀY\\TC01_BC Tiền"
+        ],
+        "nrows": 147,
+        "canonical_kind": null
+      },
+      {
+        "name": "BC THU CHI_T3_XANH",
+        "columns": [
+          "BÁO CÁO THU - CHI",
+          "Z:\\2. KHOI TAI CHINH KE TOAN\\2.6 BÁO CÁO NGÀY\\TC01_BC Tiền"
+        ],
+        "nrows": 160,
+        "canonical_kind": null
+      },
+      {
+        "name": "BC THU CHI_T3_HUNGTHINH",
+        "columns": [
+          "BÁO CÁO THU - CHI",
+          "Z:\\2. KHOI TAI CHINH KE TOAN\\2.6 BÁO CÁO NGÀY\\TC01_BC Tiền"
+        ],
+        "nrows": 127,
+        "canonical_kind": null
+      },
+      {
+        "name": "BC THU CHI_T3_AN",
+        "columns": [
+          "BÁO CÁO THU - CHI",
+          "Z:\\2. KHOI TAI CHINH KE TOAN\\2.6 BÁO CÁO NGÀY\\TC01_BC Tiền"
+        ],
+        "nrows": 140,
+        "canonical_kind": null
+      }
+    ],
+    "mtime": 1783305877.3774302,
+    "indexed_at": "2026-07-06T03:43:02+00:00",
+    "ingested": false
+  },
+  "45f1bd24574801f5": {
+    "file": "01_TC01_BÁO CÁO TIỀN TẬP ĐOÀN_THÁNG 05 NĂM 2026.xlsx",
+    "path": "/home/sysadmin/Connect_VPS/received_reports/THUCHI/baocaothuchi/01_TC01_BÁO CÁO TIỀN TẬP ĐOÀN_THÁNG 05 NĂM 2026.xlsx",
+    "company": "THUCHI",
+    "report_type": "baocaothuchi",
+    "month": 5,
+    "period_type": "từng tháng",
+    "sheets": [
+      {
+        "name": "TC01_SD TIỀN",
+        "columns": [
+          "BÁO CÁO TIỀN   :",
+          "Z:\\2. KHOI TAI CHINH KE TOAN\\2.6 BÁO CÁO NGÀY\\TC01_BC Tiền",
+          "PTT ĐIỀN LÃI VAY TRUNG HẠN VÀ NGẮN HẠN CỦA CÁC BANK EM NHÉ. PHỤC VỤ CHO VIỆC ƯỚC TÍNH CHI PHÍ LÃI VAY ĐƯA VÀO BÁO CÁO HIỆU QUẢ KINH DOANH HÀNG NGÀY. TỪ DÒNG SỐ 161 TRỞ XUỐNG"
+        ],
+        "nrows": 246,
+        "canonical_kind": null
+      },
+      {
+        "name": "BC THU CHI (TỔNG)_T5.2026",
+        "columns": [
+          "THỊNH CƯỜNG GROUP",
+          "12156452000"
+        ],
+        "nrows": 242,
+        "canonical_kind": null
+      },
+      {
+        "name": "BC THU CHI_T5_TC",
+        "columns": [
+          "BÁO CÁO THU - CHI",
+          "Z:\\2. KHOI TAI CHINH KE TOAN\\2.6 BÁO CÁO NGÀY\\TC01_BC Tiền"
+        ],
+        "nrows": 208,
+        "canonical_kind": null
+      },
+      {
+        "name": "BC THU CHI_T5_HUNGTHINH",
+        "columns": [
+          "BÁO CÁO THU - CHI",
+          "Z:\\2. KHOI TAI CHINH KE TOAN\\2.6 BÁO CÁO NGÀY\\TC01_BC Tiền"
+        ],
+        "nrows": 129,
+        "canonical_kind": null
+      },
+      {
+        "name": "BC THU CHI_T5_VFQN",
+        "columns": [
+          "BÁO CÁO THU - CHI",
+          "Z:\\2. KHOI TAI CHINH KE TOAN\\2.6 BÁO CÁO NGÀY\\TC01_BC Tiền"
+        ],
+        "nrows": 149,
+        "canonical_kind": null
+      },
+      {
+        "name": "BC THU CHI_T5_XANH",
+        "columns": [
+          "BÁO CÁO THU - CHI",
+          "Z:\\2. KHOI TAI CHINH KE TOAN\\2.6 BÁO CÁO NGÀY\\TC01_BC Tiền"
+        ],
+        "nrows": 161,
+        "canonical_kind": null
+      },
+      {
+        "name": "BC THU CHI_T5_AN",
+        "columns": [
+          "BÁO CÁO THU - CHI",
+          "Z:\\2. KHOI TAI CHINH KE TOAN\\2.6 BÁO CÁO NGÀY\\TC01_BC Tiền"
+        ],
+        "nrows": 141,
+        "canonical_kind": null
+      }
+    ],
+    "mtime": 1783305881.785469,
+    "indexed_at": "2026-07-06T03:43:02+00:00",
+    "ingested": false
+  },
+  "e8e267d0cc2359fb": {
+    "file": "01_TC01_BÁO CÁO TIỀN TẬP ĐOÀN_THÁNG 04 NĂM 2026 (1).xlsx",
+    "path": "/home/sysadmin/Connect_VPS/received_reports/THUCHI/baocaothuchi/01_TC01_BÁO CÁO TIỀN TẬP ĐOÀN_THÁNG 04 NĂM 2026 (1).xlsx",
+    "company": "THUCHI",
+    "report_type": "baocaothuchi",
+    "month": 4,
+    "period_type": "từng tháng",
+    "sheets": [
+      {
+        "name": "TC01_SD TIỀN",
+        "columns": [
+          "BÁO CÁO TIỀN   :",
+          "Z:\\2. KHOI TAI CHINH KE TOAN\\2.6 BÁO CÁO NGÀY\\TC01_BC Tiền"
+        ],
+        "nrows": 243,
+        "canonical_kind": null
+      },
+      {
+        "name": "BC THU CHI (TỔNG)_T4.2026",
+        "columns": [
+          "THỊNH CƯỜNG GROUP",
+          "12156452000"
+        ],
+        "nrows": 241,
+        "canonical_kind": null
+      },
+      {
+        "name": "BC THU CHI_T4_TC",
+        "columns": [
+          "BÁO CÁO THU - CHI",
+          "Z:\\2. KHOI TAI CHINH KE TOAN\\2.6 BÁO CÁO NGÀY\\TC01_BC Tiền"
+        ],
+        "nrows": 208,
+        "canonical_kind": null
+      },
+      {
+        "name": "BC THU CHI_T4_HUNGTHINH",
+        "columns": [
+          "BÁO CÁO THU - CHI",
+          "Z:\\2. KHOI TAI CHINH KE TOAN\\2.6 BÁO CÁO NGÀY\\TC01_BC Tiền"
+        ],
+        "nrows": 128,
+        "canonical_kind": null
+      },
+      {
+        "name": "BC THU CHI_T4_VFQN",
+        "columns": [
+          "BÁO CÁO THU - CHI",
+          "Z:\\2. KHOI TAI CHINH KE TOAN\\2.6 BÁO CÁO NGÀY\\TC01_BC Tiền"
+        ],
+        "nrows": 148,
+        "canonical_kind": null
+      },
+      {
+        "name": "BC THU CHI_T4_XANH",
+        "columns": [
+          "BÁO CÁO THU - CHI",
+          "Z:\\2. KHOI TAI CHINH KE TOAN\\2.6 BÁO CÁO NGÀY\\TC01_BC Tiền"
+        ],
+        "nrows": 161,
+        "canonical_kind": null
+      },
+      {
+        "name": "BC THU CHI_T4_AN",
+        "columns": [
+          "BÁO CÁO THU - CHI",
+          "Z:\\2. KHOI TAI CHINH KE TOAN\\2.6 BÁO CÁO NGÀY\\TC01_BC Tiền"
+        ],
+        "nrows": 141,
+        "canonical_kind": null
+      }
+    ],
+    "mtime": 1783305879.5694494,
+    "indexed_at": "2026-07-06T03:43:03+00:00",
+    "ingested": false
+  },
+  "b48cc1cb4c7f4ad0": {
+    "file": "01_TC01_BÁO CÁO TIỀN TẬP ĐOÀN_THÁNG 01 NĂM 2026 (1).xlsx",
+    "path": "/home/sysadmin/Connect_VPS/received_reports/THUCHI/baocaothuchi/01_TC01_BÁO CÁO TIỀN TẬP ĐOÀN_THÁNG 01 NĂM 2026 (1).xlsx",
+    "company": "THUCHI",
+    "report_type": "baocaothuchi",
+    "month": 1,
+    "period_type": "từng tháng",
+    "sheets": [
+      {
+        "name": "TC01_SD TIỀN",
+        "columns": [
+          "BÁO CÁO TIỀN:",
+          "Z:\\2. KHOI TAI CHINH KE TOAN\\2.6 BÁO CÁO NGÀY\\TC01_BC Tiền"
+        ],
+        "nrows": null,
+        "canonical_kind": null
+      },
+      {
+        "name": "BC THU CHI (TỔNG)_T1.2026",
+        "columns": [
+          "THỊNH CƯỜNG GROUP",
+          "12156452000"
+        ],
+        "nrows": null,
+        "canonical_kind": null
+      },
+      {
+        "name": "BC THU CHI_T1_TC",
+        "columns": [
+          "BÁO CÁO THU - CHI",
+          "Z:\\2. KHOI TAI CHINH KE TOAN\\2.6 BÁO CÁO NGÀY\\TC01_BC Tiền"
+        ],
+        "nrows": null,
+        "canonical_kind": null
+      },
+      {
+        "name": "BC THU CHI_T1_VFQN",
+        "columns": [
+          "BÁO CÁO THU - CHI",
+          "Z:\\2. KHOI TAI CHINH KE TOAN\\2.6 BÁO CÁO NGÀY\\TC01_BC Tiền"
+        ],
+        "nrows": null,
+        "canonical_kind": null
+      },
+      {
+        "name": "BC THU CHI_T1_XANH",
+        "columns": [
+          "BÁO CÁO THU - CHI",
+          "Z:\\2. KHOI TAI CHINH KE TOAN\\2.6 BÁO CÁO NGÀY\\TC01_BC Tiền"
+        ],
+        "nrows": null,
+        "canonical_kind": null
+      },
+      {
+        "name": "BC THU CHI_T1_HUNGTHINH",
+        "columns": [
+          "BÁO CÁO THU - CHI",
+          "Z:\\2. KHOI TAI CHINH KE TOAN\\2.6 BÁO CÁO NGÀY\\TC01_BC Tiền"
+        ],
+        "nrows": null,
+        "canonical_kind": null
+      },
+      {
+        "name": "BC THU CHI_T1_AN",
+        "columns": [
+          "BÁO CÁO THU - CHI",
+          "Z:\\2. KHOI TAI CHINH KE TOAN\\2.6 BÁO CÁO NGÀY\\TC01_BC Tiền"
+        ],
+        "nrows": null,
+        "canonical_kind": null
+      }
+    ],
+    "mtime": 1783305872.8773904,
+    "indexed_at": "2026-07-06T03:43:03+00:00",
+    "ingested": false
+  },
+  "e142132b7d558c25": {
+    "file": "01_TC01_BÁO CÁO TIỀN TẬP ĐOÀN_THÁNG 02 NĂM 2026 (4).xlsx",
+    "path": "/home/sysadmin/Connect_VPS/received_reports/THUCHI/baocaothuchi/01_TC01_BÁO CÁO TIỀN TẬP ĐOÀN_THÁNG 02 NĂM 2026 (4).xlsx",
+    "company": "THUCHI",
+    "report_type": "baocaothuchi",
+    "month": 2,
+    "period_type": "từng tháng",
+    "sheets": [
+      {
+        "name": "TC01_SD TIỀN",
+        "columns": [
+          "BÁO CÁO TIỀN:",
+          "Z:\\2. KHOI TAI CHINH KE TOAN\\2.6 BÁO CÁO NGÀY\\TC01_BC Tiền",
+          "35",
+          "15",
+          "50"
+        ],
+        "nrows": 112,
+        "canonical_kind": null
+      },
+      {
+        "name": "BC THU CHI (TỔNG)_T2.2026",
+        "columns": [
+          "THỊNH CƯỜNG GROUP",
+          "12156452000"
+        ],
+        "nrows": 240,
+        "canonical_kind": null
+      },
+      {
+        "name": "BC THU CHI_T2_TC",
+        "columns": [
+          "BÁO CÁO THU - CHI",
+          "Z:\\2. KHOI TAI CHINH KE TOAN\\2.6 BÁO CÁO NGÀY\\TC01_BC Tiền"
+        ],
+        "nrows": 207,
+        "canonical_kind": null
+      },
+      {
+        "name": "BC THU CHI_T2_VFQN",
+        "columns": [
+          "BÁO CÁO THU - CHI",
+          "Z:\\2. KHOI TAI CHINH KE TOAN\\2.6 BÁO CÁO NGÀY\\TC01_BC Tiền"
+        ],
+        "nrows": 147,
+        "canonical_kind": null
+      },
+      {
+        "name": "BC THU CHI_T2_XANH",
+        "columns": [
+          "BÁO CÁO THU - CHI",
+          "Z:\\2. KHOI TAI CHINH KE TOAN\\2.6 BÁO CÁO NGÀY\\TC01_BC Tiền"
+        ],
+        "nrows": 160,
+        "canonical_kind": null
+      },
+      {
+        "name": "BC THU CHI_T2_HUNGTHINH",
+        "columns": [
+          "BÁO CÁO THU - CHI",
+          "Z:\\2. KHOI TAI CHINH KE TOAN\\2.6 BÁO CÁO NGÀY\\TC01_BC Tiền"
+        ],
+        "nrows": 127,
+        "canonical_kind": null
+      },
+      {
+        "name": "BC THU CHI_T2_AN",
+        "columns": [
+          "BÁO CÁO THU - CHI",
+          "Z:\\2. KHOI TAI CHINH KE TOAN\\2.6 BÁO CÁO NGÀY\\TC01_BC Tiền"
+        ],
+        "nrows": 140,
+        "canonical_kind": null
+      }
+    ],
+    "mtime": 1783305875.1014102,
+    "indexed_at": "2026-07-06T03:43:04+00:00",
+    "ingested": false
+  },
+  "fe1f1824cc3af459": {
+    "file": "B.3.GR.TCKT.M000526.Baocaotaichinhriengtramsac.xlsx",
+    "path": "/home/sysadmin/Connect_VPS/received_reports/TRAMSAC/baocaotaichinhrieng/B.3.GR.TCKT.M000526.Baocaotaichinhriengtramsac.xlsx",
+    "company": "TRAMSAC",
+    "report_type": "baocaotaichinhrieng",
+    "month": 5,
+    "period_type": "từng tháng",
+    "sheets": [
+      {
+        "name": "Sheet1",
+        "columns": [
+          "2025-01-01 00:00:00",
+          "2025-01-31 00:00:00"
+        ],
+        "nrows": 17,
+        "canonical_kind": null
+      },
+      {
+        "name": "HQKD HỢP NHẤT TS",
+        "columns": [
+          "STT",
+          "Code",
+          "CHỈ TIÊU",
+          "ĐVT",
+          "Năm 2026",
+          "%DT",
+          "T01",
+          "%DT",
+          "T02",
+          "%DT",
+          "T03",
+          "%DT",
+          "T04",
+          "%DT",
+          "T05",
+          "%DT",
+          "T06",
+          "%DT",
+          "T07",
+          "%DT",
+          "T08",
+          "%DT",
+          "T09",
+          "%DT",
+          "T10",
+          "%DT",
+          "T11",
+          "%DT",
+          "T12",
+          "%DT"
+        ],
+        "nrows": 174,
+        "canonical_kind": null
+      },
+      {
+        "name": "Bảng kê HĐ mua vào",
+        "columns": [
+          "Đơn vị: CHI NHÁNH VINFAST HÀ NỘI - CÔNG TY CỔ PHẦN THỊNH CƯỜNG",
+          "Mẫu số 01-2/GTGT"
+        ],
+        "nrows": 25,
+        "canonical_kind": null
+      },
+      {
+        "name": "Bảng kê HĐ bán ra",
+        "columns": [
+          "Đơn vị: CHI NHÁNH VINFAST HÀ NỘI - CÔNG TY CỔ PHẦN THỊNH CƯỜNG",
+          "Mẫu số 01-2/GTGT"
+        ],
+        "nrows": 71,
+        "canonical_kind": null
+      },
+      {
+        "name": "Bảng CĐKT",
+        "columns": [
+          "Đơn vị: CHI NHÁNH VINFAST HÀ NỘI - CÔNG TY CỔ PHẦN THỊNH CƯỜNG",
+          "Mẫu số B01 – DN\nBan hành theo Thông tư số 200/2014/TT-BTC\nNgày 22/12/2014 của Bộ Tài Chính"
+        ],
+        "nrows": 135,
+        "canonical_kind": "CDKT"
+      },
+      {
+        "name": "BCKQHĐKD",
+        "columns": [
+          "Đơn vị: CHI NHÁNH VINFAST HÀ NỘI - CÔNG TY CỔ PHẦN THỊNH CƯỜNG",
+          "Mẫu số B02 – DN\nBan hành theo Thông tư số 200/2014/TT-BTC\nNgày 22/12/2014 của Bộ Tài Chính"
+        ],
+        "nrows": 43,
+        "canonical_kind": null
+      },
+      {
+        "name": "BC LCTT",
+        "columns": [
+          "Đơn vị: CHI NHÁNH VINFAST HÀ NỘI - CÔNG TY CỔ PHẦN THỊNH CƯỜNG",
+          "Mẫu số B03 – DN\nBan hành theo Thông tư số 200/2014/TT-BTC\nNgày 22/12/2014 của Bộ Tài Chính"
+        ],
+        "nrows": 54,
+        "canonical_kind": "LCTT"
+      },
+      {
+        "name": "THCN phải thu",
+        "columns": [
+          "Mã ĐT\n(7)",
+          "Tên ĐT\n(8)",
+          "Đầu kỳ",
+          "Phát sinh trong kỳ",
+          "Cuối kỳ"
+        ],
+        "nrows": 102,
+        "canonical_kind": "TK131"
+      },
+      {
+        "name": "THCN phải trả",
+        "columns": [
+          "Mã ĐT\n(7)",
+          "Tên ĐT\n(8)",
+          "Đầu kỳ",
+          "Phát sinh trong kỳ",
+          "Cuối kỳ"
+        ],
+        "nrows": 37,
+        "canonical_kind": "TK331"
+      },
+      {
+        "name": "khấu hao",
+        "columns": [
+          "Đặc tính",
+          "Tài sản",
+          "Khấu hao",
+          "Giá trị sổ sách"
+        ],
+        "nrows": 104,
+        "canonical_kind": "TSCD"
+      },
+      {
+        "name": "Sheet2",
+        "columns": [
+          "1",
+          "111",
+          "Tiền mặt"
+        ],
+        "nrows": 263,
+        "canonical_kind": null
+      }
+    ],
+    "mtime": 1783147407.644519,
+    "indexed_at": "2026-07-06T03:43:04+00:00",
+    "ingested": false
+  },
+  "634ce4a1c2c34542": {
+    "file": "B.7.AAG.TCKT.M.202605.Baocaotaichinhrieng.xlsx",
+    "path": "/home/sysadmin/Connect_VPS/received_reports/DUAN/baocaotaichinhrieng/B.7.AAG.TCKT.M.202605.Baocaotaichinhrieng.xlsx",
+    "company": "DUAN",
+    "report_type": "baocaotaichinhrieng",
+    "month": 5,
+    "period_type": "từng tháng",
+    "sheets": [
+      {
+        "name": "BCQT PT.",
+        "columns": [
+          "Đơn vị:",
+          "Mẫu số B02 – DN\nBan hành theo Thông tư số 200/2014/TT-BTC\nNgày 22/12/2014 của Bộ Tài Chính"
+        ],
+        "nrows": 1048511,
+        "canonical_kind": null
+      },
+      {
+        "name": "CDPS",
+        "columns": [
+          "Loại tiền: VND"
+        ],
+        "nrows": 1111,
+        "canonical_kind": "CDPS"
+      },
+      {
+        "name": "CDKT",
+        "columns": [
+          "Đơn vị: CÔNG TY CỔ PHẦN AN AN'S GARDEN",
+          "Mẫu số B01 – DN\nBan hành theo Thông tư số 200/2014/TT-BTC\nNgày 22/12/2014 của Bộ Tài Chính"
+        ],
+        "nrows": 1048572,
+        "canonical_kind": "CDKT"
+      },
+      {
+        "name": "BCQT",
+        "columns": [
+          "Đơn vị:",
+          "Mẫu số B02 – DN\nBan hành theo Thông tư số 200/2014/TT-BTC\nNgày 22/12/2014 của Bộ Tài Chính"
+        ],
+        "nrows": 1048525,
+        "canonical_kind": null
+      },
+      {
+        "name": "LCTT",
+        "columns": [
+          "Đơn vị: CÔNG TY CỔ PHẦN AN AN'S GARDEN",
+          "Mẫu số B03 – DN\nBan hành theo Thông tư số 200/2014/TT-BTC\nNgày 22/12/2014 của Bộ Tài Chính"
+        ],
+        "nrows": 52,
+        "canonical_kind": "LCTT"
+      },
+      {
+        "name": "KQKD",
+        "columns": [
+          "Đơn vị: CÔNG TY CỔ PHẦN AN AN'S GARDEN",
+          "Mẫu số B02 – DN\nBan hành theo Thông tư số 200/2014/TT-BTC\nNgày 22/12/2014 của Bộ Tài Chính"
+        ],
+        "nrows": 43,
+        "canonical_kind": "KQKD"
+      },
+      {
+        "name": "DATA ",
+        "columns": [
+          "Ngày",
+          "Số",
+          "Diễn giải",
+          "Tài khoản",
+          "Nợ",
+          "Có",
+          "Đối tác",
+          "Sổ nhật ký",
+          "Bút toán sổ nhật ký/Ghi chú",
+          "Nhãn",
+          "Ghi chú"
+        ],
+        "nrows": 272747,
+        "canonical_kind": null
+      },
+      {
+        "name": "Biểu khấu hao",
+        "columns": [
+          "Đặc tính",
+          "Tài sản",
+          "Khấu hao",
+          "Giá trị sổ sách"
+        ],
+        "nrows": 507,
+        "canonical_kind": "TSCD"
+      },
+      {
+        "name": "131",
+        "columns": [
+          "Mã ĐT\n(7)",
+          "Tên ĐT\n(8)",
+          "Đầu kỳ",
+          "Phát sinh trong kỳ",
+          "Cuối kỳ"
+        ],
+        "nrows": 42,
+        "canonical_kind": "TK131"
+      },
+      {
+        "name": "331",
+        "columns": [
+          "Mã ĐT\n(7)",
+          "Tên ĐT\n(8)",
+          "Đầu kỳ",
+          "Phát sinh trong kỳ",
+          "Cuối kỳ"
+        ],
+        "nrows": 30,
+        "canonical_kind": "TK331"
+      }
+    ],
+    "mtime": 1783147400.7484248,
+    "indexed_at": "2026-07-06T03:43:18+00:00",
+    "ingested": false
+  },
+  "291ecb8ba745e6fe": {
+    "file": "B.4.TC.TCKT.M.20260500.BaocaoHQKD.xlsx",
+    "path": "/home/sysadmin/Connect_VPS/received_reports/DUAN/baocaoketquakinhdoanhrieng/B.4.TC.TCKT.M.20260500.BaocaoHQKD.xlsx",
+    "company": "DUAN",
+    "report_type": "baocaoketquakinhdoanhrieng",
+    "month": 5,
+    "period_type": "từng tháng",
+    "sheets": [
+      {
+        "name": "DS báo cáo",
+        "columns": [
+          "STT",
+          "Mã báo cáo",
+          "Tên báo cáo"
+        ],
+        "nrows": 999,
+        "canonical_kind": null
+      },
+      {
+        "name": "Master Data",
+        "columns": [
+          "Mã",
+          "Tên Công ty"
+        ],
+        "nrows": 969,
+        "canonical_kind": null
+      },
+      {
+        "name": "User",
+        "columns": [
+          "Nhóm quyền",
+          "C Điệp đề xuất - Đặt tên acc theo vị trí, ko theo tên cá nhân"
+        ],
+        "nrows": 37,
+        "canonical_kind": null
+      },
+      {
+        "name": "1. HQKD Cao Bằng",
+        "columns": [
+          "Ngày",
+          "Nhóm chỉ tiêu",
+          "Công ty",
+          "Khối kinh doanh",
+          "Cost Center"
+        ],
+        "nrows": 886,
+        "canonical_kind": null
+      },
+      {
+        "name": "2. HQKD Tân Thịnh",
+        "columns": [
+          "Ngày",
+          "Nhóm chỉ tiêu",
+          "Công ty",
+          "Khối kinh doanh",
+          "Cost Center"
+        ],
+        "nrows": 886,
+        "canonical_kind": null
+      },
+      {
+        "name": "3. HQKD Phú  Quốc",
+        "columns": [
+          "Ngày",
+          "Nhóm chỉ tiêu",
+          "Công ty",
+          "Khối kinh doanh",
+          "Cost Center"
+        ],
+        "nrows": 886,
+        "canonical_kind": null
+      },
+      {
+        "name": "4. doanh thu",
+        "columns": [
+          "Ngày",
+          "Nhóm chỉ tiêu",
+          "Công ty",
+          "Khối kinh doanh",
+          "Cost Center"
+        ],
+        "nrows": 682,
+        "canonical_kind": null
+      },
+      {
+        "name": "5. Bán xe",
+        "columns": [
+          "Ngày",
+          "Nhóm chỉ tiêu",
+          "Công ty",
+          "Khối kinh doanh",
+          "Cost Center"
+        ],
+        "nrows": 670,
+        "canonical_kind": null
+      },
+      {
+        "name": "6. Pthu",
+        "columns": [
+          "Ngày",
+          "Nhóm chỉ tiêu",
+          "Công ty",
+          "Khối kinh doanh",
+          "Cost Center"
+        ],
+        "nrows": 662,
+        "canonical_kind": null
+      },
+      {
+        "name": "7. Ptra",
+        "columns": [
+          "Ngày",
+          "Nhóm chỉ tiêu",
+          "Công ty",
+          "Khối kinh doanh",
+          "Cost Center"
+        ],
+        "nrows": 662,
+        "canonical_kind": null
+      },
+      {
+        "name": "8. Đầu tư",
+        "columns": [
+          "Ngày",
+          "Nhóm chỉ tiêu",
+          "Công ty",
+          "Khối kinh doanh",
+          "Cost Center"
+        ],
+        "nrows": 640,
+        "canonical_kind": null
+      },
+      {
+        "name": "9. hàng hóa",
+        "columns": [
+          "Ngày",
+          "Nhóm chỉ tiêu",
+          "Công ty",
+          "Khối kinh doanh",
+          "Cost Center"
+        ],
+        "nrows": 640,
+        "canonical_kind": null
+      },
+      {
+        "name": "10. Tài sản",
+        "columns": [
+          "Ngày",
+          "Nhóm chỉ tiêu",
+          "Công ty",
+          "Khối kinh doanh",
+          "Cost Center"
+        ],
+        "nrows": 615,
+        "canonical_kind": null
+      }
+    ],
+    "mtime": 1783147402.8604536,
+    "indexed_at": "2026-07-06T03:43:20+00:00",
+    "ingested": true
+  },
+  "7d7bb5267fd6b3cf": {
+    "file": "B.9.TC.TCKT.M.202605.BaocaotaichinhriengHO.xlsx",
+    "path": "/home/sysadmin/Connect_VPS/received_reports/HO/baocaotaichinhrieng/B.9.TC.TCKT.M.202605.BaocaotaichinhriengHO.xlsx",
+    "company": "HO",
+    "report_type": "baocaotaichinhrieng",
+    "month": 5,
+    "period_type": "từng tháng",
+    "sheets": [
+      {
+        "name": "Sheet1",
+        "columns": [
+          "2026-01-01 00:00:00",
+          "2026-01-31 00:00:00"
+        ],
+        "nrows": 12,
+        "canonical_kind": null
+      },
+      {
+        "name": "MENU",
+        "columns": [
+          "Menu:",
+          "- Cân đối phát sinh"
+        ],
+        "nrows": 50,
+        "canonical_kind": null
+      },
+      {
+        "name": "DATA",
+        "columns": [
+          "Tuần",
+          "Tháng",
+          "Ngày ghi sổ",
+          "Ngày chứng từ",
+          "Diễn giải",
+          "TKGHINO",
+          "TKGHICO",
+          "Số lượng",
+          "SỐ TIỀN",
+          "Mã BP 1",
+          "Mã BP 2",
+          "Mã CP 1",
+          "Mã CP 2",
+          "Mã ĐTTHCP",
+          "Đối tượng nợ",
+          "Đối tượng có"
+        ],
+        "nrows": 13743,
+        "canonical_kind": null
+      },
+      {
+        "name": "CĐPS",
+        "columns": [
+          "THỊNH CƯỜNG GROUP",
+          "Mẫu số: S06-DN"
+        ],
+        "nrows": 341,
+        "canonical_kind": "CDPS"
+      },
+      {
+        "name": "CĐKT",
+        "columns": [
+          "Đơn vị: CÔNG TY CỔ PHẦN THỊNH CƯỜNG_HO",
+          "Mẫu số B01 – DN\nBan hành theo Thông tư số 200/2014/TT-BTC\nNgày 22/12/2014 của Bộ Tài Chính"
+        ],
+        "nrows": 131,
+        "canonical_kind": "CDKT"
+      },
+      {
+        "name": "LCTT",
+        "columns": [
+          "Từ ngày",
+          "2026-01-01 00:00:00",
+          "2026-05-31 00:00:00"
+        ],
+        "nrows": 229,
+        "canonical_kind": "LCTT"
+      },
+      {
+        "name": "PB_HO",
+        "columns": [
+          "tháng 1.2026",
+          "6428",
+          "6414",
+          "6419",
+          "6423",
+          "6424",
+          "6418",
+          "6429",
+          "6427",
+          "635.05"
+        ],
+        "nrows": 52,
+        "canonical_kind": null
+      },
+      {
+        "name": "HO_KQKD",
+        "columns": [
+          "Mã số",
+          "Chỉ tiêu",
+          "TỔNG 12T",
+          "% DT",
+          "T01",
+          "% DT",
+          "T02",
+          "% DT",
+          "T03",
+          "% DT",
+          "T04",
+          "% DT",
+          "T05",
+          "% DT",
+          "T06",
+          "% DT",
+          "T07",
+          "% DT",
+          "T08",
+          "% DT",
+          "T09",
+          "% DT",
+          "T10",
+          "% DT",
+          "T11",
+          "% DT",
+          "T12",
+          "% DT"
+        ],
+        "nrows": 33,
+        "canonical_kind": "KQKD"
+      },
+      {
+        "name": "TC_CĐKT",
+        "columns": [
+          "Chỉ tiêu",
+          "Mã\n số",
+          "Thuyết minh",
+          "Số đầu năm",
+          "Số cuối năm",
+          "Biến động +/-"
+        ],
+        "nrows": 516,
+        "canonical_kind": "CDKT"
+      },
+      {
+        "name": "PTHU",
+        "columns": [
+          "2025-04-01 00:00:00",
+          "2025-04-30 00:00:00"
+        ],
+        "nrows": 136,
+        "canonical_kind": null
+      },
+      {
+        "name": "PTRA",
+        "columns": [
+          "2025-01-01 00:00:00",
+          "2025-04-30 00:00:00"
+        ],
+        "nrows": 594,
+        "canonical_kind": null
+      },
+      {
+        "name": "VAY+TẠM ỨNG",
+        "columns": [
+          "2025-04-01 00:00:00",
+          "2025-04-30 00:00:00"
+        ],
+        "nrows": 49,
+        "canonical_kind": null
+      }
+    ],
+    "mtime": 1783147405.5284903,
+    "indexed_at": "2026-07-06T03:43:21+00:00",
+    "ingested": false
+  },
+  "2871dad8f8a8c4fc": {
+    "file": "B.7.AAG.TCKT.M.202602.Baocaotaichinhrieng.xlsx",
+    "path": "/home/sysadmin/Connect_VPS/received_reports/ANTAXI/baocaotaichinhrieng/B.7.AAG.TCKT.M.202602.Baocaotaichinhrieng.xlsx",
+    "company": "ANTAXI",
+    "report_type": "baocaotaichinhrieng",
+    "month": 2,
+    "period_type": "từng tháng",
+    "sheets": [
+      {
+        "name": "DATA",
+        "columns": [
+          "Ngày",
+          "Số",
+          "Diễn giải",
+          "Tài khoản",
+          "Nợ",
+          "Có",
+          "Đối tác",
+          "Sổ nhật ký",
+          "Bút toán sổ nhật ký/Ghi chú",
+          "Nhãn",
+          "Ghi chú"
+        ],
+        "nrows": 273575,
+        "canonical_kind": null
+      },
+      {
+        "name": "Biểu khấu hao",
+        "columns": [
+          "Đặc tính",
+          "Tài sản",
+          "Khấu hao",
+          "Giá trị sổ sách"
+        ],
+        "nrows": 518,
+        "canonical_kind": "TSCD"
+      },
+      {
+        "name": "131",
+        "columns": [
+          "Mã ĐT\n(7)",
+          "Tên ĐT\n(8)",
+          "Đầu kỳ",
+          "Phát sinh trong kỳ",
+          "Cuối kỳ"
+        ],
+        "nrows": 47,
+        "canonical_kind": "TK131"
+      },
+      {
+        "name": "331",
+        "columns": [
+          "Mã ĐT\n(7)",
+          "Tên ĐT\n(8)",
+          "Đầu kỳ",
+          "Phát sinh trong kỳ",
+          "Cuối kỳ"
+        ],
+        "nrows": 29,
+        "canonical_kind": "TK331"
+      },
+      {
+        "name": "BCQT",
+        "columns": [
+          "Đơn vị:",
+          "Mẫu số B02 – DN\nBan hành theo Thông tư số 200/2014/TT-BTC\nNgày 22/12/2014 của Bộ Tài Chính"
+        ],
+        "nrows": 1048525,
+        "canonical_kind": null
+      },
+      {
+        "name": "BCQT PT.",
+        "columns": [
+          "Đơn vị:",
+          "Mẫu số B02 – DN\nBan hành theo Thông tư số 200/2014/TT-BTC\nNgày 22/12/2014 của Bộ Tài Chính"
+        ],
+        "nrows": 1048511,
+        "canonical_kind": null
+      },
+      {
+        "name": "CDPS",
+        "columns": [
+          "Loại tiền: VND"
+        ],
+        "nrows": 1111,
+        "canonical_kind": "CDPS"
+      },
+      {
+        "name": "LCTT",
+        "columns": [
+          "Đơn vị: CÔNG TY CỔ PHẦN AN AN'S GARDEN",
+          "Mẫu số B03 – DN\nBan hành theo Thông tư số 200/2014/TT-BTC\nNgày 22/12/2014 của Bộ Tài Chính"
+        ],
+        "nrows": 52,
+        "canonical_kind": "LCTT"
+      },
+      {
+        "name": "CDKT",
+        "columns": [
+          "Đơn vị: CÔNG TY CỔ PHẦN AN AN'S GARDEN",
+          "Mẫu số B01 – DN\nBan hành theo Thông tư số 200/2014/TT-BTC\nNgày 22/12/2014 của Bộ Tài Chính"
+        ],
+        "nrows": 1048572,
+        "canonical_kind": "CDKT"
+      },
+      {
+        "name": "KQKD",
+        "columns": [
+          "Đơn vị: CÔNG TY CỔ PHẦN AN AN'S GARDEN",
+          "Mẫu số B02 – DN\nBan hành theo Thông tư số 200/2014/TT-BTC\nNgày 22/12/2014 của Bộ Tài Chính"
+        ],
+        "nrows": 43,
+        "canonical_kind": "KQKD"
+      }
+    ],
+    "mtime": 1783147372.932041,
+    "indexed_at": "2026-07-06T03:43:37+00:00",
+    "ingested": false
+  },
+  "4d4e63a08b6cacd3": {
+    "file": "B.7.AAG.TCKT.M.202605.Baocaotaichinhrieng.xlsx",
+    "path": "/home/sysadmin/Connect_VPS/received_reports/ANTAXI/baocaotaichinhrieng/B.7.AAG.TCKT.M.202605.Baocaotaichinhrieng.xlsx",
+    "company": "ANTAXI",
+    "report_type": "baocaotaichinhrieng",
+    "month": 5,
+    "period_type": "từng tháng",
+    "sheets": [
+      {
+        "name": "BCQT PT.",
+        "columns": [
+          "Đơn vị:",
+          "Mẫu số B02 – DN\nBan hành theo Thông tư số 200/2014/TT-BTC\nNgày 22/12/2014 của Bộ Tài Chính"
+        ],
+        "nrows": null,
+        "canonical_kind": null
+      },
+      {
+        "name": "CDPS",
+        "columns": [
+          "Loại tiền: VND"
+        ],
+        "nrows": null,
+        "canonical_kind": "CDPS"
+      },
+      {
+        "name": "CDKT",
+        "columns": [
+          "Đơn vị: CÔNG TY CỔ PHẦN AN AN'S GARDEN",
+          "Mẫu số B01 – DN\nBan hành theo Thông tư số 200/2014/TT-BTC\nNgày 22/12/2014 của Bộ Tài Chính"
+        ],
+        "nrows": null,
+        "canonical_kind": "CDKT"
+      },
+      {
+        "name": "BCQT",
+        "columns": [
+          "Đơn vị:",
+          "Mẫu số B02 – DN\nBan hành theo Thông tư số 200/2014/TT-BTC\nNgày 22/12/2014 của Bộ Tài Chính"
+        ],
+        "nrows": null,
+        "canonical_kind": null
+      },
+      {
+        "name": "LCTT",
+        "columns": [
+          "Đơn vị: CÔNG TY CỔ PHẦN AN AN'S GARDEN",
+          "Mẫu số B03 – DN\nBan hành theo Thông tư số 200/2014/TT-BTC\nNgày 22/12/2014 của Bộ Tài Chính"
+        ],
+        "nrows": null,
+        "canonical_kind": "LCTT"
+      },
+      {
+        "name": "KQKD",
+        "columns": [
+          "Đơn vị: CÔNG TY CỔ PHẦN AN AN'S GARDEN",
+          "Mẫu số B02 – DN\nBan hành theo Thông tư số 200/2014/TT-BTC\nNgày 22/12/2014 của Bộ Tài Chính"
+        ],
+        "nrows": null,
+        "canonical_kind": "KQKD"
+      },
+      {
+        "name": "DATA ",
+        "columns": [
+          "Ngày",
+          "Số",
+          "Diễn giải",
+          "Tài khoản",
+          "Nợ",
+          "Có",
+          "Đối tác",
+          "Sổ nhật ký",
+          "Bút toán sổ nhật ký/Ghi chú",
+          "Nhãn",
+          "Ghi chú"
+        ],
+        "nrows": null,
+        "canonical_kind": null
+      },
+      {
+        "name": "Biểu khấu hao",
+        "columns": [
+          "Đặc tính",
+          "Tài sản",
+          "Khấu hao",
+          "Giá trị sổ sách"
+        ],
+        "nrows": null,
+        "canonical_kind": "TSCD"
+      },
+      {
+        "name": "131",
+        "columns": [
+          "Mã ĐT\n(7)",
+          "Tên ĐT\n(8)",
+          "Đầu kỳ",
+          "Phát sinh trong kỳ",
+          "Cuối kỳ"
+        ],
+        "nrows": null,
+        "canonical_kind": "TK131"
+      },
+      {
+        "name": "331",
+        "columns": [
+          "Mã ĐT\n(7)",
+          "Tên ĐT\n(8)",
+          "Đầu kỳ",
+          "Phát sinh trong kỳ",
+          "Cuối kỳ"
+        ],
+        "nrows": null,
+        "canonical_kind": "TK331"
+      }
+    ],
+    "mtime": 1783147387.1882381,
+    "indexed_at": "2026-07-06T03:43:40+00:00",
+    "ingested": false
+  },
+  "9a826eb96fad4302": {
+    "file": "B.7.AAG.TCKT.M.202603.Baocaotaichinhrieng.xlsx",
+    "path": "/home/sysadmin/Connect_VPS/received_reports/ANTAXI/baocaotaichinhrieng/B.7.AAG.TCKT.M.202603.Baocaotaichinhrieng.xlsx",
+    "company": "ANTAXI",
+    "report_type": "baocaotaichinhrieng",
+    "month": 3,
+    "period_type": "từng tháng",
+    "sheets": [
+      {
+        "name": "Biểu khấu hao",
+        "columns": [
+          "Đặc tính",
+          "Tài sản",
+          "Khấu hao",
+          "Giá trị sổ sách"
+        ],
+        "nrows": 516,
+        "canonical_kind": "TSCD"
+      },
+      {
+        "name": "DATA",
+        "columns": [
+          "Ngày",
+          "Số",
+          "Diễn giải",
+          "Tài khoản",
+          "Nợ",
+          "Có",
+          "Đối tác",
+          "Sổ nhật ký",
+          "Bút toán sổ nhật ký/Ghi chú",
+          "Nhãn",
+          "Ghi chú"
+        ],
+        "nrows": 284480,
+        "canonical_kind": null
+      },
+      {
+        "name": "131",
+        "columns": [
+          "Mã ĐT\n(7)",
+          "Tên ĐT\n(8)",
+          "Đầu kỳ",
+          "Phát sinh trong kỳ",
+          "Cuối kỳ"
+        ],
+        "nrows": 45,
+        "canonical_kind": "TK131"
+      },
+      {
+        "name": "331",
+        "columns": [
+          "Mã ĐT\n(7)",
+          "Tên ĐT\n(8)",
+          "Đầu kỳ",
+          "Phát sinh trong kỳ",
+          "Cuối kỳ"
+        ],
+        "nrows": 27,
+        "canonical_kind": "TK331"
+      },
+      {
+        "name": "BCQT PT.",
+        "columns": [
+          "Đơn vị:",
+          "Mẫu số B02 – DN\nBan hành theo Thông tư số 200/2014/TT-BTC\nNgày 22/12/2014 của Bộ Tài Chính"
+        ],
+        "nrows": 1048511,
+        "canonical_kind": null
+      },
+      {
+        "name": "LCTT",
+        "columns": [
+          "Đơn vị: CÔNG TY CỔ PHẦN AN AN'S GARDEN",
+          "Mẫu số B03 – DN\nBan hành theo Thông tư số 200/2014/TT-BTC\nNgày 22/12/2014 của Bộ Tài Chính"
+        ],
+        "nrows": 52,
+        "canonical_kind": "LCTT"
+      },
+      {
+        "name": "CDKT",
+        "columns": [
+          "Đơn vị: CÔNG TY CỔ PHẦN AN AN'S GARDEN",
+          "Mẫu số B01 – DN\nBan hành theo Thông tư số 200/2014/TT-BTC\nNgày 22/12/2014 của Bộ Tài Chính"
+        ],
+        "nrows": 1048572,
+        "canonical_kind": "CDKT"
+      },
+      {
+        "name": "BCQT",
+        "columns": [
+          "Đơn vị:",
+          "Mẫu số B02 – DN\nBan hành theo Thông tư số 200/2014/TT-BTC\nNgày 22/12/2014 của Bộ Tài Chính"
+        ],
+        "nrows": 1048525,
+        "canonical_kind": null
+      },
+      {
+        "name": "KQKD",
+        "columns": [
+          "Đơn vị: CÔNG TY CỔ PHẦN AN AN'S GARDEN",
+          "Mẫu số B02 – DN\nBan hành theo Thông tư số 200/2014/TT-BTC\nNgày 22/12/2014 của Bộ Tài Chính"
+        ],
+        "nrows": 43,
+        "canonical_kind": "KQKD"
+      },
+      {
+        "name": "CDPS",
+        "columns": [
+          "Loại tiền: VND"
+        ],
+        "nrows": 1111,
+        "canonical_kind": "CDPS"
+      }
+    ],
+    "mtime": 1783147377.8041084,
+    "indexed_at": "2026-07-06T03:43:51+00:00",
+    "ingested": false
+  },
+  "710b8be08365589e": {
+    "file": "B.7.AAG.TCKT.M.202604.Baocaotaichinhrieng.xlsx",
+    "path": "/home/sysadmin/Connect_VPS/received_reports/ANTAXI/baocaotaichinhrieng/B.7.AAG.TCKT.M.202604.Baocaotaichinhrieng.xlsx",
+    "company": "ANTAXI",
+    "report_type": "baocaotaichinhrieng",
+    "month": 4,
+    "period_type": "từng tháng",
+    "sheets": [
+      {
+        "name": "DATA",
+        "columns": [
+          "Ngày",
+          "Số",
+          "Diễn giải",
+          "Tài khoản",
+          "Nợ",
+          "Có",
+          "Đối tác",
+          "Sổ nhật ký",
+          "Bút toán sổ nhật ký/Ghi chú",
+          "Nhãn",
+          "Ghi chú"
+        ],
+        "nrows": 294303,
+        "canonical_kind": null
+      },
+      {
+        "name": "LCTT",
+        "columns": [
+          "Đơn vị: CÔNG TY CỔ PHẦN AN AN'S GARDEN",
+          "Mẫu số B03 – DN\nBan hành theo Thông tư số 200/2014/TT-BTC\nNgày 22/12/2014 của Bộ Tài Chính"
+        ],
+        "nrows": 52,
+        "canonical_kind": "LCTT"
+      },
+      {
+        "name": "BCQT",
+        "columns": [
+          "Đơn vị:",
+          "Mẫu số B02 – DN\nBan hành theo Thông tư số 200/2014/TT-BTC\nNgày 22/12/2014 của Bộ Tài Chính"
+        ],
+        "nrows": 1048525,
+        "canonical_kind": null
+      },
+      {
+        "name": "KQKD",
+        "columns": [
+          "Đơn vị: CÔNG TY CỔ PHẦN AN AN'S GARDEN",
+          "Mẫu số B02 – DN\nBan hành theo Thông tư số 200/2014/TT-BTC\nNgày 22/12/2014 của Bộ Tài Chính"
+        ],
+        "nrows": 43,
+        "canonical_kind": "KQKD"
+      },
+      {
+        "name": "CDPS",
+        "columns": [
+          "Loại tiền: VND"
+        ],
+        "nrows": 1110,
+        "canonical_kind": "CDPS"
+      },
+      {
+        "name": "CDKT",
+        "columns": [
+          "Đơn vị: CÔNG TY CỔ PHẦN AN AN'S GARDEN",
+          "Mẫu số B01 – DN\nBan hành theo Thông tư số 200/2014/TT-BTC\nNgày 22/12/2014 của Bộ Tài Chính"
+        ],
+        "nrows": 1048572,
+        "canonical_kind": "CDKT"
+      },
+      {
+        "name": "BCQT PT.",
+        "columns": [
+          "Đơn vị:",
+          "Mẫu số B02 – DN\nBan hành theo Thông tư số 200/2014/TT-BTC\nNgày 22/12/2014 của Bộ Tài Chính"
+        ],
+        "nrows": 1048511,
+        "canonical_kind": null
+      },
+      {
+        "name": "Biểu khấu hao",
+        "columns": [
+          "Đặc tính",
+          "Tài sản",
+          "Khấu hao",
+          "Giá trị sổ sách"
+        ],
+        "nrows": 506,
+        "canonical_kind": "TSCD"
+      },
+      {
+        "name": "331",
+        "columns": [
+          "Mã ĐT\n(7)",
+          "Tên ĐT\n(8)",
+          "Đầu kỳ",
+          "Phát sinh trong kỳ",
+          "Cuối kỳ"
+        ],
+        "nrows": 29,
+        "canonical_kind": "TK331"
+      },
+      {
+        "name": "131",
+        "columns": [
+          "Mã ĐT\n(7)",
+          "Tên ĐT\n(8)",
+          "Đầu kỳ",
+          "Phát sinh trong kỳ",
+          "Cuối kỳ"
+        ],
+        "nrows": 43,
+        "canonical_kind": "TK131"
+      }
+    ],
+    "mtime": 1783147383.4361863,
+    "indexed_at": "2026-07-06T03:43:53+00:00",
+    "ingested": false
+  },
+  "2863ffa301735a11": {
+    "file": "B.7.AAG.TCKT.M.202601.Baocaotaichinhrieng.xlsx",
+    "path": "/home/sysadmin/Connect_VPS/received_reports/ANTAXI/baocaotaichinhrieng/B.7.AAG.TCKT.M.202601.Baocaotaichinhrieng.xlsx",
+    "company": "ANTAXI",
+    "report_type": "baocaotaichinhrieng",
+    "month": 1,
+    "period_type": "từng tháng",
+    "sheets": [
+      {
+        "name": "DATA",
+        "columns": [
+          "Ngày",
+          "Số",
+          "Diễn giải",
+          "Tài khoản",
+          "Nợ",
+          "Có",
+          "Đối tác",
+          "Sổ nhật ký",
+          "Bút toán sổ nhật ký/Ghi chú",
+          "Nhãn",
+          "Ghi chú"
+        ],
+        "nrows": null,
+        "canonical_kind": null
+      },
+      {
+        "name": "131",
+        "columns": [
+          "Mã ĐT\n(7)",
+          "Tên ĐT\n(8)",
+          "Đầu kỳ",
+          "Phát sinh trong kỳ",
+          "Cuối kỳ"
+        ],
+        "nrows": null,
+        "canonical_kind": "TK131"
+      },
+      {
+        "name": "331",
+        "columns": [
+          "Mã ĐT\n(7)",
+          "Tên ĐT\n(8)",
+          "Đầu kỳ",
+          "Phát sinh trong kỳ",
+          "Cuối kỳ"
+        ],
+        "nrows": null,
+        "canonical_kind": "TK331"
+      },
+      {
+        "name": "Biểu khấu hao",
+        "columns": [
+          "Đặc tính",
+          "Tài sản",
+          "Khấu hao",
+          "Giá trị sổ sách"
+        ],
+        "nrows": null,
+        "canonical_kind": "TSCD"
+      },
+      {
+        "name": "BCQT",
+        "columns": [
+          "Đơn vị:",
+          "Mẫu số B02 – DN\nBan hành theo Thông tư số 200/2014/TT-BTC\nNgày 22/12/2014 của Bộ Tài Chính"
+        ],
+        "nrows": null,
+        "canonical_kind": null
+      },
+      {
+        "name": "BCQT PT.",
+        "columns": [
+          "Đơn vị:",
+          "Mẫu số B02 – DN\nBan hành theo Thông tư số 200/2014/TT-BTC\nNgày 22/12/2014 của Bộ Tài Chính"
+        ],
+        "nrows": null,
+        "canonical_kind": null
+      },
+      {
+        "name": "LCTT",
+        "columns": [
+          "Đơn vị: CÔNG TY CỔ PHẦN AN AN'S GARDEN",
+          "Mẫu số B03 – DN\nBan hành theo Thông tư số 200/2014/TT-BTC\nNgày 22/12/2014 của Bộ Tài Chính"
+        ],
+        "nrows": null,
+        "canonical_kind": "LCTT"
+      },
+      {
+        "name": "KQKD",
+        "columns": [
+          "Đơn vị: CÔNG TY CỔ PHẦN AN AN'S GARDEN",
+          "Mẫu số B02 – DN\nBan hành theo Thông tư số 200/2014/TT-BTC\nNgày 22/12/2014 của Bộ Tài Chính"
+        ],
+        "nrows": null,
+        "canonical_kind": "KQKD"
+      },
+      {
+        "name": "CDKT",
+        "columns": [
+          "Đơn vị: CÔNG TY CỔ PHẦN AN AN'S GARDEN",
+          "Mẫu số B01 – DN\nBan hành theo Thông tư số 200/2014/TT-BTC\nNgày 22/12/2014 của Bộ Tài Chính"
+        ],
+        "nrows": null,
+        "canonical_kind": "CDKT"
+      },
+      {
+        "name": "CDPS",
+        "columns": [
+          "Loại tiền: VND"
+        ],
+        "nrows": null,
+        "canonical_kind": "CDPS"
+      }
+    ],
+    "mtime": 1783141142.931561,
+    "indexed_at": "2026-07-06T03:43:55+00:00",
+    "ingested": false
+  },
+  "29aa02f67e6e83a9": {
+    "file": "B.10.AAG.TCKT.M.202603.Baocaotaichinhrieng.xlsx",
+    "path": "/home/sysadmin/Connect_VPS/received_reports/ANKHACHSAN/baocaotaichinhrieng/B.10.AAG.TCKT.M.202603.Baocaotaichinhrieng.xlsx",
+    "company": "ANKHACHSAN",
+    "report_type": "baocaotaichinhrieng",
+    "month": 3,
+    "period_type": "từng tháng",
+    "sheets": [
+      {
+        "name": "BCQT",
+        "columns": [
+          "TT",
+          "Nội dung chi phí",
+          "ĐVT",
+          "Tổng cộng",
+          "Tháng 01",
+          "Tháng 02",
+          "Tháng 03",
+          "Tháng 04",
+          "Tháng 05",
+          "Tháng 06",
+          "Tháng 07",
+          "Tháng 08",
+          "Tháng 09",
+          "Tháng 10",
+          "Tháng 11",
+          "Tháng 12"
+        ],
+        "nrows": 42,
+        "canonical_kind": null
+      },
+      {
+        "name": "LCTT",
+        "columns": [
+          "Chỉ tiêu",
+          "Mã số",
+          "Thuyết minh",
+          "Kỳ này",
+          "Kỳ trước"
+        ],
+        "nrows": 34,
+        "canonical_kind": "LCTT"
+      },
+      {
+        "name": "KQKD",
+        "columns": [
+          "Chỉ tiêu",
+          "Mã số",
+          "Thuyết minh",
+          "Kỳ này",
+          "Kỳ trước"
+        ],
+        "nrows": 24,
+        "canonical_kind": "KQKD"
+      },
+      {
+        "name": "CDKT",
+        "columns": [
+          "Chỉ tiêu",
+          "Mã số",
+          "Thuyết minh",
+          "Số cuối kỳ",
+          "Số đầu kỳ"
+        ],
+        "nrows": 123,
+        "canonical_kind": "CDKT"
+      },
+      {
+        "name": "CDPS",
+        "columns": [
+          "Số tài khoản",
+          "Tên tài khoản",
+          "Đầu kỳ",
+          "Phát sinh",
+          "Cuối kỳ"
+        ],
+        "nrows": 67,
+        "canonical_kind": "CDPS"
+      },
+      {
+        "name": "DATA",
+        "columns": [
+          "Ngày hạch toán",
+          "Ngày chứng từ",
+          "Số chứng từ",
+          "Diễn giải",
+          "Tài khoản",
+          "TK đối ứng",
+          "Phát sinh Nợ",
+          "Phát sinh Có"
+        ],
+        "nrows": 1223,
+        "canonical_kind": null
+      },
+      {
+        "name": "331",
+        "columns": [
+          "Mã nhà cung cấp",
+          "Tên nhà cung cấp",
+          "TK Công nợ",
+          "Số dư đầu kỳ",
+          "Phát sinh",
+          "Số dư cuối kỳ"
+        ],
+        "nrows": 9,
+        "canonical_kind": "TK331"
+      }
+    ],
+    "mtime": 1783147393.412324,
+    "indexed_at": "2026-07-06T03:44:09+00:00",
+    "ingested": false
+  },
+  "d9018af0a1857c9f": {
+    "file": "B.10.AAG.TCKT.M.202604.Baocaotaichinhrieng.xlsx",
+    "path": "/home/sysadmin/Connect_VPS/received_reports/ANKHACHSAN/baocaotaichinhrieng/B.10.AAG.TCKT.M.202604.Baocaotaichinhrieng.xlsx",
+    "company": "ANKHACHSAN",
+    "report_type": "baocaotaichinhrieng",
+    "month": 4,
+    "period_type": "từng tháng",
+    "sheets": [
+      {
+        "name": "BCQT",
+        "columns": [
+          "TT",
+          "Nội dung chi phí",
+          "ĐVT",
+          "Tổng cộng",
+          "Tháng 01",
+          "Tháng 02",
+          "Tháng 03",
+          "Tháng 04",
+          "Tháng 05",
+          "Tháng 06",
+          "Tháng 07",
+          "Tháng 08",
+          "Tháng 09",
+          "Tháng 10",
+          "Tháng 11",
+          "Tháng 12"
+        ],
+        "nrows": 42,
+        "canonical_kind": null
+      },
+      {
+        "name": "LCTT",
+        "columns": [
+          "Chỉ tiêu",
+          "Mã số",
+          "Thuyết minh",
+          "Kỳ này",
+          "Kỳ trước"
+        ],
+        "nrows": 34,
+        "canonical_kind": "LCTT"
+      },
+      {
+        "name": "KQKD",
+        "columns": [
+          "Chỉ tiêu",
+          "Mã số",
+          "Thuyết minh",
+          "Kỳ này",
+          "Kỳ trước"
+        ],
+        "nrows": 24,
+        "canonical_kind": "KQKD"
+      },
+      {
+        "name": "CDKT",
+        "columns": [
+          "Chỉ tiêu",
+          "Mã số",
+          "Thuyết minh",
+          "Số cuối kỳ",
+          "Số đầu kỳ"
+        ],
+        "nrows": 123,
+        "canonical_kind": "CDKT"
+      },
+      {
+        "name": "CDPS",
+        "columns": [
+          "Số tài khoản",
+          "Tên tài khoản",
+          "Đầu kỳ",
+          "Phát sinh",
+          "Cuối kỳ"
+        ],
+        "nrows": 67,
+        "canonical_kind": "CDPS"
+      },
+      {
+        "name": "331",
+        "columns": [
+          "Mã nhà cung cấp",
+          "Tên nhà cung cấp",
+          "TK Công nợ",
+          "Số dư đầu kỳ",
+          "Phát sinh",
+          "Số dư cuối kỳ"
+        ],
+        "nrows": 10,
+        "canonical_kind": "TK331"
+      },
+      {
+        "name": "DATA",
+        "columns": [
+          "Ngày hạch toán",
+          "Ngày chứng từ",
+          "Số chứng từ",
+          "Diễn giải",
+          "Tài khoản",
+          "TK đối ứng",
+          "Phát sinh Nợ",
+          "Phát sinh Có"
+        ],
+        "nrows": 287,
+        "canonical_kind": null
+      }
+    ],
+    "mtime": 1783147395.4763522,
+    "indexed_at": "2026-07-06T03:44:09+00:00",
+    "ingested": false
+  },
+  "63aee275fa9c9610": {
+    "file": "B.10.AAG.TCKT.M.202602.Baocaotaichinhrieng.xlsx",
+    "path": "/home/sysadmin/Connect_VPS/received_reports/ANKHACHSAN/baocaotaichinhrieng/B.10.AAG.TCKT.M.202602.Baocaotaichinhrieng.xlsx",
+    "company": "ANKHACHSAN",
+    "report_type": "baocaotaichinhrieng",
+    "month": 2,
+    "period_type": "từng tháng",
+    "sheets": [
+      {
+        "name": "BCQT",
+        "columns": [
+          "TT",
+          "Nội dung chi phí",
+          "ĐVT",
+          "Tổng cộng",
+          "Tháng 01",
+          "Tháng 02",
+          "Tháng 03",
+          "Tháng 04",
+          "Tháng 05",
+          "Tháng 06",
+          "Tháng 07",
+          "Tháng 08",
+          "Tháng 09",
+          "Tháng 10",
+          "Tháng 11",
+          "Tháng 12"
+        ],
+        "nrows": 42,
+        "canonical_kind": null
+      },
+      {
+        "name": "LCTT",
+        "columns": [
+          "Chỉ tiêu",
+          "Mã số",
+          "Thuyết minh",
+          "Kỳ này",
+          "Kỳ trước"
+        ],
+        "nrows": 34,
+        "canonical_kind": "LCTT"
+      },
+      {
+        "name": "KQKD",
+        "columns": [
+          "Chỉ tiêu",
+          "Mã số",
+          "Thuyết minh",
+          "Kỳ này",
+          "Kỳ trước"
+        ],
+        "nrows": 24,
+        "canonical_kind": "KQKD"
+      },
+      {
+        "name": "CDKT",
+        "columns": [
+          "Chỉ tiêu",
+          "Mã số",
+          "Thuyết minh",
+          "Số cuối kỳ",
+          "Số đầu kỳ"
+        ],
+        "nrows": 123,
+        "canonical_kind": "CDKT"
+      },
+      {
+        "name": "CDPS",
+        "columns": [
+          "Số tài khoản",
+          "Tên tài khoản",
+          "Đầu kỳ",
+          "Phát sinh",
+          "Cuối kỳ"
+        ],
+        "nrows": 66,
+        "canonical_kind": "CDPS"
+      },
+      {
+        "name": "DATA",
+        "columns": [
+          "Ngày hạch toán",
+          "Ngày chứng từ",
+          "Số chứng từ",
+          "Diễn giải",
+          "Tài khoản",
+          "TK đối ứng",
+          "Phát sinh Nợ",
+          "Phát sinh Có"
+        ],
+        "nrows": 1129,
+        "canonical_kind": null
+      },
+      {
+        "name": "331",
+        "columns": [
+          "Mã nhà cung cấp",
+          "Tên nhà cung cấp",
+          "TK Công nợ",
+          "Số dư đầu kỳ",
+          "Phát sinh",
+          "Số dư cuối kỳ"
+        ],
+        "nrows": 10,
+        "canonical_kind": "TK331"
+      }
+    ],
+    "mtime": 1783147391.3522954,
+    "indexed_at": "2026-07-06T03:44:09+00:00",
+    "ingested": false
+  },
+  "295b926d659aa37b": {
+    "file": "B.10.AAG.TCKT.M.202605.Baocaotaichinhrieng.xlsx",
+    "path": "/home/sysadmin/Connect_VPS/received_reports/ANKHACHSAN/baocaotaichinhrieng/B.10.AAG.TCKT.M.202605.Baocaotaichinhrieng.xlsx",
+    "company": "ANKHACHSAN",
+    "report_type": "baocaotaichinhrieng",
+    "month": 5,
+    "period_type": "từng tháng",
+    "sheets": [
+      {
+        "name": "131",
+        "columns": [
+          "Mã khách hàng",
+          "Tên khách hàng",
+          "TK công nợ",
+          "Số dư đầu kỳ",
+          "Phát sinh",
+          "Số dư cuối kỳ"
+        ],
+        "nrows": null,
+        "canonical_kind": "TK131"
+      },
+      {
+        "name": "331",
+        "columns": [
+          "Mã nhà cung cấp",
+          "Tên nhà cung cấp",
+          "TK Công nợ",
+          "Số dư đầu kỳ",
+          "Phát sinh",
+          "Số dư cuối kỳ"
+        ],
+        "nrows": null,
+        "canonical_kind": "TK331"
+      },
+      {
+        "name": "DATA",
+        "columns": [
+          "Ngày hạch toán",
+          "Ngày chứng từ",
+          "Số chứng từ",
+          "Diễn giải",
+          "Tài khoản",
+          "TK đối ứng",
+          "Phát sinh Nợ",
+          "Phát sinh Có"
+        ],
+        "nrows": null,
+        "canonical_kind": null
+      },
+      {
+        "name": "CDKT",
+        "columns": [
+          "Chỉ tiêu",
+          "Mã số",
+          "Thuyết minh",
+          "Số cuối kỳ",
+          "Số đầu kỳ"
+        ],
+        "nrows": null,
+        "canonical_kind": "CDKT"
+      },
+      {
+        "name": "LCTT",
+        "columns": [
+          "Chỉ tiêu",
+          "Mã số",
+          "Thuyết minh",
+          "Kỳ này",
+          "Kỳ trước"
+        ],
+        "nrows": null,
+        "canonical_kind": "LCTT"
+      },
+      {
+        "name": "KQKD",
+        "columns": [
+          "Chỉ tiêu",
+          "Mã số",
+          "Thuyết minh",
+          "Kỳ này",
+          "Kỳ trước"
+        ],
+        "nrows": null,
+        "canonical_kind": "KQKD"
+      },
+      {
+        "name": "CDPS",
+        "columns": [
+          "Số tài khoản",
+          "Tên tài khoản",
+          "Đầu kỳ",
+          "Phát sinh",
+          "Cuối kỳ"
+        ],
+        "nrows": null,
+        "canonical_kind": "CDPS"
+      },
+      {
+        "name": "BCQT",
+        "columns": [
+          "TT",
+          "Nội dung chi phí",
+          "ĐVT",
+          "Tổng cộng",
+          "Tháng 01",
+          "Tháng 02",
+          "Tháng 03",
+          "Tháng 04",
+          "Tháng 05",
+          "Tháng 06",
+          "Tháng 07",
+          "Tháng 08",
+          "Tháng 09",
+          "Tháng 10",
+          "Tháng 11",
+          "Tháng 12"
+        ],
+        "nrows": null,
+        "canonical_kind": null
+      }
+    ],
+    "mtime": 1783147397.5763812,
+    "indexed_at": "2026-07-06T03:44:09+00:00",
+    "ingested": false
+  },
+  "506c01fc33546094": {
+    "file": "B.10.AAG.TCKT.M.202601.Baocaotaichinhrieng.xlsx",
+    "path": "/home/sysadmin/Connect_VPS/received_reports/ANKHACHSAN/baocaotaichinhrieng/B.10.AAG.TCKT.M.202601.Baocaotaichinhrieng.xlsx",
+    "company": "ANKHACHSAN",
+    "report_type": "baocaotaichinhrieng",
+    "month": 1,
+    "period_type": "từng tháng",
+    "sheets": [
+      {
+        "name": "BCQT",
+        "columns": [
+          "TT",
+          "Nội dung chi phí",
+          "ĐVT",
+          "Tổng cộng",
+          "Tháng 01",
+          "Tháng 02",
+          "Tháng 03",
+          "Tháng 04",
+          "Tháng 05",
+          "Tháng 06",
+          "Tháng 07",
+          "Tháng 08",
+          "Tháng 09",
+          "Tháng 10",
+          "Tháng 11",
+          "Tháng 12"
+        ],
+        "nrows": 42,
+        "canonical_kind": null
+      },
+      {
+        "name": "LCTT",
+        "columns": [
+          "Chỉ tiêu",
+          "Mã số",
+          "Thuyết minh",
+          "Kỳ này",
+          "Kỳ trước"
+        ],
+        "nrows": 34,
+        "canonical_kind": "LCTT"
+      },
+      {
+        "name": "KQKD",
+        "columns": [
+          "Chỉ tiêu",
+          "Mã số",
+          "Thuyết minh",
+          "Kỳ này",
+          "Kỳ trước"
+        ],
+        "nrows": 24,
+        "canonical_kind": "KQKD"
+      },
+      {
+        "name": "CDKT",
+        "columns": [
+          "Chỉ tiêu",
+          "Mã số",
+          "Thuyết minh",
+          "Số cuối kỳ",
+          "Số đầu kỳ"
+        ],
+        "nrows": 123,
+        "canonical_kind": "CDKT"
+      },
+      {
+        "name": "CDPS",
+        "columns": [
+          "Số tài khoản",
+          "Tên tài khoản",
+          "Đầu kỳ",
+          "Phát sinh",
+          "Cuối kỳ"
+        ],
+        "nrows": 63,
+        "canonical_kind": "CDPS"
+      },
+      {
+        "name": "331",
+        "columns": [
+          "Mã nhà cung cấp",
+          "Tên nhà cung cấp",
+          "TK Công nợ",
+          "Số dư đầu kỳ",
+          "Phát sinh",
+          "Số dư cuối kỳ"
+        ],
+        "nrows": 10,
+        "canonical_kind": "TK331"
+      },
+      {
+        "name": "DATA",
+        "columns": [
+          "Ngày hạch toán",
+          "Ngày chứng từ",
+          "Số chứng từ",
+          "Diễn giải",
+          "Tài khoản",
+          "TK đối ứng",
+          "Phát sinh Nợ",
+          "Phát sinh Có"
+        ],
+        "nrows": 1159,
+        "canonical_kind": null
+      }
+    ],
+    "mtime": 1783147389.2762668,
+    "indexed_at": "2026-07-06T03:44:09+00:00",
+    "ingested": false
+  },
+  "3b8ce8954101417f": {
+    "file": "B.9.XVP.H3.M000426_Báo cáo tài chính riêng HTXVP_05.2026.xlsx",
+    "path": "/home/sysadmin/Connect_VPS/received_reports/XANHVINHPHUC/baocaotaichinhrieng/B.9.XVP.H3.M000426_Báo cáo tài chính riêng HTXVP_05.2026.xlsx",
+    "company": "XANHVINHPHUC",
+    "report_type": "baocaotaichinhrieng",
+    "month": null,
+    "period_type": null,
+    "sheets": [
+      {
+        "name": "BẢNG CÂN ĐỐI PHÁT SINH",
+        "columns": [
+          "Loại tiền: VND"
+        ],
+        "nrows": 1003,
+        "canonical_kind": null
+      },
+      {
+        "name": "BÁO CÁO TÌNH HÌNH TÀI CHÍNH",
+        "columns": [
+          "Đơn vị báo cáo: HỢP TÁC XÃ VẬN TẢI XANH VĨNH PHÚC",
+          "Mẫu số B01 - HTX"
+        ],
+        "nrows": 47,
+        "canonical_kind": null
+      },
+      {
+        "name": "BÁO CÁO KẾT QUẢ KINH DOANH",
+        "columns": [
+          "Đơn vị báo cáo: HỢP TÁC XÃ VẬN TẢI XANH VĨNH PHÚC",
+          "Mẫu số B02 - HTX"
+        ],
+        "nrows": 37,
+        "canonical_kind": "KQKD"
+      }
+    ],
+    "mtime": 1783063273.4870288,
+    "indexed_at": "2026-07-06T03:44:09+00:00",
+    "ingested": false
+  },
+  "a94672eaed999301": {
+    "file": "01_TC01_BÁO CÁO TIỀN TẬP ĐOÀN_THÁNG 06 NĂM 2026.xlsx",
+    "path": "/home/sysadmin/Connect_VPS/received_reports/THUCHI/baocaothuchi/01_TC01_BÁO CÁO TIỀN TẬP ĐOÀN_THÁNG 06 NĂM 2026.xlsx",
+    "company": "THUCHI",
+    "report_type": "baocaothuchi",
+    "month": 6,
+    "period_type": "từng tháng",
+    "sheets": [
+      {
+        "name": "TC01_SD TIỀN",
+        "columns": [
+          "BÁO CÁO TIỀN   :",
+          "Z:\\2 KHOI TAI CHINH KE TOAN\\26 BÁO CÁO NGÀY\\TC01_BC Tiền"
+        ],
+        "nrows": 251,
+        "canonical_kind": "SODU_TIEN"
+      },
+      {
+        "name": "BC THU CHI (TỔNG)_T6.2026",
+        "columns": [
+          "THỊNH CƯỜNG GROUP",
+          "12156452000"
+        ],
+        "nrows": 246,
+        "canonical_kind": "THUCHI"
+      },
+      {
+        "name": "BC THU CHI_T6_TC",
+        "columns": [
+          "BÁO CÁO THU - CHI",
+          "Z:\\2. KHOI TAI CHINH KE TOAN\\2.6 BÁO CÁO NGÀY\\TC01_BC Tiền"
+        ],
+        "nrows": 210,
+        "canonical_kind": "THUCHI"
+      },
+      {
+        "name": "BC THU CHI_T6_HUNGTHINH",
+        "columns": [
+          "BÁO CÁO THU - CHI",
+          "Z:\\2. KHOI TAI CHINH KE TOAN\\2.6 BÁO CÁO NGÀY\\TC01_BC Tiền"
+        ],
+        "nrows": 134,
+        "canonical_kind": "THUCHI"
+      },
+      {
+        "name": "BC THU CHI_T6_VFQN",
+        "columns": [
+          "BÁO CÁO THU - CHI",
+          "Z:\\2. KHOI TAI CHINH KE TOAN\\2.6 BÁO CÁO NGÀY\\TC01_BC Tiền"
+        ],
+        "nrows": 149,
+        "canonical_kind": "THUCHI"
+      },
+      {
+        "name": "BC THU CHI_T6_XANH",
+        "columns": [
+          "BÁO CÁO THU - CHI",
+          "Z:\\2. KHOI TAI CHINH KE TOAN\\2.6 BÁO CÁO NGÀY\\TC01_BC Tiền"
+        ],
+        "nrows": 162,
+        "canonical_kind": "THUCHI"
+      },
+      {
+        "name": "BC THU CHI_T6_ANTAXI",
+        "columns": [
+          "BÁO CÁO THU - CHI",
+          "Z:\\2. KHOI TAI CHINH KE TOAN\\2.6 BÁO CÁO NGÀY\\TC01_BC Tiền"
+        ],
+        "nrows": 143,
+        "canonical_kind": "THUCHI"
+      },
+      {
+        "name": "BC THU CHI_T6_ANKS",
+        "columns": [
+          "BÁO CÁO THU - CHI THÁNG 06.2026",
+          "Z:\\2. KHOI TAI CHINH KE TOAN\\2.6 BÁO CÁO NGÀY\\TC01_BC Tiền"
+        ],
+        "nrows": 126,
+        "canonical_kind": "THUCHI"
+      }
+    ],
+    "mtime": 1783318839.8753037,
+    "indexed_at": "2026-07-06T06:20:42+00:00",
+    "ingested": false
+  },
+  "d653f3deffa56145": {
+    "file": "01_TC01_BÁO CÁO TIỀN TẬP ĐOÀN_THÁNG 07 NĂM 2026.xlsx",
+    "path": "/home/sysadmin/Connect_VPS/received_reports/THUCHI/baocaothuchi/01_TC01_BÁO CÁO TIỀN TẬP ĐOÀN_THÁNG 07 NĂM 2026.xlsx",
+    "company": "THUCHI",
+    "report_type": "baocaothuchi",
+    "month": 7,
+    "period_type": "từng tháng",
+    "sheets": [
+      {
+        "name": "TC01_SD TIỀN",
+        "columns": [
+          "BÁO CÁO TIỀN   :",
+          "Z:\\2 KHOI TAI CHINH KE TOAN\\26 BÁO CÁO NGÀY\\TC01_BC Tiền"
+        ],
+        "nrows": 259,
+        "canonical_kind": "SODU_TIEN"
+      },
+      {
+        "name": "BC THU CHI (TỔNG)_T7.2026",
+        "columns": [
+          "THỊNH CƯỜNG GROUP",
+          "12156452000"
+        ],
+        "nrows": 246,
+        "canonical_kind": "THUCHI"
+      },
+      {
+        "name": "BC THU CHI_T7_TC",
+        "columns": [
+          "BÁO CÁO THU - CHI",
+          "Z:\\2. KHOI TAI CHINH KE TOAN\\2.6 BÁO CÁO NGÀY\\TC01_BC Tiền"
+        ],
+        "nrows": 210,
+        "canonical_kind": "THUCHI"
+      },
+      {
+        "name": "BC THU CHI_T7_HUNGTHINH",
+        "columns": [
+          "BÁO CÁO THU - CHI",
+          "Z:\\2. KHOI TAI CHINH KE TOAN\\2.6 BÁO CÁO NGÀY\\TC01_BC Tiền"
+        ],
+        "nrows": 134,
+        "canonical_kind": "THUCHI"
+      },
+      {
+        "name": "BC THU CHI_T7_VFQN",
+        "columns": [
+          "BÁO CÁO THU - CHI",
+          "Z:\\2. KHOI TAI CHINH KE TOAN\\2.6 BÁO CÁO NGÀY\\TC01_BC Tiền"
+        ],
+        "nrows": 149,
+        "canonical_kind": "THUCHI"
+      },
+      {
+        "name": "BC THU CHI_T7_XANH",
+        "columns": [
+          "BÁO CÁO THU - CHI",
+          "Z:\\2. KHOI TAI CHINH KE TOAN\\2.6 BÁO CÁO NGÀY\\TC01_BC Tiền"
+        ],
+        "nrows": 162,
+        "canonical_kind": "THUCHI"
+      },
+      {
+        "name": "BC THU CHI_T7_ANTAXI",
+        "columns": [
+          "BÁO CÁO THU - CHI",
+          "Z:\\2. KHOI TAI CHINH KE TOAN\\2.6 BÁO CÁO NGÀY\\TC01_BC Tiền"
+        ],
+        "nrows": 143,
+        "canonical_kind": "THUCHI"
+      },
+      {
+        "name": "BC THU CHI_T7_ANKS",
+        "columns": [
+          "BÁO CÁO THU - CHI THÁNG 06.2026",
+          "Z:\\2. KHOI TAI CHINH KE TOAN\\2.6 BÁO CÁO NGÀY\\TC01_BC Tiền"
+        ],
+        "nrows": 126,
+        "canonical_kind": "THUCHI"
+      }
+    ],
+    "mtime": 1783318842.1153305,
+    "indexed_at": "2026-07-06T06:20:42+00:00",
+    "ingested": false
+  },
+  "2836cbcf15eff1e7": {
+    "file": "B.1.TC.TCKT.M.202603.BaocaoHQKD_SRVF.xlsx",
+    "path": "/home/sysadmin/Connect_VPS/received_reports/SRVF/baocaokqkdrieng/B.1.TC.TCKT.M.202603.BaocaoHQKD_SRVF.xlsx",
+    "company": "SRVF",
+    "report_type": "baocaokqkdrieng",
+    "month": 3,
+    "period_type": "từng tháng",
+    "sheets": [
+      {
+        "name": "B2C",
+        "columns": [
+          "BĐ",
+          "BĐ",
+          "BĐ",
+          "BĐ",
+          "CĐ",
+          "CĐ",
+          "CĐ",
+          "CĐ",
+          "CĐ",
+          "CĐ",
+          "CĐ",
+          "CĐ"
+        ],
+        "nrows": 895,
+        "canonical_kind": null
+      },
+      {
+        "name": "CĐPS",
+        "columns": [
+          "Tài khoản",
+          "Tên tài khoản",
+          "Nợ đầu kỳ",
+          "Có đầu kỳ",
+          "Phát sinh nợ",
+          "Phát sinh có",
+          "Dư nợ cuối kỳ",
+          "Dư có cuối kỳ"
+        ],
+        "nrows": 419,
+        "canonical_kind": "CDPS"
+      },
+      {
+        "name": "CĐKT",
+        "columns": [
+          "Chỉ tiêu",
+          "Mã Số",
+          "Số cuối kỳ",
+          "Số đầu kỳ",
+          "Số đầu năm"
+        ],
+        "nrows": 131,
+        "canonical_kind": "CDKT"
+      },
+      {
+        "name": "LCTT",
+        "columns": [
+          "Chỉ tiêu",
+          "Mã Số",
+          "Kỳ này",
+          "Kỳ trước"
+        ],
+        "nrows": 45,
+        "canonical_kind": "LCTT"
+      },
+      {
+        "name": "T01",
+        "columns": [
+          "Mã số",
+          "Chỉ tiêu",
+          "Lũy kế",
+          "Kỳ này",
+          "Showroom Uông Bí",
+          "Vinfast B2B",
+          "Showroom OceanPark",
+          "Showroom Long Biên",
+          "Showroom Smart City",
+          "Showroom Hạ Long",
+          "Showroom Cẩm Phả",
+          "Showroom Vĩnh Phúc",
+          "Showroom Sơn Tây",
+          "Showroom Xuân Mai",
+          "CHI NHÁNH VINFAST HÀ NỘI - CÔNG TY CỔ PHẦN THỊNH CƯỜNG"
+        ],
+        "nrows": 79,
+        "canonical_kind": null
+      },
+      {
+        "name": "T02",
+        "columns": [
+          "Mã số",
+          "Chỉ tiêu",
+          "Lũy kế",
+          "Kỳ này",
+          "TK nợ",
+          "TK có",
+          "Mã phí",
+          "Mã NS",
+          "Công thức",
+          "Showroom Uông Bí",
+          "Vinfast B2B",
+          "Showroom OceanPark",
+          "Showroom Long Biên",
+          "Showroom Smart City",
+          "Showroom Hạ Long",
+          "Showroom Cẩm Phả",
+          "Showroom Vĩnh Phúc",
+          "Showroom Sơn Tây",
+          "Showroom Xuân Mai",
+          "CHI NHÁNH VINFAST HÀ NỘI - CÔNG TY CỔ PHẦN THỊNH CƯỜNG",
+          "Showroom Smart City",
+          "Showroom Hạ Long",
+          "Showroom Cẩm Phả",
+          "Showroom Vĩnh Phúc",
+          "Showroom Sơn Tây",
+          "Showroom Xuân Mai",
+          "CHI NHÁNH VINFAST HÀ NỘI - CÔNG TY CỔ PHẦN THỊNH CƯỜNG"
+        ],
+        "nrows": 72,
+        "canonical_kind": null
+      },
+      {
+        "name": "T03",
+        "columns": [
+          "Mã số",
+          "Chỉ tiêu",
+          "Lũy kế",
+          "Kỳ này",
+          "TK nợ",
+          "TK có",
+          "Mã phí",
+          "Mã NS",
+          "Công thức",
+          "Showroom Uông Bí",
+          "Vinfast B2B",
+          "Showroom OceanPark",
+          "Showroom Long Biên",
+          "Showroom Smart City",
+          "Showroom Hạ Long",
+          "Showroom Cẩm Phả",
+          "Showroom Vĩnh Phúc",
+          "Showroom Sơn Tây",
+          "Showroom Xuân Mai",
+          "CHI NHÁNH VINFAST HÀ NỘI - CÔNG TY CỔ PHẦN THỊNH CƯỜNG"
+        ],
+        "nrows": 82,
+        "canonical_kind": null
+      },
+      {
+        "name": "LNQ1",
+        "columns": [
+          "Mã số",
+          "Chỉ tiêu",
+          "Lũy kế",
+          "Kỳ này",
+          "TK nợ",
+          "TK có",
+          "Mã phí",
+          "Mã NS",
+          "Công thức",
+          "XDV Ocean Park",
+          "XDV Long Biên",
+          "XDV Smart City",
+          "XDV Hạ Long",
+          "XDV Cẩm Phả",
+          "VF Xuân Mai",
+          "VF Uông Bí",
+          "VF Tuyên Quang",
+          "XDV Vĩnh Phúc",
+          "XDV Sơn Tây",
+          "XDV Đài Tư",
+          "Showroom Uông Bí",
+          "XDV Việt Trì",
+          "Vinfast B2B",
+          "Vinfast Xuân Mai",
+          "VF Thái Nguyên",
+          "XDV Hà Khánh",
+          "Chi nhánh Vinfast Hồ Chí Minh- Công ty CP Thịnh Cường",
+          "Showroom OceanPark",
+          "Showroom Long Biên",
+          "Showroom Smart City",
+          "Showroom Hạ Long",
+          "Showroom Cẩm Phả",
+          "Showroom Vĩnh Phúc",
+          "Showroom Sơn Tây",
+          "Showroom Xuân Mai",
+          "CHI NHÁNH VINFAST HÀ NỘI - CÔNG TY CỔ PHẦN THỊNH CƯỜNG"
+        ],
+        "nrows": 105,
+        "canonical_kind": null
+      },
+      {
+        "name": "T03BC",
+        "columns": [
+          "Mục",
+          "Khối",
+          "Mã số",
+          "Chỉ tiêu",
+          "Kỳ này",
+          "% DT",
+          "T01",
+          "% DT",
+          "T02",
+          "% DT",
+          "T03",
+          "% DT",
+          "Showroom Uông Bí",
+          "% DT",
+          "Vinfast B2B",
+          "% DT",
+          "Showroom OceanPark",
+          "% DT",
+          "Showroom Long Biên",
+          "% DT",
+          "Showroom Smart City",
+          "% DT",
+          "Showroom Hạ Long",
+          "% DT",
+          "Showroom Cẩm Phả",
+          "% DT",
+          "Showroom Vĩnh Phúc",
+          "% DT",
+          "Showroom Sơn Tây",
+          "% DT",
+          "Showroom Xuân Mai",
+          "% DT",
+          "CHI NHÁNH VINFAST HÀ NỘI - CÔNG TY CỔ PHẦN THỊNH CƯỜNG"
+        ],
+        "nrows": 103,
+        "canonical_kind": null
+      },
+      {
+        "name": "331",
+        "columns": [
+          "Chọn",
+          "Mã khách hàng",
+          "Tên khách hàng",
+          "Nhóm 2",
+          "Tên nhóm 2",
+          "Dư nợ ĐK",
+          "Dư có ĐK",
+          "Phát sinh  nợ",
+          "Phát sinh có",
+          "Dư nợ CK",
+          "Dư có CK"
+        ],
+        "nrows": 284,
+        "canonical_kind": "TK331"
+      },
+      {
+        "name": "KHTS",
+        "columns": [
+          "#REF!",
+          "#REF!",
+          "#REF!",
+          "658932787",
+          "#REF!"
+        ],
+        "nrows": 306,
+        "canonical_kind": null
+      },
+      {
+        "name": "211+242",
+        "columns": [
+          "Row Labels",
+          "Sum of Số lượng",
+          "Sum of Nguyên giá đầu",
+          "Sum of Nguyên giá cuối kỳ",
+          "Sum of Giá trị khấu hao trong kỳ",
+          "Sum of Giá trị khấu hao lũy kế",
+          "Sum of Giá trị còn lại"
+        ],
+        "nrows": 37,
+        "canonical_kind": null
+      },
+      {
+        "name": "KHCD",
+        "columns": [
+          "Row Labels",
+          "Sum of Số lượng",
+          "Sum of Giá trị",
+          "Sum of Giá trị đã PB",
+          "Sum of GT PB kỳ này",
+          "Sum of SL giảm",
+          "Sum of GT giảm",
+          "Sum of GT Còn lại"
+        ],
+        "nrows": 28,
+        "canonical_kind": null
+      },
+      {
+        "name": "131",
+        "columns": [
+          "Đơn vị",
+          "Tên đơn vị",
+          "Mã Hợp đồng",
+          "Tài khoản",
+          "Tk / Tên Hợp đồng",
+          "Mã khách",
+          "Tên kh",
+          "Địa chỉ",
+          "Nợ đầu kỳ",
+          "Có đầu kỳ",
+          "Phát sinh nợ",
+          "Phát sinh có",
+          "Nợ cuối kỳ",
+          "Có cuối kỳ",
+          "Tiền vay",
+          "Ngân hàng",
+          "Mã nhân viên",
+          "Tên nhân viên",
+          "Phòng",
+          "Tên phòng",
+          "Số hóa đơn",
+          "Ngày hóa đơn",
+          "Số khung",
+          "Số máy",
+          "Mã kiểu xe",
+          "Tên kiểu xe",
+          "STT",
+          "Ngày nhập COC",
+          "Ngày giao xe"
+        ],
+        "nrows": 3212,
+        "canonical_kind": "TK131"
+      },
+      {
+        "name": "13692",
+        "columns": [
+          "Tên Đơn vị",
+          "Mã C.từ",
+          "Số bút toán",
+          "Số Hóa Đơn",
+          "Ngày HDDT",
+          "Số Ct",
+          "Ngày lập C.từ",
+          "Ngày C.từ",
+          "Mã khách",
+          "Tên nhóm",
+          "Tên khách",
+          "Ông bà",
+          "Diễn giải",
+          "TK đối ứng",
+          "Phát sinh nợ",
+          "Phát sinh có",
+          "Mã TTLN",
+          "Mã TTCP",
+          "Vụ việc",
+          "Phí",
+          "Mã nghiệp vụ",
+          "Hợp đồng",
+          "Số Ro",
+          "Số khung",
+          "Sản phẩm",
+          "CMT",
+          "Mã kho",
+          "Mã vật tư",
+          "Ma_TD3",
+          "Người lập phiếu",
+          "Tk nợ",
+          "Tk có",
+          "Tài Sản",
+          "Tên Tài sản"
+        ],
+        "nrows": 3040,
+        "canonical_kind": null
+      },
+      {
+        "name": "5111 ",
+        "columns": [
+          "CHI NHÁNH VINFAST HÀ NỘI - CÔNG TY CỔ PHẦN THỊNH CƯỜNG",
+          "RLLVFPNT6TH711391",
+          "xe đã xhđ tháng 4, đến tháng 5 hủy, xhđ sang KH khác"
+        ],
+        "nrows": 2237,
+        "canonical_kind": null
+      },
+      {
+        "name": "PTUB",
+        "columns": [
+          "Tên Đơn vị",
+          "Mã C.từ",
+          "Số bút toán",
+          "Số Hóa Đơn",
+          "Ngày HDDT",
+          "Số Ct",
+          "Ngày lập C.từ",
+          "Ngày C.từ",
+          "Mã khách",
+          "Tên nhóm",
+          "Tên khách",
+          "Ông bà",
+          "Diễn giải",
+          "TK đối ứng",
+          "Phát sinh nợ",
+          "Phát sinh có",
+          "Mã TTLN",
+          "Mã TTCP",
+          "Vụ việc",
+          "Phí",
+          "Mã nghiệp vụ",
+          "Hợp đồng",
+          "Số Ro",
+          "Số khung",
+          "Sản phẩm",
+          "CMT",
+          "Mã kho",
+          "Mã vật tư",
+          "Ma_TD3",
+          "Người lập phiếu",
+          "Tk nợ",
+          "Tk có",
+          "Tài Sản",
+          "Tên Tài sản"
+        ],
+        "nrows": 288,
+        "canonical_kind": null
+      },
+      {
+        "name": "PTTC",
+        "columns": [
+          "Tên Đơn vị",
+          "Mã C.từ",
+          "Số bút toán",
+          "Số Hóa Đơn",
+          "Ngày HDDT",
+          "Số Ct",
+          "Ngày lập C.từ",
+          "Ngày C.từ",
+          "Mã khách",
+          "Tên nhóm",
+          "Tên khách",
+          "Ông bà",
+          "Diễn giải",
+          "TK đối ứng",
+          "Phát sinh nợ",
+          "Phát sinh có",
+          "Mã TTLN",
+          "Mã TTCP",
+          "Vụ việc",
+          "Phí",
+          "Mã nghiệp vụ",
+          "Hợp đồng",
+          "Số Ro",
+          "Số khung",
+          "Sản phẩm",
+          "CMT",
+          "Mã kho",
+          "Mã vật tư",
+          "Ma_TD3",
+          "Người lập phiếu",
+          "Tk nợ",
+          "Tk có",
+          "Tài Sản",
+          "Tên Tài sản"
+        ],
+        "nrows": 3111,
+        "canonical_kind": null
+      },
+      {
+        "name": "PTGF",
+        "columns": [
+          "Tên Đơn vị",
+          "Mã C.từ",
+          "Số bút toán",
+          "Số Hóa Đơn",
+          "Ngày HDDT",
+          "Số Ct",
+          "Ngày lập C.từ",
+          "Ngày C.từ",
+          "Mã khách",
+          "Tên nhóm",
+          "Tên khách",
+          "Ông bà",
+          "SỔ CHI TIẾT TÀI KHOẢN"
+        ],
+        "nrows": 342,
+        "canonical_kind": null
+      },
+      {
+        "name": "PTB2B",
+        "columns": [
+          "Đơn vị",
+          "TTCP",
+          "Số C.từ",
+          "Số hóa đơn",
+          "Ngày hóa đơn",
+          "Số Seri",
+          "Số HĐĐT",
+          "Ngày C.từ",
+          "Mã khách hàng",
+          "Tên khách hàng",
+          "Diễn giải",
+          "TK đối ứng",
+          "Phát sinh nợ",
+          "Phát sinh có",
+          "Số dư nợ",
+          "Số dư Có",
+          "Hợp đồng",
+          "Tên hợp đồng",
+          "Số R/O",
+          "Số khung",
+          "Mã CT"
+        ],
+        "nrows": 1267,
+        "canonical_kind": null
+      },
+      {
+        "name": "33692",
+        "columns": [
+          "Đơn vị",
+          "TTCP",
+          "Số C.từ",
+          "Số hóa đơn",
+          "Ngày hóa đơn",
+          "Số Seri",
+          "Số HĐĐT",
+          "Ngày C.từ",
+          "Mã khách hàng",
+          "Tên khách hàng",
+          "Diễn giải",
+          "TK đối ứng",
+          "Phát sinh nợ",
+          "Phát sinh có",
+          "Số dư nợ",
+          "Số dư Có",
+          "Hợp đồng",
+          "Tên hợp đồng",
+          "Số R/O",
+          "Số khung",
+          "Mã CT"
+        ],
+        "nrows": 970,
+        "canonical_kind": null
+      },
+      {
+        "name": "156",
+        "columns": [
+          "Đơn vị",
+          "Mã kx",
+          "Số khung",
+          "Mã màu",
+          "Màu xe",
+          "Ngày nhập từ NCC",
+          "Số ngày tồn",
+          "Tồn đầu",
+          "SL Nhập",
+          "SL Xuất",
+          "Tồn cuối",
+          "Dư đầu",
+          "Giá trị nhập",
+          "Giá trị xuất",
+          "Dư cuối",
+          "Mã kho",
+          "Tên kho",
+          "Số Hợp đồng"
+        ],
+        "nrows": 6574,
+        "canonical_kind": null
+      },
+      {
+        "name": "1362",
+        "columns": [
+          "Tên Đơn vị",
+          "Mã C.từ",
+          "Số bút toán",
+          "Số Hóa Đơn",
+          "Ngày HDDT",
+          "Số Ct",
+          "Ngày lập C.từ",
+          "Ngày C.từ",
+          "Mã khách",
+          "Tên nhóm",
+          "Tên khách",
+          "Ông bà",
+          "Diễn giải",
+          "TK đối ứng",
+          "Phát sinh nợ",
+          "Phát sinh có",
+          "Mã TTLN",
+          "Mã TTCP",
+          "Vụ việc",
+          "Phí",
+          "Mã nghiệp vụ",
+          "Hợp đồng",
+          "Số Ro",
+          "Số khung",
+          "Sản phẩm",
+          "CMT",
+          "Mã kho",
+          "Mã vật tư",
+          "Ma_TD3",
+          "Người lập phiếu",
+          "Tk nợ",
+          "Tk có",
+          "Tài Sản",
+          "Tên Tài sản"
+        ],
+        "nrows": 21,
+        "canonical_kind": null
+      },
+      {
+        "name": "T06",
+        "columns": [],
+        "nrows": 1,
+        "canonical_kind": null
+      },
+      {
+        "name": "T07",
+        "columns": [],
+        "nrows": 1,
+        "canonical_kind": null
+      },
+      {
+        "name": "T08",
+        "columns": [],
+        "nrows": 1,
+        "canonical_kind": null
+      },
+      {
+        "name": "T09",
+        "columns": [],
+        "nrows": 1,
+        "canonical_kind": null
+      },
+      {
+        "name": "T10",
+        "columns": [],
+        "nrows": 1,
+        "canonical_kind": null
+      },
+      {
+        "name": "T11",
+        "columns": [],
+        "nrows": 1,
+        "canonical_kind": null
+      },
+      {
+        "name": "T12",
+        "columns": [],
+        "nrows": 1,
+        "canonical_kind": null
+      }
+    ],
+    "mtime": 1783318801.802847,
+    "indexed_at": "2026-07-06T06:20:42+00:00",
+    "ingested": true
+  },
+  "01adb26dc184f0c2": {
+    "file": "B.1.TC.TCKT.M.202601.BaocaoHQKD_SRVF.xlsx",
+    "path": "/home/sysadmin/Connect_VPS/received_reports/SRVF/baocaokqkdrieng/B.1.TC.TCKT.M.202601.BaocaoHQKD_SRVF.xlsx",
+    "company": "SRVF",
+    "report_type": "baocaokqkdrieng",
+    "month": 1,
+    "period_type": "từng tháng",
+    "sheets": [
+      {
+        "name": "B2C",
+        "columns": [
+          "BĐ",
+          "BĐ",
+          "BĐ",
+          "BĐ",
+          "CĐ",
+          "CĐ",
+          "CĐ",
+          "CĐ",
+          "CĐ",
+          "CĐ",
+          "CĐ",
+          "CĐ"
+        ],
+        "nrows": 895,
+        "canonical_kind": null
+      },
+      {
+        "name": "CĐPS",
+        "columns": [
+          "Tài khoản",
+          "Tên tài khoản",
+          "Nợ đầu kỳ",
+          "Có đầu kỳ",
+          "Phát sinh nợ",
+          "Phát sinh có",
+          "Dư nợ cuối kỳ",
+          "Dư có cuối kỳ"
+        ],
+        "nrows": 419,
+        "canonical_kind": "CDPS"
+      },
+      {
+        "name": "CĐKT",
+        "columns": [
+          "Chỉ tiêu",
+          "Mã Số",
+          "Số cuối kỳ",
+          "Số đầu kỳ",
+          "Số đầu năm",
+          "Thuyết Minh"
+        ],
+        "nrows": 131,
+        "canonical_kind": "CDKT"
+      },
+      {
+        "name": "LCTT",
+        "columns": [
+          "Chỉ tiêu",
+          "Mã Số",
+          "Kỳ này",
+          "Kỳ trước"
+        ],
+        "nrows": 45,
+        "canonical_kind": "LCTT"
+      },
+      {
+        "name": "T01.",
+        "columns": [
+          "Mã số",
+          "Chỉ tiêu",
+          "Lũy kế",
+          "Kỳ này",
+          "Showroom Uông Bí",
+          "Vinfast B2B",
+          "Showroom OceanPark",
+          "Showroom Long Biên",
+          "Showroom Smart City",
+          "Showroom Hạ Long",
+          "Showroom Cẩm Phả",
+          "Showroom Vĩnh Phúc",
+          "Showroom Sơn Tây",
+          "Showroom Xuân Mai",
+          "CHI NHÁNH VINFAST HÀ NỘI - CÔNG TY CỔ PHẦN THỊNH CƯỜNG"
+        ],
+        "nrows": 79,
+        "canonical_kind": null
+      },
+      {
+        "name": "T01",
+        "columns": [
+          "Mã số",
+          "Chỉ tiêu",
+          "Lũy kế",
+          "Kỳ này",
+          "TK nợ",
+          "TK có",
+          "Mã phí",
+          "Mã NS",
+          "Công thức",
+          "Showroom Uông Bí",
+          "Vinfast B2B",
+          "Showroom OceanPark",
+          "Showroom Long Biên",
+          "Showroom Smart City",
+          "Showroom Hạ Long",
+          "Showroom Cẩm Phả",
+          "Showroom Vĩnh Phúc",
+          "Showroom Sơn Tây",
+          "Showroom Xuân Mai",
+          "CHI NHÁNH VINFAST HÀ NỘI - CÔNG TY CỔ PHẦN THỊNH CƯỜNG"
+        ],
+        "nrows": 71,
+        "canonical_kind": null
+      },
+      {
+        "name": "LNQ1",
+        "columns": [
+          "Mã số",
+          "Chỉ tiêu",
+          "Lũy kế",
+          "Kỳ này",
+          "TK nợ",
+          "TK có",
+          "Mã phí",
+          "Mã NS",
+          "Công thức",
+          "XDV Ocean Park",
+          "XDV Long Biên",
+          "XDV Smart City",
+          "XDV Hạ Long",
+          "XDV Cẩm Phả",
+          "VF Xuân Mai",
+          "VF Uông Bí",
+          "VF Tuyên Quang",
+          "XDV Vĩnh Phúc",
+          "XDV Sơn Tây",
+          "XDV Đài Tư",
+          "Showroom Uông Bí",
+          "XDV Việt Trì",
+          "Vinfast B2B",
+          "Vinfast Xuân Mai",
+          "VF Thái Nguyên",
+          "XDV Hà Khánh",
+          "Chi nhánh Vinfast Hồ Chí Minh- Công ty CP Thịnh Cường",
+          "Showroom OceanPark",
+          "Showroom Long Biên",
+          "Showroom Smart City",
+          "Showroom Hạ Long",
+          "Showroom Cẩm Phả",
+          "Showroom Vĩnh Phúc",
+          "Showroom Sơn Tây",
+          "Showroom Xuân Mai",
+          "CHI NHÁNH VINFAST HÀ NỘI - CÔNG TY CỔ PHẦN THỊNH CƯỜNG"
+        ],
+        "nrows": 105,
+        "canonical_kind": null
+      },
+      {
+        "name": "T01BC",
+        "columns": [
+          "Mục",
+          "Khối",
+          "Mã số",
+          "Chỉ tiêu",
+          "Kỳ này",
+          "% DT",
+          "T01",
+          "% DT",
+          "Showroom Uông Bí",
+          "% DT",
+          "Vinfast B2B",
+          "% DT",
+          "Showroom OceanPark",
+          "% DT",
+          "Showroom Long Biên",
+          "% DT",
+          "Showroom Smart City",
+          "% DT",
+          "Showroom Hạ Long",
+          "% DT",
+          "Showroom Cẩm Phả",
+          "% DT",
+          "Showroom Vĩnh Phúc",
+          "% DT",
+          "Showroom Sơn Tây",
+          "% DT",
+          "Showroom Xuân Mai",
+          "% DT",
+          "CHI NHÁNH VINFAST HÀ NỘI - CÔNG TY CỔ PHẦN THỊNH CƯỜNG"
+        ],
+        "nrows": 103,
+        "canonical_kind": null
+      },
+      {
+        "name": "331",
+        "columns": [
+          "Chọn",
+          "Mã khách hàng",
+          "Tên khách hàng",
+          "Nhóm 2",
+          "Tên nhóm 2",
+          "Dư nợ ĐK",
+          "Dư có ĐK",
+          "Phát sinh  nợ",
+          "Phát sinh có",
+          "Dư nợ CK",
+          "Dư có CK"
+        ],
+        "nrows": 267,
+        "canonical_kind": "TK331"
+      },
+      {
+        "name": "KHTS",
+        "columns": [
+          "#REF!",
+          "#REF!",
+          "#REF!",
+          "658932787",
+          "#REF!"
+        ],
+        "nrows": 282,
+        "canonical_kind": null
+      },
+      {
+        "name": "211+242",
+        "columns": [
+          "Row Labels",
+          "Số lượng",
+          "Nguyên giá đầu",
+          "Nguyên giá cuối kỳ",
+          "Giá trị khấu hao trong kỳ",
+          "Giá trị khấu hao lũy kế",
+          "Giá trị còn lại"
+        ],
+        "nrows": 33,
+        "canonical_kind": null
+      },
+      {
+        "name": "KHCD",
+        "columns": [
+          "Row Labels",
+          "Sum of Số lượng",
+          "Sum of Giá trị",
+          "Sum of Giá trị đã PB",
+          "Sum of GT PB kỳ này",
+          "Sum of SL giảm",
+          "Sum of GT giảm",
+          "Sum of GT Còn lại"
+        ],
+        "nrows": 27,
+        "canonical_kind": null
+      },
+      {
+        "name": "131",
+        "columns": [
+          "Đơn vị",
+          "Tên đơn vị",
+          "Mã Hợp đồng",
+          "Tài khoản",
+          "Tk / Tên Hợp đồng",
+          "Mã khách",
+          "Tên kh",
+          "Địa chỉ",
+          "Nợ đầu kỳ",
+          "Có đầu kỳ",
+          "Phát sinh nợ",
+          "Phát sinh có",
+          "Nợ cuối kỳ",
+          "Có cuối kỳ",
+          "Tiền vay",
+          "Ngân hàng",
+          "Mã nhân viên",
+          "Tên nhân viên",
+          "Phòng",
+          "Tên phòng",
+          "Số hóa đơn",
+          "Ngày hóa đơn",
+          "Số khung",
+          "Số máy",
+          "Mã kiểu xe",
+          "Tên kiểu xe",
+          "STT",
+          "Ngày nhập COC",
+          "Ngày giao xe"
+        ],
+        "nrows": 2678,
+        "canonical_kind": "TK131"
+      },
+      {
+        "name": "13692",
+        "columns": [
+          "Tên Đơn vị",
+          "Mã C.từ",
+          "Số bút toán",
+          "Số Hóa Đơn",
+          "Ngày HDDT",
+          "Số Ct",
+          "Ngày lập C.từ",
+          "Ngày C.từ",
+          "Mã khách",
+          "Tên nhóm",
+          "Tên khách",
+          "Ông bà",
+          "Diễn giải",
+          "TK đối ứng",
+          "Phát sinh nợ",
+          "Phát sinh có",
+          "Mã TTLN",
+          "Mã TTCP",
+          "Vụ việc",
+          "Phí",
+          "Mã nghiệp vụ",
+          "Hợp đồng",
+          "Số Ro",
+          "Số khung",
+          "Sản phẩm",
+          "CMT",
+          "Mã kho",
+          "Mã vật tư",
+          "Ma_TD3",
+          "Người lập phiếu",
+          "Tk nợ",
+          "Tk có",
+          "Tài Sản",
+          "Tên Tài sản"
+        ],
+        "nrows": 1192,
+        "canonical_kind": null
+      },
+      {
+        "name": "5111 ",
+        "columns": [
+          "CHI NHÁNH VINFAST HÀ NỘI - CÔNG TY CỔ PHẦN THỊNH CƯỜNG",
+          "RLLVFPNT6TH711391",
+          "xe đã xhđ tháng 4, đến tháng 5 hủy, xhđ sang KH khác"
+        ],
+        "nrows": 1265,
+        "canonical_kind": null
+      },
+      {
+        "name": "PTUB",
+        "columns": [
+          "Tên Đơn vị",
+          "Mã C.từ",
+          "Số bút toán",
+          "Số Hóa Đơn",
+          "Ngày HDDT",
+          "Số Ct",
+          "Ngày lập C.từ",
+          "Ngày C.từ",
+          "Mã khách",
+          "Tên nhóm",
+          "Tên khách",
+          "Ông bà",
+          "Diễn giải",
+          "TK đối ứng",
+          "Phát sinh nợ",
+          "Phát sinh có",
+          "Mã TTLN",
+          "Mã TTCP",
+          "Vụ việc",
+          "Phí",
+          "Mã nghiệp vụ",
+          "Hợp đồng",
+          "Số Ro",
+          "Số khung",
+          "Sản phẩm",
+          "CMT",
+          "Mã kho",
+          "Mã vật tư",
+          "Ma_TD3",
+          "Người lập phiếu",
+          "Tk nợ",
+          "Tk có",
+          "Tài Sản",
+          "Tên Tài sản"
+        ],
+        "nrows": 153,
+        "canonical_kind": null
+      },
+      {
+        "name": "PTTC",
+        "columns": [
+          "Tên Đơn vị",
+          "Mã C.từ",
+          "Số bút toán",
+          "Số Hóa Đơn",
+          "Ngày HDDT",
+          "Số Ct",
+          "Ngày lập C.từ",
+          "Ngày C.từ",
+          "Mã khách",
+          "Tên nhóm",
+          "Tên khách",
+          "Ông bà",
+          "Diễn giải",
+          "TK đối ứng",
+          "Phát sinh nợ",
+          "Phát sinh có",
+          "Mã TTLN",
+          "Mã TTCP",
+          "Vụ việc",
+          "Phí",
+          "Mã nghiệp vụ",
+          "Hợp đồng",
+          "Số Ro",
+          "Số khung",
+          "Sản phẩm",
+          "CMT",
+          "Mã kho",
+          "Mã vật tư",
+          "Ma_TD3",
+          "Người lập phiếu",
+          "Tk nợ",
+          "Tk có",
+          "Tài Sản",
+          "Tên Tài sản"
+        ],
+        "nrows": 1998,
+        "canonical_kind": null
+      },
+      {
+        "name": "PTGF",
+        "columns": [
+          "Tên Đơn vị",
+          "Mã C.từ",
+          "Số bút toán",
+          "Số Hóa Đơn",
+          "Ngày HDDT",
+          "Số Ct",
+          "Ngày lập C.từ",
+          "Ngày C.từ",
+          "Mã khách",
+          "Tên nhóm",
+          "Tên khách",
+          "Ông bà",
+          "Diễn giải",
+          "TK đối ứng",
+          "Phát sinh nợ",
+          "Phát sinh có",
+          "Mã TTLN",
+          "Mã TTCP",
+          "Vụ việc",
+          "Phí",
+          "Mã nghiệp vụ",
+          "Hợp đồng",
+          "Số Ro",
+          "Số khung",
+          "Sản phẩm",
+          "CMT",
+          "Mã kho",
+          "Mã vật tư",
+          "Ma_TD3",
+          "Người lập phiếu",
+          "Tk nợ",
+          "Tk có",
+          "Tài Sản",
+          "Tên Tài sản"
+        ],
+        "nrows": 353,
+        "canonical_kind": null
+      },
+      {
+        "name": "PTB2B",
+        "columns": [
+          "Đơn vị",
+          "TTCP",
+          "Số C.từ",
+          "Số hóa đơn",
+          "Ngày hóa đơn",
+          "Số Seri",
+          "Số HĐĐT",
+          "Ngày C.từ",
+          "Mã khách hàng",
+          "Tên khách hàng",
+          "Diễn giải",
+          "TK đối ứng",
+          "Phát sinh nợ",
+          "Phát sinh có",
+          "Số dư nợ",
+          "Số dư Có",
+          "Hợp đồng",
+          "Tên hợp đồng",
+          "Số R/O",
+          "Số khung",
+          "Mã CT"
+        ],
+        "nrows": 1510,
+        "canonical_kind": null
+      },
+      {
+        "name": "156",
+        "columns": [
+          "Đơn vị",
+          "Mã kx",
+          "Số khung",
+          "Mã màu",
+          "Màu xe",
+          "Ngày nhập từ NCC",
+          "Số ngày tồn",
+          "Tồn đầu",
+          "SL Nhập",
+          "SL Xuất",
+          "Tồn cuối",
+          "Dư đầu",
+          "Giá trị nhập",
+          "Giá trị xuất",
+          "Dư cuối",
+          "Mã kho",
+          "Tên kho",
+          "Số Hợp đồng"
+        ],
+        "nrows": 3531,
+        "canonical_kind": null
+      },
+      {
+        "name": "1362",
+        "columns": [
+          "Tên Đơn vị",
+          "Mã C.từ",
+          "Số bút toán",
+          "Số Hóa Đơn",
+          "Ngày HDDT",
+          "Số Ct",
+          "Ngày lập C.từ",
+          "Ngày C.từ",
+          "Mã khách",
+          "Tên nhóm",
+          "Tên khách",
+          "Ông bà",
+          "Diễn giải",
+          "TK đối ứng",
+          "Phát sinh nợ",
+          "Phát sinh có",
+          "Mã TTLN",
+          "Mã TTCP",
+          "Vụ việc",
+          "Phí",
+          "Mã nghiệp vụ",
+          "Hợp đồng",
+          "Số Ro",
+          "Số khung",
+          "Sản phẩm",
+          "CMT",
+          "Mã kho",
+          "Mã vật tư",
+          "Ma_TD3",
+          "Người lập phiếu",
+          "Tk nợ",
+          "Tk có",
+          "Tài Sản",
+          "Tên Tài sản"
+        ],
+        "nrows": 15,
+        "canonical_kind": null
+      },
+      {
+        "name": "T06",
+        "columns": [],
+        "nrows": 1,
+        "canonical_kind": null
+      },
+      {
+        "name": "T07",
+        "columns": [],
+        "nrows": 1,
+        "canonical_kind": null
+      },
+      {
+        "name": "T08",
+        "columns": [],
+        "nrows": 1,
+        "canonical_kind": null
+      },
+      {
+        "name": "T09",
+        "columns": [],
+        "nrows": 1,
+        "canonical_kind": null
+      },
+      {
+        "name": "T10",
+        "columns": [],
+        "nrows": 1,
+        "canonical_kind": null
+      },
+      {
+        "name": "T11",
+        "columns": [],
+        "nrows": 1,
+        "canonical_kind": null
+      },
+      {
+        "name": "T12",
+        "columns": [],
+        "nrows": 1,
+        "canonical_kind": null
+      }
+    ],
+    "mtime": 1783318797.1547909,
+    "indexed_at": "2026-07-06T06:20:43+00:00",
+    "ingested": true
+  },
+  "038cef8bf29a295a": {
+    "file": "B.1.TC.TCKT.M.202602.BaocaoHQKD_SRVF.xlsx",
+    "path": "/home/sysadmin/Connect_VPS/received_reports/SRVF/baocaokqkdrieng/B.1.TC.TCKT.M.202602.BaocaoHQKD_SRVF.xlsx",
+    "company": "SRVF",
+    "report_type": "baocaokqkdrieng",
+    "month": 2,
+    "period_type": "từng tháng",
+    "sheets": [
+      {
+        "name": "B2C",
+        "columns": [
+          "BĐ",
+          "BĐ",
+          "BĐ",
+          "BĐ",
+          "CĐ",
+          "CĐ",
+          "CĐ",
+          "CĐ",
+          "CĐ",
+          "CĐ",
+          "CĐ",
+          "CĐ"
+        ],
+        "nrows": 895,
+        "canonical_kind": null
+      },
+      {
+        "name": "CĐPS",
+        "columns": [
+          "Tài khoản",
+          "Tên tài khoản",
+          "Nợ đầu kỳ",
+          "Có đầu kỳ",
+          "Phát sinh nợ",
+          "Phát sinh có",
+          "Dư nợ cuối kỳ",
+          "Dư có cuối kỳ"
+        ],
+        "nrows": 419,
+        "canonical_kind": "CDPS"
+      },
+      {
+        "name": "CĐKT",
+        "columns": [
+          "Chỉ tiêu",
+          "Mã Số",
+          "Số cuối kỳ",
+          "Số đầu kỳ",
+          "Số đầu năm",
+          "Thuyết Minh"
+        ],
+        "nrows": 131,
+        "canonical_kind": "CDKT"
+      },
+      {
+        "name": "LCTT",
+        "columns": [
+          "Chỉ tiêu",
+          "Mã Số",
+          "Kỳ này",
+          "Kỳ trước"
+        ],
+        "nrows": 45,
+        "canonical_kind": "LCTT"
+      },
+      {
+        "name": "T01",
+        "columns": [
+          "Mã số",
+          "Chỉ tiêu",
+          "Lũy kế",
+          "Kỳ này",
+          "Showroom Uông Bí",
+          "Vinfast B2B",
+          "Showroom OceanPark",
+          "Showroom Long Biên",
+          "Showroom Smart City",
+          "Showroom Hạ Long",
+          "Showroom Cẩm Phả",
+          "Showroom Vĩnh Phúc",
+          "Showroom Sơn Tây",
+          "Showroom Xuân Mai",
+          "CHI NHÁNH VINFAST HÀ NỘI - CÔNG TY CỔ PHẦN THỊNH CƯỜNG"
+        ],
+        "nrows": 79,
+        "canonical_kind": null
+      },
+      {
+        "name": "T02",
+        "columns": [
+          "Mã số",
+          "Chỉ tiêu",
+          "Lũy kế",
+          "Kỳ này",
+          "TK nợ",
+          "TK có",
+          "Mã phí",
+          "Mã NS",
+          "Công thức",
+          "Showroom Uông Bí",
+          "Vinfast B2B",
+          "Showroom OceanPark",
+          "Showroom Long Biên",
+          "Showroom Smart City",
+          "Showroom Hạ Long",
+          "Showroom Cẩm Phả",
+          "Showroom Vĩnh Phúc",
+          "Showroom Sơn Tây",
+          "Showroom Xuân Mai",
+          "CHI NHÁNH VINFAST HÀ NỘI - CÔNG TY CỔ PHẦN THỊNH CƯỜNG",
+          "Showroom Smart City",
+          "Showroom Hạ Long",
+          "Showroom Cẩm Phả",
+          "Showroom Vĩnh Phúc",
+          "Showroom Sơn Tây",
+          "Showroom Xuân Mai",
+          "CHI NHÁNH VINFAST HÀ NỘI - CÔNG TY CỔ PHẦN THỊNH CƯỜNG"
+        ],
+        "nrows": 71,
+        "canonical_kind": null
+      },
+      {
+        "name": "LNQ1",
+        "columns": [
+          "Mã số",
+          "Chỉ tiêu",
+          "Lũy kế",
+          "Kỳ này",
+          "TK nợ",
+          "TK có",
+          "Mã phí",
+          "Mã NS",
+          "Công thức",
+          "XDV Ocean Park",
+          "XDV Long Biên",
+          "XDV Smart City",
+          "XDV Hạ Long",
+          "XDV Cẩm Phả",
+          "VF Xuân Mai",
+          "VF Uông Bí",
+          "VF Tuyên Quang",
+          "XDV Vĩnh Phúc",
+          "XDV Sơn Tây",
+          "XDV Đài Tư",
+          "Showroom Uông Bí",
+          "XDV Việt Trì",
+          "Vinfast B2B",
+          "Vinfast Xuân Mai",
+          "VF Thái Nguyên",
+          "XDV Hà Khánh",
+          "Chi nhánh Vinfast Hồ Chí Minh- Công ty CP Thịnh Cường",
+          "Showroom OceanPark",
+          "Showroom Long Biên",
+          "Showroom Smart City",
+          "Showroom Hạ Long",
+          "Showroom Cẩm Phả",
+          "Showroom Vĩnh Phúc",
+          "Showroom Sơn Tây",
+          "Showroom Xuân Mai",
+          "CHI NHÁNH VINFAST HÀ NỘI - CÔNG TY CỔ PHẦN THỊNH CƯỜNG"
+        ],
+        "nrows": 105,
+        "canonical_kind": null
+      },
+      {
+        "name": "T02BC",
+        "columns": [
+          "Mục",
+          "Khối",
+          "Mã số",
+          "Chỉ tiêu",
+          "Kỳ này",
+          "% DT",
+          "T01",
+          "% DT",
+          "T02",
+          "% DT",
+          "Showroom Uông Bí",
+          "% DT",
+          "Vinfast B2B",
+          "% DT",
+          "Showroom OceanPark",
+          "% DT",
+          "Showroom Long Biên",
+          "% DT",
+          "Showroom Smart City",
+          "% DT",
+          "Showroom Hạ Long",
+          "% DT",
+          "Showroom Cẩm Phả",
+          "% DT",
+          "Showroom Vĩnh Phúc",
+          "% DT",
+          "Showroom Sơn Tây",
+          "% DT",
+          "Showroom Xuân Mai",
+          "% DT",
+          "CHI NHÁNH VINFAST HÀ NỘI - CÔNG TY CỔ PHẦN THỊNH CƯỜNG"
+        ],
+        "nrows": 103,
+        "canonical_kind": null
+      },
+      {
+        "name": "331",
+        "columns": [
+          "Chọn",
+          "Mã khách hàng",
+          "Tên khách hàng",
+          "Nhóm 2",
+          "Tên nhóm 2",
+          "Dư nợ ĐK",
+          "Dư có ĐK",
+          "Phát sinh  nợ",
+          "Phát sinh có",
+          "Dư nợ CK",
+          "Dư có CK"
+        ],
+        "nrows": 273,
+        "canonical_kind": "TK331"
+      },
+      {
+        "name": "KHTS",
+        "columns": [
+          "#REF!",
+          "#REF!",
+          "#REF!",
+          "658932787",
+          "#REF!"
+        ],
+        "nrows": 290,
+        "canonical_kind": null
+      },
+      {
+        "name": "211+242",
+        "columns": [
+          "Row Labels",
+          "Sum of Số lượng",
+          "Sum of Nguyên giá đầu",
+          "Sum of Nguyên giá cuối kỳ",
+          "Sum of Giá trị khấu hao trong kỳ",
+          "Sum of Giá trị khấu hao lũy kế",
+          "Sum of Giá trị còn lại"
+        ],
+        "nrows": 26,
+        "canonical_kind": null
+      },
+      {
+        "name": "KHCD",
+        "columns": [
+          "Row Labels",
+          "Sum of Số lượng",
+          "Sum of Giá trị",
+          "Sum of Giá trị đã PB",
+          "Sum of GT PB kỳ này",
+          "Sum of SL giảm",
+          "Sum of GT giảm",
+          "Sum of GT Còn lại"
+        ],
+        "nrows": 27,
+        "canonical_kind": null
+      },
+      {
+        "name": "131",
+        "columns": [
+          "Đơn vị",
+          "Tên đơn vị",
+          "Mã Hợp đồng",
+          "Tài khoản",
+          "Tk / Tên Hợp đồng",
+          "Mã khách",
+          "Tên kh",
+          "Địa chỉ",
+          "Nợ đầu kỳ",
+          "Có đầu kỳ",
+          "Phát sinh nợ",
+          "Phát sinh có",
+          "Nợ cuối kỳ",
+          "Có cuối kỳ",
+          "Tiền vay",
+          "Ngân hàng",
+          "Mã nhân viên",
+          "Tên nhân viên",
+          "Phòng",
+          "Tên phòng",
+          "Số hóa đơn",
+          "Ngày hóa đơn",
+          "Số khung",
+          "Số máy",
+          "Mã kiểu xe",
+          "Tên kiểu xe",
+          "STT",
+          "Ngày nhập COC",
+          "Ngày giao xe"
+        ],
+        "nrows": 2190,
+        "canonical_kind": "TK131"
+      },
+      {
+        "name": "13692",
+        "columns": [
+          "Tên Đơn vị",
+          "Mã C.từ",
+          "Số bút toán",
+          "Số Hóa Đơn",
+          "Ngày HDDT",
+          "Số Ct",
+          "Ngày lập C.từ",
+          "Ngày C.từ",
+          "Mã khách",
+          "Tên nhóm",
+          "Tên khách",
+          "Ông bà",
+          "Diễn giải",
+          "TK đối ứng",
+          "Phát sinh nợ",
+          "Phát sinh có",
+          "Mã TTLN",
+          "Mã TTCP",
+          "Vụ việc",
+          "Phí",
+          "Mã nghiệp vụ",
+          "Hợp đồng",
+          "Số Ro",
+          "Số khung",
+          "Sản phẩm",
+          "CMT",
+          "Mã kho",
+          "Mã vật tư",
+          "Ma_TD3",
+          "Người lập phiếu",
+          "Tk nợ",
+          "Tk có",
+          "Tài Sản",
+          "Tên Tài sản"
+        ],
+        "nrows": 960,
+        "canonical_kind": null
+      },
+      {
+        "name": "5111 ",
+        "columns": [
+          "CHI NHÁNH VINFAST HÀ NỘI - CÔNG TY CỔ PHẦN THỊNH CƯỜNG",
+          "RLLVFPNT6TH711391",
+          "xe đã xhđ tháng 4, đến tháng 5 hủy, xhđ sang KH khác"
+        ],
+        "nrows": 752,
+        "canonical_kind": null
+      },
+      {
+        "name": "PTUB",
+        "columns": [
+          "Tên Đơn vị",
+          "Mã C.từ",
+          "Số bút toán",
+          "Số Hóa Đơn",
+          "Ngày HDDT",
+          "Số Ct",
+          "Ngày lập C.từ",
+          "Ngày C.từ",
+          "Mã khách",
+          "Tên nhóm",
+          "Tên khách",
+          "Ông bà",
+          "Diễn giải",
+          "TK đối ứng",
+          "Phát sinh nợ",
+          "Phát sinh có",
+          "Mã TTLN",
+          "Mã TTCP",
+          "Vụ việc",
+          "Phí",
+          "Mã nghiệp vụ",
+          "Hợp đồng",
+          "Số Ro",
+          "Số khung",
+          "Sản phẩm",
+          "CMT",
+          "Mã kho",
+          "Mã vật tư",
+          "Ma_TD3",
+          "Người lập phiếu",
+          "Tk nợ",
+          "Tk có",
+          "Tài Sản",
+          "Tên Tài sản"
+        ],
+        "nrows": 165,
+        "canonical_kind": null
+      },
+      {
+        "name": "PTTC",
+        "columns": [
+          "Tên Đơn vị",
+          "Mã C.từ",
+          "Số bút toán",
+          "Số Hóa Đơn",
+          "Ngày HDDT",
+          "Số Ct",
+          "Ngày lập C.từ",
+          "Ngày C.từ",
+          "Mã khách",
+          "Tên nhóm",
+          "Tên khách",
+          "Ông bà",
+          "Diễn giải",
+          "TK đối ứng",
+          "Phát sinh nợ",
+          "Phát sinh có",
+          "Mã TTLN",
+          "Mã TTCP",
+          "Vụ việc",
+          "Phí",
+          "Mã nghiệp vụ",
+          "Hợp đồng",
+          "Số Ro",
+          "Số khung",
+          "Sản phẩm",
+          "CMT",
+          "Mã kho",
+          "Mã vật tư",
+          "Ma_TD3",
+          "Người lập phiếu",
+          "Tk nợ",
+          "Tk có",
+          "Tài Sản",
+          "Tên Tài sản"
+        ],
+        "nrows": 967,
+        "canonical_kind": null
+      },
+      {
+        "name": "PTGF",
+        "columns": [
+          "Tên Đơn vị",
+          "Mã C.từ",
+          "Số bút toán",
+          "Số Hóa Đơn",
+          "Ngày HDDT",
+          "Số Ct",
+          "Ngày lập C.từ",
+          "Ngày C.từ",
+          "Mã khách",
+          "Tên nhóm",
+          "Tên khách",
+          "Ông bà",
+          "Diễn giải",
+          "TK đối ứng",
+          "Phát sinh nợ",
+          "Phát sinh có",
+          "Mã TTLN",
+          "Mã TTCP",
+          "Vụ việc",
+          "Phí",
+          "Mã nghiệp vụ",
+          "Hợp đồng",
+          "Số Ro",
+          "Số khung",
+          "Sản phẩm",
+          "CMT",
+          "Mã kho",
+          "Mã vật tư",
+          "Ma_TD3",
+          "Người lập phiếu",
+          "Tk nợ",
+          "Tk có",
+          "Tài Sản",
+          "Tên Tài sản"
+        ],
+        "nrows": 211,
+        "canonical_kind": null
+      },
+      {
+        "name": "PTB2B",
+        "columns": [
+          "Đơn vị",
+          "TTCP",
+          "Số C.từ",
+          "Số hóa đơn",
+          "Ngày hóa đơn",
+          "Số Seri",
+          "Số HĐĐT",
+          "Ngày C.từ",
+          "Mã khách hàng",
+          "Tên khách hàng",
+          "Diễn giải",
+          "TK đối ứng",
+          "Phát sinh nợ",
+          "Phát sinh có",
+          "Số dư nợ",
+          "Số dư Có",
+          "Hợp đồng",
+          "Tên hợp đồng",
+          "Số R/O",
+          "Số khung",
+          "Mã CT"
+        ],
+        "nrows": 1208,
+        "canonical_kind": null
+      },
+      {
+        "name": "156",
+        "columns": [
+          "Đơn vị",
+          "Mã kx",
+          "Số khung",
+          "Mã màu",
+          "Màu xe",
+          "Ngày nhập từ NCC",
+          "Số ngày tồn",
+          "Tồn đầu",
+          "SL Nhập",
+          "SL Xuất",
+          "Tồn cuối",
+          "Dư đầu",
+          "Giá trị nhập",
+          "Giá trị xuất",
+          "Dư cuối",
+          "Mã kho",
+          "Tên kho",
+          "Số Hợp đồng"
+        ],
+        "nrows": 3024,
+        "canonical_kind": null
+      },
+      {
+        "name": "1362",
+        "columns": [
+          "Tên Đơn vị",
+          "Mã C.từ",
+          "Số bút toán",
+          "Số Hóa Đơn",
+          "Ngày HDDT",
+          "Số Ct",
+          "Ngày lập C.từ",
+          "Ngày C.từ",
+          "Mã khách",
+          "Tên nhóm",
+          "Tên khách",
+          "Ông bà",
+          "Diễn giải",
+          "TK đối ứng",
+          "Phát sinh nợ",
+          "Phát sinh có",
+          "Mã TTLN",
+          "Mã TTCP",
+          "Vụ việc",
+          "Phí",
+          "Mã nghiệp vụ",
+          "Hợp đồng",
+          "Số Ro",
+          "Số khung",
+          "Sản phẩm",
+          "CMT",
+          "Mã kho",
+          "Mã vật tư",
+          "Ma_TD3",
+          "Người lập phiếu",
+          "Tk nợ",
+          "Tk có",
+          "Tài Sản",
+          "Tên Tài sản"
+        ],
+        "nrows": 17,
+        "canonical_kind": null
+      },
+      {
+        "name": "T06",
+        "columns": [],
+        "nrows": 1,
+        "canonical_kind": null
+      },
+      {
+        "name": "T07",
+        "columns": [],
+        "nrows": 1,
+        "canonical_kind": null
+      },
+      {
+        "name": "T08",
+        "columns": [],
+        "nrows": 1,
+        "canonical_kind": null
+      },
+      {
+        "name": "T09",
+        "columns": [],
+        "nrows": 1,
+        "canonical_kind": null
+      },
+      {
+        "name": "T10",
+        "columns": [],
+        "nrows": 1,
+        "canonical_kind": null
+      },
+      {
+        "name": "T11",
+        "columns": [],
+        "nrows": 1,
+        "canonical_kind": null
+      },
+      {
+        "name": "T12",
+        "columns": [],
+        "nrows": 1,
+        "canonical_kind": null
+      }
+    ],
+    "mtime": 1783318799.4308183,
+    "indexed_at": "2026-07-06T06:20:44+00:00",
+    "ingested": true
+  },
+  "0bb9c4489e147528": {
+    "file": "B.1.TC.TCKT.M.202605.BaocaoHQKD_SRVF.xlsx",
+    "path": "/home/sysadmin/Connect_VPS/received_reports/SRVF/baocaokqkdrieng/B.1.TC.TCKT.M.202605.BaocaoHQKD_SRVF.xlsx",
+    "company": "SRVF",
+    "report_type": "baocaokqkdrieng",
+    "month": 5,
+    "period_type": "từng tháng",
+    "sheets": [
+      {
+        "name": "B2C",
+        "columns": [
+          "BĐ",
+          "BĐ",
+          "BĐ",
+          "BĐ",
+          "CĐ",
+          "CĐ",
+          "CĐ",
+          "CĐ",
+          "CĐ",
+          "CĐ",
+          "CĐ",
+          "CĐ"
+        ],
+        "nrows": 895,
+        "canonical_kind": null
+      },
+      {
+        "name": "CĐPS",
+        "columns": [
+          "Tài khoản",
+          "Tên tài khoản",
+          "Nợ đầu kỳ",
+          "Có đầu kỳ",
+          "Phát sinh nợ",
+          "Phát sinh có",
+          "Dư nợ cuối kỳ",
+          "Dư có cuối kỳ"
+        ],
+        "nrows": 419,
+        "canonical_kind": "CDPS"
+      },
+      {
+        "name": "CĐKT",
+        "columns": [
+          "Chỉ tiêu",
+          "Mã Số",
+          "Số cuối kỳ",
+          "Số đầu kỳ",
+          "Số đầu năm",
+          "Thuyết Minh"
+        ],
+        "nrows": 131,
+        "canonical_kind": "CDKT"
+      },
+      {
+        "name": "LCTT",
+        "columns": [
+          "Chỉ tiêu",
+          "Mã Số",
+          "Kỳ này",
+          "Kỳ trước"
+        ],
+        "nrows": 45,
+        "canonical_kind": "LCTT"
+      },
+      {
+        "name": "T01",
+        "columns": [
+          "Mã số",
+          "Chỉ tiêu",
+          "Lũy kế",
+          "Kỳ này",
+          "Showroom Uông Bí",
+          "Vinfast B2B",
+          "Showroom OceanPark",
+          "Showroom Long Biên",
+          "Showroom Smart City",
+          "Showroom Hạ Long",
+          "Showroom Cẩm Phả",
+          "Showroom Vĩnh Phúc",
+          "Showroom Sơn Tây",
+          "Showroom Xuân Mai",
+          "CHI NHÁNH VINFAST HÀ NỘI - CÔNG TY CỔ PHẦN THỊNH CƯỜNG"
+        ],
+        "nrows": 79,
+        "canonical_kind": null
+      },
+      {
+        "name": "T02",
+        "columns": [
+          "Mã số",
+          "Chỉ tiêu",
+          "Lũy kế",
+          "Kỳ này",
+          "TK nợ",
+          "TK có",
+          "Mã phí",
+          "Mã NS",
+          "Công thức",
+          "Showroom Uông Bí",
+          "Vinfast B2B",
+          "Showroom OceanPark",
+          "Showroom Long Biên",
+          "Showroom Smart City",
+          "Showroom Hạ Long",
+          "Showroom Cẩm Phả",
+          "Showroom Vĩnh Phúc",
+          "Showroom Sơn Tây",
+          "Showroom Xuân Mai",
+          "CHI NHÁNH VINFAST HÀ NỘI - CÔNG TY CỔ PHẦN THỊNH CƯỜNG",
+          "Showroom Smart City",
+          "Showroom Hạ Long",
+          "Showroom Cẩm Phả",
+          "Showroom Vĩnh Phúc",
+          "Showroom Sơn Tây",
+          "Showroom Xuân Mai",
+          "CHI NHÁNH VINFAST HÀ NỘI - CÔNG TY CỔ PHẦN THỊNH CƯỜNG"
+        ],
+        "nrows": 72,
+        "canonical_kind": null
+      },
+      {
+        "name": "T03",
+        "columns": [
+          "Mã số",
+          "Chỉ tiêu",
+          "Lũy kế",
+          "Kỳ này",
+          "TK nợ",
+          "TK có",
+          "Mã phí",
+          "Mã NS",
+          "Công thức",
+          "Showroom Uông Bí",
+          "Vinfast B2B",
+          "Showroom OceanPark",
+          "Showroom Long Biên",
+          "Showroom Smart City",
+          "Showroom Hạ Long",
+          "Showroom Cẩm Phả",
+          "Showroom Vĩnh Phúc",
+          "Showroom Sơn Tây",
+          "Showroom Xuân Mai",
+          "CHI NHÁNH VINFAST HÀ NỘI - CÔNG TY CỔ PHẦN THỊNH CƯỜNG"
+        ],
+        "nrows": 84,
+        "canonical_kind": null
+      },
+      {
+        "name": "T04.",
+        "columns": [
+          "Mã số",
+          "Chỉ tiêu",
+          "Lũy kế",
+          "Kỳ này",
+          "TK nợ",
+          "TK có",
+          "Mã phí",
+          "Mã NS",
+          "Công thức",
+          "Showroom Uông Bí",
+          "Vinfast B2B",
+          "Showroom OceanPark",
+          "Showroom Long Biên",
+          "Showroom Smart City",
+          "Showroom Hạ Long",
+          "Showroom Cẩm Phả",
+          "Showroom Vĩnh Phúc",
+          "Showroom Sơn Tây",
+          "Showroom Xuân Mai",
+          "CHI NHÁNH VINFAST HÀ NỘI - CÔNG TY CỔ PHẦN THỊNH CƯỜNG"
+        ],
+        "nrows": 89,
+        "canonical_kind": null
+      },
+      {
+        "name": "T05",
+        "columns": [
+          "Mã số",
+          "Chỉ tiêu",
+          "Lũy kế",
+          "Kỳ này",
+          "TK nợ",
+          "TK có",
+          "Mã phí",
+          "Mã NS",
+          "Công thức",
+          "Showroom Uông Bí",
+          "Vinfast B2B",
+          "Showroom OceanPark",
+          "Showroom Long Biên",
+          "Showroom Smart City",
+          "Showroom Hạ Long",
+          "Showroom Cẩm Phả",
+          "Showroom Vĩnh Phúc",
+          "Showroom Sơn Tây",
+          "Showroom Xuân Mai",
+          "CHI NHÁNH VINFAST HÀ NỘI - CÔNG TY CỔ PHẦN THỊNH CƯỜNG"
+        ],
+        "nrows": 90,
+        "canonical_kind": null
+      },
+      {
+        "name": "LNQ1",
+        "columns": [
+          "Mã số",
+          "Chỉ tiêu",
+          "Lũy kế",
+          "Kỳ này",
+          "TK nợ",
+          "TK có",
+          "Mã phí",
+          "Mã NS",
+          "Công thức",
+          "XDV Ocean Park",
+          "XDV Long Biên",
+          "XDV Smart City",
+          "XDV Hạ Long",
+          "XDV Cẩm Phả",
+          "VF Xuân Mai",
+          "VF Uông Bí",
+          "VF Tuyên Quang",
+          "XDV Vĩnh Phúc",
+          "XDV Sơn Tây",
+          "XDV Đài Tư",
+          "Showroom Uông Bí",
+          "XDV Việt Trì",
+          "Vinfast B2B",
+          "Vinfast Xuân Mai",
+          "VF Thái Nguyên",
+          "XDV Hà Khánh",
+          "Chi nhánh Vinfast Hồ Chí Minh- Công ty CP Thịnh Cường",
+          "Showroom OceanPark",
+          "Showroom Long Biên",
+          "Showroom Smart City",
+          "Showroom Hạ Long",
+          "Showroom Cẩm Phả",
+          "Showroom Vĩnh Phúc",
+          "Showroom Sơn Tây",
+          "Showroom Xuân Mai",
+          "CHI NHÁNH VINFAST HÀ NỘI - CÔNG TY CỔ PHẦN THỊNH CƯỜNG"
+        ],
+        "nrows": 105,
+        "canonical_kind": null
+      },
+      {
+        "name": "T05BC",
+        "columns": [
+          "Mục",
+          "Khối",
+          "Mã số",
+          "Chỉ tiêu",
+          "Kỳ này",
+          "% DT",
+          "T01",
+          "% DT",
+          "T02",
+          "% DT",
+          "T03",
+          "% DT",
+          "T04",
+          "% DT",
+          "T05",
+          "% DT",
+          "Showroom Uông Bí",
+          "% DT",
+          "Vinfast B2B",
+          "% DT",
+          "Showroom OceanPark",
+          "% DT",
+          "Showroom Long Biên",
+          "% DT",
+          "Showroom Smart City",
+          "% DT",
+          "Showroom Hạ Long",
+          "% DT",
+          "Showroom Cẩm Phả",
+          "% DT",
+          "Showroom Vĩnh Phúc",
+          "% DT",
+          "Showroom Sơn Tây",
+          "% DT",
+          "Showroom Xuân Mai",
+          "% DT",
+          "CHI NHÁNH VINFAST HÀ NỘI - CÔNG TY CỔ PHẦN THỊNH CƯỜNG"
+        ],
+        "nrows": 107,
+        "canonical_kind": null
+      },
+      {
+        "name": "331",
+        "columns": [
+          "Chọn",
+          "Mã khách hàng",
+          "Tên khách hàng",
+          "Nhóm 2",
+          "Tên nhóm 2",
+          "Dư nợ ĐK",
+          "Dư có ĐK",
+          "Phát sinh  nợ",
+          "Phát sinh có",
+          "Dư nợ CK",
+          "Dư có CK"
+        ],
+        "nrows": 5724,
+        "canonical_kind": "TK331"
+      },
+      {
+        "name": "KHTS",
+        "columns": [
+          "310",
+          "27675118453",
+          "29003279382",
+          "455550071",
+          "6704307043",
+          "22298972339",
+          "658932787",
+          "203382716"
+        ],
+        "nrows": 312,
+        "canonical_kind": null
+      },
+      {
+        "name": "211+242",
+        "columns": [
+          "Đơn vị",
+          "Nguyên giá",
+          "Số lượng",
+          "Khấu hao",
+          "Giá trị còn lại"
+        ],
+        "nrows": 66,
+        "canonical_kind": null
+      },
+      {
+        "name": "KHCD",
+        "columns": [
+          "Đơn Vị",
+          "Giá trị nhập",
+          "Số lượng",
+          "Số lượng CCDC giảm",
+          "Số lượng cuối kỳ",
+          "Giá trị PB trong kỳ (T5.26)",
+          "Phân bổ lũy kế",
+          "Giá trị CCDC giảm",
+          "GT Còn lại"
+        ],
+        "nrows": 28,
+        "canonical_kind": null
+      },
+      {
+        "name": "131",
+        "columns": [
+          "Đơn vị",
+          "Tên đơn vị",
+          "Mã Hợp đồng",
+          "Tài khoản",
+          "Tk / Tên Hợp đồng",
+          "Mã khách",
+          "Tên kh",
+          "Địa chỉ",
+          "Nợ đầu kỳ",
+          "Có đầu kỳ",
+          "Phát sinh nợ",
+          "Phát sinh có",
+          "Nợ cuối kỳ",
+          "Có cuối kỳ",
+          "Tiền vay",
+          "Ngân hàng",
+          "Mã nhân viên",
+          "Tên nhân viên",
+          "Phòng",
+          "Tên phòng",
+          "Số hóa đơn",
+          "Ngày hóa đơn",
+          "Số khung",
+          "Số máy",
+          "Mã kiểu xe",
+          "Tên kiểu xe",
+          "STT"
+        ],
+        "nrows": 4377,
+        "canonical_kind": "TK131"
+      },
+      {
+        "name": "13692",
+        "columns": [
+          "Tên Đơn vị",
+          "Mã C.từ",
+          "Số bút toán",
+          "Số Hóa Đơn",
+          "Ngày HDDT",
+          "Số Ct",
+          "Ngày lập C.từ",
+          "Ngày C.từ",
+          "Mã khách",
+          "Tên nhóm",
+          "Tên khách",
+          "Ông bà",
+          "Diễn giải",
+          "TK đối ứng",
+          "Phát sinh nợ",
+          "Phát sinh có",
+          "Mã TTLN",
+          "Mã TTCP",
+          "Vụ việc",
+          "Phí",
+          "Mã nghiệp vụ",
+          "Hợp đồng",
+          "Số Ro",
+          "Số khung",
+          "Sản phẩm",
+          "CMT",
+          "Mã kho",
+          "Mã vật tư",
+          "Ma_TD3",
+          "Người lập phiếu",
+          "Tk nợ",
+          "Tk có",
+          "Tài Sản",
+          "Tên Tài sản"
+        ],
+        "nrows": 1128,
+        "canonical_kind": null
+      },
+      {
+        "name": "5111 ",
+        "columns": [
+          "CHI NHÁNH VINFAST HÀ NỘI - CÔNG TY CỔ PHẦN THỊNH CƯỜNG",
+          "RLLVFPNT6TH711391",
+          "xe đã xhđ tháng 4, đến tháng 5 hủy, xhđ sang KH khác"
+        ],
+        "nrows": 867,
+        "canonical_kind": null
+      },
+      {
+        "name": "PTUB",
+        "columns": [
+          "Tên Đơn vị",
+          "Mã C.từ",
+          "Số bút toán",
+          "Số Hóa Đơn",
+          "Ngày HDDT",
+          "Số Ct",
+          "Ngày lập C.từ",
+          "Ngày C.từ",
+          "Mã khách",
+          "Tên nhóm",
+          "Tên khách",
+          "Ông bà",
+          "Diễn giải",
+          "TK đối ứng",
+          "Phát sinh nợ",
+          "Phát sinh có",
+          "Mã TTLN",
+          "Mã TTCP",
+          "Vụ việc",
+          "Phí",
+          "Mã nghiệp vụ",
+          "Hợp đồng",
+          "Số Ro",
+          "Số khung",
+          "Sản phẩm",
+          "CMT",
+          "Mã kho",
+          "Mã vật tư",
+          "Ma_TD3",
+          "Người lập phiếu",
+          "Tk nợ",
+          "Tk có",
+          "Tài Sản",
+          "Tên Tài sản"
+        ],
+        "nrows": 433,
+        "canonical_kind": null
+      },
+      {
+        "name": "PTTC",
+        "columns": [
+          "Tên Đơn vị",
+          "Mã C.từ",
+          "Số bút toán",
+          "Số Hóa Đơn",
+          "Ngày HDDT",
+          "Số Ct",
+          "Ngày lập C.từ",
+          "Ngày C.từ",
+          "Mã khách",
+          "Tên nhóm",
+          "Tên khách",
+          "Ông bà",
+          "Diễn giải",
+          "TK đối ứng",
+          "Phát sinh nợ",
+          "Phát sinh có",
+          "Mã TTLN",
+          "Mã TTCP",
+          "Vụ việc",
+          "Phí",
+          "Mã nghiệp vụ",
+          "Hợp đồng",
+          "Số Ro",
+          "Số khung",
+          "Sản phẩm",
+          "CMT",
+          "Mã kho",
+          "Mã vật tư",
+          "Ma_TD3",
+          "Người lập phiếu",
+          "Tk nợ",
+          "Tk có",
+          "Tài Sản",
+          "Tên Tài sản"
+        ],
+        "nrows": 2299,
+        "canonical_kind": null
+      },
+      {
+        "name": "PTGF",
+        "columns": [
+          "Tên Đơn vị",
+          "Mã C.từ",
+          "Số bút toán",
+          "Số Hóa Đơn",
+          "Ngày HDDT",
+          "Số Ct",
+          "Ngày lập C.từ",
+          "Ngày C.từ",
+          "Mã khách",
+          "Tên nhóm",
+          "Tên khách",
+          "Ông bà",
+          "Diễn giải",
+          "TK đối ứng",
+          "Phát sinh nợ",
+          "Phát sinh có",
+          "Mã TTLN",
+          "Mã TTCP",
+          "Vụ việc",
+          "Phí",
+          "Mã nghiệp vụ",
+          "Hợp đồng",
+          "Số Ro",
+          "Số khung",
+          "Sản phẩm",
+          "CMT",
+          "Mã kho",
+          "Mã vật tư",
+          "Ma_TD3",
+          "Người lập phiếu",
+          "Tk nợ",
+          "Tk có",
+          "Tài Sản",
+          "Tên Tài sản"
+        ],
+        "nrows": 114,
+        "canonical_kind": null
+      },
+      {
+        "name": "PTB2B",
+        "columns": [
+          "Đơn vị",
+          "TTCP",
+          "Số C.từ",
+          "Số hóa đơn",
+          "Ngày hóa đơn",
+          "Số Seri",
+          "Số HĐĐT",
+          "Ngày C.từ",
+          "Mã khách hàng",
+          "Tên khách hàng",
+          "Diễn giải",
+          "TK đối ứng",
+          "Phát sinh nợ",
+          "Phát sinh có",
+          "Số dư nợ",
+          "Số dư Có",
+          "Hợp đồng",
+          "Tên hợp đồng",
+          "Số R/O",
+          "Số khung",
+          "Mã CT"
+        ],
+        "nrows": 762,
+        "canonical_kind": null
+      },
+      {
+        "name": "33692",
+        "columns": [
+          "Đơn vị",
+          "TTCP",
+          "Số C.từ",
+          "Số hóa đơn",
+          "Ngày hóa đơn",
+          "Số Seri",
+          "Số HĐĐT",
+          "Ngày C.từ",
+          "Mã khách hàng",
+          "Tên khách hàng",
+          "Diễn giải",
+          "TK đối ứng",
+          "Phát sinh nợ",
+          "Phát sinh có",
+          "Số dư nợ",
+          "Số dư Có",
+          "Hợp đồng",
+          "Tên hợp đồng",
+          "Số R/O",
+          "Số khung",
+          "Mã CT"
+        ],
+        "nrows": 1181,
+        "canonical_kind": null
+      },
+      {
+        "name": "156",
+        "columns": [
+          "Đơn vị",
+          "Mã kx",
+          "Số khung",
+          "Mã màu",
+          "Màu xe",
+          "Ngày nhập từ NCC",
+          "Số ngày tồn",
+          "Tồn đầu",
+          "SL Nhập",
+          "SL Xuất",
+          "Tồn cuối",
+          "Dư đầu",
+          "Giá trị nhập",
+          "Giá trị xuất",
+          "Dư cuối",
+          "Mã kho",
+          "Tên kho",
+          "Số Hợp đồng"
+        ],
+        "nrows": 6453,
+        "canonical_kind": null
+      },
+      {
+        "name": "1369",
+        "columns": [
+          "Tên Đơn vị",
+          "Mã C.từ",
+          "Số bút toán",
+          "Số Hóa Đơn",
+          "Ngày HDDT",
+          "Số Ct",
+          "Ngày lập C.từ",
+          "Ngày C.từ",
+          "Mã khách",
+          "Tên nhóm",
+          "Tên khách",
+          "Ông bà",
+          "Diễn giải",
+          "TK đối ứng",
+          "Phát sinh nợ",
+          "Phát sinh có",
+          "Mã TTLN",
+          "Mã TTCP",
+          "Vụ việc",
+          "Phí",
+          "Mã nghiệp vụ",
+          "Hợp đồng",
+          "Số Ro",
+          "Số khung",
+          "Sản phẩm",
+          "CMT",
+          "Mã kho",
+          "Mã vật tư",
+          "Ma_TD3",
+          "Người lập phiếu",
+          "Tk nợ",
+          "Tk có",
+          "Tài Sản",
+          "Tên Tài sản"
+        ],
+        "nrows": 20,
+        "canonical_kind": null
+      },
+      {
+        "name": "T06",
+        "columns": [],
+        "nrows": 1,
+        "canonical_kind": null
+      },
+      {
+        "name": "T07",
+        "columns": [],
+        "nrows": 1,
+        "canonical_kind": null
+      },
+      {
+        "name": "T08",
+        "columns": [],
+        "nrows": 1,
+        "canonical_kind": null
+      },
+      {
+        "name": "T09",
+        "columns": [],
+        "nrows": 1,
+        "canonical_kind": null
+      },
+      {
+        "name": "T10",
+        "columns": [],
+        "nrows": 1,
+        "canonical_kind": null
+      },
+      {
+        "name": "T11",
+        "columns": [],
+        "nrows": 1,
+        "canonical_kind": null
+      },
+      {
+        "name": "T12",
+        "columns": [],
+        "nrows": 1,
+        "canonical_kind": null
+      }
+    ],
+    "mtime": 1783318806.6389053,
+    "indexed_at": "2026-07-06T06:20:45+00:00",
+    "ingested": true
+  },
+  "ccde234182a60df2": {
+    "file": "B.1.TC.TCKT.M.202604.BaocaoHQKD_SRVF.xlsx",
+    "path": "/home/sysadmin/Connect_VPS/received_reports/SRVF/baocaokqkdrieng/B.1.TC.TCKT.M.202604.BaocaoHQKD_SRVF.xlsx",
+    "company": "SRVF",
+    "report_type": "baocaokqkdrieng",
+    "month": 4,
+    "period_type": "từng tháng",
+    "sheets": [
+      {
+        "name": "B2C",
+        "columns": [
+          "BĐ",
+          "BĐ",
+          "BĐ",
+          "BĐ",
+          "CĐ",
+          "CĐ",
+          "CĐ",
+          "CĐ",
+          "CĐ",
+          "CĐ",
+          "CĐ",
+          "CĐ"
+        ],
+        "nrows": 895,
+        "canonical_kind": null
+      },
+      {
+        "name": "CĐPS",
+        "columns": [
+          "Tài khoản",
+          "Tên tài khoản",
+          "Nợ đầu kỳ",
+          "Có đầu kỳ",
+          "Phát sinh nợ",
+          "Phát sinh có",
+          "Dư nợ cuối kỳ",
+          "Dư có cuối kỳ"
+        ],
+        "nrows": 415,
+        "canonical_kind": "CDPS"
+      },
+      {
+        "name": "CĐKT",
+        "columns": [
+          "Chỉ tiêu",
+          "Mã Số",
+          "Số cuối kỳ",
+          "Số đầu kỳ",
+          "Số đầu năm",
+          "Thuyết Minh"
+        ],
+        "nrows": 131,
+        "canonical_kind": "CDKT"
+      },
+      {
+        "name": "LCTT",
+        "columns": [
+          "Chỉ tiêu",
+          "Mã Số",
+          "Kỳ này",
+          "Kỳ trước"
+        ],
+        "nrows": 45,
+        "canonical_kind": "LCTT"
+      },
+      {
+        "name": "T01",
+        "columns": [
+          "Mã số",
+          "Chỉ tiêu",
+          "Lũy kế",
+          "Kỳ này",
+          "Showroom Uông Bí",
+          "Vinfast B2B",
+          "Showroom OceanPark",
+          "Showroom Long Biên",
+          "Showroom Smart City",
+          "Showroom Hạ Long",
+          "Showroom Cẩm Phả",
+          "Showroom Vĩnh Phúc",
+          "Showroom Sơn Tây",
+          "Showroom Xuân Mai",
+          "CHI NHÁNH VINFAST HÀ NỘI - CÔNG TY CỔ PHẦN THỊNH CƯỜNG"
+        ],
+        "nrows": 79,
+        "canonical_kind": null
+      },
+      {
+        "name": "T02",
+        "columns": [
+          "Mã số",
+          "Chỉ tiêu",
+          "Lũy kế",
+          "Kỳ này",
+          "TK nợ",
+          "TK có",
+          "Mã phí",
+          "Mã NS",
+          "Công thức",
+          "Showroom Uông Bí",
+          "Vinfast B2B",
+          "Showroom OceanPark",
+          "Showroom Long Biên",
+          "Showroom Smart City",
+          "Showroom Hạ Long",
+          "Showroom Cẩm Phả",
+          "Showroom Vĩnh Phúc",
+          "Showroom Sơn Tây",
+          "Showroom Xuân Mai",
+          "CHI NHÁNH VINFAST HÀ NỘI - CÔNG TY CỔ PHẦN THỊNH CƯỜNG",
+          "Showroom Smart City",
+          "Showroom Hạ Long",
+          "Showroom Cẩm Phả",
+          "Showroom Vĩnh Phúc",
+          "Showroom Sơn Tây",
+          "Showroom Xuân Mai",
+          "CHI NHÁNH VINFAST HÀ NỘI - CÔNG TY CỔ PHẦN THỊNH CƯỜNG"
+        ],
+        "nrows": 72,
+        "canonical_kind": null
+      },
+      {
+        "name": "T03",
+        "columns": [
+          "Mã số",
+          "Chỉ tiêu",
+          "Lũy kế",
+          "Kỳ này",
+          "TK nợ",
+          "TK có",
+          "Mã phí",
+          "Mã NS",
+          "Công thức",
+          "Showroom Uông Bí",
+          "Vinfast B2B",
+          "Showroom OceanPark",
+          "Showroom Long Biên",
+          "Showroom Smart City",
+          "Showroom Hạ Long",
+          "Showroom Cẩm Phả",
+          "Showroom Vĩnh Phúc",
+          "Showroom Sơn Tây",
+          "Showroom Xuân Mai",
+          "CHI NHÁNH VINFAST HÀ NỘI - CÔNG TY CỔ PHẦN THỊNH CƯỜNG"
+        ],
+        "nrows": 84,
+        "canonical_kind": null
+      },
+      {
+        "name": "T04",
+        "columns": [
+          "Mã số",
+          "Chỉ tiêu",
+          "Lũy kế",
+          "Kỳ này",
+          "TK nợ",
+          "TK có",
+          "Mã phí",
+          "Mã NS",
+          "Công thức",
+          "Showroom Uông Bí",
+          "Vinfast B2B",
+          "Showroom OceanPark",
+          "Showroom Long Biên",
+          "Showroom Smart City",
+          "Showroom Hạ Long",
+          "Showroom Cẩm Phả",
+          "Showroom Vĩnh Phúc",
+          "Showroom Sơn Tây",
+          "Showroom Xuân Mai",
+          "CHI NHÁNH VINFAST HÀ NỘI - CÔNG TY CỔ PHẦN THỊNH CƯỜNG"
+        ],
+        "nrows": 87,
+        "canonical_kind": null
+      },
+      {
+        "name": "LNQ1",
+        "columns": [
+          "Mã số",
+          "Chỉ tiêu",
+          "Lũy kế",
+          "Kỳ này",
+          "TK nợ",
+          "TK có",
+          "Mã phí",
+          "Mã NS",
+          "Công thức",
+          "XDV Ocean Park",
+          "XDV Long Biên",
+          "XDV Smart City",
+          "XDV Hạ Long",
+          "XDV Cẩm Phả",
+          "VF Xuân Mai",
+          "VF Uông Bí",
+          "VF Tuyên Quang",
+          "XDV Vĩnh Phúc",
+          "XDV Sơn Tây",
+          "XDV Đài Tư",
+          "Showroom Uông Bí",
+          "XDV Việt Trì",
+          "Vinfast B2B",
+          "Vinfast Xuân Mai",
+          "VF Thái Nguyên",
+          "XDV Hà Khánh",
+          "Chi nhánh Vinfast Hồ Chí Minh- Công ty CP Thịnh Cường",
+          "Showroom OceanPark",
+          "Showroom Long Biên",
+          "Showroom Smart City",
+          "Showroom Hạ Long",
+          "Showroom Cẩm Phả",
+          "Showroom Vĩnh Phúc",
+          "Showroom Sơn Tây",
+          "Showroom Xuân Mai",
+          "CHI NHÁNH VINFAST HÀ NỘI - CÔNG TY CỔ PHẦN THỊNH CƯỜNG"
+        ],
+        "nrows": 105,
+        "canonical_kind": null
+      },
+      {
+        "name": "T04BC",
+        "columns": [
+          "Mục",
+          "Khối",
+          "Mã số",
+          "Chỉ tiêu",
+          "Kỳ này",
+          "% DT",
+          "T01",
+          "% DT",
+          "T02",
+          "% DT",
+          "T03",
+          "% DT",
+          "T04",
+          "% DT",
+          "Showroom Uông Bí",
+          "% DT",
+          "Vinfast B2B",
+          "% DT",
+          "Showroom OceanPark",
+          "% DT",
+          "Showroom Long Biên",
+          "% DT",
+          "Showroom Smart City",
+          "% DT",
+          "Showroom Hạ Long",
+          "% DT",
+          "Showroom Cẩm Phả",
+          "% DT",
+          "Showroom Vĩnh Phúc",
+          "% DT",
+          "Showroom Sơn Tây",
+          "% DT",
+          "Showroom Xuân Mai",
+          "% DT",
+          "CHI NHÁNH VINFAST HÀ NỘI - CÔNG TY CỔ PHẦN THỊNH CƯỜNG"
+        ],
+        "nrows": 103,
+        "canonical_kind": null
+      },
+      {
+        "name": "331",
+        "columns": [
+          "Chọn",
+          "Mã khách hàng",
+          "Tên khách hàng",
+          "Nhóm 2",
+          "Tên nhóm 2",
+          "Dư nợ ĐK",
+          "Dư có ĐK",
+          "Phát sinh  nợ",
+          "Phát sinh có",
+          "Dư nợ CK",
+          "Dư có CK"
+        ],
+        "nrows": 293,
+        "canonical_kind": "TK331"
+      },
+      {
+        "name": "KHTS",
+        "columns": [
+          "Đơn vị",
+          "Tên DV",
+          "Tên TTCP",
+          "Loại tài sản",
+          "Stt",
+          "Mã tài sản",
+          "Tên tài sản",
+          "TK nợ",
+          "TK có",
+          "Số lượng",
+          "Nguyên giá đầu",
+          "Nguyên giá cuối kỳ",
+          "Ngày tăng",
+          "Ngày khấu hao",
+          "Thời gian khấu hao (tháng)",
+          "Giá trị khấu hao trong kỳ",
+          "Giá trị khấu hao lũy kế",
+          "Giá trị còn lại",
+          "Mã phí"
+        ],
+        "nrows": 306,
+        "canonical_kind": null
+      },
+      {
+        "name": "211+242",
+        "columns": [
+          "Row Labels",
+          "Sum of Số lượng",
+          "Sum of Nguyên giá đầu",
+          "Sum of Nguyên giá cuối kỳ",
+          "Sum of Giá trị khấu hao trong kỳ",
+          "Sum of Giá trị khấu hao lũy kế",
+          "Sum of Giá trị còn lại"
+        ],
+        "nrows": 27,
+        "canonical_kind": null
+      },
+      {
+        "name": "KHCD",
+        "columns": [
+          "Row Labels",
+          "Sum of Số lượng",
+          "Sum of Giá trị",
+          "Sum of Giá trị đã PB",
+          "Sum of GT PB kỳ này",
+          "Sum of SL giảm",
+          "Sum of GT giảm",
+          "Sum of GT Còn lại"
+        ],
+        "nrows": 28,
+        "canonical_kind": null
+      },
+      {
+        "name": "131",
+        "columns": [
+          "Đơn vị",
+          "Tên đơn vị",
+          "Mã Hợp đồng",
+          "Tài khoản",
+          "Tk / Tên Hợp đồng",
+          "Mã khách",
+          "Tên kh",
+          "Địa chỉ",
+          "Nợ đầu kỳ",
+          "Có đầu kỳ",
+          "Phát sinh nợ",
+          "Phát sinh có",
+          "Nợ cuối kỳ",
+          "Có cuối kỳ",
+          "Tiền vay",
+          "Ngân hàng",
+          "Mã nhân viên",
+          "Tên nhân viên",
+          "Phòng",
+          "Tên phòng",
+          "Số hóa đơn",
+          "Ngày hóa đơn",
+          "Số khung",
+          "Số máy",
+          "Mã kiểu xe",
+          "Tên kiểu xe",
+          "STT"
+        ],
+        "nrows": 3184,
+        "canonical_kind": "TK131"
+      },
+      {
+        "name": "13692",
+        "columns": [
+          "Tên Đơn vị",
+          "Mã C.từ",
+          "Số bút toán",
+          "Số Hóa Đơn",
+          "Ngày HDDT",
+          "Số Ct",
+          "Ngày lập C.từ",
+          "Ngày C.từ",
+          "Mã khách",
+          "Tên nhóm",
+          "Tên khách",
+          "Ông bà",
+          "Diễn giải",
+          "TK đối ứng",
+          "Phát sinh nợ",
+          "Phát sinh có",
+          "Mã TTLN",
+          "Mã TTCP",
+          "Vụ việc",
+          "Phí",
+          "Mã nghiệp vụ",
+          "Hợp đồng",
+          "Số Ro",
+          "Số khung",
+          "Sản phẩm",
+          "CMT",
+          "Mã kho",
+          "Mã vật tư",
+          "Ma_TD3",
+          "Người lập phiếu",
+          "Tk nợ",
+          "Tk có",
+          "Tài Sản",
+          "Tên Tài sản"
+        ],
+        "nrows": 1696,
+        "canonical_kind": null
+      },
+      {
+        "name": "5111 ",
+        "columns": [
+          "CHI NHÁNH VINFAST HÀ NỘI - CÔNG TY CỔ PHẦN THỊNH CƯỜNG",
+          "RLLVFPNT6TH711391",
+          "xe đã xhđ tháng 4, đến tháng 5 hủy, xhđ sang KH khác"
+        ],
+        "nrows": 1741,
+        "canonical_kind": null
+      },
+      {
+        "name": "PTUB",
+        "columns": [
+          "Tên Đơn vị",
+          "Mã C.từ",
+          "Số bút toán",
+          "Số Hóa Đơn",
+          "Ngày HDDT",
+          "Số Ct",
+          "Ngày lập C.từ",
+          "Ngày C.từ",
+          "Mã khách",
+          "Tên nhóm",
+          "Tên khách",
+          "Ông bà",
+          "Diễn giải",
+          "TK đối ứng",
+          "Phát sinh nợ",
+          "Phát sinh có",
+          "Mã TTLN",
+          "Mã TTCP",
+          "Vụ việc",
+          "Phí",
+          "Mã nghiệp vụ",
+          "Hợp đồng",
+          "Số Ro",
+          "Số khung",
+          "Sản phẩm",
+          "CMT",
+          "Mã kho",
+          "Mã vật tư",
+          "Ma_TD3",
+          "Người lập phiếu",
+          "Tk nợ",
+          "Tk có",
+          "Tài Sản",
+          "Tên Tài sản"
+        ],
+        "nrows": 390,
+        "canonical_kind": null
+      },
+      {
+        "name": "PTTC",
+        "columns": [
+          "Tên Đơn vị",
+          "Mã C.từ",
+          "Số bút toán",
+          "Số Hóa Đơn",
+          "Ngày HDDT",
+          "Số Ct",
+          "Ngày lập C.từ",
+          "Ngày C.từ",
+          "Mã khách",
+          "Tên nhóm",
+          "Tên khách",
+          "Ông bà",
+          "Diễn giải",
+          "TK đối ứng",
+          "Phát sinh nợ",
+          "Phát sinh có",
+          "Mã TTLN",
+          "Mã TTCP",
+          "Vụ việc",
+          "Phí",
+          "Mã nghiệp vụ",
+          "Hợp đồng",
+          "Số Ro",
+          "Số khung",
+          "Sản phẩm",
+          "CMT",
+          "Mã kho",
+          "Mã vật tư",
+          "Ma_TD3",
+          "Người lập phiếu",
+          "Tk nợ",
+          "Tk có",
+          "Tài Sản",
+          "Tên Tài sản"
+        ],
+        "nrows": 2082,
+        "canonical_kind": null
+      },
+      {
+        "name": "PTGF",
+        "columns": [
+          "Tên Đơn vị",
+          "Mã C.từ",
+          "Số bút toán",
+          "Số Hóa Đơn",
+          "Ngày HDDT",
+          "Số Ct",
+          "Ngày lập C.từ",
+          "Ngày C.từ",
+          "Mã khách",
+          "Tên nhóm",
+          "Tên khách",
+          "Ông bà",
+          "Diễn giải",
+          "TK đối ứng",
+          "Phát sinh nợ",
+          "Phát sinh có",
+          "Mã TTLN",
+          "Mã TTCP",
+          "Vụ việc",
+          "Phí",
+          "Mã nghiệp vụ",
+          "Hợp đồng",
+          "Số Ro",
+          "Số khung",
+          "Sản phẩm",
+          "CMT",
+          "Mã kho",
+          "Mã vật tư",
+          "Ma_TD3",
+          "Người lập phiếu",
+          "Tk nợ",
+          "Tk có",
+          "Tài Sản",
+          "Tên Tài sản"
+        ],
+        "nrows": 110,
+        "canonical_kind": null
+      },
+      {
+        "name": "PTB2B",
+        "columns": [
+          "Đơn vị",
+          "TTCP",
+          "Số C.từ",
+          "Số hóa đơn",
+          "Ngày hóa đơn",
+          "Số Seri",
+          "Số HĐĐT",
+          "Ngày C.từ",
+          "Mã khách hàng",
+          "Tên khách hàng",
+          "Diễn giải",
+          "TK đối ứng",
+          "Phát sinh nợ",
+          "Phát sinh có",
+          "Số dư nợ",
+          "Số dư Có",
+          "Hợp đồng",
+          "Tên hợp đồng",
+          "Số R/O",
+          "Số khung",
+          "Mã CT"
+        ],
+        "nrows": 686,
+        "canonical_kind": null
+      },
+      {
+        "name": "PTB2B-xanh",
+        "columns": [
+          "Đơn vị",
+          "TTCP",
+          "Số C.từ",
+          "Số hóa đơn",
+          "Ngày hóa đơn",
+          "Số Seri",
+          "Số HĐĐT",
+          "Ngày C.từ",
+          "Mã khách hàng",
+          "Tên khách hàng",
+          "Diễn giải",
+          "TK đối ứng",
+          "Phát sinh nợ",
+          "Phát sinh có",
+          "Số dư nợ",
+          "Số dư Có",
+          "Hợp đồng",
+          "Tên hợp đồng",
+          "Số R/O",
+          "Số khung",
+          "Mã CT"
+        ],
+        "nrows": 1181,
+        "canonical_kind": null
+      },
+      {
+        "name": "156",
+        "columns": [
+          "Đơn vị",
+          "Mã kx",
+          "Số khung",
+          "Mã màu",
+          "Màu xe",
+          "Ngày nhập từ NCC",
+          "Số ngày tồn",
+          "Tồn đầu",
+          "SL Nhập",
+          "SL Xuất",
+          "Tồn cuối",
+          "Dư đầu",
+          "Giá trị nhập",
+          "Giá trị xuất",
+          "Dư cuối",
+          "Mã kho",
+          "Tên kho",
+          "Số Hợp đồng"
+        ],
+        "nrows": 6054,
+        "canonical_kind": null
+      },
+      {
+        "name": "1362",
+        "columns": [
+          "Tên Đơn vị",
+          "Mã C.từ",
+          "Số bút toán",
+          "Số Hóa Đơn",
+          "Ngày HDDT",
+          "Số Ct",
+          "Ngày lập C.từ",
+          "Ngày C.từ",
+          "Mã khách",
+          "Tên nhóm",
+          "Tên khách",
+          "Ông bà",
+          "Diễn giải",
+          "TK đối ứng",
+          "Phát sinh nợ",
+          "Phát sinh có",
+          "Mã TTLN",
+          "Mã TTCP",
+          "Vụ việc",
+          "Phí",
+          "Mã nghiệp vụ",
+          "Hợp đồng",
+          "Số Ro",
+          "Số khung",
+          "Sản phẩm",
+          "CMT",
+          "Mã kho",
+          "Mã vật tư",
+          "Ma_TD3",
+          "Người lập phiếu",
+          "Tk nợ",
+          "Tk có",
+          "Tài Sản",
+          "Tên Tài sản"
+        ],
+        "nrows": 19,
+        "canonical_kind": null
+      },
+      {
+        "name": "T06",
+        "columns": [],
+        "nrows": 1,
+        "canonical_kind": null
+      },
+      {
+        "name": "T07",
+        "columns": [],
+        "nrows": 1,
+        "canonical_kind": null
+      },
+      {
+        "name": "T08",
+        "columns": [],
+        "nrows": 1,
+        "canonical_kind": null
+      },
+      {
+        "name": "T09",
+        "columns": [],
+        "nrows": 1,
+        "canonical_kind": null
+      },
+      {
+        "name": "T10",
+        "columns": [],
+        "nrows": 1,
+        "canonical_kind": null
+      },
+      {
+        "name": "T11",
+        "columns": [],
+        "nrows": 1,
+        "canonical_kind": null
+      },
+      {
+        "name": "T12",
+        "columns": [],
+        "nrows": 1,
+        "canonical_kind": null
+      }
+    ],
+    "mtime": 1783318804.1628754,
+    "indexed_at": "2026-07-06T06:20:46+00:00",
+    "ingested": true
+  },
+  "5c1956b9819074ab": {
+    "file": "B.2.TC.TCKT.M202604.BaocaoHQKD.xlsx",
+    "path": "/home/sysadmin/Connect_VPS/received_reports/XDV/baocaokqkdrieng/B.2.TC.TCKT.M202604.BaocaoHQKD.xlsx",
+    "company": "XDV",
+    "report_type": "baocaokqkdrieng",
+    "month": 4,
+    "period_type": "từng tháng",
+    "sheets": [
+      {
+        "name": "Sheet1",
+        "columns": [
+          "BÁO CÁO LỢI NHUẬN KHỐI XDV VINFAST",
+          "BÁO CÁO LỢI NHUẬN KHỐI XDV VINFAST"
+        ],
+        "nrows": 62,
+        "canonical_kind": null
+      }
+    ],
+    "mtime": 1783318814.8790042,
+    "indexed_at": "2026-07-06T06:20:47+00:00",
+    "ingested": true
+  },
+  "24f859366488e2c5": {
+    "file": "B.2.TC.TCKT.M202603.BaocaoHQKD.xlsx",
+    "path": "/home/sysadmin/Connect_VPS/received_reports/XDV/baocaokqkdrieng/B.2.TC.TCKT.M202603.BaocaoHQKD.xlsx",
+    "company": "XDV",
+    "report_type": "baocaokqkdrieng",
+    "month": 3,
+    "period_type": "từng tháng",
+    "sheets": [
+      {
+        "name": "Sheet1",
+        "columns": [
+          "Mã số",
+          "Chỉ tiêu",
+          "Kỳ này",
+          "TK nợ",
+          "TK có",
+          "Mã phí",
+          "Mã NS",
+          "Công thức",
+          "XDV Ocean Park",
+          "XDV Long Biên",
+          "XDV Smart City",
+          "XDV Hạ Long",
+          "XDV Cẩm Phả",
+          "VF Xuân Mai",
+          "VF Uông Bí",
+          "VF Tuyên Quang",
+          "XDV Vĩnh Phúc",
+          "XDV Sơn Tây",
+          "XDV Đài Tư",
+          "XDV Việt Trì",
+          "XDV Hà Khánh",
+          "Chi nhánh Vinfast Hồ Chí Minh- Công ty CP Thịnh Cường"
+        ],
+        "nrows": 62,
+        "canonical_kind": null
+      }
+    ],
+    "mtime": 1783318812.8269796,
+    "indexed_at": "2026-07-06T06:20:47+00:00",
+    "ingested": true
+  },
+  "e7c2bdd12bd20482": {
+    "file": "B.2.TC.TCKT.M202602.BaocaoHQKD.xlsx",
+    "path": "/home/sysadmin/Connect_VPS/received_reports/XDV/baocaokqkdrieng/B.2.TC.TCKT.M202602.BaocaoHQKD.xlsx",
+    "company": "XDV",
+    "report_type": "baocaokqkdrieng",
+    "month": 2,
+    "period_type": "từng tháng",
+    "sheets": [
+      {
+        "name": "Sheet1",
+        "columns": [
+          "Mã số",
+          "Chỉ tiêu",
+          "Kỳ này",
+          "TK nợ",
+          "TK có",
+          "Mã phí",
+          "Mã NS",
+          "Công thức",
+          "XDV Ocean Park",
+          "XDV Long Biên",
+          "XDV Smart City",
+          "XDV Hạ Long",
+          "XDV Cẩm Phả",
+          "VF Xuân Mai",
+          "VF Uông Bí",
+          "VF Tuyên Quang",
+          "XDV Vĩnh Phúc",
+          "XDV Sơn Tây",
+          "XDV Đài Tư",
+          "XDV Việt Trì",
+          "XDV Hà Khánh",
+          "Chi nhánh Vinfast Hồ Chí Minh- Công ty CP Thịnh Cường"
+        ],
+        "nrows": 62,
+        "canonical_kind": null
+      }
+    ],
+    "mtime": 1783318810.7829552,
+    "indexed_at": "2026-07-06T06:20:47+00:00",
+    "ingested": true
+  },
+  "70de776dda35325b": {
+    "file": "B.2.TC.TCKT.M202605.BaocaoHQKD.xlsx",
+    "path": "/home/sysadmin/Connect_VPS/received_reports/XDV/baocaokqkdrieng/B.2.TC.TCKT.M202605.BaocaoHQKD.xlsx",
+    "company": "XDV",
+    "report_type": "baocaokqkdrieng",
+    "month": 5,
+    "period_type": "từng tháng",
+    "sheets": [
+      {
+        "name": "Sheet1",
+        "columns": [
+          "Mã số",
+          "Chỉ tiêu",
+          "Kỳ này",
+          "TK nợ",
+          "TK có",
+          "Mã phí",
+          "Mã NS",
+          "Công thức",
+          "XDV Ocean Park",
+          "XDV Long Biên",
+          "XDV Smart City",
+          "XDV Hạ Long",
+          "XDV Cẩm Phả",
+          "VF Xuân Mai",
+          "VF Uông Bí",
+          "VF Tuyên Quang",
+          "XDV Vĩnh Phúc",
+          "XDV Sơn Tây",
+          "XDV Đài Tư",
+          "XDV Việt Trì",
+          "XDV Hà Khánh",
+          "Chi nhánh Vinfast Hồ Chí Minh- Công ty CP Thịnh Cường"
+        ],
+        "nrows": 58,
+        "canonical_kind": null
+      }
+    ],
+    "mtime": 1783318816.935029,
+    "indexed_at": "2026-07-06T06:20:47+00:00",
+    "ingested": true
+  },
+  "b7fe11a302d1ba95": {
+    "file": "B.2.TC.TCKT.M202601.BaocaoHQKD.xlsx",
+    "path": "/home/sysadmin/Connect_VPS/received_reports/XDV/baocaokqkdrieng/B.2.TC.TCKT.M202601.BaocaoHQKD.xlsx",
+    "company": "XDV",
+    "report_type": "baocaokqkdrieng",
+    "month": 1,
+    "period_type": "từng tháng",
+    "sheets": [
+      {
+        "name": "Sheet1",
+        "columns": [
+          "Mã số",
+          "Chỉ tiêu",
+          "Kỳ này",
+          "TK nợ",
+          "TK có",
+          "Mã phí",
+          "Mã NS",
+          "Công thức",
+          "XDV Ocean Park",
+          "XDV Long Biên",
+          "XDV Smart City",
+          "XDV Hạ Long",
+          "XDV Cẩm Phả",
+          "VF Xuân Mai",
+          "VF Uông Bí",
+          "VF Tuyên Quang",
+          "XDV Vĩnh Phúc",
+          "XDV Sơn Tây",
+          "XDV Đài Tư",
+          "XDV Việt Trì",
+          "XDV Hà Khánh",
+          "Chi nhánh Vinfast Hồ Chí Minh- Công ty CP Thịnh Cường"
+        ],
+        "nrows": 61,
+        "canonical_kind": null
+      }
+    ],
+    "mtime": 1783318808.7269304,
+    "indexed_at": "2026-07-06T06:20:47+00:00",
+    "ingested": true
+  },
+  "384ae84346175929": {
+    "file": "B.9.XVP.H3.M000426_HQKD_XANH+HTX_T04.2026.xlsx",
+    "path": "/home/sysadmin/Connect_VPS/received_reports/XANHVINHPHUC/baocaokqkdrieng/B.9.XVP.H3.M000426_HQKD_XANH+HTX_T04.2026.xlsx",
+    "company": "XANHVINHPHUC",
+    "report_type": "baocaokqkdrieng",
+    "month": 4,
+    "period_type": "từng tháng",
+    "sheets": [
+      {
+        "name": "KQKD",
+        "columns": [
+          "202604",
+          "30",
+          "33",
+          "47",
+          "61",
+          "75",
+          "103",
+          "117"
+        ],
+        "nrows": 107,
+        "canonical_kind": "KQKD"
+      },
+      {
+        "name": "DATA",
+        "columns": [
+          "Mã Tháng",
+          "2026LK",
+          "202601",
+          "202602",
+          "202603",
+          "202604",
+          "202605",
+          "202606",
+          "202607",
+          "202608",
+          "202609",
+          "202610",
+          "202611",
+          "202612",
+          "2026LK",
+          "202601",
+          "202602",
+          "202603",
+          "202604",
+          "202605",
+          "202606",
+          "202607",
+          "202608",
+          "202609",
+          "202610",
+          "202611",
+          "202612",
+          "2026LK",
+          "202601",
+          "202602",
+          "202603",
+          "202604",
+          "202605",
+          "202606",
+          "202607",
+          "202608",
+          "202609",
+          "202610",
+          "202611",
+          "202612"
+        ],
+        "nrows": 107,
+        "canonical_kind": null
+      },
+      {
+        "name": "DM",
+        "columns": [
+          "Chọn",
+          "mã",
+          "Tháng",
+          "mã",
+          "so ngay"
+        ],
+        "nrows": 14,
+        "canonical_kind": null
+      }
+    ],
+    "mtime": 1783318831.4152026,
+    "indexed_at": "2026-07-06T06:20:47+00:00",
+    "ingested": false
+  },
+  "c6f889f6628ecc3a": {
+    "file": "B.9.XVP.H3.M000326_HQKD_XANH_T03.2026.xlsx",
+    "path": "/home/sysadmin/Connect_VPS/received_reports/XANHVINHPHUC/baocaokqkdrieng/B.9.XVP.H3.M000326_HQKD_XANH_T03.2026.xlsx",
+    "company": "XANHVINHPHUC",
+    "report_type": "baocaokqkdrieng",
+    "month": 3,
+    "period_type": "từng tháng",
+    "sheets": [
+      {
+        "name": "BC THANG",
+        "columns": [
+          "202603",
+          "31",
+          "32",
+          "46",
+          "60",
+          "74"
+        ],
+        "nrows": 107,
+        "canonical_kind": null
+      },
+      {
+        "name": "DATA",
+        "columns": [
+          "Mã Tháng",
+          "2026LK",
+          "202601",
+          "202602",
+          "202603",
+          "202604",
+          "202605",
+          "202606",
+          "202607",
+          "202608",
+          "202609",
+          "202610",
+          "202611",
+          "202612",
+          "2026LK",
+          "202601",
+          "202602",
+          "202603",
+          "202604",
+          "202605",
+          "202606",
+          "202607",
+          "202608",
+          "202609",
+          "202610",
+          "202611",
+          "202612",
+          "2026LK",
+          "202601",
+          "202602",
+          "202603",
+          "202604",
+          "202605",
+          "202606",
+          "202607",
+          "202608",
+          "202609",
+          "202610",
+          "202611",
+          "202612"
+        ],
+        "nrows": 107,
+        "canonical_kind": null
+      },
+      {
+        "name": "DM",
+        "columns": [
+          "Chọn",
+          "mã",
+          "Tháng",
+          "mã",
+          "so ngay"
+        ],
+        "nrows": 14,
+        "canonical_kind": null
+      }
+    ],
+    "mtime": 1783318829.3391778,
+    "indexed_at": "2026-07-06T06:20:47+00:00",
+    "ingested": false
+  },
+  "1f91440ccebe1df1": {
+    "file": "B.9.XVP.H3.M000126_HQKD_XANH_T01.2026.xlsx",
+    "path": "/home/sysadmin/Connect_VPS/received_reports/XANHVINHPHUC/baocaokqkdrieng/B.9.XVP.H3.M000126_HQKD_XANH_T01.2026.xlsx",
+    "company": "XANHVINHPHUC",
+    "report_type": "baocaokqkdrieng",
+    "month": 1,
+    "period_type": "từng tháng",
+    "sheets": [
+      {
+        "name": "BC THANG",
+        "columns": [
+          "202601",
+          "31",
+          "30",
+          "44",
+          "58",
+          "72"
+        ],
+        "nrows": 107,
+        "canonical_kind": null
+      },
+      {
+        "name": "DATA",
+        "columns": [
+          "Mã Tháng",
+          "2026LK",
+          "202601",
+          "202602",
+          "202603",
+          "202604",
+          "202605",
+          "202606",
+          "202607",
+          "202608",
+          "202609",
+          "202610",
+          "202611",
+          "202612",
+          "2026LK",
+          "202601",
+          "202602",
+          "202603",
+          "202604",
+          "202605",
+          "202606",
+          "202607",
+          "202608",
+          "202609",
+          "202610",
+          "202611",
+          "202612",
+          "2026LK",
+          "202601",
+          "202602",
+          "202603",
+          "202604",
+          "202605",
+          "202606",
+          "202607",
+          "202608",
+          "202609",
+          "202610",
+          "202611",
+          "202612"
+        ],
+        "nrows": 107,
+        "canonical_kind": null
+      },
+      {
+        "name": "DM",
+        "columns": [
+          "Chọn",
+          "mã",
+          "Tháng",
+          "mã",
+          "so ngay"
+        ],
+        "nrows": 14,
+        "canonical_kind": null
+      }
+    ],
+    "mtime": 1783318821.0790787,
+    "indexed_at": "2026-07-06T06:20:47+00:00",
+    "ingested": false
+  },
+  "d150a9c7ad601861": {
+    "file": "B.9.XVP.H3.M000526_HQKD_XANH_T05.2026.xlsx",
+    "path": "/home/sysadmin/Connect_VPS/received_reports/XANHVINHPHUC/baocaokqkdrieng/B.9.XVP.H3.M000526_HQKD_XANH_T05.2026.xlsx",
+    "company": "XANHVINHPHUC",
+    "report_type": "baocaokqkdrieng",
+    "month": 5,
+    "period_type": "từng tháng",
+    "sheets": [
+      {
+        "name": "BC THANG",
+        "columns": [
+          "202605",
+          "31",
+          "34",
+          "48",
+          "62",
+          "76"
+        ],
+        "nrows": 107,
+        "canonical_kind": null
+      },
+      {
+        "name": "DATA",
+        "columns": [
+          "Mã Tháng",
+          "2026LK",
+          "202601",
+          "202602",
+          "202603",
+          "202604",
+          "202605",
+          "202606",
+          "202607",
+          "202608",
+          "202609",
+          "202610",
+          "202611",
+          "202612",
+          "2026LK",
+          "202601",
+          "202602",
+          "202603",
+          "202604",
+          "202605",
+          "202606",
+          "202607",
+          "202608",
+          "202609",
+          "202610",
+          "202611",
+          "202612",
+          "2026LK",
+          "202601",
+          "202602",
+          "202603",
+          "202604",
+          "202605",
+          "202606",
+          "202607",
+          "202608",
+          "202609",
+          "202610",
+          "202611",
+          "202612"
+        ],
+        "nrows": 107,
+        "canonical_kind": null
+      },
+      {
+        "name": "DM",
+        "columns": [
+          "Chọn",
+          "mã",
+          "Tháng",
+          "mã",
+          "so ngay"
+        ],
+        "nrows": 14,
+        "canonical_kind": null
+      }
+    ],
+    "mtime": 1783318837.623277,
+    "indexed_at": "2026-07-06T06:20:47+00:00",
+    "ingested": false
+  },
+  "e12ae3cae7461e24": {
+    "file": "B.9.XVP.H3.M000226_HQKD_XANH+HTX_T02.2026.xlsx",
+    "path": "/home/sysadmin/Connect_VPS/received_reports/XANHVINHPHUC/baocaokqkdrieng/B.9.XVP.H3.M000226_HQKD_XANH+HTX_T02.2026.xlsx",
+    "company": "XANHVINHPHUC",
+    "report_type": "baocaokqkdrieng",
+    "month": 2,
+    "period_type": "từng tháng",
+    "sheets": [
+      {
+        "name": "KQKD",
+        "columns": [
+          "202602",
+          "28",
+          "31",
+          "45",
+          "59",
+          "73",
+          "101",
+          "115"
+        ],
+        "nrows": 107,
+        "canonical_kind": "KQKD"
+      },
+      {
+        "name": "DATA",
+        "columns": [
+          "Mã Tháng",
+          "2026LK",
+          "202601",
+          "202602",
+          "202603",
+          "202604",
+          "202605",
+          "202606",
+          "202607",
+          "202608",
+          "202609",
+          "202610",
+          "202611",
+          "202612",
+          "2026LK",
+          "202601",
+          "202602",
+          "202603",
+          "202604",
+          "202605",
+          "202606",
+          "202607",
+          "202608",
+          "202609",
+          "202610",
+          "202611",
+          "202612",
+          "2026LK",
+          "202601",
+          "202602",
+          "202603",
+          "202604",
+          "202605",
+          "202606",
+          "202607",
+          "202608",
+          "202609",
+          "202610",
+          "202611",
+          "202612"
+        ],
+        "nrows": 107,
+        "canonical_kind": null
+      },
+      {
+        "name": "DM",
+        "columns": [
+          "Chọn",
+          "mã",
+          "Tháng",
+          "mã",
+          "so ngay"
+        ],
+        "nrows": 14,
+        "canonical_kind": null
+      }
+    ],
+    "mtime": 1783318823.1591036,
+    "indexed_at": "2026-07-06T06:20:47+00:00",
+    "ingested": false
+  },
+  "7ac45aa7e4223a1e": {
+    "file": "B.9.XVP.H3.M000526_HQKD_XANH+HTX_T05.2026.xlsx",
+    "path": "/home/sysadmin/Connect_VPS/received_reports/XANHVINHPHUC/baocaokqkdrieng/B.9.XVP.H3.M000526_HQKD_XANH+HTX_T05.2026.xlsx",
+    "company": "XANHVINHPHUC",
+    "report_type": "baocaokqkdrieng",
+    "month": 5,
+    "period_type": "từng tháng",
+    "sheets": [
+      {
+        "name": "BC THANG",
+        "columns": [
+          "202605",
+          "31",
+          "34",
+          "48",
+          "62",
+          "76",
+          "104",
+          "118"
+        ],
+        "nrows": 107,
+        "canonical_kind": null
+      },
+      {
+        "name": "DATA",
+        "columns": [
+          "Mã Tháng",
+          "2026LK",
+          "202601",
+          "202602",
+          "202603",
+          "202604",
+          "202605",
+          "202606",
+          "202607",
+          "202608",
+          "202609",
+          "202610",
+          "202611",
+          "202612",
+          "2026LK",
+          "202601",
+          "202602",
+          "202603",
+          "202604",
+          "202605",
+          "202606",
+          "202607",
+          "202608",
+          "202609",
+          "202610",
+          "202611",
+          "202612",
+          "2026LK",
+          "202601",
+          "202602",
+          "202603",
+          "202604",
+          "202605",
+          "202606",
+          "202607",
+          "202608",
+          "202609",
+          "202610",
+          "202611",
+          "202612"
+        ],
+        "nrows": 107,
+        "canonical_kind": null
+      },
+      {
+        "name": "DM",
+        "columns": [
+          "Chọn",
+          "mã",
+          "Tháng",
+          "mã",
+          "so ngay"
+        ],
+        "nrows": 14,
+        "canonical_kind": null
+      }
+    ],
+    "mtime": 1783318835.555252,
+    "indexed_at": "2026-07-06T06:20:47+00:00",
+    "ingested": false
+  },
+  "51cbe4057f31e0dd": {
+    "file": "B.9.XVP.H3.M000226_HQKD_XANH_T02.2026.xlsx",
+    "path": "/home/sysadmin/Connect_VPS/received_reports/XANHVINHPHUC/baocaokqkdrieng/B.9.XVP.H3.M000226_HQKD_XANH_T02.2026.xlsx",
+    "company": "XANHVINHPHUC",
+    "report_type": "baocaokqkdrieng",
+    "month": 2,
+    "period_type": "từng tháng",
+    "sheets": [
+      {
+        "name": "BC THANG",
+        "columns": [
+          "202602",
+          "28",
+          "31",
+          "45",
+          "59",
+          "73"
+        ],
+        "nrows": 107,
+        "canonical_kind": null
+      },
+      {
+        "name": "DATA",
+        "columns": [
+          "Mã Tháng",
+          "2026LK",
+          "202601",
+          "202602",
+          "202603",
+          "202604",
+          "202605",
+          "202606",
+          "202607",
+          "202608",
+          "202609",
+          "202610",
+          "202611",
+          "202612",
+          "2026LK",
+          "202601",
+          "202602",
+          "202603",
+          "202604",
+          "202605",
+          "202606",
+          "202607",
+          "202608",
+          "202609",
+          "202610",
+          "202611",
+          "202612",
+          "2026LK",
+          "202601",
+          "202602",
+          "202603",
+          "202604",
+          "202605",
+          "202606",
+          "202607",
+          "202608",
+          "202609",
+          "202610",
+          "202611",
+          "202612"
+        ],
+        "nrows": 107,
+        "canonical_kind": null
+      },
+      {
+        "name": "DM",
+        "columns": [
+          "Chọn",
+          "mã",
+          "Tháng",
+          "mã",
+          "so ngay"
+        ],
+        "nrows": 14,
+        "canonical_kind": null
+      }
+    ],
+    "mtime": 1783318825.2191284,
+    "indexed_at": "2026-07-06T06:20:47+00:00",
+    "ingested": false
+  },
+  "d2fd965c151793a8": {
+    "file": "B.9.XVP.H3.M000426_HQKD_XANH_T04.2026.xlsx",
+    "path": "/home/sysadmin/Connect_VPS/received_reports/XANHVINHPHUC/baocaokqkdrieng/B.9.XVP.H3.M000426_HQKD_XANH_T04.2026.xlsx",
+    "company": "XANHVINHPHUC",
+    "report_type": "baocaokqkdrieng",
+    "month": 4,
+    "period_type": "từng tháng",
+    "sheets": [
+      {
+        "name": "BC THANG",
+        "columns": [
+          "202604",
+          "30",
+          "33",
+          "47",
+          "61",
+          "75"
+        ],
+        "nrows": 107,
+        "canonical_kind": null
+      },
+      {
+        "name": "DATA",
+        "columns": [
+          "Mã Tháng",
+          "2026LK",
+          "202601",
+          "202602",
+          "202603",
+          "202604",
+          "202605",
+          "202606",
+          "202607",
+          "202608",
+          "202609",
+          "202610",
+          "202611",
+          "202612",
+          "2026LK",
+          "202601",
+          "202602",
+          "202603",
+          "202604",
+          "202605",
+          "202606",
+          "202607",
+          "202608",
+          "202609",
+          "202610",
+          "202611",
+          "202612",
+          "2026LK",
+          "202601",
+          "202602",
+          "202603",
+          "202604",
+          "202605",
+          "202606",
+          "202607",
+          "202608",
+          "202609",
+          "202610",
+          "202611",
+          "202612"
+        ],
+        "nrows": 107,
+        "canonical_kind": null
+      },
+      {
+        "name": "DM",
+        "columns": [
+          "Chọn",
+          "mã",
+          "Tháng",
+          "mã",
+          "so ngay"
+        ],
+        "nrows": 14,
+        "canonical_kind": null
+      }
+    ],
+    "mtime": 1783318833.4752274,
+    "indexed_at": "2026-07-06T06:20:47+00:00",
+    "ingested": false
+  },
+  "11aec3d53e94d924": {
+    "file": "B.9.XVP.H3.M000126_HQKD_XANH+HTX_T01.2026.xlsx",
+    "path": "/home/sysadmin/Connect_VPS/received_reports/XANHVINHPHUC/baocaokqkdrieng/B.9.XVP.H3.M000126_HQKD_XANH+HTX_T01.2026.xlsx",
+    "company": "XANHVINHPHUC",
+    "report_type": "baocaokqkdrieng",
+    "month": 1,
+    "period_type": "từng tháng",
+    "sheets": [
+      {
+        "name": "KQKD",
+        "columns": [
+          "202601",
+          "31",
+          "30",
+          "44",
+          "58",
+          "72",
+          "100",
+          "114"
+        ],
+        "nrows": 107,
+        "canonical_kind": "KQKD"
+      },
+      {
+        "name": "DATA",
+        "columns": [
+          "Mã Tháng",
+          "2026LK",
+          "202601",
+          "202602",
+          "202603",
+          "202604",
+          "202605",
+          "202606",
+          "202607",
+          "202608",
+          "202609",
+          "202610",
+          "202611",
+          "202612",
+          "2026LK",
+          "202601",
+          "202602",
+          "202603",
+          "202604",
+          "202605",
+          "202606",
+          "202607",
+          "202608",
+          "202609",
+          "202610",
+          "202611",
+          "202612",
+          "2026LK",
+          "202601",
+          "202602",
+          "202603",
+          "202604",
+          "202605",
+          "202606",
+          "202607",
+          "202608",
+          "202609",
+          "202610",
+          "202611",
+          "202612"
+        ],
+        "nrows": 107,
+        "canonical_kind": null
+      },
+      {
+        "name": "DM",
+        "columns": [
+          "Chọn",
+          "mã",
+          "Tháng",
+          "mã",
+          "so ngay"
+        ],
+        "nrows": 14,
+        "canonical_kind": null
+      }
+    ],
+    "mtime": 1783318819.0070539,
+    "indexed_at": "2026-07-06T06:20:47+00:00",
+    "ingested": false
+  },
+  "b55c9aa8ca4a0ce7": {
+    "file": "B.9.XVP.H3.M000326_HQKD_XANH+HTX_T03.2026.xlsx",
+    "path": "/home/sysadmin/Connect_VPS/received_reports/XANHVINHPHUC/baocaokqkdrieng/B.9.XVP.H3.M000326_HQKD_XANH+HTX_T03.2026.xlsx",
+    "company": "XANHVINHPHUC",
+    "report_type": "baocaokqkdrieng",
+    "month": 3,
+    "period_type": "từng tháng",
+    "sheets": [
+      {
+        "name": "KQKD",
+        "columns": [
+          "202603",
+          "31",
+          "32",
+          "46",
+          "60",
+          "74",
+          "102",
+          "116"
+        ],
+        "nrows": 107,
+        "canonical_kind": "KQKD"
+      },
+      {
+        "name": "DATA",
+        "columns": [
+          "Mã Tháng",
+          "2026LK",
+          "202601",
+          "202602",
+          "202603",
+          "202604",
+          "202605",
+          "202606",
+          "202607",
+          "202608",
+          "202609",
+          "202610",
+          "202611",
+          "202612",
+          "2026LK",
+          "202601",
+          "202602",
+          "202603",
+          "202604",
+          "202605",
+          "202606",
+          "202607",
+          "202608",
+          "202609",
+          "202610",
+          "202611",
+          "202612",
+          "2026LK",
+          "202601",
+          "202602",
+          "202603",
+          "202604",
+          "202605",
+          "202606",
+          "202607",
+          "202608",
+          "202609",
+          "202610",
+          "202611",
+          "202612"
+        ],
+        "nrows": 107,
+        "canonical_kind": null
+      },
+      {
+        "name": "DM",
+        "columns": [
+          "Chọn",
+          "mã",
+          "Tháng",
+          "mã",
+          "so ngay"
+        ],
+        "nrows": 14,
+        "canonical_kind": null
+      }
+    ],
+    "mtime": 1783318827.275153,
+    "indexed_at": "2026-07-06T06:20:47+00:00",
+    "ingested": false
+  }
+}

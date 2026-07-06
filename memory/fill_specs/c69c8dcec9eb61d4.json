@@ -1,0 +1,20 @@
+{
+  "fingerprint": "c69c8dcec9eb61d4",
+  "source_sheet": "LNQ1",
+  "target_sheet": "01_HQKD",
+  "mapping": {
+    "reason": "Điền báo cáo HQKD (01_HQKD) từ sheet 'LNQ1' cho công ty TC kỳ 2026-01, với ánh xạ chuẩn để hiển thị KPI đúng. Các dòng tham chiếu trong mapping được đổi lại tên theo chuẩn quy định. Dòng doanh thu cao nhất U100, dòng chi phí cao nhất U200, dòng lợi nhuận U300.",
+    "Thực hiện (tỷ)": "Kỳ này",
+    "Chỉ tiêu KQKD": "Chỉ tiêu"
+  },
+  "canonical_kind": null,
+  "value_scale": 1e-09,
+  "constants": {},
+  "rename_rows": {
+    "TỔNG CHI PHÍ VINFAST": "Tổng chi phí",
+    "LỢI NHUẬN VINFAST": "Lợi nhuận trước thuế",
+    "reason": "Đổi tên 3 dòng TỔNG U100, U200, U300 về tên chuẩn (Doanh thu thuần, Tổng chi phí, Lợi nhuận trước thuế) để dashboard sáng KPI. Các dòng con giữ nguyên trạng.",
+    "TỔNG DOANH THU VINFAST": "Doanh thu thuần"
+  },
+  "saved_at": "2026-07-06T10:06:39+00:00"
+}

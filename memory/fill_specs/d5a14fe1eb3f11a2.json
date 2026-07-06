@@ -1,0 +1,14 @@
+{
+  "fingerprint": "d5a14fe1eb3f11a2",
+  "source_sheet": "T01",
+  "target_sheet": "01_HQKD",
+  "mapping": {
+    "Thực hiện (tỷ)": "D",
+    "Chỉ tiêu KQKD": "B",
+    "reason": "Map Chỉ tiêu (B) và Kỳ này (D) từ sheet T01 vào template 01_HQKD"
+  },
+  "canonical_kind": null,
+  "value_scale": 1e-09,
+  "constants": {},
+  "saved_at": "2026-07-06T06:33:28+00:00"
+}

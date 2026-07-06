@@ -107,16 +107,20 @@ def cmd_plan(args):
     from servers import ingest_server as ing
     from servers.common import canonical, memory
 
-    prof = ing.sheet_profile(args.file)          # 1 lần mở workbook
+    routed = ing.sheet_routes(args.file)         # 1 lần mở workbook — route theo TÊN + NỘI DUNG
     all_specs = memory.report_spec_search()      # 1 lần đọc catalog
     gl_cache: dict = {}                          # memoize glossary theo term
-    file_name = prof.get("file_name") or os.path.basename(args.file)
+    file_name = routed.get("file_name") or os.path.basename(args.file)
     scope_from_filename = canonical.guess_scope(file_name)  # rẻ — chỉ so tên file, không mở sheet
     sheets = []
     counts = {"wired": 0, "optional": 0, "unused": 0}
-    for s in prof.get("sheets", []):
-        name = s.get("sheet")
-        ck = s.get("canonical_kind_guess")
+    unrecognized = []   # KHÔNG drop im lặng: sheet có dữ liệu mà chưa route được -> cần analyst/người
+    for r in routed.get("routes", []):
+        name = r["sheet"]
+        ck = r.get("canonical_kind")             # đã ưu tiên tên, fallback nội dung
+        target_sheet = r.get("target_sheet")
+        if r.get("status") == "unknown":
+            unrecognized.append(name)
         learned = _learned_sheet_mappings(name, ck, all_specs)
         kpi_hints = _kpi_hints_from_guideline(name, ck, gl_cache)
         rel = _dashboard_relevance(learned, kpi_hints, ck)
@@ -131,6 +135,9 @@ def cmd_plan(args):
         sheets.append({
             "sheet": name,
             "canonical_kind_guess": ck,
+            "target_sheet": target_sheet,
+            "route_via": r.get("route_via"),
+            "route_status": r.get("status"),
             "learned_mappings": learned,
             "kpi_hints": kpi_hints,
             "guideline_match": bool(kpi_hints),
@@ -143,10 +150,11 @@ def cmd_plan(args):
         })
     _out({
         "ok": True,
-        "file_name": prof.get("file_name"),
+        "file_name": file_name,
         "fixed_report_type": None,  # plan chỉ cho template lạ; handoff đã lọc template chuẩn
         "sheets": sheets,
         "sheet_summary": counts,
+        "unrecognized_sheets": unrecognized,   # sheet lạ có dữ liệu — hiển thị để không bỏ sót
         "guideline_source": "DashBoard_AI/guideline.xlsx → kpi_glossary.json",
     })
 
@@ -393,6 +401,56 @@ def _extract_json_block(text: str):
         return None
 
 
+def cmd_autofill(args):
+    """LOOP TẤT ĐỊNH điền template vàng — thay 1-prompt-nhồi-tất-cả. Mỗi sheet rơi vào ĐÚNG 1
+    'bucket' (đảm bảo phủ, không sót): filled_learned (đã học mapping -> điền ngay, KHÔNG LLM) |
+    need_llm (đã route ra sheet đích nhưng chưa học -> analyst đề xuất) | need_human (chưa nhận
+    diện được loại) | skip (metadata) | empty. dry_run=true chỉ preview, không ghi DB."""
+    from servers import ingest_server as ing
+    from servers import template_filler as tf
+    from servers.common import memory
+
+    routes = ing.sheet_routes(args.file).get("routes", [])
+    with open(args.file, "rb") as fh:
+        data = fh.read()
+    fname = os.path.basename(args.file)
+    period = args.period or tf.guess_period(fname)
+    headers = tf._all_sheet_headers(data)   # mở workbook 1 LẦN (file nặng load chậm)
+    ledger = []
+    for r in routes:
+        sheet, status, target = r["sheet"], r["status"], r.get("target_sheet")
+        if status in ("skip_metadata", "empty"):
+            ledger.append({"sheet": sheet, "bucket": status.replace("skip_metadata", "skip"),
+                           "target_sheet": None})
+            continue
+        if status == "unknown":
+            ledger.append({"sheet": sheet, "bucket": "need_human", "target_sheet": None,
+                           "reason": "chưa nhận diện được loại báo cáo"})
+            continue
+        head = headers.get(sheet) or []
+        hr = tf._header_row_of(head)
+        cols = head[hr] if hr < len(head) else []
+        spec = memory.fill_spec_find(memory.source_fingerprint(sheet, cols))
+        if not spec:
+            ledger.append({"sheet": sheet, "bucket": "need_llm", "target_sheet": target,
+                           "canonical_kind": r.get("canonical_kind"), "route_via": r.get("route_via"),
+                           "reason": "chưa học mapping — cần analyst đề xuất"})
+            continue
+        res = tf.fill_from_source(data, sheet, spec["target_sheet"], spec["mapping"],
+                                  period=period, cong_ty=args.cong_ty, file_name=fname,
+                                  dry_run=args.dry_run, auto_import=not args.dry_run, learn=False,
+                                  value_scale=spec.get("value_scale", 1.0), constants=spec.get("constants"),
+                                  rename_rows=spec.get("rename_rows"), source_path=args.file)
+        ledger.append({"sheet": sheet, "bucket": "filled_learned", "target_sheet": spec["target_sheet"],
+                       "dry_run": args.dry_run, "row_count": res.get("row_count"),
+                       "rows_written": res.get("rows_written"),
+                       "imported": (res.get("import") or {}).get("ok")})
+    summary = {}
+    for e in ledger:
+        summary[e["bucket"]] = summary.get(e["bucket"], 0) + 1
+    _out({"ok": True, "file": fname, "period": period, "summary": summary, "ledger": ledger})
+
+
 def main():
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -407,6 +465,9 @@ def main():
     p = sub.add_parser("autobatch"); p.add_argument("file"); p.add_argument("--period"); p.add_argument("--cong-ty", dest="cong_ty")
     p.add_argument("--propose", action="store_true"); p.add_argument("--dry-run", action="store_true")
     p.add_argument("--timeout", type=int, default=240); p.set_defaults(fn=cmd_autobatch)
+    p = sub.add_parser("autofill"); p.add_argument("file"); p.add_argument("--period")
+    p.add_argument("--cong-ty", dest="cong_ty"); p.add_argument("--dry-run", action="store_true")
+    p.set_defaults(fn=cmd_autofill)
     p = sub.add_parser("confirm"); p.add_argument("canonical_kind")
     p.add_argument("--scope"); p.add_argument("--basis"); p.add_argument("--target-screen", dest="target_screen")
     p.add_argument("--chi-tieu", dest="chi_tieu"); p.add_argument("--kpi-id", dest="kpi_id")

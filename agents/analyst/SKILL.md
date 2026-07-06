@@ -1,11 +1,13 @@
 ---
 name: dashboard-analyst
-description: Phân tích file Excel đầu vào có template KHÔNG cố định - dò report_type/cột/mapping, đối chiếu display_contract.json và kpi_glossary.json, sinh TemplateSpec + ImportPlan cho execute.
+description: Phân tích file Excel template lạ và ĐIỀN số vào template vàng (Template_chuan.xlsx) để chạy qua pipeline import chuẩn; đối chiếu display_contract.json và kpi_glossary.json.
 model: minimax   # qua 9Router (OPENCLAW_MODEL_BASE_URL) - xem README.md "Kiến trúc 2 tầng"
 tools:
   - mcp__dashboard_ingest__discover_files
   - mcp__dashboard_ingest__template_analyze
   - mcp__dashboard_ingest__sheet_profile
+  - mcp__dashboard_ingest__template_contract_info
+  - mcp__dashboard_ingest__template_fill
   - mcp__dashboard_qa__glossary_lookup
   - mcp__dashboard_qa__discovery_search
   - mcp__dashboard_qa__report_spec_search
@@ -49,7 +51,36 @@ Analyst KHÔNG có quyền `import_plan_validate`/`import_execute`/`generic_impo
 `execute` (subagent execute sẽ tự báo lỗi/preview cho orchestrator trước khi ghi thật, xem
 `agents/execute/SKILL.md`).
 
-## Quy trình khi gặp sheet lạ (template_analyze trả report_type=None)
+## LUỒNG CHÍNH — điền template vàng (ưu tiên cho sheet lạ)
+
+Đích của mọi file lạ là **điền số vào `Template_chuan.xlsx`** (13 sheet nhập liệu 01_HQKD..12_KDVH),
+rồi file điền đi qua `importer_template.py` sẵn có → raw_rows → lên đúng màn FE. KHÔNG đẻ GEN_*.
+
+> **HIỂU TEMPLATE VÀNG TRƯỚC TIÊN.** Luôn gọi `template_contract_info()` NGAY ĐẦU và bám sát nó.
+> Nó trả `guide`: **đơn vị = TỶ ĐỒNG**; mỗi sheet có `report_type` + `man_hinh_FE` (đã nối FE/BE),
+> và 3 nhóm cột: **`cot_nhap_lieu`** (map vào đây), **`cot_KHONG_map`** (VLOOKUP cty/khối auto — TUYỆT ĐỐI không map),
+> **`cot_tinh_toan_dien_neu_nguon_co`** (vd "Dư cuối kỳ"/% — file điền KHÔNG tự tính công thức nên
+> nếu NGUỒN có sẵn giá trị đó thì PHẢI map đè, không thì importer đọc = 0). Kèm mã cost center/công ty/khối,
+> tên chỉ tiêu KQKD chuẩn, `sheet_theo_loai`.
+
+1. `template_analyze(file)`: ra report_type cố định (9 loại) → "Quy trình bắt buộc" cũ. `None` (lạ) → luồng này.
+2. `template_contract_info()`: đọc `guide` (schema + quy tắc). Ghi nhớ 4 điều bắt buộc:
+   - **Đơn vị**: nguồn VND → template TỶ → gọi `template_fill(..., value_scale=1e-9)`. (Tool KHÔNG tự đổi.)
+   - **Map vào `cot_nhap_lieu`**; bỏ `cot_KHONG_map`; với `cot_tinh_toan_dien_neu_nguon_co` (vd "Dư cuối kỳ") map đè giá trị nguồn nếu có (vd cột "Cuối kỳ" của sheet 131).
+   - **Cost center**: sheet nguồn cấp CÔNG TY (không có CC theo dòng) → `constants={'Mã Cost center ◀ NHẬP':'<mã CC hợp lệ>'}` (chọn từ `cost_center_ma_hop_le`). Không nhét CC vào `mapping`.
+   - **01_HQKD**: đặt cột "Chỉ tiêu KQKD" đúng TÊN CHUẨN (`chi_tieu_KQKD_chuan`: "Doanh thu thuần"/"Tổng chi phí"/"Lợi nhuận trước thuế") thì KPI mới sáng.
+3. `sheet_profile(file, sheet=None)` → chọn **sheet đích** theo `guide.sheet_theo_loai` + `canonical_kind_guess`
+   (KQKD→01_HQKD; 131→05_PHAITHU; 331→06_PHAITRA; CĐKT→07_TAISAN_NV; TSCĐ→08_TSCD; LCTT→03_DONGTIEN).
+4. Dựng `mapping = {tên cột NHẬP của template: tên cột NGUỒN}` (chỉ cột trong `cot_nhap_lieu`) + `constants` (CC) + `value_scale`.
+5. `template_fill(file, source_sheet, target_sheet, mapping, period, cong_ty, value_scale, constants, dry_run=true)`:
+   xem `row_count`, `sample`, `unresolved_cc`, `source_fingerprint`. Kiểm sample (số đã ra tỷ chưa, chỉ tiêu đúng chưa,
+   CC resolve chưa) → báo orchestrator để người duyệt → `dry_run=false, auto_import=true` (ghi + nạp raw_rows, tự học mapping).
+6. Grain theo `guide.sheets[đích].grain` (both → theo dữ liệu nguồn có ngày hay chỉ tháng).
+
+> GEN_* + `generic_import_execute` là **fallback cũ** (deprecated) — chỉ dùng khi dữ liệu không
+> khớp bất kỳ sheet template nào. Mặc định ưu tiên điền template vàng.
+
+## (FALLBACK cũ) Quy trình GEN_* khi không khớp sheet template nào
 
 Đây là ca như file báo cáo tài chính riêng (`131`/`331`/`Biểu khấu hao`/`KQKD`/`CDKT`...) —
 không khớp `FIELD_DEFS` cố định lẫn tên sheet cố định của `importer_month.py`.

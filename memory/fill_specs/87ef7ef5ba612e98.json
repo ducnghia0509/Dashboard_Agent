@@ -1,0 +1,18 @@
+{
+  "fingerprint": "87ef7ef5ba612e98",
+  "source_sheet": "131",
+  "target_sheet": "05_PHAITHU",
+  "mapping": {
+    "PS giảm trong kỳ (tỷ)": "Phát sinh có",
+    "Dư cuối kỳ (tỷ)": "Nợ cuối kỳ",
+    "Mã đối tượng ◀ NHẬP": "Mã khách",
+    "PS tăng trong kỳ (tỷ)": "Phát sinh nợ",
+    "reason": "Điền số liệu phải thu (05_PHAITHU) từ sheet '131' của công ty TC kỳ 2026-01. Cột F -> Mã đối tượng, cột G -> Khách hàng, cột I -> Dư đầu kỳ, cột M -> Dư cuối kỳ, cột K -> PS tăng, cột L -> PS giảm.",
+    "Dư đầu kỳ (tỷ)": "Nợ đầu kỳ",
+    "Khách hàng ◀ NHẬP": "Tên kh"
+  },
+  "canonical_kind": null,
+  "value_scale": 1e-09,
+  "constants": {},
+  "saved_at": "2026-07-06T07:52:13+00:00"
+}

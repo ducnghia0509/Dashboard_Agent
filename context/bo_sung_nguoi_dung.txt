@@ -1,0 +1,36 @@
+# NGỮ CẢNH BỔ SUNG — QUY TẮC CHIỀU PHÂN TÍCH (do nghiệp vụ cung cấp)
+# File này NẠP LẠI vào prompt analyst MỖI LẦN analyse. Sửa xong KHÔNG cần restart.
+# Tên/mã Khối & Pháp nhân dưới đây khớp ĐÚNG MD_KHOIKD / MD_CONGTY trong Template_chuan.
+
+## 1) HIỆU QUẢ KINH DOANH (Doanh thu / Chi phí / Lợi nhuận) → GÁN theo KHỐI
+Suy Khối từ ĐƯỜNG DẪN NGUỒN của file (cột original_source_path trong sidecar .json):
+| Đường dẫn nguồn chứa           | Mã Khối | Tên Khối (MD_KHOIKD)          |
+|--------------------------------|---------|-------------------------------|
+| .../THINHCUONG/.../SRVF        | 8       | Khối KD Xe điện Vinfast - SR   |
+| .../THINHCUONG/.../XDV         | 5       | Khối KD Vinfast - XDV          |
+| .../THINHCUONG/.../TRAMSAC     | 4       | Khối KD Trạm sạc Vgreen        |
+| .../THINHCUONG/.../DUAN        | 3       | Khối KD Dự án                  |
+| .../THINHCUONG/.../HO          | 9       | Khối Hỗ trợ tập đoàn           |
+| .../XANHVINHPHUC/...           | 6       | Khối KD Vận tải Taxi           |
+| .../ANTAXI/...                 | 6       | Khối KD Vận tải Taxi           |
+| .../ANKHACHSAN/...             | 2       | Khối KD DV Nhà hàng KS         |
+| .../HUNGTHINH/...              | 7       | Khối KD Xe tải                 |
+| (Global AI / công nghệ)        | 1       | Khối KD Công nghệ              |
+=> Ưu tiên để cost center tự resolve ra Khối (MD_COSTCENTER). Nếu nguồn KHÔNG có cost center
+   theo dòng thì gán Khối theo bảng trên (suy từ đường dẫn).
+GHI CHÚ: bản kê nghiệp vụ tách "Vận tải Taxi XVP" và "Dịch vụ An Taxi" thành 2, nhưng MD_KHOIKD
+   gộp cả hai vào Khối 6 "Vận tải Taxi" (phân biệt bằng Pháp nhân: XVP/HTX vs AAG). Dùng theo MD.
+
+## 2) DÒNG TIỀN → GÁN theo PHÁP NHÂN (Công ty), KHÔNG theo Khối
+Pháp nhân hợp lệ (MD_CONGTY): TC, VFQN, GA, AAG, XVP, HT (+ HTX_XVP, HTX_XTQ cho taxi).
+- Công ty Cổ phần Thịnh Cường                          = TC
+- Công ty Cổ phần Công Nghệ Vinfast Quảng Ninh         = VFQN
+- Công ty Cổ phần Global AI                            = GA
+- Công ty cổ phần An An's Garden                       = AAG
+- Công ty CP Công nghệ và dịch vụ Xanh Vĩnh Phúc       = XVP
+- Công ty TNHH XNK và khai thác Hưng Thịnh             = HT
+
+## 3) QUAN HỆ KHỐI ↔ PHÁP NHÂN (quan trọng cho DÒNG TIỀN)
+Các Khối 8 (SR), 5 (XDV), 4 (Trạm sạc), 3 (Dự án), 9 (HO) → ĐỀU thuộc pháp nhân Thịnh Cường (TC).
+=> DÒNG TIỀN của các khối này CHỈ lấy được từ pháp nhân TC (dòng tiền theo pháp nhân,
+   không tách được xuống từng khối con của TC).

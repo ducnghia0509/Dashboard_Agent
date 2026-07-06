@@ -1,0 +1,14 @@
+{
+  "fingerprint": "b5b77a50052b609c",
+  "source_sheet": "LCTT",
+  "target_sheet": "03_DONGTIEN",
+  "mapping": {
+    "Thực hiện (tỷ)": "Kỳ này",
+    "Khoản mục (Thu bán hàng, Thu đầu tư, Chi NCC, Chi tài chính, Chi đầu tư TS…)": "Chỉ tiêu",
+    "reason": "Điền số liệu vào Báo cáo Dòng tiền (03_DONGTIEN) từ sheet 'LCTT' cho công ty TC kỳ 2026-01. Cột Chỉ tiêu (A) -> Khoản mục; Kỳ này (C) -> Thực hiện (tỷ)."
+  },
+  "canonical_kind": null,
+  "value_scale": 1e-09,
+  "constants": {},
+  "saved_at": "2026-07-06T07:48:41+00:00"
+}

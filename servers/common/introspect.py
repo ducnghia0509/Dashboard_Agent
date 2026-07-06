@@ -14,8 +14,8 @@ RAW_ROWS_COLUMNS = [
     ("khoi", "text", "tên khối kinh doanh (9 khối, xem master_data.json)"),
     ("cost_center", "text", "bộ phận / cơ sở / depot"),
     ("period_month", "text (YYYY-MM)", "kỳ tháng, dùng cho báo cáo Tháng"),
-    ("amount", "double", "số tiền chính (đơn vị đồng)"),
-    ("amount2", "double", "số tiền phụ (vd kế hoạch, giá trị nhập mới...)"),
+    ("amount", "double", "số tiền chính — ĐƠN VỊ TỶ ĐỒNG (theo template chuẩn). KHÔNG chia 1e9: 3.13 nghĩa là 3.13 tỷ."),
+    ("amount2", "double", "số tiền phụ (kế hoạch/giá trị mới...) — cũng ĐƠN VỊ TỶ ĐỒNG"),
     ("dim1", "text", "chiều phân loại 1 (khác nhau theo report_type - xem FIELD_DEFS)"),
     ("dim2", "text", "chiều phân loại 2"),
     ("dim3", "text", "chiều phân loại 3"),
@@ -36,4 +36,7 @@ def schema_describe() -> str:
         lines.append(f"  {code} = {label}{snap}")
     lines.append("")
     lines.append("Mỗi report_type có field riêng ở FIELD_DEFS (xem glossary_lookup để tra ý nghĩa cột).")
+    lines.append("")
+    lines.append("QUAN TRỌNG: amount/amount2 đã ở đơn vị TỶ ĐỒNG. Trả lời trực tiếp SUM(amount), "
+                 "TUYỆT ĐỐI KHÔNG chia cho 1e9. Lọc kỳ bằng period_month='YYYY-MM' hoặc ngay.")
     return "\n".join(lines)

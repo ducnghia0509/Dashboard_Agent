@@ -23,7 +23,8 @@ if BACKEND_PATH not in sys.path:
     sys.path.insert(0, BACKEND_PATH)
 
 try:
-    from app import schemas, importer, importer_month, importer_ledger, db, repo, master, metrics, text_util
+    from app import (schemas, importer, importer_month, importer_ledger, importer_template,
+                     db, repo, master, metrics, text_util)
 except ModuleNotFoundError as exc:  # pragma: no cover - lỗi cấu hình, không phải logic
     raise RuntimeError(
         f"Không import được app.* từ BACKEND_PATH={BACKEND_PATH!r}. "
@@ -44,6 +45,13 @@ prepare = importer.prepare
 commit = importer.commit
 import_workbook = importer_month.import_workbook
 detect_ledger = importer_ledger.detect_ledger
+
+# Template chuẩn v3 (13 sheet) — để import file điền từ template vàng.
+detect_template = importer_template.detect_template
+template_parse = importer_template.parse_workbook
+template_import_parsed = importer_template.import_parsed
+delete_by_key = repo.delete_by_key
+set_period = repo.set_period
 
 master_data = master.master_data
 report_templates = master.report_templates

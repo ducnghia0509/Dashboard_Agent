@@ -149,5 +149,41 @@ def source_inspect(file_name: str, sheet: str = None, max_rows: int = 200) -> di
         wb.close()
 
 
+@mcp.tool()
+def unmapped_cc_list(include_resolved: bool = False) -> list:
+    """Cost center chưa khớp MD_COSTCENTER khi điền template (admin cần bổ sung danh mục
+    để lần sau tự roll-up đúng khối). Mỗi mục: raw, cong_ty, sheets, count, first/last_seen."""
+    return memory.unmapped_cc_list(include_resolved=include_resolved)
+
+
+@mcp.tool()
+def reconcile_status(dataset_id: str = None) -> dict:
+    """Soi lỗ hổng pipeline: file đã kéo về chưa import (uningested_files), KPI/màn FE thiếu nguồn
+    (missing_report_types/dark_kpis), và tóm tắt pipeline (collected/received/ingested). Không ghi."""
+    from .common import reconcile
+    return reconcile.status(dataset_id)
+
+
+@mcp.tool()
+def pipeline_state() -> dict:
+    """View hợp nhất từng file: collected (available_metadata) -> received (indexed) -> ingested."""
+    from .common import reconcile
+    return reconcile.pipeline_state()
+
+
+@mcp.tool()
+def catalog_search(query: str = None, company: str = None, canonical_kind: str = None,
+                   sheet: str = None, only_uningested: bool = False) -> list:
+    """Tra CATALOG toàn bộ file đã kéo về (Connect_VPS/received_reports) — con trỏ lossless,
+    trả lời 'có file/sheet/cột nào' tức thì (kể cả file CHƯA import). Không mở file.
+
+    Mỗi mục: file, path, company, report_type, month, ingested, sheets:[{name,columns,nrows,
+    canonical_kind}]. Định vị được file rồi dùng source_inspect đọc chi tiết ô gốc.
+    """
+    from .common import source_catalog
+    return source_catalog.search(query=query, company=company, canonical_kind=canonical_kind,
+                                 sheet=sheet, only_uningested=only_uningested)
+
+
 if __name__ == "__main__":
     mcp.run()

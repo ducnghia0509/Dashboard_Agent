@@ -1,0 +1,17 @@
+{
+  "fingerprint": "45bcc046ddf4c8db",
+  "source_sheet": "10. Tài sản",
+  "target_sheet": "08_TSCD",
+  "mapping": {
+    "Bộ phận/Đơn vị sử dụng": "Đơn vị sử dụng \n\n(cột F)",
+    "Loại TS (Nhà cửa VKT/Máy móc TB/PTVT/Phần mềm-QSDĐ…)": "Loại tài sản \n\n(cột H)",
+    "PS giảm NG trong kỳ (tỷ)": "Giá trị Điều chuyển \n\n(cột AN)",
+    "Nguyên giá (tỷ)": "Giá trị tồn cuối",
+    "PS tăng NG trong kỳ (tỷ)": "Giá trị nhập mới",
+    "reason": "Điền báo cáo Tài sản cố định (08_TSCD) từ sheet '10. Tài sản' cho công ty TC kỳ 2026-05. Dùng Loại tài sản (cột H) và Bộ phận/Đơn vị sử dụng (cột F). Nguyên giá map vào 'Giá trị tồn cuối' hoặc 'Giá trị tồn đầu' (ở đây chọn Tồn cuối là nguyên giá thực tế)."
+  },
+  "canonical_kind": null,
+  "value_scale": 1e-09,
+  "constants": {},
+  "saved_at": "2026-07-06T07:34:33+00:00"
+}

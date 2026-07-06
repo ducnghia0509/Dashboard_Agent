@@ -15,7 +15,9 @@ from openpyxl import load_workbook
 
 from .common import be_bridge as bb
 from .common import canonical
+from .common import contract
 from .common import memory
+from . import template_filler
 
 mcp = FastMCP("dashboard_ingest")
 
@@ -167,6 +169,47 @@ def sheet_profile(file_path: str, sheet: str = None, max_rows: int = 10,
             "merged_ranges": merged_ranges[:50], "row_sample": row_sample, "col_sample": col_sample,
             "n_rows_scanned": len(rows),
         }
+    finally:
+        wb.close()
+
+
+@mcp.tool()
+def sheet_routes(file_path: str) -> dict:
+    """Try-route TẤT ĐỊNH cả workbook (mở 1 LẦN): phân loại MỖI sheet -> đích + trạng thái.
+    Khác sheet_profile(sheet=None): CÓ đọc tiêu đề trong sheet để route theo NỘI DUNG (bắt tên
+    sheet khó như '156'='BÁO CÁO NHẬP XUẤT TỒN', 'KHTS'='BẢNG TÍNH KHẤU HAO') và KHÔNG bỏ sót
+    im lặng — mỗi sheet rơi vào đúng 1 nhóm:
+      - routed        : target_sheet + canonical_kind + route_via ('name'|'content').
+      - unknown       : có dữ liệu nhưng chưa nhận diện loại -> caller đẩy analyst/người.
+      - skip_metadata : Master Data / User / DS báo cáo / BC THU CHI (TỔNG)...
+      - empty         : không đủ dòng dữ liệu."""
+    data = _read_file(file_path)
+    wb = load_workbook(io.BytesIO(data), data_only=True, read_only=True)
+    try:
+        out = []
+        for name in wb.sheetnames:
+            rows = [row for row in wb[name].iter_rows(max_row=25, values_only=True)]
+            non_empty = sum(1 for r in rows if any(c not in (None, "") for c in r))
+            # Tiêu đề = ô ĐẦU TIÊN không rỗng của mỗi dòng trong ~8 dòng đầu (cột tiêu đề/merge),
+            # KHÔNG lấy cả lưới -> tránh keyword vãng lai trong header/ô số khiến route nhầm.
+            title_cells = []
+            for r in rows[:8]:
+                cell = next((c for c in r if c not in (None, "")), None)
+                if cell is not None:
+                    title_cells.append(str(cell))
+            target, ck, via = contract.route_sheet(name, " ".join(title_cells))
+            if via == "skip":
+                status = "skip_metadata"
+            elif target:
+                status = "routed"
+            elif non_empty >= 4:
+                status = "unknown"
+            else:
+                status = "empty"
+            out.append({"sheet": name, "canonical_kind": ck, "target_sheet": target,
+                        "route_via": (via if via in ("name", "content") else None),
+                        "status": status})
+        return {"file_name": os.path.basename(file_path), "routes": out}
     finally:
         wb.close()
 
@@ -544,6 +587,65 @@ def generic_import_execute(
     return {"dry_run": False, "dataset_id": ds["id"], "row_count": len(to_insert),
             "sample_mapped_rows": sample_mapped_rows, "skipped_duplicate": False,
             "message": f"Đã ghi {len(to_insert)} dòng report_type={target_rt}."}
+
+
+@mcp.tool()
+def template_contract_info() -> dict:
+    """MÔ TẢ TEMPLATE VÀNG cho analyst — ĐỌC TRƯỚC KHI DỰNG MAPPING.
+
+    Trả bản guide đầy đủ: đơn vị (tỷ đồng -> value_scale khi nguồn VND), quy tắc map,
+    mỗi sheet {mục đích, grain, cot_nhap_lieu (CHỈ map vào đây), cot_auto_bo_qua (công thức, bỏ)},
+    danh sách công ty/khối/mã cost center hợp lệ (để đặt constants), tên chỉ tiêu KQKD chuẩn,
+    và sheet đích theo loại báo cáo nguồn.
+    """
+    return contract.guide()
+
+
+@mcp.tool()
+def template_fill(file_path: str, source_sheet: str, target_sheet: str, mapping: dict,
+                  period: str = None, cong_ty: str = None, dry_run: bool = True,
+                  auto_import: bool = False, value_scale: float = 1.0,
+                  constants: dict = None, normalize_kqkd: bool = True,
+                  rename_rows: dict = None) -> dict:
+    """Điền số liệu từ file nguồn vào BẢN SAO template vàng, theo mapping cột.
+
+    - mapping: {tên cột TEMPLATE (input): tên cột NGUỒN}. Xem template_contract_info() để biết cột.
+    - constants: {tên cột TEMPLATE: giá trị HẰNG} — gán cứng mọi dòng (vd cost center khi sheet nguồn
+      cấp CÔNG TY không có CC theo dòng: constants={'Mã Cost center ◀ NHẬP':'ST_GD'}).
+    - rename_rows: {tên chỉ tiêu NGUỒN: tên chỉ tiêu CHUẨN} — ĐỔI TÊN đúng vài dòng về tên chuẩn để KPI
+      sáng (KHÁC mapping: mapping đổi CỘT; rename_rows đổi GIÁ TRỊ tên của DÒNG). BẮT BUỘC cho 01_HQKD khi
+      nguồn đặt tên riêng: chọn ĐÚNG 1 dòng tổng doanh thu -> 'Doanh thu thuần', 1 dòng tổng chi phí ->
+      'Tổng chi phí', 1 dòng lợi nhuận trước thuế -> 'Lợi nhuận trước thuế'. Khớp KHÔNG DẤU + chứa-trong;
+      CHỌN 1 DÒNG TỔNG CẤP CAO NHẤT / chỉ tiêu để KHÔNG cộng trùng với dòng con.
+    - value_scale: nhân cột tiền '(tỷ)'. NGUỒN VND -> template TỶ ĐỒNG phải dùng value_scale=1e-9.
+      (tool KHÔNG tự đổi đơn vị — phải truyền value_scale đúng, nếu không số sai 1 tỷ lần.)
+    - Cost center resolve về mã chuẩn; không khớp -> unmapped_cc + để nguyên (khối=NULL -> "(Chưa phân bổ)").
+    - dry_run=True: preview. dry_run=False: ghi file điền -> out_path; auto_import=True: nạp raw_rows.
+    """
+    data = _read_file(file_path)
+    return template_filler.fill_from_source(
+        data, source_sheet, target_sheet, mapping, period=period, cong_ty=cong_ty,
+        file_name=os.path.basename(file_path), dry_run=dry_run, auto_import=auto_import,
+        value_scale=value_scale, constants=constants, normalize_kqkd=normalize_kqkd,
+        rename_rows=rename_rows, source_path=file_path)
+
+
+@mcp.tool()
+def catalog_reindex(root_dir: str = None) -> dict:
+    """Quét lại thư mục file đã kéo về (Connect_VPS/received_reports mặc định) -> cập nhật
+    source_catalog. Trả {indexed, total_in_catalog}. QA tra qua catalog_search."""
+    from .common import source_catalog
+    return source_catalog.index_dir(root_dir)
+
+
+@mcp.tool()
+def template_import(filled_path: str, cong_ty: str = None) -> dict:
+    """Nạp 1 file ĐÃ ĐIỀN template chuẩn (do template_fill tạo trong template_trust/filled/) vào
+    raw_rows. cong_ty: GỘP đa-công-ty theo kỳ (1 dataset/kỳ, idempotent theo (kỳ,cong_ty), đóng dấu
+    cong_ty). Trả {dataset_id, grain, by_type, rows_imported, period}."""
+    if not os.path.isabs(filled_path):
+        filled_path = os.path.join(template_filler.FILLED_DIR, filled_path)
+    return template_filler.import_filled(filled_path, cong_ty=cong_ty)
 
 
 if __name__ == "__main__":

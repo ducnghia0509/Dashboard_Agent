@@ -191,3 +191,90 @@ def binding_save(canonical_kind: str, scope: str = None, basis: str = None,
     with open(_binding_path(canonical_kind), "w", encoding="utf-8") as fh:
         json.dump(record, fh, ensure_ascii=False, indent=2)
     return record
+
+
+# ---- Unmapped cost center registry ----
+# Khi điền template gặp cost center/bộ phận KHÔNG khớp MD_COSTCENTER: vẫn nạp số (tổng
+# đúng, dòng gom vào "(Chưa phân bổ)") NHƯNG ghi lại đây để admin bổ sung danh mục;
+# lần sau CC đó tự roll-up đúng khối. Dedup theo chuỗi gốc (đã chuẩn hoá).
+
+_UNMAPPED_CC = os.path.join(_AGENT_ROOT, "memory", "unmapped_cc.json")
+
+
+def _load_unmapped() -> list:
+    if not os.path.exists(_UNMAPPED_CC):
+        return []
+    try:
+        with open(_UNMAPPED_CC, encoding="utf-8") as fh:
+            return json.load(fh)
+    except (OSError, json.JSONDecodeError):
+        return []
+
+
+def unmapped_cc_record(raw: str, sheet: str = None, file_name: str = None,
+                       cong_ty: str = None) -> dict:
+    """Ghi 1 cost center chưa map (dedup theo raw). Tăng count nếu đã có."""
+    raw = (raw or "").strip()
+    logs = _load_unmapped()
+    key = bb.remove_diacritics(raw).lower()
+    now = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    for e in logs:
+        if bb.remove_diacritics(e.get("raw", "")).lower() == key:
+            e["count"] = e.get("count", 1) + 1
+            e["last_seen"] = now
+            if sheet and sheet not in e.setdefault("sheets", []):
+                e["sheets"].append(sheet)
+            break
+    else:
+        logs.append({"raw": raw, "cong_ty": cong_ty, "sheets": [sheet] if sheet else [],
+                     "file_name": file_name, "count": 1,
+                     "first_seen": now, "last_seen": now, "resolved": False})
+    os.makedirs(os.path.dirname(_UNMAPPED_CC), exist_ok=True)
+    with open(_UNMAPPED_CC, "w", encoding="utf-8") as fh:
+        json.dump(logs, fh, ensure_ascii=False, indent=2)
+    return {"raw": raw, "total_unmapped": sum(1 for e in logs if not e.get("resolved"))}
+
+
+def unmapped_cc_list(include_resolved: bool = False) -> list:
+    return [e for e in _load_unmapped() if include_resolved or not e.get("resolved")]
+
+
+# ---- Fill specs — mapping nguồn->template ĐÃ HỌC (khép vòng P2<->P3) ----
+# Khi analyst điền template thành công 1 layout, lưu mapping theo FINGERPRINT của sheet nguồn
+# (tên sheet + header cột). Lần sau file CÙNG layout (kể cả công ty/kỳ khác) -> orchestrator tự
+# fill+import KHÔNG cần LLM. Đây là đòn bẩy scale chính (analyst chỉ chạy cho layout MỚI).
+
+FILL_SPECS_DIR = os.path.join(_AGENT_ROOT, "memory", "fill_specs")
+
+
+def source_fingerprint(sheet_name: str, columns: list) -> str:
+    """Fingerprint 1 layout sheet nguồn = sha1(tên sheet chuẩn hoá + các cột header chuẩn hoá)."""
+    norm = lambda s: bb.remove_diacritics("" if s is None else str(s)).strip().lower()
+    key = norm(sheet_name) + "|" + "|".join(norm(c) for c in columns if c not in (None, ""))
+    return hashlib.sha1(key.encode("utf-8")).hexdigest()[:16]
+
+
+def fill_spec_save(fingerprint: str, target_sheet: str, mapping: dict,
+                   source_sheet: str = None, canonical_kind: str = None,
+                   value_scale: float = 1.0, constants: dict = None,
+                   rename_rows: dict = None) -> dict:
+    os.makedirs(FILL_SPECS_DIR, exist_ok=True)
+    rec = {"fingerprint": fingerprint, "source_sheet": source_sheet,
+           "target_sheet": target_sheet, "mapping": mapping, "canonical_kind": canonical_kind,
+           "value_scale": value_scale, "constants": constants or {},
+           "rename_rows": rename_rows or {},   # đổi tên dòng->chuẩn (KQKD), replay khi autofill
+           "saved_at": datetime.now(timezone.utc).isoformat(timespec="seconds")}
+    with open(os.path.join(FILL_SPECS_DIR, f"{fingerprint}.json"), "w", encoding="utf-8") as fh:
+        json.dump(rec, fh, ensure_ascii=False, indent=2)
+    return rec
+
+
+def fill_spec_find(fingerprint: str):
+    path = os.path.join(FILL_SPECS_DIR, f"{fingerprint}.json")
+    if not os.path.exists(path):
+        return None
+    try:
+        with open(path, encoding="utf-8") as fh:
+            return json.load(fh)
+    except (OSError, json.JSONDecodeError):
+        return None

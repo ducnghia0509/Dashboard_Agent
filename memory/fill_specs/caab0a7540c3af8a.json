@@ -1,0 +1,20 @@
+{
+  "fingerprint": "caab0a7540c3af8a",
+  "source_sheet": "KHTS",
+  "target_sheet": "08_TSCD",
+  "mapping": {
+    "Giá trị còn lại (tỷ)": "Giá trị còn lại",
+    "Loại tài sản ◀ NHẬP": "Loại tài sản",
+    "Nguyên giá cuối kỳ (tỷ)": "Nguyên giá cuối kỳ",
+    "Nguyên giá đầu kỳ (tỷ)": "Nguyên giá đầu",
+    "Bộ phận sử dụng ◀ NHẬP": "Tên DV",
+    "Hao mòn luỹ kế (tỷ)": "Giá trị khấu hao lũy kế",
+    "Mã tài sản ◀ NHẬP": "Mã tài sản",
+    "Tên tài sản ◀ NHẬP": "Tên tài sản",
+    "reason": "Điền số liệu khấu hao tài sản cố định (08_TSCD) từ sheet 'KHTS' cho công ty TC kỳ 2026-01. Mapped các cột tương ứng theo dòng tài sản chi tiết."
+  },
+  "canonical_kind": null,
+  "value_scale": 1e-09,
+  "constants": {},
+  "saved_at": "2026-07-06T07:51:28+00:00"
+}

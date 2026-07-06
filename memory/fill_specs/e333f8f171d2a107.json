@@ -1,0 +1,14 @@
+{
+  "fingerprint": "e333f8f171d2a107",
+  "source_sheet": "Sheet1",
+  "target_sheet": "01_HQKD",
+  "mapping": {
+    "Thực hiện (tỷ)": "C",
+    "Chỉ tiêu KQKD": "B",
+    "reason": "Điền báo cáo HQKD (01_HQKD) từ sheet 'Sheet1' cho kỳ 2026-01, sử dụng Chỉ tiêu (cột B) và Thực hiện kỳ này (cột C)."
+  },
+  "canonical_kind": null,
+  "value_scale": 1e-09,
+  "constants": {},
+  "saved_at": "2026-07-06T07:32:23+00:00"
+}
