@@ -17,6 +17,8 @@ from openpyxl import load_workbook
 
 from . import be_bridge as bb
 from . import canonical
+from . import contract
+from .memory import atomic_dump_json, locked_json
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _AGENT_ROOT = os.path.normpath(os.path.join(_HERE, "..", ".."))
@@ -42,9 +44,7 @@ def _load() -> dict:
 
 
 def _save(cat: dict):
-    os.makedirs(os.path.dirname(CATALOG), exist_ok=True)
-    with open(CATALOG, "w", encoding="utf-8") as fh:
-        json.dump(cat, fh, ensure_ascii=False, indent=2)
+    atomic_dump_json(cat, CATALOG)
 
 
 def _file_key(path: str) -> str:
@@ -64,21 +64,70 @@ def _sidecar(path: str) -> dict:
 
 
 def _from_path(path: str) -> dict:
-    """Suy company/report_type từ cấu trúc received_reports/{company}/{report_type}/file."""
+    """Suy company/report_type từ cấu trúc received_reports/{company}/{report_type}/file.
+
+    B28: segment đầu KHÔNG LUÔN LÀ pháp nhân — có thể là folder phân loại báo cáo (vd 'THUCHI'
+    cho báo cáo thu-chi hợp nhất Tập đoàn, nhiều pháp nhân/sheet trong 1 file). company_guess
+    giữ RAW để debug/hiển thị; company = None nếu segment không khớp MD_CONGTY (companies.yaml)
+    — KHÔNG để analyst/QA hiểu lầm 'THUCHI' là 1 pháp nhân thật (đã xảy ra, gây ghi sai cong_ty)."""
     rel = os.path.relpath(path, RECEIVED_DIR)
     parts = rel.split(os.sep)
-    return {"company": parts[0] if len(parts) >= 3 else None,
+    # B27: file đặt nông received_reports/{company}/file (2 phần) vẫn suy được company.
+    raw_company = parts[0] if len(parts) >= 2 else None
+    # B30: prefer_file_name=True — TÊN FOLDER không đáng tin (đã xác nhận: chỉ là tên khối/loại
+    # báo cáo do sender đặt, có lúc lẫn nhiều công ty trong 1 folder — vd 'HO/' chứa cả GA lẫn TC).
+    # Tên FILE theo quy ước 'B.<khối>.<mã cty>.' do nghiệp vụ đặt, đáng tin hơn — luôn ưu tiên.
+    return {"company": contract.resolve_company(raw=raw_company, file_name=os.path.basename(path),
+                                                  prefer_file_name=True),
+            "company_guess_raw": raw_company,
             "report_type": parts[1] if len(parts) >= 3 else None}
+
+
+def raw_company_from_path(path: str):
+    """Token CÔNG TY RAW = tên thư mục ngay dưới received_reports/ (vd 'HTXXANHTUYENQUANG').
+    KHÁC _from_path().company (đã resolve theo TÊN FILE về mã pháp nhân) — nhiều nguồn thật khác
+    nhau share cùng mã trong tên file (vd 3 HTX đều nộp 'B.6.XVP...'). Đồng bộ với
+    sync_orchestrator._raw_company_from_path (nguồn của source_key trên UI)."""
+    try:
+        rel = os.path.relpath(os.path.abspath(path), RECEIVED_DIR)
+    except (ValueError, TypeError):
+        return None
+    if rel.startswith(".."):
+        return None
+    parts = rel.split(os.sep)
+    return parts[0] if len(parts) >= 2 else None
+
+
+def source_id_from_path(path: str) -> str:
+    """ĐỊNH DANH NGUỒN DUY NHẤT dùng làm raw_rows.source_file = '<công_ty_thư_mục>::<tên_file>'
+    khi file nằm trong received_reports/<công_ty>/... — KHỚP source_key mà sync_orchestrator sinh
+    cho UI, để trạng thái/ẩn-hiện/idempotent-delete khớp ĐÚNG TỪNG NGUỒN. File ngoài
+    received_reports (vd upload tay) -> trả tên file trơn (không có thư mục nguồn để phân biệt).
+
+    Lý do: nhiều nguồn thật (HTXXANHTUYENQUANG / HTXXANHVINHPHUC / XANHVINHPHUC) nộp CÙNG tên
+    'B.6.XVP...xlsx' nhưng nội dung KHÁC; nếu source_file chỉ là basename thì 3 nguồn đè/che nhau
+    (idempotent-delete xoá nhầm, trạng thái & ẩn/hiện lẫn lộn)."""
+    base = os.path.basename(path or "")
+    raw = raw_company_from_path(path)
+    return f"{raw}::{base}" if raw else base
 
 
 def index_file(path: str) -> dict:
     """Index 1 file xlsx -> entry {file, path, company, report_type, month, sheets:[...], ...}."""
     side = _sidecar(path)
     meta = _from_path(path)
+    # B29/B30: sidecar .json do RECEIVER ngoài ghi — đã xác nhận (2026-07-09) đây chỉ là COPY
+    # THẲNG 1 template/sidecar mẫu cũ (field "company" có thể mang giá trị VALID NHƯNG SAI, vd
+    # copy nguyên "GA" cho file TC, hoặc theo tên folder cha 'HO' — không phải công ty thật).
+    # KHÔNG tin sidecar/folder — LUÔN ưu tiên tên FILE (quy ước 'B.<khối>.<mã cty>.', do nghiệp
+    # vụ đặt tên, đáng tin nhất) qua prefer_file_name=True; sidecar chỉ dùng khi tên file không
+    # suy được (hiếm).
+    side_company = contract.resolve_company(raw=side.get("company"), file_name=os.path.basename(path),
+                                              prefer_file_name=True)
     entry = {
         "file": os.path.basename(path),
         "path": os.path.abspath(path),
-        "company": side.get("company") or meta.get("company"),
+        "company": side_company or meta.get("company"),
         "report_type": side.get("report_type") or meta.get("report_type"),
         "month": side.get("month"),
         "period_type": side.get("period_type"),
@@ -105,12 +154,15 @@ def index_file(path: str) -> dict:
             })
     finally:
         wb.close()
-    cat = _load()
-    key = _file_key(path)
-    if key in cat:                      # giữ cờ ingested nếu đã có
-        entry["ingested"] = cat[key].get("ingested", False)
-    cat[key] = entry
-    _save(cat)
+    # Lock cả chu trình load-sửa-save: 2 phiên index 2 file song song không khoá sẽ
+    # lost-update (mỗi bên save catalog thiếu entry của bên kia).
+    with locked_json(CATALOG):
+        cat = _load()
+        key = _file_key(path)
+        if key in cat:                      # giữ cờ ingested nếu đã có
+            entry["ingested"] = cat[key].get("ingested", False)
+        cat[key] = entry
+        _save(cat)
     return entry
 
 
@@ -134,15 +186,26 @@ def index_dir(root: str = None) -> dict:
             done += 1
         except Exception:  # 1 file hỏng không chặn cả mẻ
             pass
-    return {"ok": True, "scanned": len(files), "indexed_new": done, "total_in_catalog": len(_load())}
+    # B22: PRUNE entry trỏ file đã biến mất trên đĩa (tránh reconcile/status báo "đã nạp" sai,
+    # QA mở path chết) — khớp triệu chứng dir ANTAXI/HO/TRAMSAC rỗng mà catalog còn trỏ.
+    with locked_json(CATALOG):
+        cat = _load()
+        removed = [k for k, e in cat.items() if not os.path.exists(e.get("path", ""))]
+        for k in removed:
+            del cat[k]
+        if removed:
+            _save(cat)
+    return {"ok": True, "scanned": len(files), "indexed_new": done,
+            "pruned": len(removed), "total_in_catalog": len(cat)}
 
 
 def mark_ingested(path: str, ingested: bool = True):
-    cat = _load()
-    key = _file_key(path)
-    if key in cat:
-        cat[key]["ingested"] = ingested
-        _save(cat)
+    with locked_json(CATALOG):
+        cat = _load()
+        key = _file_key(path)
+        if key in cat:
+            cat[key]["ingested"] = ingested
+            _save(cat)
 
 
 def search(query: str = None, company: str = None, canonical_kind: str = None,

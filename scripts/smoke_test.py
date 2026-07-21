@@ -94,7 +94,9 @@ def test_glossary_lookup():
     if not os.path.exists(qa._KPI_GLOSSARY_PATH):
         _fail(f"chưa có {qa._KPI_GLOSSARY_PATH} - chạy `python scripts/gen_kpi_glossary.py` trước.")
         return
-    for term in ["doanh thu thuan", "tuoi no", "he so no", "vay va lai vay"]:
+    # Từ khoá khớp 50_chi_tieu.yaml (nguồn mới của glossary) — "he so no"/"vay va lai vay"
+    # là tên chỉ tiêu của guideline.xlsx CŨ, không còn trong danh mục 53 chỉ tiêu.
+    for term in ["doanh thu thuan", "tuoi no", "no vay", "ton kho"]:
         r = qa.glossary_lookup(term)
         if r["total_matches"] > 0:
             _ok(f"glossary_lookup('{term}') -> {r['total_matches']} kết quả")

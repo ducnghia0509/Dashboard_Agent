@@ -15,7 +15,9 @@ from openpyxl import load_workbook
 
 from .common import be_bridge as bb
 from .common import canonical
+from .common import source_catalog as canonical_SC
 from .common import contract
+from .common import extraction
 from .common import memory
 from . import template_filler
 
@@ -26,6 +28,7 @@ _AGENT_ROOT = os.path.normpath(os.path.join(_HERE, ".."))
 _WORKSPACE_ROOT = os.path.dirname(_AGENT_ROOT)  # thư mục cha (vd d:\Company\ThinhCuong) - chứa
                                                   # DashBoard_Agent/DashBoard_AI/Data_test_dashboard
 _IMPORTS_LEDGER = os.path.join(_AGENT_ROOT, "memory", "imports_ledger.json")
+_GEN_MONEY_SANITY_MAX_TY = 1_000_000.0  # khớp template_filler._MONEY_SANITY_MAX_TY
 
 
 def _input_dir() -> str:
@@ -33,12 +36,16 @@ def _input_dir() -> str:
     return os.path.normpath(os.path.join(_AGENT_ROOT, input_dir))
 
 
-def _read_file(file_path: str) -> bytes:
+def _resolve_path(file_path: str) -> str:
     if not os.path.isabs(file_path):
         file_path = os.path.join(_input_dir(), file_path)
     if not os.path.exists(file_path):
         raise FileNotFoundError(f"Không tìm thấy file: {file_path}")
-    with open(file_path, "rb") as fh:
+    return file_path
+
+
+def _read_file(file_path: str) -> bytes:
+    with open(_resolve_path(file_path), "rb") as fh:
         return fh.read()
 
 
@@ -96,7 +103,13 @@ def discover_files(root_dir: str = None, pattern: str = r".*\.xlsx$") -> dict:
                 if m:
                     company_guess = m.group(1)
             else:
-                company_guess = rel_dir.split(os.sep)[0]
+                # B21/B30: KHÔNG dùng thẳng segment path làm mã công ty (segment là tên folder
+                # phân loại báo cáo do sender đặt — vd 'THUCHI'/'HO' — không phải pháp nhân, có
+                # lúc còn lẫn nhiều công ty trong 1 folder). Validate qua resolve_company(), ƯU
+                # TIÊN tên FILE (quy ước 'B.<khối>.<mã cty>.', đáng tin hơn folder) qua
+                # prefer_file_name=True; không khớp gì cả -> None, để caller/analyst tự xác định.
+                company_guess = contract.resolve_company(raw=rel_dir.split(os.sep)[0], file_name=fn,
+                                                           prefer_file_name=True)
             rel_path = os.path.normpath(os.path.join(rel_dir, fn)) if rel_dir != "." else fn
             full_path = os.path.join(dirpath, fn)
             files.append({
@@ -200,6 +213,11 @@ def sheet_routes(file_path: str) -> dict:
             target, ck, via = contract.route_sheet(name, " ".join(title_cells))
             if via == "skip":
                 status = "skip_metadata"
+            elif target and not contract.role_allows(file_path, target):
+                # Sheet thuộc vai file KHÁC (ma trận Book1) — không đưa vào need_llm/autofill
+                # để khỏi tốn LLM vào sheet mà fill_from_source sẽ chặn.
+                status = "skip_role"
+                target = None
             elif target:
                 status = "routed"
             elif non_empty >= 4:
@@ -317,9 +335,34 @@ def _ledger_load() -> list:
 
 
 def _ledger_save(entries: list):
-    os.makedirs(os.path.dirname(_IMPORTS_LEDGER), exist_ok=True)
-    with open(_IMPORTS_LEDGER, "w", encoding="utf-8") as fh:
-        json.dump(entries, fh, ensure_ascii=False, indent=2)
+    memory.atomic_dump_json(entries, _IMPORTS_LEDGER)
+
+
+def _ledger_append(entry: dict):
+    """Thêm 1 bản ghi vào sổ import: lock cả chu trình load-append-save (chống lost-update
+    khi nhiều import chạy song song) + ghi atomic (chống rách file làm mất cả sổ dedup)."""
+    with memory.locked_json(_IMPORTS_LEDGER):
+        entries = _ledger_load()
+        entries.append(entry)
+        _ledger_save(entries)
+
+
+def ledger_remove_by_content_hash(content_hashes) -> int:
+    """Xoá MỌI bản ghi imports_ledger có content_hash thuộc tập cho trước — dùng khi XOÁ HẲN 1 file
+    để MỞ KHOÁ dedup (generic_import_execute/import_execute chặn nạp lại theo content_hash), cho
+    phép phân tích lại. content_hash = sha1(bytes file) phân biệt ĐÚNG từng file (kể cả trùng
+    basename như 3 nguồn XVP). KHÔNG đụng fill_specs/report_specs (kiến thức layout dùng chung).
+    Lock cả chu trình + ghi atomic. Trả số bản ghi đã xoá."""
+    hs = {h for h in (content_hashes or []) if h}
+    if not hs:
+        return 0
+    with memory.locked_json(_IMPORTS_LEDGER):
+        entries = _ledger_load()
+        keep = [e for e in entries if e.get("content_hash") not in hs]
+        removed = len(entries) - len(keep)
+        if removed:
+            _ledger_save(keep)
+    return removed
 
 
 _ENTITY_CODE_HINTS = ("ma_doi_tuong", "ma_dt", "ma_kh", "ma_ncc", "ma_khach", "code", "ma")
@@ -359,17 +402,32 @@ def _normalize_columns(columns: list) -> list:
     return norm
 
 
-def _ledger_find(dataset_kind, report_type, period, fingerprint, content_hash=None):
+def _prior_dataset_ids(dataset_kind: str, file_name: str, exclude_id=None) -> list:
+    """Các dataset_id đã import trước đó của CÙNG file (theo ledger) — phạm vi dọn B26.
+    KHÔNG dọn theo (kind, period) toàn kỳ như trước: nhánh month toàn-kỳ sẽ xoá nhầm cả
+    dataset template dùng chung nhiều công ty của import_filled (cùng kind='month', cùng
+    period); nhánh day toàn-kỳ xoá lây báo cáo ngày khác cùng tháng."""
+    return [e["dataset_id"] for e in _ledger_load()
+            if e.get("dataset_kind") == dataset_kind and e.get("file_name") == file_name
+            and e.get("dataset_id") and e.get("dataset_id") != exclude_id]
+
+
+def _ledger_find(dataset_kind, report_type, period, fingerprint, content_hash=None,
+                 match_fingerprint=False):
     """Tìm bản ghi import trùng. Khoá dedup = (dataset_kind, content_hash) — content_hash
-    (sha1 nội dung file) định danh file duy nhất: CÙNG nội dung file -> coi là trùng, bỏ
-    qua (idempotent thật sự); KHÁC nội dung dù cùng layout/report_type/period vẫn được nạp
-    (fix S1). Không so khớp period/fingerprint để tránh lệch None-vs-suy-diễn ở kind=month;
-    2 tham số đó vẫn được lưu làm metadata."""
+    (sha1 nội dung file) định danh file duy nhất: CÙNG nội dung file -> coi là trùng, bỏ qua.
+
+    match_fingerprint=True (dùng cho GENERIC nạp TỪNG SHEET): phải trùng CẢ content_hash LẪN
+    fingerprint (fingerprint gồm sheet+layout) -> sheet thứ 2/3 của CÙNG file KHÔNG bị coi trùng
+    với sheet đầu (fix B6). Với day/month (cả file) giữ nguyên chỉ theo content_hash."""
     if not content_hash:
         return None
     for e in _ledger_load():
-        if e.get("dataset_kind") == dataset_kind and e.get("content_hash") == content_hash:
-            return e
+        if e.get("dataset_kind") != dataset_kind or e.get("content_hash") != content_hash:
+            continue
+        if match_fingerprint and e.get("fingerprint") != fingerprint:
+            continue
+        return e
     return None
 
 
@@ -409,12 +467,16 @@ def import_execute(
                     "message": "Dry-run: sẽ gọi importer_month.import_workbook (số dòng thực tế biết sau khi ghi)."}
         ds = bb.new_dataset(kind="month", period=period, name=file_name)
         result = bb.import_workbook(ds["id"], data, file_name)
+        pr = result.get("period") or period
         if result.get("period"):
             bb.repo.set_period(ds["id"], result["period"])
-        entries = _ledger_load()
-        entries.append({"dataset_kind": "month", "report_type": "MONTH", "period": result.get("period") or period,
-                         "fingerprint": fp, "content_hash": content_hash, "dataset_id": ds["id"], "file_name": file_name})
-        _ledger_save(entries)
+        # B26: dọn dataset mồ côi của CHÍNH file này (re-export khác bytes) -> không phình DB.
+        # Scope theo file (tra ledger), KHÔNG delete_by_key toàn kỳ — tránh xoá chéo dataset
+        # template đa-công-ty của import_filled cùng kind='month' cùng kỳ.
+        for old_id in _prior_dataset_ids("month", file_name, exclude_id=ds["id"]):
+            bb.repo.delete_dataset(old_id)
+        _ledger_append({"dataset_kind": "month", "report_type": "MONTH", "period": result.get("period") or period,
+                        "fingerprint": fp, "content_hash": content_hash, "dataset_id": ds["id"], "file_name": file_name})
         return {"dry_run": False, "dataset_id": ds["id"], "by_type": result["by_type"],
                 "skipped_duplicate": False, "message": "Đã ghi raw_rows.", "period": result.get("period")}
 
@@ -443,11 +505,14 @@ def import_execute(
                 "message": f"Dry-run: dự kiến ghi ~{n_rows} dòng report_type={rt}."}
 
     ds = bb.new_dataset(kind="day", period=period, name=file_name)
-    result = bb.commit(ds["id"], rt, prep["header_row"], prep["headers"], final_map, prep["rows"])
-    entries = _ledger_load()
-    entries.append({"dataset_kind": "day", "report_type": rt, "period": period,
-                     "fingerprint": fp, "content_hash": content_hash, "dataset_id": ds["id"], "file_name": file_name})
-    _ledger_save(entries)
+    result = bb.commit(ds["id"], rt, prep["header_row"], prep["headers"], final_map, prep["rows"],
+                       source_file=file_name)  # B10
+    # B26: dọn dataset day mồ côi của CHÍNH file này (scope theo file qua ledger — trước đây
+    # delete_by_key("day", period=THÁNG) xoá lây mọi báo cáo ngày khác trong cùng tháng).
+    for old_id in _prior_dataset_ids("day", file_name, exclude_id=ds["id"]):
+        bb.repo.delete_dataset(old_id)
+    _ledger_append({"dataset_kind": "day", "report_type": rt, "period": period,
+                    "fingerprint": fp, "content_hash": content_hash, "dataset_id": ds["id"], "file_name": file_name})
     return {"dry_run": False, "dataset_id": ds["id"], "by_type": {rt: result["rows"]},
             "skipped_duplicate": False, "message": "Đã ghi raw_rows.", "issues": result["issues"]}
 
@@ -455,7 +520,7 @@ def import_execute(
 @mcp.tool()
 def generic_import_execute(
     file_path: str, sheet: str, mapping: dict, period: str = None, ngay: str = None,
-    cong_ty: str = None, dry_run: bool = True,
+    cong_ty: str = None, dry_run: bool = True, value_scale: float = 1.0,
 ) -> dict:
     """Ghi dữ liệu theo 1 SheetMapping khai báo (xem servers/common/models.py SheetMapping) —
     dùng cho sheet KHÔNG khớp 9 report_type cố định (vd '131'/'331'/'Biểu khấu hao' trong file
@@ -474,13 +539,51 @@ def generic_import_execute(
 
     LUÔN trả sample_mapped_rows (5 dòng đầu đã map) bất kể dry_run=True/False, để người dùng
     soi trước khi orchestrator cho approve ghi thật (suy luận LLM, rủi ro map sai cột cao hơn
-    auto_map cũ)."""
+    auto_map cũ).
+
+    value_scale: hệ số quy đổi ĐƠN VỊ VỀ TỶ ĐỒNG (khớp đơn vị hiển thị FE) — nguồn VND thì
+    truyền value_scale=1e-9 (tool KHÔNG tự đổi). Có GUARD biên độ (scale_warning): nếu giá trị
+    lớn nhất sau scale vẫn > 1 triệu tỷ, tool trả error và KHÔNG ghi thật (nghi quên value_scale).
+
+    dry_run=True KHÔNG ghi DB, nhưng CÓ THỂ ghi 1 file spec học sớm (verified=False) vào
+    memory/report_specs/ khi melt thành công không cảnh báo — cố ý (khép vòng học sớm,
+    autobatch không phải gọi lại LLM cho layout đã dry-run đúng)."""
     target_rt = mapping.get("target_report_type") or ""
     if not target_rt.startswith("GEN_"):
         raise ValueError("target_report_type phải có tiền tố 'GEN_' để tách biệt report_type cố định.")
+    # CHUẨN HOÁ mã GEN_ về dạng ổn định (single source: bảng alias canonical) — cùng khái niệm
+    # LUÔN ra 1 mã dù LLM/heuristic đặt tên khác nhau ('GEN_10THUE'/'GEN_10_THUE'->'GEN_THUE',
+    # 'GEN_PTRA'->'GEN_TK331'). Nhờ vậy tập chiều ổn định giữa các tháng và idempotent theo
+    # (report_type, source_file) hoạt động đúng (2 lượt nạp cùng sheet -> xoá đè, không nạp đúp).
+    target_rt = canonical.canonical_gen_code(target_rt)
+    mapping = {**mapping, "target_report_type": target_rt}
     orientation = mapping.get("orientation")
     if orientation not in ("row_major", "column_major"):
         raise ValueError("orientation phải là 'row_major' hoặc 'column_major'.")
+
+    # B22: VALIDATE cong_ty TRƯỚC KHI GHI DB — đây là đường ghi raw_rows KHÔNG qua
+    # template_filler (không có resolve_company như import_filled), từng để lọt cong_ty='THUCHI'
+    # (row_major, company_guess từ path sai) hoặc entity_name tự bịa (column_major) vào dữ liệu
+    # thật (2026-07-09). KHÔNG âm thầm ghi mã không hợp lệ — chặn cứng, bắt caller sửa mapping.
+    if orientation == "row_major" and cong_ty:
+        resolved = contract.resolve_company(raw=cong_ty)
+        if not resolved:
+            raise ValueError(
+                f"cong_ty='{cong_ty}' không khớp mã pháp nhân hợp lệ nào (MD_CONGTY). "
+                f"KHÔNG được tự suy đoán/dùng token thư mục làm cong_ty — xác định lại pháp nhân "
+                f"thật (đối chiếu companies.yaml / cost_center_ma_hop_le) trước khi ghi.")
+        cong_ty = resolved
+    elif orientation == "column_major":
+        bad_entities = []
+        for ent in mapping.get("entities", []):
+            name = ent.get("entity_name")
+            if name and not contract.resolve_company(raw=name):
+                bad_entities.append(name)
+        if bad_entities:
+            raise ValueError(
+                f"entities[].entity_name có giá trị không khớp mã pháp nhân hợp lệ nào (MD_CONGTY): "
+                f"{sorted(set(bad_entities))}. Với column_major, entity_name CHÍNH LÀ cong_ty ghi vào "
+                f"raw_rows — KHÔNG được tự bịa/suy đoán, phải là 1 trong companies.yaml.")
 
     data = _read_file(file_path)
     wb = load_workbook(io.BytesIO(data), data_only=True, read_only=True)
@@ -491,10 +594,21 @@ def generic_import_execute(
     finally:
         wb.close()
 
-    file_name = os.path.basename(file_path)
+    # ĐỊNH DANH NGUỒN '<công_ty_thư_mục>::<tên_file>' (khớp source_key UI) để idempotent-delete +
+    # trạng thái tách ĐÚNG từng nguồn; file ngoài received_reports -> basename như cũ.
+    file_name = canonical_SC.source_id_from_path(file_path)
+    if "data_start_row" not in mapping:
+        print(f"[generic_import_execute] WARN: mapping thiếu data_start_row cho sheet '{sheet}' "
+              f"-> mặc định 0, có thể melt nhầm dòng header thành dữ liệu (B25).", flush=True)
     data_start = mapping.get("data_start_row", 0)
     ngay_val = ngay or (f"{period}-01" if period and len(period) == 7 else None)
     period_val = period or (ngay_val[:7] if ngay_val else None)
+
+    def _blank_cell(v) -> bool:
+        """Ô 'không có số liệu' (None/rỗng/'-' kế toán) — KHÁC với số 0 tường minh.
+        Trước đây lọc bằng `if not val` sau parse_num nên số dư/phát sinh = 0 THẬT cũng bị
+        bỏ khỏi raw_rows -> FE không phân biệt được '0' với 'chưa có dữ liệu'."""
+        return v is None or (isinstance(v, str) and v.strip() in ("", "-", "–"))
 
     # (row_index_nguồn, entity_code, entity_name, role, khoi, cong_ty, amount, payload)
     melted = []
@@ -514,9 +628,11 @@ def generic_import_execute(
                 role = c["role"]
                 if role in ("entity_code", "entity_name", "label", "skip") or idx >= len(row):
                     continue
-                val = bb.parse_num(row[idx])
-                if not val:
+                if _blank_cell(row[idx]):
                     continue
+                val = bb.parse_num(row[idx])
+                if value_scale != 1.0:
+                    val = val * value_scale   # B20: VND -> tỷ khi value_scale=1e-9
                 melted.append((ri, entity_code, entity_name, role, None, cong_ty, val, row_payload))
     else:  # column_major
         for rr in mapping.get("row_roles", []):
@@ -526,14 +642,16 @@ def generic_import_execute(
             row = rows[ri]
             for ent in mapping.get("entities", []):
                 ci = ent["col_index"]
-                if ci >= len(row) or row[ci] is None:
+                if ci >= len(row) or _blank_cell(row[ci]):
                     continue
                 val = bb.parse_num(row[ci])
-                if not val:
-                    continue
+                if value_scale != 1.0:
+                    val = val * value_scale   # B20
                 payload = {"row_label": rr.get("label", ""), "entity": ent["entity_name"]}
+                # B19: vị trí thứ 5 = khoi phải để None (trước đây bị nhét TÊN công ty vào khoi ->
+                # nhiễu GROUP BY khoi). Chỉ vị trí 6 = cong_ty mang tên thực thể.
                 melted.append((ri, rr["role"], rr.get("label", ""), None,
-                               ent["entity_name"], ent["entity_name"], val, payload))
+                               None, ent["entity_name"], val, payload))
 
     sample_mapped_rows = [
         {"source_row": m[0], "dim1": m[1], "dim2": m[2], "dim3": m[3],
@@ -541,64 +659,119 @@ def generic_import_execute(
         for m in melted[:5]
     ]
 
-    fp = bb.fingerprint([file_name, sheet, orientation,
+    # GUARD BIÊN ĐỘ (đồng bộ với template_filler._MONEY_SANITY_MAX_TY): amount đã scale mà vẫn
+    # vượt xa quy mô "tỷ đồng" hợp lý -> gần như chắc quên value_scale=1e-9 (nguồn là VND).
+    max_money = max((abs(m[6]) for m in melted), default=0.0)
+    scale_warn = max_money > _GEN_MONEY_SANITY_MAX_TY
+
+    # B24: KHÔNG đưa file_name vào fingerprint -> mapping học được TÁI DÙNG cho file khác cùng layout
+    # (sheet+orientation+columns). Định danh file duy nhất vẫn do content_hash lo ở dedup.
+    fp = bb.fingerprint([sheet, orientation,
                          json.dumps(mapping.get("columns") or mapping.get("row_roles") or [],
                                     ensure_ascii=False)])
 
     if dry_run:
-        # Khép vòng học sớm: dry-run thành công (có dòng melt được) -> lưu mapping ngay
-        # (verified=False), không cần chờ ai bấm "ghi thật". Nhờ vậy autobatch/propose không
-        # phải chạy lại LLM cho cùng 1 sheet đã verify đúng qua dry-run trước đó.
-        if melted:
+        result = {"dry_run": True, "target_report_type": target_rt, "row_count": len(melted),
+                  "sample_mapped_rows": sample_mapped_rows, "skipped_duplicate": False,
+                  "max_money_ty": round(max_money, 4), "scale_warning": scale_warn,
+                  "message": f"Dry-run: dự kiến ghi {len(melted)} dòng report_type={target_rt}."}
+        if scale_warn:
+            result["error"] = (
+                f"BIÊN ĐỘ BẤT THƯỜNG: giá trị lớn nhất sau scale = {max_money:,.0f} "
+                f"(> {_GEN_MONEY_SANITY_MAX_TY:,.0f}). Nhiều khả năng nguồn là VND và QUÊN "
+                f"value_scale=1e-9. Kiểm tra lại trước khi ghi thật.")
+        # Khép vòng học sớm: dry-run thành công (có dòng melt được, KHÔNG cảnh báo biên độ) -> lưu
+        # mapping ngay (verified=False), không cần chờ ai bấm "ghi thật". Nhờ vậy autobatch/propose
+        # không phải chạy lại LLM cho cùng 1 sheet đã verify đúng qua dry-run trước đó.
+        if melted and not scale_warn:
             memory.report_spec_save(fp, mapping, verified=False)
-        return {"dry_run": True, "target_report_type": target_rt, "row_count": len(melted),
-                "sample_mapped_rows": sample_mapped_rows, "skipped_duplicate": False,
-                "message": f"Dry-run: dự kiến ghi {len(melted)} dòng report_type={target_rt}."}
+        return result
+
+    if scale_warn:
+        # KHÔNG ghi raw_rows / KHÔNG học spec khi biên độ bất thường (khớp guard của template_fill).
+        return {"dry_run": False, "row_count": 0, "sample_mapped_rows": sample_mapped_rows,
+                "skipped_duplicate": False, "ok": False,
+                "max_money_ty": round(max_money, 4), "scale_warning": True,
+                "error": (
+                    f"BIÊN ĐỘ BẤT THƯỜNG: giá trị lớn nhất sau scale = {max_money:,.0f} "
+                    f"(> {_GEN_MONEY_SANITY_MAX_TY:,.0f}). Nhiều khả năng nguồn là VND và QUÊN "
+                    f"value_scale=1e-9. Không ghi dữ liệu."),
+                "message": "Bị chặn ghi do biên độ giá trị bất thường (xem error)."}
 
     content_hash = hashlib.sha1(data).hexdigest()
-    dup = _ledger_find("generic", target_rt, period_val, fp, content_hash)
+    dup = _ledger_find("generic", target_rt, period_val, fp, content_hash, match_fingerprint=True)
     if dup:
         return {"dry_run": False, "dataset_id": dup["dataset_id"], "row_count": 0,
                 "sample_mapped_rows": sample_mapped_rows, "skipped_duplicate": True,
-                "message": f"Sheet này (cùng mapping) đã nạp trước đó, dataset_id={dup['dataset_id']}."}
+                "message": f"Sheet này (cùng file+layout) đã nạp trước đó, dataset_id={dup['dataset_id']}."}
 
-    ds = bb.new_dataset(kind="generic", period=period_val, name=f"{file_name}::{sheet}")
-    to_insert = [
-        (ds["id"], target_rt, ri, ngay_val, cong_ty, khoi, None, period_val, val, None,
-         entity_code, entity_name, role, json.dumps(payload, ensure_ascii=False))
-        for ri, entity_code, entity_name, role, khoi, cong_ty, val, payload in melted
-    ]
+    # B7: GỘP generic theo KỲ vào 1 dataset dùng chung (KHÔNG new_dataset mỗi sheet -> set_active
+    # đè khiến chỉ sheet cuối hiện). Idempotent theo (report_type, source_file) -> nạp lại thay đúng chỗ.
+    existing = [d for d in bb.repo.list_datasets("generic") if d.get("period") == period_val]
+    ds_id = existing[0]["id"] if existing else bb.repo.create_dataset(
+        f"GEN {period_val}" if period_val else f"GEN {file_name}", kind="generic", period=period_val)["id"]
+    bb.repo.set_active(ds_id)
     db = bb.get_db()
+    # Idempotent theo (report_type, source_file) — source_file là BASENAME nên 2 file trùng
+    # tên ở 2 thư mục/công ty khác nhau sẽ xoá nhầm dòng của nhau; với row_major đã biết
+    # cong_ty -> scope thêm theo công ty (khớp cách import_filled scope source_file+cong_ty).
+    _del_conds = ["dataset_id=?", "report_type=?", "source_file=?"]
+    _del_params = [ds_id, target_rt, file_name]
+    if orientation == "row_major" and cong_ty:
+        _del_conds.append("cong_ty=?")
+        _del_params.append(cong_ty)
+    db.execute("DELETE FROM raw_rows WHERE " + " AND ".join(_del_conds), _del_params)
+    to_insert = [
+        (ds_id, target_rt, ri, ngay_val, cong_ty_v, khoi_v, None, period_val, val, None,
+         entity_code, entity_name, role, json.dumps(payload, ensure_ascii=False), file_name)  # B10
+        for ri, entity_code, entity_name, role, khoi_v, cong_ty_v, val, payload in melted
+    ]
     db.executemany(
         "INSERT INTO raw_rows(dataset_id,report_type,row_index,ngay,cong_ty,khoi,"
-        "cost_center,period_month,amount,amount2,dim1,dim2,dim3,payload) "
-        "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        "cost_center,period_month,amount,amount2,dim1,dim2,dim3,payload,source_file) "
+        "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
         to_insert,
     )
     db.commit()
 
-    entries = _ledger_load()
-    entries.append({"dataset_kind": "generic", "report_type": target_rt, "period": period_val,
-                     "fingerprint": fp, "content_hash": content_hash, "dataset_id": ds["id"],
-                     "file_name": file_name, "sheet": sheet})
-    _ledger_save(entries)
+    _ledger_append({"dataset_kind": "generic", "report_type": target_rt, "period": period_val,
+                    "fingerprint": fp, "content_hash": content_hash, "dataset_id": ds_id,
+                    "file_name": file_name, "sheet": sheet})
     memory.report_spec_save(fp, mapping, verified=True)
 
-    return {"dry_run": False, "dataset_id": ds["id"], "row_count": len(to_insert),
+    return {"dry_run": False, "dataset_id": ds_id, "row_count": len(to_insert),
             "sample_mapped_rows": sample_mapped_rows, "skipped_duplicate": False,
             "message": f"Đã ghi {len(to_insert)} dòng report_type={target_rt}."}
 
 
 @mcp.tool()
-def template_contract_info() -> dict:
+def template_contract_info(target_sheet: str = None) -> dict:
     """MÔ TẢ TEMPLATE VÀNG cho analyst — ĐỌC TRƯỚC KHI DỰNG MAPPING.
 
-    Trả bản guide đầy đủ: đơn vị (tỷ đồng -> value_scale khi nguồn VND), quy tắc map,
-    mỗi sheet {mục đích, grain, cot_nhap_lieu (CHỈ map vào đây), cot_auto_bo_qua (công thức, bỏ)},
-    danh sách công ty/khối/mã cost center hợp lệ (để đặt constants), tên chỉ tiêu KQKD chuẩn,
-    và sheet đích theo loại báo cáo nguồn.
+    Trả guide: đơn vị (tỷ đồng -> value_scale khi nguồn VND), quy tắc map, mỗi sheet
+    {mục đích, grain, cot_nhap_lieu (CHỈ map vào đây), cot_KHONG_map (công thức, bỏ)},
+    danh sách công ty/khối/mã cost center hợp lệ, chỉ tiêu KQKD chuẩn, sheet đích theo loại.
+
+    target_sheet: TRUYỀN MÃ SHEET TEMPLATE ĐÍCH bạn đang điền (vd '05_PHAITHU', '01_HQKD' —
+    KHÔNG phải tên sheet nguồn như '131') để nhận guide GỌN cho riêng sheet đó (nhanh hơn, ít
+    nhiễu). Chưa biết đích -> gọi không tham số để xem toàn bộ 13 sheet + chọn."""
+    return contract.guide(target_sheet)
+
+
+@mcp.tool()
+def extraction_guide(ma_congty: str = None, file_name: str = None) -> dict:
+    """HƯỚNG DẪN LẤY DỮ LIỆU per-đơn vị (Lớp 2 — knowledge/{ma_congty}.yaml hoặc _chung.yaml).
+
+    GỌI SAU khi xác định ma_congty (từ tên file/thư mục, đối chiếu companies.yaml) và TRƯỚC KHI
+    dựng mapping cho template_fill — để biết ĐÚNG sheet nguồn, mã số/cột, quy đổi đơn vị cho công
+    ty này. Nếu công ty có layout đặc thù (vd AAG: An KS + An Taxi khác chuẩn TT200), trả về guide
+    RIÊNG của công ty đó (THAY THẾ hoàn toàn, KHÔNG merge với hướng dẫn chung) — nếu không có guide
+    riêng, trả hướng dẫn chung (_chung.yaml).
+
+    Không truyền ma_congty (chưa xác định) nhưng có file_name -> tự thử suy mã công ty từ tên file.
+    Trả {"source": tên file guide đã dùng, "ma_congty", "is_specific": bool, "content": {...}}.
     """
-    return contract.guide()
+    return extraction.load_guide(ma_congty, file_name)
 
 
 @mcp.tool()
@@ -610,6 +783,14 @@ def template_fill(file_path: str, source_sheet: str, target_sheet: str, mapping:
     """Điền số liệu từ file nguồn vào BẢN SAO template vàng, theo mapping cột.
 
     - mapping: {tên cột TEMPLATE (input): tên cột NGUỒN}. Xem template_contract_info() để biết cột.
+      Tên cột TEMPLATE phải khớp ĐÚNG header (sai -> tool trả ok:false kèm danh sách cột hợp lệ).
+      PIVOT bảng dọc: giá trị mapping có thể là dict {'src': 'CỘT GIÁ TRỊ', 'khi': {CỘT ĐK: đk}}
+      — đk: chuỗi (khớp chứa-trong không dấu, trên giá trị forward-fill nên chịu được cột section
+      chỉ ghi 1 lần), '' (ô phải RỖNG), '*' (ô phải KHÁC rỗng). Vd TC01_SD TIỀN (dòng = LOẠI
+      TIỀN×công ty×ngân hàng) -> 03B_SODU_TIEN:
+      {'Đơn vị': 'CÔNG TY',
+       'Tiền mặt (tỷ)':   {'src': 'ĐẾN NGÀY HIỆN TẠI', 'khi': {'LOẠI TIỀN': 'TIỀN MẶT', 'CÔNG TY': '*', 'NGÂN HÀNG': ''}},
+       'Tiền gửi NH (tỷ)': {'src': 'ĐẾN NGÀY HIỆN TẠI', 'khi': {'LOẠI TIỀN': 'TIỀN GỬI', 'CÔNG TY': '*', 'NGÂN HÀNG': ''}}}
     - constants: {tên cột TEMPLATE: giá trị HẰNG} — gán cứng mọi dòng (vd cost center khi sheet nguồn
       cấp CÔNG TY không có CC theo dòng: constants={'Mã Cost center ◀ NHẬP':'ST_GD'}).
     - rename_rows: {tên chỉ tiêu NGUỒN: tên chỉ tiêu CHUẨN} — ĐỔI TÊN đúng vài dòng về tên chuẩn để KPI
@@ -631,6 +812,24 @@ def template_fill(file_path: str, source_sheet: str, target_sheet: str, mapping:
 
 
 @mcp.tool()
+def autofill_run(file_path: str, cong_ty: str = None, period: str = None, dry_run: bool = True) -> dict:
+    """RẺ, TẤT ĐỊNH (không LLM): với MỖI sheet nguồn trong file_path, tra fill_spec ĐÃ HỌC theo
+    fingerprint (từ lần `template_fill`/`autofill_run` trước đó học được) — nếu khớp, điền template
+    vàng bằng CHÍNH mapping đã học. dry_run=True (mặc định): CHỈ xem trước — trả mỗi sheet khớp kèm
+    `row_count`/`sample`/`unresolved_cc`/`scale_warning`, KHÔNG ghi gì. dry_run=False: ghi file điền
+    + nạp raw_rows luôn cho các sheet khớp (dùng SAU khi người dùng đã xác nhận qua bước dry_run).
+
+    Dùng làm BƯỚC 0 của `analyst` cho MỌI file trước khi phân tích: nếu `any_processed=true` và
+    `skipped_sheets` rỗng thì layout này ĐÃ TỪNG học — báo ImportPlan thẳng từ kết quả này, khỏi
+    phải lặp lại `template_contract_info`/`extraction_guide`/`sheet_profile`/dựng mapping từ đầu.
+    `skipped_sheets` khác rỗng = sheet đó chưa có spec, vẫn cần đi tiếp luồng phân tích cho RIÊNG
+    sheet đó (các sheet đã khớp trong `processed` thì bỏ qua, không phân tích lại).
+    """
+    return template_filler.autofill_file(_resolve_path(file_path), period=period, cong_ty=cong_ty,
+                                         dry_run=dry_run)
+
+
+@mcp.tool()
 def catalog_reindex(root_dir: str = None) -> dict:
     """Quét lại thư mục file đã kéo về (Connect_VPS/received_reports mặc định) -> cập nhật
     source_catalog. Trả {indexed, total_in_catalog}. QA tra qua catalog_search."""
@@ -645,7 +844,10 @@ def template_import(filled_path: str, cong_ty: str = None) -> dict:
     cong_ty). Trả {dataset_id, grain, by_type, rows_imported, period}."""
     if not os.path.isabs(filled_path):
         filled_path = os.path.join(template_filler.FILLED_DIR, filled_path)
-    return template_filler.import_filled(filled_path, cong_ty=cong_ty)
+    # Truyền source_file (tên file điền) để import_filled xoá-thay theo PHẠM VI file, KHÔNG wipe
+    # toàn kỳ (fix B3). Kèm cong_ty -> scope thêm theo công ty.
+    return template_filler.import_filled(filled_path, cong_ty=cong_ty,
+                                         source_file=os.path.basename(filled_path))
 
 
 if __name__ == "__main__":

@@ -232,6 +232,44 @@ SHEET_FOR_KIND = {
 }
 
 
+# ── PHÂN VAI FILE NGUỒN (ma trận Book1 copy.xlsx; nới 2026-07-10 theo quyết định user) ──
+#   thuchi (Báo cáo tiền/thu chi)  -> CHỈ dòng tiền: 03_DONGTIEN, 03B_SODU_TIEN, 04_VAY
+#   kqkd/bctc (sổ kế toán — BaocaoHQKD *hoặc* Baocaotaichinhrieng, 2 bản export CÙNG sổ)
+#       -> TOÀN BỘ 10 sheet kế toán (01,02,05..11,12). User chỉ cần chạy MỘT trong hai
+#       file/kỳ là đủ phần kế toán; dòng tiền vẫn bắt buộc từ file thu chi.
+# Chống nạp ĐÔI khi lỡ chạy CẢ HAI file cùng kỳ: guard chéo-file trong import_filled
+# (template_filler) — report_type đã có từ file KHÁC cùng kỳ+công ty thì CHẶN kèm tên file.
+# LCTT trong sổ kế toán vẫn KHÔNG được vào 03_DONGTIEN (dòng tiền chỉ từ file thu chi).
+_KETOAN_TARGETS = {"01_HQKD", "02_CHIPHI", "12_KDVH",
+                   "05_PHAITHU", "06_PHAITRA", "07_TAISAN_NV", "08_TSCD",
+                   "09_TONKHO", "10_THUE", "11_DAUTU"}
+ROLE_TARGETS = {
+    "thuchi": {"03_DONGTIEN", "03B_SODU_TIEN", "04_VAY"},
+    "kqkd": _KETOAN_TARGETS,
+    "bctc": _KETOAN_TARGETS,
+}
+
+
+def file_role(name_or_path: str):
+    """Vai của FILE nguồn suy từ tên file/đường dẫn. None = không nhận diện (không lọc)."""
+    n = _norm(os.path.basename(str(name_or_path or "")))
+    if "thuchi" in n or "thu chi" in n or "bao cao tien" in n or "baocaotien" in n:
+        return "thuchi"
+    if "taichinhrieng" in n or "tai chinh rieng" in n or "quantritaichinh" in n:
+        return "bctc"
+    if "hqkd" in n or "kqkd" in n or "ketquakinhdoanh" in n:
+        return "kqkd"
+    return None
+
+
+def role_allows(file_name: str, target_sheet: str) -> bool:
+    """False khi file CÓ vai rõ ràng mà target_sheet KHÔNG thuộc vai đó."""
+    role = file_role(file_name)
+    if not role or not target_sheet:
+        return True
+    return target_sheet in ROLE_TARGETS[role]
+
+
 def route_sheet(sheet_name: str, title_text: str = ""):
     """Try-route (tất định, KHÔNG LLM): -> (target_sheet, canonical_kind, via).
     Ưu tiên khớp theo TÊN sheet; nếu tên không nhận diện được thì thử theo NỘI DUNG
@@ -284,18 +322,83 @@ KQKD_COST_PATTERNS = ["gia von", "chi phi tai chinh", "chi phi lai vay",
 KQKD_LNTT_REQUIRE = ("loi nhuan", "truoc thue")
 
 
-def guide() -> dict:
-    """Bản MÔ TẢ TEMPLATE VÀNG đầy đủ cho analyst: đơn vị, cột nhập vs auto, cost center,
-    chỉ tiêu chuẩn, chọn sheet. Analyst đọc cái này TRƯỚC khi dựng mapping."""
+_c50_cache = None
+_c50_mtime = None
+
+
+def chi_tieu_50() -> list:
+    """50 chỉ tiêu quản trị từ 00_50CHITIEU (STT/Chỉ tiêu/Công thức/Ý nghĩa/Khối áp dụng/Nguồn/
+    Chi tiết lấy dữ liệu) — để analyst BIẾT cách tính & lấy ở sheet/file nào. Cache theo mtime."""
+    global _c50_cache, _c50_mtime
+    try:
+        mtime = os.path.getmtime(GOLDEN_TEMPLATE)
+    except OSError:
+        return _c50_cache or []
+    if _c50_cache is not None and _c50_mtime == mtime:
+        return _c50_cache
+    out, nhom = [], ""
+    try:
+        wb = load_workbook(GOLDEN_TEMPLATE, read_only=True, data_only=True)
+        for r in wb["00_50CHITIEU"].iter_rows(values_only=True):
+            if not r:
+                continue
+            a = str(r[0]).strip() if r[0] is not None else ""
+            g = lambda i: (str(r[i]).strip() if i < len(r) and r[i] is not None else "")
+            if a and not a.isdigit() and a != "STT":
+                nhom = a
+            elif a.isdigit() and g(1):
+                out.append({"stt": int(a), "nhom": nhom, "chi_tieu": g(1), "cong_thuc": g(2),
+                            "y_nghia": g(3), "khoi_ap_dung": g(4), "nguon": g(5), "chi_tiet_lay": g(6)})
+        wb.close()
+    except Exception:
+        return _c50_cache or []
+    _c50_cache, _c50_mtime = out, mtime
+    return out
+
+
+_KPI_GLOSSARY = os.path.join(_AGENT_ROOT, "kpi_glossary.json")
+
+
+def _stt_for_sheet(target_sheet: str):
+    """Tập stt của các chỉ tiêu THUỘC 1 sheet template đích (theo kpi_glossary.json sheet_nhap).
+    None nếu không có glossary/không map được -> caller GIỮ full chi_tieu_50 (an toàn, không mất
+    thông tin). Dùng để lọc chi_tieu_50 khi guide(target_sheet=...) -> cắt ~4k token thừa/lần."""
+    try:
+        import json as _json
+        with open(_KPI_GLOSSARY, encoding="utf-8") as fh:
+            recs = _json.load(fh)
+    except Exception:
+        return None
+    stt = {str(r.get("stt")) for r in recs if r.get("sheet_nhap") == target_sheet and r.get("stt")}
+    return stt or None
+
+
+def guide(target_sheet: str = None) -> dict:
+    """Bản MÔ TẢ TEMPLATE VÀNG cho analyst: đơn vị, cột nhập vs auto, cost center, chỉ tiêu
+    chuẩn, chọn sheet, 50 chỉ tiêu (công thức/nguồn/chi tiết lấy). Đọc TRƯỚC khi map.
+
+    target_sheet: MÃ SHEET TEMPLATE ĐÍCH (vd '05_PHAITHU', KHÔNG phải tên sheet nguồn như '131'
+    — tên nguồn mơ hồ). Nếu truyền + hợp lệ -> trả GỌN: chỉ sheet đó + chỉ tiêu liên quan sheet
+    đó (không dump cả 13 sheet + 50 chỉ tiêu ~6.7k token mỗi lần). Bỏ trống/không hợp lệ -> full
+    (tương thích ngược)."""
     c = load_contract()
+    all_sheets = c["data_sheets"]
+    pick = target_sheet if (target_sheet and target_sheet in all_sheets) else None
+    src = {pick: all_sheets[pick]} if pick else all_sheets
     sheets = {n: {"muc_dich": (s["title"] or "")[:130], "grain": s["grain"],
                   "report_type": SHEET_WIRING.get(n, {}).get("report_type", []),
                   "man_hinh_FE": SHEET_WIRING.get(n, {}).get("man_hinh", "(chưa nối FE)"),
                   "cot_nhap_lieu": s.get("input_columns", s["columns"]),
                   "cot_KHONG_map": s.get("auto_dim_columns", []),   # VLOOKUP cty/khối auto
                   "cot_tinh_toan_dien_neu_nguon_co": s.get("calc_columns", [])}  # Dư cuối/%...: map đè nếu nguồn có
-              for n, s in c["data_sheets"].items()}
+              for n, s in src.items()}
     ccs = sorted({e["cc"] for e in c["costcenter_index"].values() if e.get("cc")})
+
+    c50 = chi_tieu_50()
+    if pick:
+        stt = _stt_for_sheet(pick)
+        if stt:
+            c50 = [x for x in c50 if str(x.get("stt")) in stt]
     return {
         "don_vi": "TỶ ĐỒNG. Nguồn tính bằng VND -> BẮT BUỘC truyền value_scale=1e-9 khi gọi template_fill.",
         "quy_tac": [
@@ -307,56 +410,154 @@ def guide() -> dict:
             "Kỳ: tháng 'YYYY-MM', ngày 'YYYY-MM-DD'. Grain mỗi sheet xem 'grain'.",
         ],
         "sheet_theo_loai": SHEET_FOR_KIND,
-        "chi_tieu_KQKD_chuan": KQKD_CANONICAL,
+        # chỉ tiêu KQKD chuẩn chỉ hữu ích khi điền 01_HQKD -> bỏ khi lọc sheet khác (giảm nhiễu).
+        "chi_tieu_KQKD_chuan": KQKD_CANONICAL if (not pick or pick == "01_HQKD") else "(chỉ dùng cho 01_HQKD)",
         "cong_ty": c["md_congty"],
         "khoi": c["md_khoikd"],
         "cost_center_ma_hop_le": ccs,
-        "sheets": sheets,
+        "chi_tieu_50": c50,   # đã lọc theo target_sheet nếu có; đầy đủ nếu không
+        "sheets": sheets,     # 1 sheet nếu target_sheet hợp lệ; cả 13 nếu không
+        "loc_theo_sheet": pick,   # None = trả full; !=None = đã lọc gọn cho sheet này
     }
 
 
-def resolve_company(raw=None, file_name: str = None) -> str | None:
-    """Suy MÃ CÔNG TY HỢP LỆ (CHỈ trong MD_CONGTY của Cty_Khoi_Costcenter/template).
-    Ưu tiên: (1) raw đã là mã công ty hợp lệ (vd 'AAG','TC'); (2) mã trong tên file
-    'B.<n>.<MÃ>.' nếu hợp lệ (vd 'B.7.AAG.'->AAG, 'B.4.TC.'->TC). Trả None nếu KHÔNG suy
-    được mã hợp lệ — KHÔNG bịa folder-token ('ANTAXI'/'DUAN') thành công ty."""
-    import re
-    md = load_contract()["md_congty"]
-    valid = {str(k).strip().upper(): str(k).strip() for k in md}
-    if raw:
-        r = str(raw).strip().upper()
-        if r in valid:
-            return valid[r]
-    if file_name:
-        m = re.search(r"\bB\.\d+\.([A-Za-z_]+)\.", str(file_name))
-        if m and m.group(1).strip().upper() in valid:
-            return valid[m.group(1).strip().upper()]
-    return None
+_COMPANY_TOKEN_RE_DEFAULT = r"\bB\.?\d+\.([A-Za-z_]+)\."
+_KHOI_TOKEN_RE_DEFAULT = r"\bB\.?(\d+)\."
+_classify_cache = None
 
 
-# Thư mục nguồn (Khối KD) -> Mã Khối (MD_KHOIKD). HIỆU QUẢ KD gán theo Khối suy từ ĐƯỜNG DẪN nguồn
-# (khớp ngữ cảnh bo_sung_nguoi_dung.txt). Dùng khi nguồn không có cost center theo dòng (vd KQKD
-# showroom cấp công ty) -> stamp khoi cho dòng khoi NULL.
-_PATH_KHOI = {
-    "SRVF": "8", "XDV": "5", "TRAMSAC": "4", "TRAM SAC": "4", "DUAN": "3", "DU AN": "3",
-    "HO": "9", "XANHVINHPHUC": "6", "XANH VINH PHUC": "6", "ANTAXI": "6", "AN TAXI": "6",
-    "ANKHACHSAN": "2", "AN KHACH SAN": "2", "HUNGTHINH": "7", "HUNG THINH": "7",
+def _load_classification() -> dict:
+    global _classify_cache
+    if _classify_cache is None:
+        _classify_cache = {}
+        try:
+            import os
+            import yaml
+            kd = os.environ.get("KNOWLEDGE_DIR", "/home/sysadmin/knowledge")
+            with open(os.path.join(kd, "classification.yaml"), encoding="utf-8") as fh:
+                _classify_cache = yaml.safe_load(fh) or {}
+        except Exception:
+            _classify_cache = {}
+    return _classify_cache
+
+
+def _company_token_regex() -> str:
+    """Regex bắt mã công ty trong tên file — đọc từ knowledge/classification.yaml (fallback hardcode)."""
+    return (_load_classification().get("company_token") or {}).get("regex") or _COMPANY_TOKEN_RE_DEFAULT
+
+
+def _khoi_token_regex() -> str:
+    """Regex bắt MÃ KHỐI trong tên file — đọc từ knowledge/classification.yaml (fallback hardcode)."""
+    return (_load_classification().get("khoi_token") or {}).get("regex") or _KHOI_TOKEN_RE_DEFAULT
+
+
+# ALIAS THƯ MỤC NGUỒN -> MÃ PHÁP NHÂN (MD_CONGTY). Dùng khi TÊN THƯ MỤC received_reports (do
+# receiver đặt) KHÔNG trùng mã pháp nhân, VÀ mã trong tên file là NHÃN NHÓM DÙNG CHUNG cho nhiều
+# pháp nhân — điển hình khối Vận tải Taxi Xanh (khối 6): 3 pháp nhân RIÊNG (XVP / HTX_XVP / HTX_XTQ,
+# xem knowledge/companies.yaml) đều nộp file đặt tên 'B.6.XVP...' nên KHÔNG phân biệt được bằng tên
+# file — PHẢI tách theo THƯ MỤC NGUỒN (metadata lúc kéo về). Khớp sau khi UPPER + bỏ ký tự lạ.
+# Theo triết lý canonical.py: dict nhỏ, tất định, sửa trực tiếp khi có nguồn/pháp nhân mới.
+_COMPANY_FOLDER_ALIAS = {
+    # Khối Vận tải Taxi Xanh (khối 6) — 3 pháp nhân RIÊNG cùng nộp 'B.6.XVP...' -> BẮT BUỘC tách
+    # theo thư mục (tín hiệu duy nhất phân biệt được):
+    "HTXXANHTUYENQUANG": "HTX_XTQ",   # HTX Vận tải Xanh Tuyên Quang
+    "HTXXANHVINHPHUC": "HTX_XVP",     # HTX Vận tải Xanh Vĩnh Phúc
+    "XANHVINHPHUC": "XVP",            # Cty CP Công nghệ và dịch vụ Xanh Vĩnh Phúc
+    # Các thư mục ĐƠN-PHÁP-NHÂN còn lại (mỗi thư mục = 1 pháp nhân, đã đối chiếu trust_me_bro.xlsx
+    # + tag hiện có trong DB: 0 xung đột). Cho phép import_filled đóng dấu cong_ty tất định cho MỌI
+    # report_type (không chỉ CHIPHI) -> hết dòng cong_ty='' bị vét chéo theo khối:
+    "ANKHACHSAN": "AAG",              # An An's Garden — An Khách Sạn (khối 10)
+    "ANTAXI": "AAG",                  # An An's Garden — An Taxi (khối 7)
+    "DUAN": "TC",                     # Thịnh Cường — Dự án (khối 4)
+    "GLOBALAI": "GA",                 # Global AI — Công nghệ (khối 8)
+    "HO": "TC",                       # Thịnh Cường — Hỗ trợ tập đoàn (khối 9)
+    "HUNGTHINH": "HT",                # XNK & Khai thác Hưng Thịnh — Xe tải (khối 5)
+    "TRAMSAC": "TC",                  # Thịnh Cường — Trạm sạc Vgreen (khối 3)
+    "XDV": "TC",                      # Thịnh Cường — Vinfast XDV (khối 2)
+    "SRVF": "TC",                     # Thịnh Cường — Chi nhánh VinFast Showroom (user chốt 2026-07-16:
+                                      #   khối KD Vinfast - Showroom THUỘC pháp nhân Cổ phần Thịnh Cường;
+                                      #   cost center _61/UB_SR là chi tiết nội bộ, cấp pháp nhân = TC)
+    # CỐ Ý KHÔNG map (thư mục ĐA PHÁP NHÂN — phải resolve theo cost center per-dòng, KHÔNG blanket):
+    #   THUCHI = báo cáo tiền đa pháp nhân (TC/HT/VFQN/XVP/AAG lẫn trong 1 folder)
 }
 
 
-def khoi_from_path(path: str) -> str | None:
-    """Suy TÊN KHỐI (MD_KHOIKD) từ đường dẫn nguồn bằng cách khớp CHÍNH XÁC từng SEGMENT thư mục
-    (vd .../THINHCUONG/BAOCAOTAICHINH/SRVF/... -> 'Khối KD Xe điện Vinfast - SR'). None nếu không khớp."""
-    if not path:
+def resolve_company(raw=None, file_name: str = None, prefer_file_name: bool = False) -> str | None:
+    """Suy MÃ CÔNG TY HỢP LỆ (CHỈ trong MD_CONGTY của Cty_Khoi_Costcenter/template).
+    Ưu tiên mặc định: (1) raw đã là mã công ty hợp lệ (vd 'AAG','TC'); (2) mã trong tên file
+    'B.<n>.<MÃ>.' (luật ở classification.yaml) nếu hợp lệ. Trả None nếu KHÔNG suy được mã hợp lệ
+    — KHÔNG bịa folder-token ('ANTAXI'/'DUAN') thành công ty.
+
+    prefer_file_name=True: ĐẢO thứ tự — kiểm tên file TRƯỚC raw. Dùng khi raw đến từ nguồn
+    KHÔNG đáng tin (tên folder, sidecar .json do receiver ghi) — đã phát hiện thực tế (2026-07-09,
+    folder received_reports/HO/) receiver COPY THẲNG 1 sidecar mẫu cũ nên field "company" có thể
+    mang giá trị VALID NHƯNG SAI (vd copy nguyên "GA" cho file TC, hoặc ngược lại) — tên file theo
+    quy ước 'B.<khối>.<mã cty>.' do chính nghiệp vụ đặt tên, đáng tin hơn nhiều so với sidecar/folder."""
+    import re
+    md = load_contract()["md_congty"]
+    valid = {str(k).strip().upper(): str(k).strip() for k in md}
+
+    def _from_file_name():
+        if file_name:
+            m = re.search(_company_token_regex(), str(file_name))
+            if m and m.group(1).strip().upper() in valid:
+                return valid[m.group(1).strip().upper()]
+        return None
+
+    def _from_raw():
+        if raw:
+            r = str(raw).strip().upper()
+            if r in valid:
+                return valid[r]
+        return None
+
+    def _from_alias():
+        # Alias thư mục -> pháp nhân: tín hiệu CÓ CHỦ ĐÍCH, tách được các pháp nhân dùng CHUNG nhãn
+        # trong tên file (vd 3 Taxi Xanh cùng 'B.6.XVP'). Đáng tin hơn cả tên file -> ưu tiên TUYỆT ĐỐI.
+        if raw:
+            key = re.sub(r"[^A-Z0-9]", "", str(raw).strip().upper())
+            code = _COMPANY_FOLDER_ALIAS.get(key)
+            if code and code.upper() in valid:
+                return valid[code.upper()]
+        return None
+
+    alias = _from_alias()
+    if alias:
+        return alias
+    if prefer_file_name:
+        return _from_file_name() or _from_raw()
+    return _from_raw() or _from_file_name()
+
+
+def khoi_from_filename(file_name: str) -> str | None:
+    """Suy TÊN KHỐI từ MÃ KHỐI trong tên file, quy ước đặt tên CHÍNH THỨC của nghiệp vụ (xem
+    trust_me_bro.xlsx 2026-07-08: 'Mã loại dữ liệu.Mã Khối.Mã pháp nhân.Mã đơn vị cơ sở...'), tức
+    token NGAY SAU 'B'/'B.' trong 'B.<mã khối>.<mã pháp nhân>.' (vd 'B.7.AAG.' -> khối 7,
+    'B5.HT.' -> khối 5). ƯU TIÊN HƠN suy từ path/công ty (org.khoi_for_company/khoi_from_path)
+    vì đây là tín hiệu tường minh do chính nghiệp vụ quy định trong tên file — không đoán qua
+    trung gian. Trả None nếu không khớp regex hoặc số bắt được KHÔNG phải mã khối hợp lệ (1-10)."""
+    if not file_name:
         return None
     import re
-    segs = [s.strip().upper().replace(" ", "").replace("_", "") for s in re.split(r"[\\/]+", str(path)) if s.strip()]
-    norm_map = {k.replace(" ", "").replace("_", ""): v for k, v in _PATH_KHOI.items()}
-    md = load_contract()["md_khoikd"]   # {ma_khoi: ten_khoi}
-    for s in segs:
-        if s in norm_map:
-            return md.get(norm_map[s], norm_map[s])   # trả TÊN khối (không phải mã)
-    return None
+    m = re.search(_khoi_token_regex(), str(file_name))
+    if not m:
+        return None
+    return org.khoi_name(m.group(1))
+
+
+# Segment thư mục -> Khối: đã chuyển vào danh mục define chung (org_catalog.json / org.py).
+from . import org  # noqa: E402
+
+
+def khoi_from_path(path: str) -> str | None:
+    """Suy TÊN KHỐI từ đường dẫn nguồn (delegate org — nguồn define duy nhất). None nếu không khớp."""
+    return org.khoi_from_path(path)
+
+
+def khoi_for_company(company_code: str) -> str | None:
+    """TÊN khối DUY NHẤT của công ty theo khoi_phapnhan_map.yaml (delegate org). None nếu công ty
+    đa khối hoặc không xác định — khi đó dùng khoi_from_path làm fallback theo TỪNG file."""
+    return org.khoi_for_company(company_code)
 
 
 def resolve_costcenter(raw) -> dict | None:

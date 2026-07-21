@@ -5,10 +5,11 @@ Agent analyst đọc LIVE mỗi lần analyse qua `contract.guide()` / `template
 (không cache). Các file khác chỉ là INPUT do người/kế toán soạn, KHÔNG được máy đọc trực tiếp.
 
 ## Sửa ngữ cảnh ở đâu
-| Muốn đổi | Sửa trong Template_chuan.xlsx, sheet | Rồi chạy |
+| Muốn đổi | Sửa ở | Rồi chạy |
 |---|---|---|
-| 50 chỉ tiêu / công thức / sheet+cột nguồn | `00_50CHITIEU` | `python scripts/gen_kpi_glossary.py` (sinh lại `kpi_glossary.json` cho QA) |
-| Công ty / pháp nhân | `MD_CONGTY` | (không cần; đọc live) |
+| 50 chỉ tiêu / công thức / sheet+cột nguồn / màn FE / trạng thái dữ liệu | `knowledge/50_chi_tieu.yaml` (2026-07-09, thay `Template_chuan!00_50CHITIEU` làm nguồn nội dung) | `python scripts/gen_kpi_glossary.py` (sinh lại `kpi_glossary.json` cho QA/analyst) |
+| Ngưỡng cảnh báo (nguong_vang/nguong_do/trang_thai_den) — CHƯA có trong yaml trên | `Template_chuan.xlsx`, sheet `00_50CHITIEU` (join best-effort theo tên chỉ tiêu, có thể lệch/rỗng) | `python scripts/gen_kpi_glossary.py` |
+| Công ty / pháp nhân | `Template_chuan.xlsx`, sheet `MD_CONGTY` | (không cần; đọc live) |
 | Khối kinh doanh | `MD_KHOIKD` | (không cần) |
 | Cost center → công ty → khối | `MD_COSTCENTER` | (không cần) |
 | Quy tắc chiều (HQKD theo Khối, Dòng tiền theo Pháp nhân) | `bo_sung_nguoi_dung.txt` (file này, nạp vào prompt) | (không cần) |

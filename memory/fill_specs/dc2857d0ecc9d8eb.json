@@ -1,15 +1,19 @@
 {
   "fingerprint": "dc2857d0ecc9d8eb",
   "source_sheet": "CĐPS",
-  "target_sheet": "07_TAISAN_NV",
+  "target_sheet": "10_THUE",
   "mapping": {
-    "reason": "Điền số liệu vào Bảng tài sản - Nguồn vốn (07_TAISAN_NV) từ sheet 'CĐPS' cho công ty TC kỳ 2026-01. Sử dụng Tên tài khoản (cột B) map vào Khoản mục (theo CĐKT), Nợ đầu kỳ (cột C) map vào Đầu kỳ (tỷ), và Dư nợ cuối kỳ (cột G) map vào Cuối kỳ (tỷ).",
-    "Đầu kỳ (tỷ)": "Nợ đầu kỳ",
-    "Khoản mục (theo CĐKT)": "Tên tài khoản",
-    "Cuối kỳ (tỷ)": "Dư nợ cuối kỳ"
+    "Kỳ": "Kỳ",
+    "Đơn vị": "Tên tài khoản",
+    "Phải thu/Phải nộp": "Phát sinh nợ",
+    "Dư đầu kỳ (tỷ)": "Nợ đầu kỳ",
+    "PS tăng (tỷ)": "Phát sinh nợ",
+    "PS giảm (tỷ)": "Phát sinh có",
+    "Dư cuối kỳ (tỷ)": "Dư nợ cuối kỳ"
   },
   "canonical_kind": null,
   "value_scale": 1e-09,
   "constants": {},
-  "saved_at": "2026-07-06T07:47:08+00:00"
+  "rename_rows": {},
+  "saved_at": "2026-07-10T10:20:47+00:00"
 }

@@ -30,3 +30,8 @@ memory/imports_ledger.json
 Thumbs.db
 .vscode/
 .idea/
+
+memory/
+
+logs/
+uploads/

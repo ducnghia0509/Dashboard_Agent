@@ -65,6 +65,9 @@ def glossary_lookup(term: str) -> dict:
             rec.get("chi_tieu", ""), rec.get("nhom_bao_cao", ""), rec.get("nhom_con", ""),
             rec.get("chieu_phan_tich", ""), rec.get("canh_bao_do", ""),
             rec.get("nguon_du_lieu", ""), rec.get("cong_thuc", ""),
+            # ghi_chu/y_nghia chứa cảnh báo "CHƯA CÓ NGUỒN" — phải index để QA
+            # tìm ra cảnh báo nguồn thay vì khẳng định có số (xem gen_kpi_glossary).
+            rec.get("ghi_chu", ""), rec.get("y_nghia", ""), rec.get("canh_bao_nguon", ""),
         ]))
         if nt in hay:
             out["kpi_glossary"].append(rec)

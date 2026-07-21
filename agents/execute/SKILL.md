@@ -21,13 +21,18 @@ tools:
   Tháng khớp `importer_month`). Đây cũng là bước "validate" duy nhất của pipeline này (analyst
   không còn quyền `import_plan_validate`): lần gọi `dry_run=true` PHẢI được coi là bước kiểm
   tra plan, không chỉ là preview.
-- `generic_import_execute(file_path, sheet, mapping, period, ngay, cong_ty, dry_run)` — dùng khi
-  `ImportPlan` từ analyst là loại "generic" (`SheetMapping` với `target_report_type` tiền tố
-  `GEN_`, cho sheet lạ không khớp report_type cố định). Tool này LUÔN trả `sample_mapped_rows`
-  bất kể `dry_run` — coi đây là bằng chứng bắt buộc phải cho người dùng xem trước khi approve
-  ghi thật (rủi ro sai cao hơn `import_execute` vì mapping do LLM suy luận, không phải `auto_map`
-  deterministic). Truyền `cong_ty=SheetMapping.company` nếu analyst có điền (chỉ áp dụng khi
-  `orientation='row_major'` — bỏ qua nếu `column_major` vì công ty đã lấy từ tên thực thể).
+- `generic_import_execute(file_path, sheet, mapping, period, ngay, cong_ty, dry_run, value_scale)`
+  — dùng khi `ImportPlan` từ analyst là loại "generic" (`SheetMapping` với `target_report_type`
+  tiền tố `GEN_`, cho sheet lạ không khớp report_type cố định). Tool này LUÔN trả
+  `sample_mapped_rows` bất kể `dry_run` — coi đây là bằng chứng bắt buộc phải cho người dùng xem
+  trước khi approve ghi thật (rủi ro sai cao hơn `import_execute` vì mapping do LLM suy luận,
+  không phải `auto_map` deterministic). Truyền `cong_ty=SheetMapping.company` nếu analyst có điền
+  (chỉ áp dụng khi `orientation='row_major'` — bỏ qua nếu `column_major` vì công ty đã lấy từ tên
+  thực thể). **PHẢI truyền `value_scale` đúng như analyst đã xác định** (mặc định 1.0 — chỉ đúng
+  nếu nguồn đã ở đơn vị tỷ; nguồn VND cần `value_scale=1e-9`). Kiểm `max_money_ty`/
+  `scale_warning` trong kết quả: nếu `scale_warning=true`, tool đã KHÔNG ghi gì (dù
+  `dry_run=false`) — coi như "validate thất bại", báo lại orchestrator/analyst để sửa
+  `value_scale` rồi gọi lại, KHÔNG tự đoán số khác thay analyst.
 
 ## Quy trình bắt buộc (KHÔNG được đảo thứ tự)
 

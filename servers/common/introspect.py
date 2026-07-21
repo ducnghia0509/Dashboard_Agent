@@ -39,4 +39,21 @@ def schema_describe() -> str:
     lines.append("")
     lines.append("QUAN TRỌNG: amount/amount2 đã ở đơn vị TỶ ĐỒNG. Trả lời trực tiếp SUM(amount), "
                  "TUYỆT ĐỐI KHÔNG chia cho 1e9. Lọc kỳ bằng period_month='YYYY-MM' hoặc ngay.")
+    lines.append("")
+    # Đồng bộ số QA với số DASHBOARD (metrics._where của DashBoard_AI) — thiếu 2 điều kiện
+    # dưới đây là nguyên nhân số QA lệch số trên màn hình:
+    lines.append(
+        "ĐỂ KHỚP SỐ VỚI DASHBOARD, mọi câu SELECT PHẢI:\n"
+        "  1. Loại file đã ẩn:  AND (source_file IS NULL OR source_file NOT IN "
+        "(SELECT source_file FROM hidden_files))\n"
+        "  2. Scope dataset: raw_rows chứa NHIỀU lần import/kỳ — lọc period_month='YYYY-MM' "
+        "VÀ dataset_id (SELECT id FROM datasets WHERE kind=... AND period=...); SUM toàn bảng "
+        "không lọc dataset sẽ cộng chồng nhiều lần import.")
+    lines.append(
+        "KQKD (HQKD/PNLT) — tên chỉ tiêu dim1 CHƯA chuẩn hoá giữa các đơn vị, dashboard dùng "
+        "MÃ/PATTERN sau (dùng y hệt để khớp số):\n"
+        "  Doanh thu = dim1='1000'; Tổng chi phí = dim1='1047'; LN sau thuế (HQKD) = dim1='1112'; "
+        "Thuế TNDN = dim1='1111';\n"
+        "  LNST theo dòng khoản mục (PNLT): dim1 ILIKE '%lợi nhuận%sau thu%'; "
+        "LNTT: dim1 ILIKE '%lợi nhuận%trước thu%'; Giá vốn: dim1 LIKE 'GIÁ VỐN%'.")
     return "\n".join(lines)

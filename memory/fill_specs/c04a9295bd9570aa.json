@@ -3,16 +3,16 @@
   "source_sheet": "331",
   "target_sheet": "06_PHAITRA",
   "mapping": {
-    "Nhà cung cấp ◀ NHẬP": "Tên khách hàng",
-    "PS giảm trong kỳ (tỷ)": "Phát sinh  nợ",
-    "Dư cuối kỳ (tỷ)": "Dư có CK",
-    "reason": "Điền số liệu phải trả (06_PHAITRA) từ sheet '331' của công ty TC kỳ 2026-01. Cột B -> Mã đối tượng, cột C -> Tên đối tượng/NCC, cột G -> Dư đầu kỳ, cột K -> Dư cuối kỳ, cột H -> PS giảm, cột I -> PS tăng.",
-    "Mã đối tượng ◀ NHẬP": "Mã khách hàng",
-    "PS tăng trong kỳ (tỷ)": "Phát sinh có",
-    "Dư đầu kỳ (tỷ)": "Dư có ĐK"
+    "Nhà cung cấp": "Tên khách hàng",
+    "Mã đối tượng": "Mã khách hàng",
+    "Dư đầu kỳ (tỷ)": "Dư có ĐK",
+    "PS tăng - Có (tỷ)": "Phát sinh  có",
+    "PS giảm - Nợ (tỷ)": "Phát sinh  nợ",
+    "Dư cuối kỳ (tỷ)": "Dư có CK"
   },
   "canonical_kind": null,
   "value_scale": 1e-09,
   "constants": {},
-  "saved_at": "2026-07-06T07:50:15+00:00"
+  "rename_rows": {},
+  "saved_at": "2026-07-10T10:25:33+00:00"
 }

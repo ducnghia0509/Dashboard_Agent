@@ -7,7 +7,13 @@ import re
 
 _BLACKLIST = re.compile(
     r"\b(INSERT|UPDATE|DELETE|DROP|ALTER|CREATE|TRUNCATE|GRANT|REVOKE|COPY|"
-    r"VACUUM|CALL|DO|EXECUTE|LISTEN|NOTIFY|SET|RESET|LOCK)\b",
+    r"VACUUM|CALL|DO|EXECUTE|LISTEN|NOTIFY|SET|RESET|LOCK|"
+    # INTO: 'SELECT ... INTO bang_moi' TẠO BẢNG dù câu bắt đầu bằng SELECT (lọt check
+    # leading-keyword). FOR UPDATE/SHARE khoá dòng. Các lệnh ghi khác (MERGE/DECLARE/...)
+    # đứng đầu câu nên đã bị _LEADING_KEYWORD_RE chặn, không cần thêm (tránh false-positive
+    # kiểu 'FETCH FIRST 10 ROWS ONLY' là SELECT hợp lệ).
+    r"INTO)\b"
+    r"|\bFOR\s+(UPDATE|SHARE)\b",
     re.IGNORECASE,
 )
 _LIMIT_RE = re.compile(r"\bLIMIT\s+(\d+)\b", re.IGNORECASE)
@@ -42,12 +48,21 @@ def check_select_only(sql: str) -> str:
 def ensure_limit(sql: str, default: int = None, max_limit: int = None) -> str:
     default = default or int(os.environ.get("SQL_DEFAULT_LIMIT", 500))
     max_limit = max_limit or int(os.environ.get("SQL_MAX_LIMIT", 2000))
-    m = _LIMIT_RE.search(sql)
-    if not m:
+    matches = list(_LIMIT_RE.finditer(sql))
+    if not matches:
         return f"{sql.rstrip()} LIMIT {default}"
-    n = int(m.group(1))
+    # Chỉ xét LIMIT CUỐI CÙNG: LIMIT của câu ngoài (nếu có) luôn đứng sau LIMIT trong
+    # subquery. Trước đây search() lấy LIMIT ĐẦU TIÊN -> 'WHERE id IN (SELECT ... LIMIT 5)'
+    # bị coi là "đã có LIMIT" và câu ngoài chạy KHÔNG giới hạn; còn sub() không count thì
+    # kẹp nhầm cả LIMIT của subquery.
+    last = matches[-1]
+    tail = sql[last.end():]
+    if ")" in tail:
+        # LIMIT cuối vẫn nằm TRONG ngoặc (subquery) -> câu ngoài chưa có LIMIT.
+        return f"{sql.rstrip()} LIMIT {default}"
+    n = int(last.group(1))
     if n > max_limit:
-        return _LIMIT_RE.sub(f"LIMIT {max_limit}", sql)
+        return sql[:last.start()] + f"LIMIT {max_limit}" + tail
     return sql
 
 

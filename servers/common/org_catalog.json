@@ -1,0 +1,502 @@
+{
+  "_source": "SINH TỪ knowledge/*.yaml (companies/khoi/cost_centers + aliases + source_path_rules). KHÔNG sửa tay file này. Cấp độ/tần suất từ Danh_Muc. Chạy knowledge/build.py để đồng bộ.",
+  "data_levels": {
+    "B": "Báo cáo",
+    "F": "File dữ liệu cơ sở chi tiết",
+    "H": "Hồ sơ chứng từ",
+    "T": "Tài liệu quản trị hỗ trợ vận hành"
+  },
+  "frequencies": {
+    "D": "BC NGÀY",
+    "W": "BC Tuần",
+    "M": "BC Tháng",
+    "Q": "BC quý",
+    "Y": "BC Năm"
+  },
+  "khoi": [
+    {
+      "ma": "1",
+      "ten": "Khối KD Vinfast - Showroom"
+    },
+    {
+      "ma": "2",
+      "ten": "Khối KD Vinfast - XDV"
+    },
+    {
+      "ma": "3",
+      "ten": "Khối KD Trạm sạc Vgreen"
+    },
+    {
+      "ma": "4",
+      "ten": "Khối KD Dự án"
+    },
+    {
+      "ma": "5",
+      "ten": "Khối KD Xe tải"
+    },
+    {
+      "ma": "6",
+      "ten": "Khối KD Vận tải Taxi Xanh"
+    },
+    {
+      "ma": "7",
+      "ten": "Khối KD Dịch vụ An Taxi"
+    },
+    {
+      "ma": "8",
+      "ten": "Khối KD Công nghệ"
+    },
+    {
+      "ma": "9",
+      "ten": "Khối hỗ trợ tập đoàn"
+    },
+    {
+      "ma": "10",
+      "ten": "Khối KD Dịch vụ An KS"
+    }
+  ],
+  "companies": [
+    {
+      "ma": "TC",
+      "ten": "Công ty Cổ phần Thịnh Cường",
+      "aliases": [
+        "thịnh cường",
+        "tc"
+      ]
+    },
+    {
+      "ma": "VFQN",
+      "ten": "Công ty Cổ phần Công Nghệ Vinfast Quảng Ninh",
+      "aliases": [
+        "vinfast quảng ninh",
+        "vfqn",
+        "công nghệ vinfast quảng ninh"
+      ]
+    },
+    {
+      "ma": "GA",
+      "ten": "Công ty Cổ phần Global AI",
+      "aliases": [
+        "global ai",
+        "ga"
+      ]
+    },
+    {
+      "ma": "AAG",
+      "ten": "Công ty Cổ phần An An's Garden",
+      "aliases": [
+        "an an",
+        "an taxi",
+        "an an's garden",
+        "an ks",
+        "aag"
+      ]
+    },
+    {
+      "ma": "XVP",
+      "ten": "Công ty Cổ phần Công nghệ và dịch vụ Xanh Vĩnh Phúc",
+      "aliases": [
+        "xanh vĩnh phúc",
+        "xanh vp",
+        "xvp"
+      ]
+    },
+    {
+      "ma": "HTX_XVP",
+      "ten": "Hợp tác xã Vận tải Xanh Vĩnh Phúc",
+      "aliases": [
+        "hợp tác xã vận tải xanh vĩnh phúc",
+        "htx vĩnh phúc"
+      ]
+    },
+    {
+      "ma": "HTX_XTQ",
+      "ten": "Hợp tác xã Vận tải Xanh Tuyên Quang",
+      "aliases": [
+        "hợp tác xã vận tải xanh tuyên quang",
+        "htx tuyên quang"
+      ]
+    },
+    {
+      "ma": "HT",
+      "ten": "Công ty TNHH Xuất nhập khẩu và khai thác Hưng Thịnh",
+      "aliases": [
+        "hưng thịnh",
+        "ht"
+      ]
+    }
+  ],
+  "cost_centers": [
+    {
+      "ma": "ICT_GA",
+      "ten": "Kinh doanh công nghệ",
+      "cong_ty": "GA",
+      "khoi": "8"
+    },
+    {
+      "ma": "ST_GD",
+      "ten": "Garden Sơn Tây",
+      "cong_ty": "AAG",
+      "khoi": "10"
+    },
+    {
+      "ma": "CB_DA",
+      "ten": "Dự án Cao Bằng",
+      "cong_ty": "TC",
+      "khoi": "4"
+    },
+    {
+      "ma": "LS_DA",
+      "ten": "Dự án Lạng Sơn",
+      "cong_ty": "TC",
+      "khoi": "4"
+    },
+    {
+      "ma": "QS_DA",
+      "ten": "Dự án Quang Sơn",
+      "cong_ty": "TC",
+      "khoi": "4"
+    },
+    {
+      "ma": "TT_DA",
+      "ten": "Dự án Yên Bình",
+      "cong_ty": "TC",
+      "khoi": "4"
+    },
+    {
+      "ma": "YB_DA",
+      "ten": "Dự án Tân Thịnh",
+      "cong_ty": "TC",
+      "khoi": "4"
+    },
+    {
+      "ma": "PQ_DA",
+      "ten": "Dự án Phú Quốc",
+      "cong_ty": "TC",
+      "khoi": "4"
+    },
+    {
+      "ma": "VG_TS",
+      "ten": "Trạm sạc - VG",
+      "cong_ty": "TC",
+      "khoi": "3"
+    },
+    {
+      "ma": "CP_XDV",
+      "ten": "Vinfast Cẩm Phả",
+      "cong_ty": "TC",
+      "khoi": "2"
+    },
+    {
+      "ma": "HK_XDV",
+      "ten": "Vinfast Hà Khánh",
+      "cong_ty": "TC",
+      "khoi": "2"
+    },
+    {
+      "ma": "HL_XDV",
+      "ten": "Vinfast Hạ Long",
+      "cong_ty": "TC",
+      "khoi": "2"
+    },
+    {
+      "ma": "HCM_XDV",
+      "ten": "Vinfast Hồ Chí Minh",
+      "cong_ty": "TC",
+      "khoi": "2"
+    },
+    {
+      "ma": "LB_XDV",
+      "ten": "Vinfast Long Biên",
+      "cong_ty": "TC",
+      "khoi": "2"
+    },
+    {
+      "ma": "OCP_XDV",
+      "ten": "Vinfast Ocean Park",
+      "cong_ty": "TC",
+      "khoi": "2"
+    },
+    {
+      "ma": "SMC_XDV",
+      "ten": "Vinfast Smart City",
+      "cong_ty": "TC",
+      "khoi": "2"
+    },
+    {
+      "ma": "ST_XDV",
+      "ten": "Vinfast Sơn Tây",
+      "cong_ty": "TC",
+      "khoi": "2"
+    },
+    {
+      "ma": "TQ_XDV",
+      "ten": "Vinfast Tuyên Quang",
+      "cong_ty": "TC",
+      "khoi": "2"
+    },
+    {
+      "ma": "UB_XDV",
+      "ten": "Vinfast Uông Bí",
+      "cong_ty": "TC",
+      "khoi": "2"
+    },
+    {
+      "ma": "VT_XDV",
+      "ten": "Vinfast Việt Trì",
+      "cong_ty": "TC",
+      "khoi": "2"
+    },
+    {
+      "ma": "VP_XDV",
+      "ten": "Vinfast Vĩnh Phúc",
+      "cong_ty": "TC",
+      "khoi": "2"
+    },
+    {
+      "ma": "XM_XDV",
+      "ten": "Vinfast Xuân Mai",
+      "cong_ty": "TC",
+      "khoi": "2"
+    },
+    {
+      "ma": "ĐT_XDV",
+      "ten": "Vinfast Đài Tư",
+      "cong_ty": "TC",
+      "khoi": "2"
+    },
+    {
+      "ma": "PT_DP",
+      "ten": "Depot Phú Thọ",
+      "cong_ty": "XVP",
+      "khoi": "6"
+    },
+    {
+      "ma": "ST_AT",
+      "ten": "Depot Sơn Tây",
+      "cong_ty": "AAG",
+      "khoi": "7"
+    },
+    {
+      "ma": "TN_AT",
+      "ten": "Depot Thái Nguyên",
+      "cong_ty": "AAG",
+      "khoi": "7"
+    },
+    {
+      "ma": "TQ_DP",
+      "ten": "Depot Tuyên Quang",
+      "cong_ty": "XVP",
+      "khoi": "6"
+    },
+    {
+      "ma": "VP_DP",
+      "ten": "Depot Vĩnh Phúc",
+      "cong_ty": "XVP",
+      "khoi": "6"
+    },
+    {
+      "ma": "TQ_HTX",
+      "ten": "HTX Tuyên Quang",
+      "cong_ty": "HTX_XTQ",
+      "khoi": "6"
+    },
+    {
+      "ma": "VP_HTX",
+      "ten": "HTX Vĩnh Phúc",
+      "cong_ty": "HTX_XVP",
+      "khoi": "6"
+    },
+    {
+      "ma": "XT_O_TC",
+      "ten": "Xe tải Xăng/dầu - Thịnh Cường",
+      "cong_ty": "TC",
+      "khoi": "5"
+    },
+    {
+      "ma": "XT_O_HT",
+      "ten": "Xe tải Xăng/dầu - Hưng Thịnh",
+      "cong_ty": "HT",
+      "khoi": "5"
+    },
+    {
+      "ma": "CP_SR_61",
+      "ten": "Vinfast Cẩm Phả (61)",
+      "cong_ty": "XVP",
+      "khoi": "1"
+    },
+    {
+      "ma": "CP_SR",
+      "ten": "Vinfast Cẩm Phả",
+      "cong_ty": "TC",
+      "khoi": "1"
+    },
+    {
+      "ma": "HL_SR",
+      "ten": "Vinfast Hạ Long",
+      "cong_ty": "TC",
+      "khoi": "1"
+    },
+    {
+      "ma": "HL_SR_61",
+      "ten": "Vinfast Hạ Long (61)",
+      "cong_ty": "XVP",
+      "khoi": "1"
+    },
+    {
+      "ma": "LB_SR_61",
+      "ten": "Vinfast Long Biên (61)",
+      "cong_ty": "XVP",
+      "khoi": "1"
+    },
+    {
+      "ma": "LB_SR",
+      "ten": "Vinfast Long Biên",
+      "cong_ty": "TC",
+      "khoi": "1"
+    },
+    {
+      "ma": "OCP_SR",
+      "ten": "Vinfast Ocean Park",
+      "cong_ty": "TC",
+      "khoi": "1"
+    },
+    {
+      "ma": "OCP_SR_61",
+      "ten": "Vinfast Ocean Park (61)",
+      "cong_ty": "XVP",
+      "khoi": "1"
+    },
+    {
+      "ma": "SMC_SR_61",
+      "ten": "Vinfast Smart City (61)",
+      "cong_ty": "XVP",
+      "khoi": "1"
+    },
+    {
+      "ma": "SMC_SR",
+      "ten": "Vinfast Smart City",
+      "cong_ty": "TC",
+      "khoi": "1"
+    },
+    {
+      "ma": "ST_SR",
+      "ten": "Vinfast Sơn Tây",
+      "cong_ty": "TC",
+      "khoi": "1"
+    },
+    {
+      "ma": "ST_SR_61",
+      "ten": "Vinfast Sơn Tây (61)",
+      "cong_ty": "XVP",
+      "khoi": "1"
+    },
+    {
+      "ma": "UB_SR",
+      "ten": "Vinfast Uông Bí",
+      "cong_ty": "VFQN",
+      "khoi": "1"
+    },
+    {
+      "ma": "VP_SR",
+      "ten": "Vinfast Vĩnh Phúc",
+      "cong_ty": "TC",
+      "khoi": "1"
+    },
+    {
+      "ma": "VP_SR_61",
+      "ten": "Vinfast Vĩnh Phúc (61)",
+      "cong_ty": "XVP",
+      "khoi": "1"
+    },
+    {
+      "ma": "XM_SR",
+      "ten": "Vinfast Xuân Mai",
+      "cong_ty": "TC",
+      "khoi": "1"
+    },
+    {
+      "ma": "XM_SR_61",
+      "ten": "Vinfast Xuân Mai (61)",
+      "cong_ty": "XVP",
+      "khoi": "1"
+    },
+    {
+      "ma": "TC_DA",
+      "ten": "Dự Án Thổ chu",
+      "cong_ty": "TC",
+      "khoi": "4"
+    },
+    {
+      "ma": "XT_E_TC",
+      "ten": "Xe tải điện - Thịnh Cường",
+      "cong_ty": "TC",
+      "khoi": "5"
+    },
+    {
+      "ma": "XT_E_HT",
+      "ten": "Xe tải điện - Hưng Thịnh",
+      "cong_ty": "HT",
+      "khoi": "5"
+    },
+    {
+      "ma": "BLĐ",
+      "ten": "Ban lãnh đạo",
+      "cong_ty": "TC",
+      "khoi": "9"
+    },
+    {
+      "ma": "HCNS",
+      "ten": "Hành chính nhân sự",
+      "cong_ty": "TC",
+      "khoi": "9"
+    },
+    {
+      "ma": "TCKT",
+      "ten": "Tài chính kế toán",
+      "cong_ty": "TC",
+      "khoi": "9"
+    },
+    {
+      "ma": "CUVT",
+      "ten": "Cung ứng-  Vật tư",
+      "cong_ty": "TC",
+      "khoi": "9"
+    },
+    {
+      "ma": "QLTS",
+      "ten": "Tài sản",
+      "cong_ty": "TC",
+      "khoi": "9"
+    },
+    {
+      "ma": "CNTT",
+      "ten": "Công nghệ Thông tin",
+      "cong_ty": "TC",
+      "khoi": "9"
+    },
+    {
+      "ma": "TT",
+      "ten": "Thanh tra",
+      "cong_ty": "TC",
+      "khoi": "9"
+    },
+    {
+      "ma": "KSNB",
+      "ten": "Kiểm soát nội bộ",
+      "cong_ty": "TC",
+      "khoi": "9"
+    }
+  ],
+  "path_khoi": {
+    "SRVF": "1",
+    "XDV": "2",
+    "TRAMSAC": "3",
+    "DUAN": "4",
+    "HO": "9",
+    "XANHVINHPHUC": "6",
+    "ANTAXI": "7",
+    "ANKHACHSAN": "10",
+    "HUNGTHINH": "5"
+  }
+}

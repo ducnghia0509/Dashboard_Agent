@@ -60,20 +60,25 @@ def _available() -> list:
 def pipeline_state() -> dict:
     """1 view hợp nhất: mỗi file -> collected(available) / received(indexed) / ingested."""
     avail = _available()
-    cat = {e["file"]: e for e in SC.search()}
+    # B21: khoá theo (company, file) -> 2 file TRÙNG BASENAME khác công ty KHÔNG đè/đếm thiếu.
+    # Dùng string "company::file" để JSON-serializable (tuple key không dump được).
+    def _k(company, fn):
+        return f"{company or '?'}::{fn}"
+    cat = {_k(e.get("company"), e["file"]): e for e in SC.search()}
     files = {}
     for a in avail:
         fn = a.get("fileName")
         if not fn:
             continue
-        c = cat.get(fn)
-        files[fn] = {"company": a.get("company"), "collected": True,
-                     "received": c is not None, "ingested": bool(c and c.get("ingested"))}
+        key = _k(a.get("company"), fn)
+        c = cat.get(key)
+        files[key] = {"file": fn, "company": a.get("company"), "collected": True,
+                      "received": c is not None, "ingested": bool(c and c.get("ingested"))}
     # file có trong catalog nhưng không trong available (nhận trực tiếp)
-    for fn, c in cat.items():
-        if fn not in files:
-            files[fn] = {"company": c.get("company"), "collected": False,
-                         "received": True, "ingested": bool(c.get("ingested"))}
+    for key, c in cat.items():
+        if key not in files:
+            files[key] = {"file": c.get("file"), "company": c.get("company"), "collected": False,
+                          "received": True, "ingested": bool(c.get("ingested"))}
     total = len(files)
     received = sum(1 for f in files.values() if f["received"])
     ingested = sum(1 for f in files.values() if f["ingested"])

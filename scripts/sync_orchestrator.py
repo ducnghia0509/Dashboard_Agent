@@ -26,6 +26,7 @@ from dotenv import load_dotenv  # noqa: E402
 load_dotenv(os.path.join(_ROOT, ".env"))
 
 from servers.common import source_catalog as SC  # noqa: E402
+from servers.common import contract as C  # noqa: E402
 
 RECEIVER_URL = os.environ.get("RECEIVER_URL", "http://127.0.0.1:8090")
 CONNECT_ROOT = os.path.normpath(os.path.join(_ROOT, "..", "Connect_VPS"))
@@ -62,10 +63,15 @@ def _load_json(path, default):
 
 
 def _guess_period(file_name: str):
-    """Suy kỳ 'YYYY-MM' từ tên file: 'YYYYMM'/'YYYY-MM' (202601) hoặc 'MM.YYYY' (05.2026)."""
+    """Suy kỳ 'YYYY-MM' từ tên file: 'YYYYMM'/'YYYY-MM' (202601), 'MM.YYYY' (05.2026),
+    hoặc 'THÁNG mm NĂM yyyy' (Báo cáo tiền tập đoàn). Không nhận ra -> None."""
     import re
     if not file_name:
         return None
+    # 'THÁNG 01 NĂM 2026' (có/không dấu, hoa/thường) -> tháng trước năm, ngăn bằng chữ.
+    m = re.search(r"th[aá]ng\s*(\d{1,2})\s*n[aă]m\s*(20\d{2})", file_name, re.IGNORECASE)
+    if m and 1 <= int(m.group(1)) <= 12:
+        return f"{m.group(2)}-{int(m.group(1)):02d}"
     m = re.search(r"(20\d{2})[.\-_]?(0[1-9]|1[0-2])", file_name)
     if m:
         return f"{m.group(1)}-{m.group(2)}"
@@ -75,14 +81,16 @@ def _guess_period(file_name: str):
     return None
 
 
-def _period_for(file_name: str, avail: dict):
+def _period_for(file_name: str, avail: dict, company: str = None):
     """Kỳ 'YYYY-MM': ưu tiên suy từ tên file; nếu tên không có kỳ (vd 'M000526') -> dùng
-    'month' trong metadata + năm (quét 20xx trong tên, mặc định env DASHBOARD_YEAR/2026)."""
+    'month' trong metadata + năm (quét 20xx trong tên, mặc định env DASHBOARD_YEAR/2026).
+    avail khoá theo (company RAW, fileName) — company cần truyền đúng nguồn (xem cmd_reprocess)
+    để không lấy nhầm 'month' của công ty khác share cùng tên file."""
     p = _guess_period(file_name)
     if p:
         return p
     import re
-    m = (avail.get(file_name, {}) or {}).get("month")
+    m = (avail.get((company, file_name), {}) or {}).get("month")
     if not m:
         return None
     ym = re.search(r"20\d{2}", file_name or "")
@@ -90,15 +98,35 @@ def _period_for(file_name: str, avail: dict):
     return f"{year}-{int(m):02d}"
 
 
-def _received_basenames() -> set:
+def _received_keys() -> set:
+    """Tập (company RAW, fileName) đã nhận — B21: khoá kèm company để 2 công ty TRÙNG BASENAME
+    không che nhau (trước đây chỉ theo basename -> file công ty B bị coi 'đã nhận', không kéo).
+    Dùng company RAW (token thư mục received_reports/<company>/...), KHÔNG dùng SC._from_path()
+    .company (đã resolve về mã pháp nhân theo TÊN FILE) — vd XANHVINHPHUC/HTXXANHTUYENQUANG/
+    HTXXANHVINHPHUC đều nộp file 'B.6.XVP...xlsx' nên đều resolve về CÙNG 'XVP', resolved-key sẽ
+    lại collide y hệt bug basename-only."""
     root = SC.RECEIVED_DIR
     out = set()
     if os.path.isdir(root):
         for dp, _, fs in os.walk(root):
             for f in fs:
                 if f.lower().endswith(".xlsx") and not f.startswith("~$"):
-                    out.add(f)
+                    out.add((_raw_company_from_path(os.path.join(dp, f)), f))
     return out
+
+
+def _raw_company_from_path(path: str) -> str:
+    """Company RAW = tên thư mục ngay dưới received_reports/ (token nguồn thật đã kéo về, vd
+    'HTXXANHTUYENQUANG'). Khác SC._from_path().company (đã resolve theo TÊN FILE về mã pháp
+    nhân) — nhiều nguồn khác nhau có thể share cùng 1 mã trong tên file (xem _received_keys)."""
+    try:
+        rel = os.path.relpath(path, SC.RECEIVED_DIR)
+    except ValueError:
+        return None
+    if rel.startswith(".."):
+        return None
+    parts = rel.split(os.sep)
+    return parts[0] if len(parts) >= 2 else None
 
 
 def cmd_refresh(_):
@@ -111,8 +139,9 @@ def cmd_index(_):
 
 def cmd_plan(_):
     avail = _load_json(AVAILABLE_META, [])
-    recv = _received_basenames()
-    to_request = [e for e in avail if e.get("fileName") and e["fileName"] not in recv]
+    recv = _received_keys()
+    to_request = [e for e in avail if e.get("fileName")
+                  and (e.get("company"), e["fileName"]) not in recv]
     to_process = [{"file": c["file"], "company": c.get("company"),
                    "canonical_kinds": sorted({s.get("canonical_kind") for s in c.get("sheets", [])
                                               if s.get("canonical_kind")})}
@@ -169,7 +198,11 @@ def cmd_reprocess(args):
     Dùng khi đã XOÁ dữ liệu DB và cần dựng lại dashboard từ các file đã phân tích trước đó.
     --files fn1 fn2 = chỉ nạp lại các file này (không có -> tất cả)."""
     from servers import template_filler as TF
-    avail = {a.get("fileName"): a for a in _load_json(AVAILABLE_META, []) if a.get("fileName")}
+    avail = {}
+    for a in _load_json(AVAILABLE_META, []):
+        fn = a.get("fileName")
+        if fn:
+            avail[(a.get("company"), fn)] = a
     only = set(getattr(args, "files", None) or [])
     results = []
     for e in SC.search():                       # KHÔNG lọc uningested -> gồm cả file "đã hiển thị"
@@ -180,7 +213,7 @@ def cmd_reprocess(args):
         if not path or not os.path.exists(path):
             results.append({"file": fn, "error": "file không còn trên đĩa"})
             continue
-        period = _period_for(fn, avail)
+        period = _period_for(fn, avail, _raw_company_from_path(path))
         try:
             r = TF.autofill_file(path, period=period, cong_ty=e.get("company"))
         except Exception as ex:
@@ -227,24 +260,54 @@ def cmd_status(args):
     - new       : có trong available_metadata nhưng CHƯA kéo về (received=False)
     - pending   : đã kéo về nhưng CHƯA import (received=True, ingested=False)
     - ingested  : đã phân tích & lên dashboard (ingested=True)
-    """
+
+    B21+: khoá theo (company RAW, fileName) — nhiều nguồn có thể CHIA SẺ 1 tên file (vd 3 công ty
+    XANHVINHPHUC/HTXXANHTUYENQUANG/HTXXANHVINHPHUC đều nộp 'B.6.XVP...xlsx'); khoá theo fileName
+    suông làm dict-comprehension đè nhau, mất 2/3 nguồn khỏi danh sách (không hiện, không tính
+    thiếu). company RAW lấy từ available_metadata / thư mục đã kéo về — KHÔNG dùng company đã
+    resolve của SC.search() (đều ra cùng 1 mã pháp nhân suy từ tên file, không phân biệt được)."""
     SC.index_dir()  # cập nhật catalog trước khi báo cáo
-    avail = {a.get("fileName"): a for a in _load_json(AVAILABLE_META, []) if a.get("fileName")}
-    cat = {e["file"]: e for e in SC.search()}
-    names = set(avail) | set(cat)
+    avail = {}
+    for a in _load_json(AVAILABLE_META, []):
+        fn = a.get("fileName")
+        if fn:
+            avail[(a.get("company"), fn)] = a
+    cat = {(_raw_company_from_path(e.get("path") or ""), e["file"]): e for e in SC.search()}
+    keys = set(avail) | set(cat)
     files = []
-    for fn in sorted(names):
-        a = avail.get(fn, {})
-        c = cat.get(fn)
+    for company_key, fn in sorted(keys, key=lambda k: (k[1], k[0] or "")):
+        a = avail.get((company_key, fn), {})
+        c = cat.get((company_key, fn))
         received = c is not None
         ingested = bool(c and c.get("ingested"))
         state = "ingested" if ingested else ("pending" if received else "new")
         label = {"ingested": "Đã phân tích & hiển thị",
                  "pending": "Đã kéo về — chờ phân tích",
                  "new": "Mới — chưa kéo về"}[state]
+        # DÙNG company_key = TOKEN THƯ MỤC NGUỒN RAW (từ khoá inventory), KHÔNG dùng
+        # (c or a).get("company") đã resolve sẵn — để resolve_company áp được ALIAS THƯ MỤC (vd
+        # 'HTXXANHTUYENQUANG'->HTX_XTQ) tách 3 pháp nhân Taxi Xanh dùng chung nhãn 'B.6.XVP' trong tên file.
+        company_raw = company_key                           # token thư mục nguồn (vd 'HTXXANHTUYENQUANG','DUAN')
+        path_for_khoi = (c.get("path") if c else None) or a.get("path")  # local (đã kéo) hoặc remote (metadata) — cả 2 đều giữ token khối trong path
+        phap_nhan = C.resolve_company(company_raw, fn, prefer_file_name=True)  # alias thư mục > mã trong tên file > raw (B30: tên file đáng tin hơn folder-token trơn)
+        # Khối: ƯU TIÊN SỐ 1 — MÃ KHỐI tường minh trong tên file ('B.<mã khối>.<mã pháp nhân>.',
+        # quy ước chính thức của nghiệp vụ, xem contract.khoi_from_filename). Không khớp mới suy
+        # theo MÃ CÔNG TY (công ty chỉ thuộc đúng 1 khối) rồi mới tới path (thư mục lưu file có
+        # thể là thư mục hành chính, vd file công ty GA lại nộp vào thư mục 'HO' — không phản ánh
+        # đúng khối vận hành, chỉ nên dùng khi 2 tín hiệu trên đều không có).
+        khoi = C.khoi_from_filename(fn) or C.khoi_for_company(phap_nhan) or C.khoi_from_path(path_for_khoi)
         files.append({
             "file": fn,
-            "company": (c or a).get("company"),
+            # source_key: định danh DUY NHẤT của dòng (company RAW + file) — "company"/"phap_nhan"
+            # có thể TRÙNG giữa nhiều dòng share cùng tên file (vd 3 nguồn XVP/HTX_XVP/HTX_XTQ đều
+            # resolve "XVP"), nên FE PHẢI dùng source_key để chọn dòng, KHÔNG dùng file/company.
+            "source_key": f"{company_key or ''}::{fn}",
+            # Trả MÃ PHÁP NHÂN ĐÃ RESOLVE (không phải token thư mục thô) để khi FE gọi analyze,
+            # cong_ty truyền xuống import LÀ mã hợp lệ -> KHÔNG ghi folder-token ('HO'/'SRVF'/'ANTAXI')
+            # vào raw_rows.cong_ty. Fallback token nếu chưa resolve được (vd 01_TC01 đa pháp nhân).
+            "company": phap_nhan or company_raw,
+            "phap_nhan": phap_nhan,
+            "khoi": khoi,
             "report_type": (c or a).get("report_type"),
             "month": a.get("month"),
             "period_type": a.get("periodType") or a.get("period_type"),

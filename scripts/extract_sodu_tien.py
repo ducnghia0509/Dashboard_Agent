@@ -15,10 +15,9 @@ import openpyxl
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from servers import template_filler as tf  # noqa: E402
+from servers.common import source_catalog as SC  # noqa: E402
+from servers.common import org  # noqa: E402  — danh mục tổ chức (nguồn define duy nhất)
 
-# Tên công ty trong SD TIỀN -> mã pháp nhân (MD_CONGTY). Dòng tiền/số dư gán THEO PHÁP NHÂN.
-_CO = {"thịnh cường": "TC", "hưng thịnh": "HT", "vinfast quảng ninh": "VFQN",
-       "xanh vĩnh phúc": "XVP", "an taxi": "AAG"}
 _SEC = {"TIỀN VAY": "vay", "TIỀN GỬI": "gui", "TIỀN MẶT": "mat", "BẢO LÃNH": "bl", "LC": "lc"}
 _SD_COL = 5  # 'ĐẾN NGÀY HIỆN TẠI' (số dư cuối)
 
@@ -35,18 +34,23 @@ def extract(path: str, period: str, cong_ty: str = None) -> dict:
     ws = _sd_sheet(wb)
     if ws is None:
         return {"ok": False, "error": "Không thấy sheet SD TIỀN"}
-    data, sec = {}, None
+    data, sec, seen = {}, None, set()
     for r in ws.iter_rows(values_only=True):
         c1 = str(r[1]).strip() if len(r) > 1 and r[1] not in (None, "") else ""
         c2 = str(r[2]).strip() if len(r) > 2 and r[2] not in (None, "") else ""
         c3 = r[3] if len(r) > 3 else None
         c5 = r[_SD_COL] if len(r) > _SD_COL else None
         if c1 in _SEC:
-            sec = _SEC[c1]
+            # Nguồn liệt kê 'TIỀN VAY' 2 lần (khối 'đầu kỳ 30/04' + khối 'đầu kỳ 01/04', CÙNG cột
+            # 'đến ngày hiện tại') -> nếu cộng cả 2 thì số dư vay bị NHÂN ĐÔI. CHỈ lấy khối ĐẦU của
+            # mỗi loại tiền; section lặp -> sec=None (bỏ). Tiền gửi/mặt chỉ 1 khối nên không đổi.
+            s = _SEC[c1]
+            sec = None if s in seen else s
+            seen.add(s)
             continue
         # dòng CÔNG TY tổng: col2 = tên cty, col1 rỗng (không phải mã phụ), col ngân hàng rỗng
         if sec and c2 and not c1 and (c3 in (None, "")):
-            code = _CO.get(c2.lower())
+            code = org.company_code(c2)
             if code and isinstance(c5, (int, float)):
                 data.setdefault(code, {})
                 data[code][sec] = data[code].get(sec, 0.0) + c5
@@ -55,14 +59,14 @@ def extract(path: str, period: str, cong_ty: str = None) -> dict:
     recs = []
     for code, d in data.items():
         recs.append({"Kỳ": period, "Đơn vị": code,
-                     "Tiền mặt (tỷ)": round(d.get("mat", 0) / 1e9, 6),
-                     "Tiền gửi NH (tỷ)": round(d.get("gui", 0) / 1e9, 6),
-                     "Ngoại bảng: LC (tỷ)": round(d.get("lc", 0) / 1e9, 6),
-                     "Bảo lãnh thanh toán (tỷ)": round(d.get("bl", 0) / 1e9, 6),
-                     "Số dư tiền vay (tỷ) — đối chiếu 04_VAY": round(d.get("vay", 0) / 1e9, 6)})
+                     "Tiền mặt (tỷ)": round(d.get("mat", 0) / 1e9, 9),
+                     "Tiền gửi NH (tỷ)": round(d.get("gui", 0) / 1e9, 9),
+                     "Ngoại bảng: LC (tỷ)": round(d.get("lc", 0) / 1e9, 9),
+                     "Bảo lãnh thanh toán (tỷ)": round(d.get("bl", 0) / 1e9, 9),
+                     "Số dư tiền vay (tỷ) — đối chiếu 04_VAY": round(d.get("vay", 0) / 1e9, 9)})
     out = os.path.join(tf.FILLED_DIR, f"THUCHI_{period}_03B_SODU_TIEN.xlsx")
     tf.fill("03B_SODU_TIEN", recs, out)
-    imp = tf.import_filled(out, cong_ty=cong_ty)
+    imp = tf.import_filled(out, cong_ty=cong_ty, source_file=SC.source_id_from_path(path))
     return {"ok": True, "companies": list(data), "rows": imp.get("rows_imported"),
             "by_type": imp.get("by_type"), "out": out}
 

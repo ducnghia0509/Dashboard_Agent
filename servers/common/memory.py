@@ -4,9 +4,12 @@ tra cuu chinh xac theo ten file / report_type / tu khoa.
 
 discovery_record (ghi, dung trong ingest_server) + discovery_search (doc, dung
 trong qa_server) deu di qua module nay."""
+import fcntl
 import hashlib
 import json
 import os
+import tempfile
+from contextlib import contextmanager
 from datetime import datetime, timezone
 
 from . import be_bridge as bb
@@ -16,6 +19,40 @@ _AGENT_ROOT = os.path.normpath(os.path.join(_HERE, "..", ".."))
 DISCOVERIES_DIR = os.path.join(_AGENT_ROOT, "memory", "discoveries")
 REPORT_SPECS_DIR = os.path.join(_AGENT_ROOT, "memory", "report_specs")
 BINDINGS_DIR = os.path.join(_AGENT_ROOT, "memory", "bindings")
+
+
+def atomic_dump_json(obj, path: str):
+    """Ghi JSON ATOMIC: dump ra file tạm cùng thư mục rồi os.replace. Crash giữa chừng
+    không để lại file rách — trước đây open(path,'w') truncate trước khi ghi, chết giữa
+    json.dump là reader (except JSONDecodeError -> trả rỗng) mất cả sổ âm thầm."""
+    d = os.path.dirname(path) or "."
+    os.makedirs(d, exist_ok=True)
+    fd, tmp = tempfile.mkstemp(dir=d, suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            json.dump(obj, fh, ensure_ascii=False, indent=2)
+        os.replace(tmp, path)
+    except BaseException:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        raise
+
+
+@contextmanager
+def locked_json(path: str):
+    """flock EX quanh chu trình đọc-sửa-ghi trên file JSON DÙNG CHUNG (unmapped_cc,
+    source_catalog, imports_ledger, report_spec cùng fingerprint) — chống lost-update
+    khi nhiều phiên analyst/import chạy song song. Lock file .lock cạnh file dữ liệu
+    (không lock chính nó vì os.replace thay inode)."""
+    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+    with open(path + ".lock", "w") as lf:
+        fcntl.flock(lf, fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            fcntl.flock(lf, fcntl.LOCK_UN)
 
 
 def _slug(file_name: str) -> str:
@@ -52,8 +89,7 @@ def discovery_record(
         "anomalies": anomalies or [],
         "created_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
     }
-    with open(_path_for(file_name), "w", encoding="utf-8") as fh:
-        json.dump(record, fh, ensure_ascii=False, indent=2)
+    atomic_dump_json(record, _path_for(file_name))
     return record
 
 
@@ -104,23 +140,26 @@ def report_spec_save(fingerprint: str, sheet_mapping: dict, verified: bool = Tru
     chỉ qua dry-run thành công (row_count>0) — khép vòng học sớm hơn (không phải chờ người
     approve ghi thật mới học được), nhưng CHƯA chắc chắn 100% nên autobatch vẫn có thể muốn
     ưu tiên bản verified=True nếu có nhiều bản ghi trùng canonical_kind/sheet."""
-    existing = None
     path = _report_spec_path(fingerprint)
-    if os.path.exists(path):
-        try:
-            with open(path, encoding="utf-8") as fh:
-                existing = json.load(fh)
-        except (OSError, json.JSONDecodeError):
-            existing = None
-    # Không để 1 dry-run (verified=False) đè lên 1 bản ghi đã verified=True trước đó.
-    if existing and existing.get("verified") and not verified:
-        return existing
-    record = {
-        "fingerprint": fingerprint, "sheet_mapping": sheet_mapping, "verified": verified,
-        "saved_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-    }
-    with open(path, "w", encoding="utf-8") as fh:
-        json.dump(record, fh, ensure_ascii=False, indent=2)
+    # Khoá cả chu trình đọc-kiểm-ghi: 2 phiên song song cùng fingerprint không khoá sẽ
+    # đua nhau — phiên dry-run (verified=False) đọc TRƯỚC khi phiên ghi-thật kịp lưu
+    # verified=True rồi đè xuống, vô hiệu chính guard bên dưới.
+    with locked_json(path):
+        existing = None
+        if os.path.exists(path):
+            try:
+                with open(path, encoding="utf-8") as fh:
+                    existing = json.load(fh)
+            except (OSError, json.JSONDecodeError):
+                existing = None
+        # Không để 1 dry-run (verified=False) đè lên 1 bản ghi đã verified=True trước đó.
+        if existing and existing.get("verified") and not verified:
+            return existing
+        record = {
+            "fingerprint": fingerprint, "sheet_mapping": sheet_mapping, "verified": verified,
+            "saved_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        }
+        atomic_dump_json(record, path)
     return record
 
 
@@ -188,8 +227,7 @@ def binding_save(canonical_kind: str, scope: str = None, basis: str = None,
         "confirmed": True,
         "confirmed_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
     }
-    with open(_binding_path(canonical_kind), "w", encoding="utf-8") as fh:
-        json.dump(record, fh, ensure_ascii=False, indent=2)
+    atomic_dump_json(record, _binding_path(canonical_kind))
     return record
 
 
@@ -215,23 +253,24 @@ def unmapped_cc_record(raw: str, sheet: str = None, file_name: str = None,
                        cong_ty: str = None) -> dict:
     """Ghi 1 cost center chưa map (dedup theo raw). Tăng count nếu đã có."""
     raw = (raw or "").strip()
-    logs = _load_unmapped()
     key = bb.remove_diacritics(raw).lower()
     now = datetime.now(timezone.utc).isoformat(timespec="seconds")
-    for e in logs:
-        if bb.remove_diacritics(e.get("raw", "")).lower() == key:
-            e["count"] = e.get("count", 1) + 1
-            e["last_seen"] = now
-            if sheet and sheet not in e.setdefault("sheets", []):
-                e["sheets"].append(sheet)
-            break
-    else:
-        logs.append({"raw": raw, "cong_ty": cong_ty, "sheets": [sheet] if sheet else [],
-                     "file_name": file_name, "count": 1,
-                     "first_seen": now, "last_seen": now, "resolved": False})
-    os.makedirs(os.path.dirname(_UNMAPPED_CC), exist_ok=True)
-    with open(_UNMAPPED_CC, "w", encoding="utf-8") as fh:
-        json.dump(logs, fh, ensure_ascii=False, indent=2)
+    # File tổng hợp dùng chung -> lock cả chu trình load-sửa-dump (chống lost-update
+    # khi 2 phiên analyst cùng điền template song song), dump atomic.
+    with locked_json(_UNMAPPED_CC):
+        logs = _load_unmapped()
+        for e in logs:
+            if bb.remove_diacritics(e.get("raw", "")).lower() == key:
+                e["count"] = e.get("count", 1) + 1
+                e["last_seen"] = now
+                if sheet and sheet not in e.setdefault("sheets", []):
+                    e["sheets"].append(sheet)
+                break
+        else:
+            logs.append({"raw": raw, "cong_ty": cong_ty, "sheets": [sheet] if sheet else [],
+                         "file_name": file_name, "count": 1,
+                         "first_seen": now, "last_seen": now, "resolved": False})
+        atomic_dump_json(logs, _UNMAPPED_CC)
     return {"raw": raw, "total_unmapped": sum(1 for e in logs if not e.get("resolved"))}
 
 
@@ -247,10 +286,16 @@ def unmapped_cc_list(include_resolved: bool = False) -> list:
 FILL_SPECS_DIR = os.path.join(_AGENT_ROOT, "memory", "fill_specs")
 
 
-def source_fingerprint(sheet_name: str, columns: list) -> str:
-    """Fingerprint 1 layout sheet nguồn = sha1(tên sheet chuẩn hoá + các cột header chuẩn hoá)."""
+def source_fingerprint(sheet_name: str, columns: list, scope: str = None) -> str:
+    """Fingerprint 1 layout sheet nguồn = sha1(tên sheet chuẩn hoá + các cột header chuẩn hoá).
+
+    scope: nếu != None (vd MÃ CÔNG TY), gắn vào key -> spec CHỈ áp cho công ty đó. Dùng khi spec
+    mang `constants` đặc thù công ty (vd cost center) để KHÔNG bị replay nhầm sang công ty khác (B11).
+    """
     norm = lambda s: bb.remove_diacritics("" if s is None else str(s)).strip().lower()
     key = norm(sheet_name) + "|" + "|".join(norm(c) for c in columns if c not in (None, ""))
+    if scope:
+        key += "|@" + norm(scope)
     return hashlib.sha1(key.encode("utf-8")).hexdigest()[:16]
 
 
@@ -264,8 +309,7 @@ def fill_spec_save(fingerprint: str, target_sheet: str, mapping: dict,
            "value_scale": value_scale, "constants": constants or {},
            "rename_rows": rename_rows or {},   # đổi tên dòng->chuẩn (KQKD), replay khi autofill
            "saved_at": datetime.now(timezone.utc).isoformat(timespec="seconds")}
-    with open(os.path.join(FILL_SPECS_DIR, f"{fingerprint}.json"), "w", encoding="utf-8") as fh:
-        json.dump(rec, fh, ensure_ascii=False, indent=2)
+    atomic_dump_json(rec, os.path.join(FILL_SPECS_DIR, f"{fingerprint}.json"))
     return rec
 
 

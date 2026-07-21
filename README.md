@@ -16,6 +16,13 @@ Luồng 2 (qa):      câu hỏi tiếng Việt -> qa (sql_query / glossary_looku
                    discovery_search / source_inspect) -> trả lời + bảng + nguồn
 ```
 
+**Tốc độ khi nhiều file:** `analyst` luôn thử `autofill_run(dry_run=true)` (không LLM, tra
+fill_spec đã học theo fingerprint) trước khi phân tích lại từ đầu — file/layout đã quen bỏ qua
+hầu hết các bước phân tích. Khi orchestrator nhận nhiều file cùng lúc, nó chạy TỐI ĐA 3 phiên
+`analyst` song song cho bước phân tích/`dry_run`; bước GHI THẬT (`execute` hoặc `analyst`
+`dry_run=false`) luôn tuần tự để tránh đụng độ dataset chung kỳ giữa các công ty (xem
+`agents/orchestrator/SKILL.md` mục "Luồng 1 — điều phối ingest").
+
 ## Kiến trúc 2 tầng: OpenClaw (agent/tool) + 9Router (model routing)
 
 OpenClaw (chính là hệ thống orchestrator + subagent + MCP trong thư mục này) và
@@ -73,7 +80,7 @@ cho fallback nếu 1 provider hết quota/lỗi.
 | Subagent | Model mặc định (qua 9Router) | Tool MCP được phép gọi |
 |---|---|---|
 | `orchestrator` | `claude-sonnet` | không gọi tool trực tiếp — chỉ điều phối + spawn subagent |
-| `analyst` | `minimax` | `discover_files`, `template_analyze`, `sheet_profile`, `glossary_lookup`, `discovery_search`, `report_spec_search` |
+| `analyst` | `minimax` | `autofill_run` (bước 0, không LLM — xem dưới), `discover_files`, `template_analyze`, `sheet_profile`, `template_contract_info`, `extraction_guide`, `template_fill`, `glossary_lookup`, `discovery_search`, `report_spec_search` |
 | `execute` | `qwen` | `import_execute`, `generic_import_execute` (luôn `dry_run=true` trước, rồi mới `dry_run=false`) |
 | `qa` | `gpt-5-mini` | `sql_query`, `glossary_lookup`, `discovery_search`, `report_spec_search`, `source_inspect`, `schema_describe` |
 

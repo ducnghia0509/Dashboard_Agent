@@ -1,24 +1,26 @@
 # -*- coding: utf-8 -*-
-"""Sinh kpi_glossary.json TỪ template vàng Template_chuan.xlsx, sheet '00_50CHITIEU'.
+"""Sinh kpi_glossary.json TỪ knowledge/50_chi_tieu.yaml (business-authored, 2026-07-09).
 
-NGUỒN SỰ THẬT DUY NHẤT (2026-07): guideline rời (guildline.xlsx) đã ARCHIVE. Bộ 50 chỉ
-tiêu chuẩn giờ sống trong Template_chuan!00_50CHITIEU — CÙNG file analyst đọc live qua
-contract.guide()/template_contract_info. Regenerate glossary từ đây => QA (glossary_lookup)
-và ingest (analyst) không bao giờ lệch nhau.
+NGUỒN SỰ THẬT MỚI cho nội dung 50 chỉ tiêu (tên/công thức/sheet đích/màn FE/trạng thái dữ
+liệu): knowledge/50_chi_tieu.yaml — thay cho sheet Template_chuan!00_50CHITIEU trước đây
+(sheet đó KHÔNG bị xoá, các pipeline khác — contract.chi_tieu_50(), DashBoard_AI
+metrics_extra.py — vẫn đọc trực tiếp Excel, KHÔNG đổi theo file này).
 
-Sheet 00_50CHITIEU (dòng 1 = tiêu đề, dòng 2 = header cột, dữ liệu từ dòng 3):
-  cột: STT | Nhóm chỉ tiêu | Chỉ tiêu (tên đúng) | Giá trị mẫu | Trạng thái đèn |
-       Công thức/Logic | ĐVT | Nguồn dữ liệu | Sheet nhập liệu | Cột nguồn |
-       Chiều phân tích | Ngưỡng VÀNG | Ngưỡng ĐỎ | Chiều đánh giá
-  Dòng tiêu đề nhóm ('▶ 1. Doanh thu (3)') ở cột đầu, cột 'Chỉ tiêu' rỗng -> BỎ.
+Ngưỡng cảnh báo (nguong_vang/nguong_do/trang_thai_den/gia_tri_mau/chieu_phan_tich/
+chieu_danh_gia) CHƯA có trong 50_chi_tieu.yaml (tính năng chỉnh ngưỡng phát triển sau) —
+JOIN bổ sung từ sheet Excel cũ theo tên chỉ tiêu đã chuẩn hoá (_norm), best-effort. Chỉ
+tiêu nào không khớp tên ở Excel thì các field ngưỡng để rỗng — QA (glossary_lookup) khi đó
+nói "chưa có ngưỡng cấu hình" thay vì bịa số.
 
 Chạy: python scripts/gen_kpi_glossary.py   -> ghi đè kpi_glossary.json
 """
 import json
 import os
+import re
 import sys
 import unicodedata
 
+import yaml
 from openpyxl import load_workbook
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -26,14 +28,10 @@ ROOT = os.path.dirname(HERE)
 # Ưu tiên env GOLDEN_TEMPLATE (khớp contract.py), mặc định ~/template_trust/Template_chuan.xlsx
 TEMPLATE_XLSX = os.environ.get("GOLDEN_TEMPLATE") or os.path.normpath(
     os.path.join(ROOT, "..", "template_trust", "Template_chuan.xlsx"))
+KNOWLEDGE_DIR = os.environ.get("KNOWLEDGE_DIR", "/home/sysadmin/knowledge")
+CHI_TIEU_YAML = os.path.join(KNOWLEDGE_DIR, "50_chi_tieu.yaml")
 OUT_PATH = os.path.join(ROOT, "kpi_glossary.json")
 SHEET_NAME = "00_50CHITIEU"
-
-# Marker để đánh dấu chỉ tiêu CHƯA chốt được nguồn (analyst/QA cần thận trọng).
-FOLLOWUP_MARKERS = [
-    "cần chốt", "chưa cập nhật", "chưa có", "check lại", "hỏi lại",
-    "cần trao đổi", "note:", "cần hỏi", "trao đổi", "hỏi lại", "chốt lại",
-]
 
 
 def _norm(s) -> str:
@@ -75,52 +73,116 @@ def _find_header(ws):
     raise RuntimeError("Không tìm thấy dòng header trong 00_50CHITIEU")
 
 
-def build_glossary(path=None, sheet=SHEET_NAME):
-    path = path or TEMPLATE_XLSX
-    wb = load_workbook(path, data_only=True)
-    ws = wb[sheet]
-    hdr_row, colmap = _find_header(ws)
+_THRESHOLD_FIELDS = ("nguong_vang", "nguong_do", "trang_thai_den", "gia_tri_mau",
+                      "chieu_phan_tich", "chieu_danh_gia", "don_vi", "nhom_bao_cao")
 
-    records = []
+
+def _load_threshold_lookup(path=None, sheet=SHEET_NAME):
+    """Đọc sheet Excel cũ CHỈ để lấy field ngưỡng cảnh báo (chưa có trong yaml mới), trả
+    {ten_chuan_hoa: {field ngưỡng}}. Best-effort — thiếu file/sheet thì trả {} (không chặn build)."""
+    path = path or TEMPLATE_XLSX
+    if not os.path.exists(path):
+        return {}
+    try:
+        wb = load_workbook(path, data_only=True)
+        ws = wb[sheet]
+        hdr_row, colmap = _find_header(ws)
+    except Exception as e:
+        print(f"CẢNH BÁO: không đọc được ngưỡng từ {sheet} ({e}) — bỏ qua, để rỗng.", file=sys.stderr)
+        return {}
+
+    lookup = {}
     for r in range(hdr_row + 1, ws.max_row + 1):
-        rec = {"row": r}
+        rec = {}
         for ci, key in colmap.items():
             v = ws.cell(r, ci).value
             rec[key] = "" if v is None else str(v).strip()
         chi_tieu = rec.get("chi_tieu", "")
-        # Bỏ dòng tiêu đề nhóm ('▶ ...') / dòng rỗng (không có tên chỉ tiêu thật).
         if not chi_tieu or chi_tieu.startswith("▶"):
             continue
-        # Trường tương thích với glossary_lookup (qa_server đọc các khoá này).
-        rec.setdefault("nhom_bao_cao", "")
-        rec.setdefault("nhom_con", rec.get("nhom_con", ""))
-        rec.setdefault("chieu_phan_tich", rec.get("chieu_phan_tich", ""))
-        rec.setdefault("cong_thuc", rec.get("cong_thuc", ""))
-        rec.setdefault("nguon_du_lieu", rec.get("nguon_du_lieu", ""))
+        lookup[_norm(chi_tieu)] = {f: rec.get(f, "") for f in _THRESHOLD_FIELDS}
+    return lookup
+
+
+def build_glossary(yaml_path=None, xlsx_path=None):
+    yaml_path = yaml_path or CHI_TIEU_YAML
+    with open(yaml_path, encoding="utf-8") as fh:
+        doc = yaml.safe_load(fh)
+
+    threshold_lookup = _load_threshold_lookup(xlsx_path)
+    unmatched = 0
+
+    items = []
+    for nhom_key, nhom_label in (
+        ("chi_tieu_tai_chinh", None), ("chi_tieu_nhan_su", "Nhân sự"),
+        ("chi_tieu_van_hanh", "Vận hành"),
+    ):
+        for item in doc.get(nhom_key) or []:
+            items.append((item, nhom_label))
+    items.sort(key=lambda pair: pair[0].get("stt", 0))
+
+    records = []
+    for item, group_fallback in items:
+        chi_tieu = str(item.get("ten") or "").strip()
+        if not chi_tieu:
+            continue
+        co_tren = str(item.get("co_tren_dashboard") or "").strip()
+        ghi_chu = " ".join(x for x in [item.get("ghi_chu"), item.get("ghi_chu_srvf")] if x)
+        rec = {
+            "id": item.get("stt"),
+            "stt": str(item.get("stt") or ""),
+            "nhom_con": item.get("nhom") or group_fallback or "",
+            "chi_tieu": chi_tieu,
+            "cong_thuc": str(item.get("cong_thuc") or ""),
+            "nguon_du_lieu": str(item.get("cot_lay") or ""),
+            "sheet_nhap": str(item.get("template_sheet") or ""),
+            "cot_nguon": str(item.get("cot_lay") or ""),
+            "y_nghia": str(item.get("y_nghia") or ""),
+            "man_hien_thi": item.get("man_hien_thi") or [],
+            "khoi_ap_dung": item.get("khoi_ap_dung"),
+            "co_tren_dashboard": co_tren,
+            "ghi_chu": ghi_chu,
+            # Ngưỡng cảnh báo: JOIN best-effort từ Excel cũ (xem module docstring).
+            "nguong_vang": "", "nguong_do": "", "trang_thai_den": "", "gia_tri_mau": "",
+            "chieu_phan_tich": "", "chieu_danh_gia": "", "don_vi": "", "nhom_bao_cao": "",
+        }
+        th = threshold_lookup.get(_norm(chi_tieu))
+        if th:
+            rec.update(th)
+        else:
+            unmatched += 1
         # 'canh_bao_do' cũ ~ ngưỡng đỏ (để glossary_lookup vẫn khớp từ khoá cảnh báo).
         rec["canh_bao_do"] = rec.get("nguong_do", "")
-        hay = " ".join([rec.get("chi_tieu", ""), rec.get("cong_thuc", ""),
-                        rec.get("nguon_du_lieu", ""), rec.get("chieu_phan_tich", "")]).lower()
-        rec["needs_followup"] = any(m in hay for m in FOLLOWUP_MARKERS)
-        rec["wired"] = bool(rec.get("sheet_nhap")) and not rec["needs_followup"]
+        # needs_followup: trạng thái business tự khai (co_tren_dashboard == "chua") HOẶC
+        # ghi_chu cảnh báo "CHƯA CÓ NGUỒN" toàn phần/đa số đơn vị. Trước đây chỉ nhìn
+        # co_tren_dashboard nên 8 chỉ tiêu ghi rõ "CHƯA CÓ NGUỒN" vẫn wired=true -> QA
+        # khẳng định có số thật (bịa số). Thiếu nguồn MỘT PHẦN (vd "SRVF: CHƯA CÓ NGUỒN,
+        # đơn vị khác: có") vẫn wired nhưng mang canh_bao_nguon để QA nói rõ phần thiếu.
+        gnorm = _norm(ghi_chu)
+        thieu_nguon = "chua co nguon" in gnorm
+        thieu_toan_bo = thieu_nguon and (
+            "tat ca" in gnorm or "da so" in gnorm
+            or not re.search(r"(co tu|con lai|khac\s*:|van co)", gnorm))
+        rec["canh_bao_nguon"] = ghi_chu if thieu_nguon else ""
+        rec["needs_followup"] = (co_tren == "chua") or thieu_toan_bo
+        rec["wired"] = bool(rec["sheet_nhap"]) and not rec["needs_followup"]
         records.append(rec)
 
-    for idx, rec in enumerate(records, start=1):
-        rec["id"] = idx
-    return records
+    return records, unmatched
 
 
 def main():
-    if not os.path.exists(TEMPLATE_XLSX):
-        print(f"Không tìm thấy template vàng: {TEMPLATE_XLSX}", file=sys.stderr)
+    if not os.path.exists(CHI_TIEU_YAML):
+        print(f"Không tìm thấy {CHI_TIEU_YAML}", file=sys.stderr)
         sys.exit(1)
-    records = build_glossary()
+    records, unmatched = build_glossary()
     with open(OUT_PATH, "w", encoding="utf-8") as fh:
         json.dump(records, fh, ensure_ascii=False, indent=2)
     n_follow = sum(1 for r in records if r["needs_followup"])
     n_wired = sum(1 for r in records if r["wired"])
     print(f"Đã ghi {OUT_PATH}: {len(records)} chỉ tiêu "
-          f"({n_wired} đã nối sheet, {n_follow} cần chốt nguồn). Nguồn: {SHEET_NAME} trong Template_chuan.")
+          f"({n_wired} đã nối sheet, {n_follow} cần chốt nguồn, {unmatched} thiếu ngưỡng cảnh báo "
+          f"do không khớp tên ở {SHEET_NAME}). Nguồn nội dung: {os.path.basename(CHI_TIEU_YAML)}.")
 
 
 if __name__ == "__main__":
