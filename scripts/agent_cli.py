@@ -499,10 +499,15 @@ def _derive_kqkd_tseries(rows, period, cong_ty, file_path):
     # sắc trên i, không phải a) nên metrics build_revenue (cogs = PNLT ILIKE '%giá vốn%', ACCENT-SENSITIVE)
     # KHÔNG khớp -> giá vốn + tỷ lệ GV trống MỌI kỳ. Breakdown T201.x GIỮ nhãn gốc (typo) -> KHÔNG khớp
     # filter -> KHÔNG đếm đôi (cogs chỉ cộng ĐÚNG dòng TỔNG chuẩn hoá này).
+    # CHUẨN HOÁ nhãn để metrics gom NHẤT QUÁN theo chỉ tiêu (thẻ DT tài chính / Thu nhập khác 2 màn):
+    # T201->'Giá vốn hàng bán'; T103 (thu nhập khác) nguồn gõ khác nhau ('Thu nhập khác' Trạm sạc vs
+    # 'Doanh thu khác' HT) -> ép 'Thu nhập khác'. T102 nhãn gốc ('Doanh thu hoạt động tài chính') đã
+    # khớp ILIKE '%doanh thu%tài chính%' nên GIỮ NGUYÊN (surgical). Mã khác giữ nhãn gốc.
+    _canon = {"T201": "Giá vốn hàng bán", "T103": "Thu nhập khác"}
     for c, (lab, val) in byco.items():
         if c in ("T100", "T200", "T300"):
             continue
-        add("Giá vốn hàng bán" if c == "T201" else lab, val)
+        add(_canon.get(c, lab), val)
     # Lợi nhuận gộp = T100 − T201 (sheet HT KHÔNG có dòng LN gộp riêng, spec #6 = DT thuần − giá vốn).
     # -> PNLT (metrics gross = ILIKE '%lợi nhuận gộp%'; biên LNG = LNG/DT thuần tính ở BE). Chỉ khi có
     # T201 -> đơn vị T-series không có giá vốn (Trạm sạc) KHÔNG bị thêm dòng (0 ảnh hưởng).
@@ -760,6 +765,8 @@ def _derive_kqkd_xdv(rows, period, cong_ty, file_path):
     add("Lợi nhuận gộp", v("B410"))                         # -> PNLT
     add("Lợi nhuận sau thuế", v("B900"))                    # -> PNLT (nuôi thẻ LNST)
     add("Doanh thu HH, DV", v("B100"))                     # -> PNLT (#1 bảng 50: B100 'DOANH THU XDV', trước giảm trừ B200)
+    add("Doanh thu tài chính", v("B821"))                  # -> PNLT (DT tài chính XDV = B821)
+    add("Thu nhập khác", vsum("B831", "B832"))             # -> PNLT (thu nhập HĐ khác = DT chiến dịch B831 + thu nhập khác B832; user chốt 2026-07-21)
     out = os.path.join(tf.FILLED_DIR, f"KQKD_{period}_{cong_ty or 'NA'}_01_HQKD.xlsx")
     tf.fill("01_HQKD", records, out)
     imp = tf.import_filled(out, cong_ty=cong_ty, khoi=_khoi_of(file_path), source_file=_source_id(file_path))
@@ -1032,6 +1039,8 @@ def _derive_kqkd_antaxi(file_path: str, period: str, cong_ty: str):
     add("Giá vốn hàng bán", gia_von)                                  # -> PNLT (Mã130)
     add("Lợi nhuận gộp", ln_gop)                                      # -> PNLT (Mã140)
     add("Lợi nhuận sau thuế", lnst)                                   # -> PNLT (Mã220, nuôi thẻ LNST)
+    add("Doanh thu tài chính", v("181"))                              # -> PNLT (IX.1 = Mã181)
+    add("Thu nhập khác", v("191"))                                    # -> PNLT (X.1 = Mã191)
     out = os.path.join(tf.FILLED_DIR, f"KQKD_{period}_{cong_ty or 'NA'}_01_HQKD.xlsx")
     tf.fill("01_HQKD", records, out)
     imp = tf.import_filled(out, cong_ty=cong_ty, khoi=_khoi_of(file_path), source_file=_source_id(file_path))
@@ -1330,6 +1339,8 @@ def _derive_kqkd_xvp(file_path: str, period: str, cong_ty: str):
         add(cc, "Lợi nhuận gộp", _v(r_lng, j))                       # -> PNLT
         add(cc, "Lợi nhuận sau thuế", _v(r_lnst, j) if r_lnst is not None else lntt)  # -> PNLT (thẻ LNST)
         add(cc, "Doanh thu HH, DV", _v(r_hhdv, j))                   # -> PNLT (#1 = mã 1 'DT bán hàng' theo depot)
+        add(cc, "Doanh thu tài chính", _v(r_dttc, j))                # -> PNLT (DT tài chính theo depot; IX.1)
+        add(cc, "Thu nhập khác", _v(r_tnk, j))                       # -> PNLT (thu nhập khác theo depot; X.1)
     if not records:
         return {"ok": False, "error": "XVP HQKD: không bóc được dòng depot nào"}
     # === TỔNG CÔNG TY = HQKD QUẢN TRỊ (Mapping QTTC sheet 9, CẬP NHẬT 2026-07-20) ===
@@ -1425,6 +1436,10 @@ def _derive_kqkd_htx(file_path: str, period: str, cong_ty: str):
         (round(dt_net - (gia_von or 0.0), 9) if dt_net is not None else None))
     add("Lợi nhuận sau thuế", eat if eat is not None else ebt)   # -> PNLT (thẻ LNST)
     add("Doanh thu HH, DV", hhdv if hhdv is not None else dt_net)  # -> PNLT (#1)
+    if dttc:
+        add("Doanh thu tài chính", dttc)                  # -> PNLT (IX.1; chỉ emit khi nguồn có)
+    if tnk:
+        add("Thu nhập khác", tnk)                         # -> PNLT (X.1)
     out = os.path.join(tf.FILLED_DIR, f"KQKD_{period}_{cong_ty or 'NA'}_01_HQKD.xlsx")
     tf.fill("01_HQKD", records, out)
     imp = tf.import_filled(out, cong_ty=cong_ty, khoi=_khoi_of(file_path), source_file=_source_id(file_path))
@@ -1665,7 +1680,12 @@ def _derive_tonkho_cdps(file_path: str, sheet: str, period: str, cong_ty: str):
         if code not in _TK_KHO:     # chỉ TK kho cấp CHA 151–156 -> tổng đúng (không cộng con 1521/1561…)
             continue
         cuoi = num(r, cuoi_no)
-        if not cuoi or cuoi <= 0:   # CHỈ tồn kho còn số dư cuối kỳ (>0); loại TK chạy-qua (vd An Taxi 154=0)
+        _dau = num(r, dau_no)
+        # GIỮ TK có tồn ĐẦU hoặc CUỐI kỳ > 0. Bỏ TK chạy-qua (đầu=cuối=0, chỉ có PS — vd An Taxi
+        # 154 'CP dịch vụ dở dang'). TRƯỚC chỉ giữ cuối>0 -> MẤT tồn kho TIÊU HẾT trong kỳ (đầu>0,
+        # cuối=0, vd HTX_XTQ T02 TK152 'Vật liệu, dụng cụ' đầu 3,5tr / xuất 3,5tr / cuối 0) -> tồn
+        # đầu kỳ không lên. Nay đầu>0 vẫn giữ để hiện đầu kỳ (cuối có thể =0).
+        if not (abs(cuoi or 0) > 1e-9 or abs(_dau or 0) > 1e-9):
             continue
         ten = bb.parse_text(r[name_i]) if (name_i is not None and name_i < len(r)) else None
         records.append({"Kỳ": period, "Đơn vị": cong_ty, "TK (151-156)": code,
@@ -2281,6 +2301,38 @@ def _derive_congno(file_path: str, sheet: str, canonical_kind: str, period: str,
         wb.close()
     norm = lambda v: bb.normalize_header(v, True)  # noqa: E731
 
+    # SỔ TỔNG HỢP GỘP NHIỀU TK (vd HTX 'THCN PHẢI THU' = TK 131+138; 'THCN PHẢI TRẢ' = 331+338): có
+    # CỘT 'TÀI KHOẢN' đánh dấu TK từng dòng. Phải LỌC đúng TK gốc (131 phải thu / 331 phải trả), loại
+    # 138/338/133/336… (phải thu/phải trả KHÁC — báo cáo tách riêng). Dò cột theo GIÁ TRỊ (dòng dữ liệu
+    # là mã TK 3 số cùng LỚP: '13x' phải thu / '33x' phải trả) — KHÔNG theo header vì có tháng gắn nhãn
+    # SAI ('Tên ĐT' thay vì 'TÀI KHOẢN', vd HTX_XVP T04). Cột nào nhiều mã TK nhất (>2) = cột tài khoản.
+    # Sheet 1-TK (HT: col đầu là mã NCC, không phải mã TK) -> không cột nào đạt -> tk_col=None -> lấy hết.
+    _cls = {"TK131": "13", "TK331": "33"}.get(canonical_kind)
+    _tk_target = {"TK131": "131", "TK331": "331"}.get(canonical_kind)
+    tk_col = None
+    if _cls:
+        _ds = mp["data_start_row"]
+        _sample = rows[_ds:_ds + 150]
+        _best = 2
+        for _j in range(min(4, max((len(r) for r in _sample), default=0))):
+            _cnt = sum(1 for r in _sample if _j < len(r) and r[_j] is not None
+                       and (_s := str(r[_j]).strip())[:2] == _cls and _s[:3].isdigit() and len(_s) <= 6)
+            if _cnt > _best:
+                _best, tk_col = _cnt, _j
+        # Header lỗi (HTX_XVP T04: col 'Tên ĐT' TRÙNG cột TK) -> heuristic map tên NHẦM vào cột TK.
+        # Nếu name_i CHÍNH LÀ tk_col, chọn lại cột tên THẬT (nhiều chuỗi dài, ≠ mã TK, ≠ tk_col/code_i).
+        if tk_col is not None and name_i == tk_col:
+            _cand, _bl = None, 0
+            for _j in range(min(6, max((len(r) for r in _sample), default=0))):
+                if _j in (tk_col, code_i):
+                    continue
+                _txt = sum(1 for r in _sample if _j < len(r) and isinstance(r[_j], str)
+                           and len(r[_j].strip()) > 3 and not r[_j].strip()[:3].isdigit())
+                if _txt > _bl:
+                    _bl, _cand = _txt, _j
+            if _cand is not None:
+                name_i = _cand
+
     def num(r, i):
         if i is None or i >= len(r) or not isinstance(r[i], (int, float)):
             return None
@@ -2289,6 +2341,10 @@ def _derive_congno(file_path: str, sheet: str, canonical_kind: str, period: str,
     records = []
     for ri in range(mp["data_start_row"], len(rows)):
         r = rows[ri]
+        if tk_col is not None and _tk_target:   # lọc đúng TK gốc, loại TK khác (138/338/…)
+            _tkv = str(r[tk_col]).strip() if tk_col < len(r) and r[tk_col] is not None else ""
+            if _tkv and not _tkv.startswith(_tk_target):
+                continue
         name = bb.parse_text(r[name_i]) if name_i < len(r) else None
         if not name:
             continue
@@ -2298,7 +2354,11 @@ def _derive_congno(file_path: str, sheet: str, canonical_kind: str, period: str,
         # (HT T05 'Cộng tác viên cty long sơn'). Chỉ nới nhánh 'cộng <x>' khi thiếu mã; 'cộng'/'tổng
         # cộng' vẫn luôn bỏ (không bao giờ là đối tượng thật) -> giữ nguyên fix đếm đôi 131 cũ.
         _code_val = bb.parse_text(r[code_i]) if (code_i is not None and code_i < len(r)) else None
-        if (_rawnm == "cộng" or _rawnm.startswith("tổng cộng")
+        # Dòng TỔNG có thể nằm ở CỘT MÃ (vd HTX_XVP T04 header lỗi -> tên map nhầm cột TK, mã='Tổng':
+        # tổng-con mỗi TK bị đếm ĐÔI với chi tiết). Bắt 'cộng'/'tổng'/'tổng cộng' ở CẢ tên lẫn mã.
+        _code_low = str(_code_val).strip().lower() if _code_val else ""
+        if (_rawnm in ("cộng", "tổng") or _rawnm.startswith("tổng cộng")
+                or _code_low in ("cộng", "tổng") or _code_low.startswith("tổng cộng")
                 or (_rawnm.startswith("cộng ") and not _code_val)):
             continue   # bỏ dòng tổng (an toàn kép, ngoài data_start đã bỏ)
         rec = {"Kỳ": period, "Đơn vị": cong_ty, spec["ten_col"]: name,
@@ -2764,30 +2824,14 @@ def cmd_autofill(args):
                            "canonical_kind": ck, "reason": "KQKD layout lạ -> LLM theo extraction_guide"})
             continue
         if status == "routed" and ck == "LCTT":
-            # HT (Xe tải): DÒNG TIỀN lấy TỪ sheet LCTT (spec 50 chỉ tiêu, dòng 18-19) — deriver TẤT
-            # ĐỊNH, KHÔNG cho LLM đụng (LLM từng map nhầm lctt -> nạp ĐÔI 03_DONGTIEN + phân loại sai
-            # cả dòng thu/dòng tổng/số dư, T03-05). CHỈ HT: nguồn chuẩn dòng tiền của HT là lctt. Công
-            # ty khác: dòng tiền lấy từ Báo cáo tiền tập đoàn -> lctt (nếu có) KHÔNG vào 03_DONGTIEN
-            # (skip, tránh nạp đôi khác nguồn).
-            _is_ht = False
-            try:
-                from servers.common import contract as _c_ht
-                _is_ht = _c_ht.resolve_company(args.cong_ty, fname, prefer_file_name=True) == "HT"
-            except Exception:
-                _is_ht = False
-            if _is_ht and not args.dry_run:
-                try:
-                    _rl = _derive_lctt_ht(args.file, sheet, period, args.cong_ty)
-                except Exception as ex:  # noqa: BLE001
-                    _rl = {"ok": False, "error": str(ex)[:150]}
-                if _rl.get("ok"):
-                    derived.append({"kind": "03_DONGTIEN", "sheet": sheet, "ok": True,
-                                    "rows": _rl.get("rows"), "value_col": _rl.get("value_col_header")})
-                    ledger.append({"sheet": sheet, "bucket": "derived", "target_sheet": "03_DONGTIEN",
-                                   "canonical_kind": ck, "reason": "HT: dòng tiền từ lctt (spec 18-19) tất định"})
-                    continue
+            # DÒNG TIỀN của MỌI pháp nhân (GỒM HT) lấy từ Báo cáo tiền tập đoàn — sheet 'BC THU CHI_T*_
+            # <CTY>' qua extract_thuchi, KHÔNG từ lctt. CẬP NHẬT 2026-07-21 (guide TC-SRVF dòng tiền):
+            # HT "Tiền vào/ra trong kỳ" = Mã I/II sheet 'BC THU CHI_T*_HUNGTHINH' (gồm 'Giảm gốc vay')
+            # → T02 thu 5,85 / chi 8,51 khớp báo cáo; trước lấy lctt (_derive_lctt_ht) ra 5,83/6,93
+            # (thiếu gốc vay + lệch nền 20tr). GIỮ hàm _derive_lctt_ht (không xoá) nhưng KHÔNG gọi nữa
+            # để HT lấy dòng tiền CÙNG NGUỒN với các cty khác, tránh nạp ĐÔI 03_DONGTIEN khác nguồn.
             ledger.append({"sheet": sheet, "bucket": "skip_role", "target_sheet": None, "canonical_kind": ck,
-                           "reason": "LCTT: chỉ HT lấy dòng tiền từ lctt; công ty khác lấy từ file thu chi"})
+                           "reason": "LCTT: dòng tiền lấy từ file thu chi (BC THU CHI) cho MỌI pháp nhân"})
             continue
         if status == "routed" and target in _derived_targets:
             # Đã có extractor tất định phủ target này (chạy ở mục DẪN XUẤT) -> KHÔNG cho LLM đụng.
