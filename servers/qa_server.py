@@ -121,18 +121,45 @@ def _input_dir() -> str:
     return os.path.normpath(os.path.join(_AGENT_ROOT, input_dir))
 
 
+def _within(base: str, target: str) -> bool:
+    try:
+        return os.path.commonpath([base, target]) == base
+    except ValueError:
+        return False
+
+
+def _allowed_read_dirs() -> list:
+    """Thư mục source_inspect được phép đọc: INPUT_DIR (template chuẩn) +
+    Connect_VPS/received_reports (file gốc kéo về; catalog_search trả path tuyệt đối ở đây)."""
+    from .common.source_catalog import RECEIVED_DIR
+    return [_input_dir(), RECEIVED_DIR]
+
+
+def _resolve_readable(file_name: str) -> str:
+    """Phân giải file_name (tên trơn / tương đối / tuyệt đối) về đường dẫn nằm TRONG một
+    thư mục được phép. Chặn path traversal; raise nếu ngoài phạm vi hoặc không tồn tại."""
+    bases = _allowed_read_dirs()
+    if os.path.isabs(file_name):
+        targets = [os.path.normpath(file_name)]
+    else:
+        targets = [os.path.normpath(os.path.join(b, file_name)) for b in bases]
+    in_scope = [t for t in targets if any(_within(b, t) for b in bases)]
+    if not in_scope:
+        raise ValueError(f"'{file_name}' nằm ngoài thư mục được phép đọc "
+                         f"(INPUT_DIR / Connect_VPS/received_reports) - không được phép.")
+    for t in in_scope:
+        if os.path.exists(t):
+            return t
+    raise FileNotFoundError(f"Không tìm thấy '{file_name}' trong INPUT_DIR hoặc received_reports.")
+
+
 @mcp.tool()
 def source_inspect(file_name: str, sheet: str = None, max_rows: int = 200) -> dict:
-    """Mở file gốc (chỉ đọc) trong INPUT_DIR để đào sâu số CHƯA hiển thị trên dashboard.
-    Chặn path traversal - file phải nằm trong INPUT_DIR. Giới hạn max_rows dòng trả về."""
+    """Mở file gốc (chỉ đọc) trong INPUT_DIR hoặc Connect_VPS/received_reports để đào sâu
+    số CHƯA hiển thị trên dashboard. Chặn path traversal (chỉ 2 thư mục này). Giới hạn max_rows dòng."""
     from openpyxl import load_workbook
 
-    base = _input_dir()
-    target = os.path.normpath(os.path.join(base, file_name))
-    if os.path.commonpath([base, target]) != base:
-        raise ValueError(f"'{file_name}' nằm ngoài INPUT_DIR - không được phép đọc.")
-    if not os.path.exists(target):
-        raise FileNotFoundError(f"Không tìm thấy '{file_name}' trong {base}")
+    target = _resolve_readable(file_name)
 
     wb = load_workbook(target, data_only=True, read_only=True)
     try:
