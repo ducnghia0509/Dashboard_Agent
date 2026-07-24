@@ -45,6 +45,30 @@ def bank_of_sheet(nm):
     return None
 
 
+def _bank_of_bcth2(rec):
+    """Dòng credit BCTH 2 -> mã ngân hàng (khớp dim1 VAY). Dò trong bank/name/code/tt."""
+    t = " ".join(str(rec.get(k) or "") for k in ("bank", "name", "code", "tt")).upper()
+    if "BAB" in t or "BẮC Á" in t or "BAC A" in t: return "Bắc Á"
+    if "BIDV" in t: return "BIDV"
+    if "VPB" in t or "VPBANK" in t: return "VP"
+    if "-MB" in t or " MB" in t or "MB " in t: return "MB"
+    if "VCB" in t or "VIETCOMBANK" in t: return "VCB"
+    return None
+
+
+def _is_lease(rec):
+    """Cty cho thuê tài chính (Chailease, TK 341x) — KHÔNG phải ngân hàng, bỏ (tránh carry-forward nhầm)."""
+    t = " ".join(str(rec.get(k) or "") for k in ("bank", "name", "code")).lower()
+    return "cho thuê" in t or "chailease" in t or str(rec.get("code") or "").startswith("341")
+
+
+def _term_of_bcth2(rec):
+    t = str(rec.get("name") or "").lower()
+    if "ngắn" in t or "ngan" in t: return NGAN
+    if "trung" in t or "dài" in t or "dai" in t: return TRUNG   # gộp dài hạn vào TH (giữ dim2 NH/TH)
+    return None
+
+
 def nh_cuoi(ws):
     for r in ws.iter_rows(min_row=1, max_row=6, values_only=True):
         if any(isinstance(c, str) and "dư nợ còn phải trả" in c.lower() for c in r):
@@ -61,67 +85,80 @@ def th_cuoi(ws):
 
 
 def term_map(unit, f, month):
-    """{bank: {term: {'cuoi': VND|None, 'den_han': tỷ}}} từ báo cáo ngân hàng."""
+    """{bank: {term: {'cuoi','vay','tra','den_han' (tỷ)}}}. cuoi/vay/trả từ **BCTH 2** (per bank×kỳ hạn:
+    Nợ cuối / Tổng số vay / Đã thanh toán) — nguồn per-bank chuẩn cho chart Đi vay/Trả nợ theo ngân hàng.
+    den_han từ ma trận NH/TH (nợ đáo hạn trong tháng). Bỏ Chailease (leasing); carry-forward bank cho
+    dòng con (BCTH2 gom facility dưới 1 dòng bank)."""
     wb = ext.load(f)
     tm = {}
-    for nm in wb.sheetnames:
+
+    def _cell(b, t):
+        return tm.setdefault(b, {}).setdefault(t, {"cuoi": 0.0, "vay": 0.0, "tra": 0.0, "den_han": 0.0, "den_han_next": 0.0})
+
+    res, _ = ext.read_bcth2(wb, unit)
+    last = None
+    for r in (res.get("credit") or []):
+        if _is_lease(r):
+            continue
+        b = _bank_of_bcth2(r) or last
+        if _bank_of_bcth2(r):
+            last = _bank_of_bcth2(r)
+        if not b:
+            continue
+        d = _cell(b, _term_of_bcth2(r) or NGAN)
+        d["cuoi"] += (r["no_cuoi_ky"] or 0) / 1e9
+        d["vay"] += (r["tong_vay"] or 0) / 1e9
+        d["tra"] += (r["da_thanh_toan"] or 0) / 1e9
+    for nm in wb.sheetnames:                       # den_han: ma trận cột-tháng sheet NH/TH
         if nm.startswith("foxz"):
             continue
-        k = ext.sheet_kind(wb[nm])
-        bank = bank_of_sheet(nm)
-        if not bank:
-            continue
-        if k == "NH":
-            dh = ext.matrix_month(wb[nm], month)
-            tm.setdefault(bank, {})[NGAN] = {"cuoi": nh_cuoi(wb[nm]), "den_han": (dh or 0) / 1e9}
-        elif k == "TH":
-            dh = ext.matrix_month(wb[nm], month)
-            tm.setdefault(bank, {})[TRUNG] = {"cuoi": th_cuoi(wb[nm]), "den_han": (dh or 0) / 1e9}
-    if unit == "ThinhCuong":
-        dh = 0.0
+        k = ext.sheet_kind(wb[nm]); bank = bank_of_sheet(nm)
+        term = NGAN if k == "NH" else TRUNG if k == "TH" else None
+        if bank and term:
+            ws = wb[nm]
+            _cell(bank, term)["den_han"] += (ext.matrix_month(ws, month) or 0) / 1e9
+            if month < 12:                              # #8: nợ gốc đáo hạn THÁNG TỚI = cột tháng M+1 (ma trận)
+                _cell(bank, term)["den_han_next"] += (ext.matrix_month(ws, month + 1) or 0) / 1e9
+    if unit == "ThinhCuong":                        # TC trung hạn: cột rộng 'Trả gốc T<mm>'
         for nm in ("Trung hạn 2022", "Trung hạn BIDV"):
             if nm in wb.sheetnames:
                 v, _ = ext.wide_tra_goc(wb[nm], month)
-                dh += (v or 0)
-        tm.setdefault("BIDV", {})[TRUNG] = {"cuoi": None, "den_han": dh / 1e9}  # cuoi = residual
+                if v:
+                    _cell("BIDV", TRUNG)["den_han"] += v / 1e9
     wb.close()
     return tm
 
 
 def split_row(row, tmap):
-    """row (dict raw_rows) -> list dòng con theo kỳ hạn (giữ tổng)."""
+    """row (per BANK) -> dòng con per (bank, kỳ hạn). Dư nợ (amount): giữ TỔNG từ SD TIỀN × tỷ trọng
+    BCTH2 cuoi. Vay thêm/Trả/Đến hạn: BCTH2 **TRỰC TIẾP** per (bank,kỳ hạn) (không allocate theo tỷ trọng)."""
     bank = row["dim1"]
     terms = tmap.get(bank)
-    if not terms:                       # ví dụ 'Vay cá nhân' -> giữ nguyên
+    if not terms:                       # bank ngoài báo cáo NH (vd 'Vay cá nhân') -> giữ nguyên 1 dòng
         return [row]
-    amt = row["amount"] or 0.0          # dư cuối (tỷ)
+    amt = row["amount"] or 0.0          # dư cuối (tỷ) — nguồn SD TIỀN
     pl = json.loads(row["payload"] or "{}")
-    # tỷ trọng theo dư nợ cuối per kỳ hạn (VND); TC/Trung = residual
-    comp = {}
-    for t, d in terms.items():
-        comp[t] = d["cuoi"]
-    if TRUNG in comp and comp[TRUNG] is None:               # TC: residual
-        short = comp.get(NGAN) or 0.0
-        comp[TRUNG] = max(0.0, amt * 1e9 - short)
-    tot = sum(v for v in comp.values() if v) or 0.0
+    comp = {t: (terms[t].get("cuoi") or 0.0) for t in terms}   # tỷ trọng dư nợ per kỳ hạn (từ BCTH2)
+    tot = sum(comp.values()) or 0.0
     out = []
     for t in terms:
         ratio = (comp[t] / tot) if tot > 0 else (1.0 / len(terms))
         npl = dict(pl)
-        npl["du_dau_ky"] = (pl.get("du_dau_ky") or 0) * ratio
-        npl["vay_them"] = (pl.get("vay_them") or 0) * ratio
-        npl["tra_no"] = (pl.get("tra_no") or 0) * ratio
-        npl["den_han"] = terms[t]["den_han"]               # CHÍNH XÁC per kỳ hạn
+        npl["du_dau_ky"] = round((pl.get("du_dau_ky") or 0) * ratio, 9)
+        npl["vay_them"] = round(terms[t].get("vay") or 0.0, 9)   # per (bank,kỳ hạn) từ BCTH2 — KHÔNG ratio
+        npl["tra_no"] = round(terms[t].get("tra") or 0.0, 9)
+        npl["den_han"] = round(terms[t].get("den_han") or 0.0, 9)
+        npl["den_han_next"] = round(terms[t].get("den_han_next") or 0.0, 9)   # #8: đáo hạn tháng tới
         nr = dict(row)
-        nr["amount"] = amt * ratio
-        nr["amount2"] = (row["amount2"] or 0.0) * ratio
+        nr["amount"] = round(amt * ratio, 9)
+        nr["amount2"] = round((row["amount2"] or 0.0) * ratio, 9)
         nr["dim2"] = t
         nr["payload"] = json.dumps(npl, ensure_ascii=False)
         out.append(nr)
     return out
 
 
-def run(commit):
+def run(commit, only_period=None):
     db = bb.db.get_db()
     # gom file báo cáo NH theo (unit, month)
     files = {}
@@ -134,6 +171,8 @@ def run(commit):
     for (unit, month), f in sorted(files.items()):
         cty = MASTER[unit]
         period = f"2026-{month:02d}"
+        if only_period and period != only_period:   # autofill scope 1 kỳ -> KHÔNG tách lại kỳ đã split (mangle)
+            continue
         rows = [dict(r) for r in db.execute(
             "SELECT * FROM raw_rows WHERE report_type='VAY' AND period_month=? AND cong_ty=?",
             (period, cty)).fetchall()]
@@ -169,6 +208,11 @@ def run(commit):
         db.commit()
     print(f"\n{'ĐÃ GHI' if commit else 'DRY-RUN'}: {total_new} dòng con. "
           f"{'' if commit else 'Chạy --commit để ghi.'}")
+
+
+def apply(only_period=None, commit=True):
+    """Autofill hook: tách kỳ hạn (dim2 NH/TH) cho 1 kỳ. GIỮ NGUYÊN dòng '(Cả *)' & 'Vay cá nhân' (không có term_map)."""
+    return run(commit, only_period)
 
 
 def main():

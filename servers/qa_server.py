@@ -157,11 +157,11 @@ def _resolve_readable(file_name: str) -> str:
 def source_inspect(file_name: str, sheet: str = None, max_rows: int = 200) -> dict:
     """Mở file gốc (chỉ đọc) trong INPUT_DIR hoặc Connect_VPS/received_reports để đào sâu
     số CHƯA hiển thị trên dashboard. Chặn path traversal (chỉ 2 thư mục này). Giới hạn max_rows dòng."""
-    from openpyxl import load_workbook
+    from .common import be_bridge as bb
 
     target = _resolve_readable(file_name)
 
-    wb = load_workbook(target, data_only=True, read_only=True)
+    wb = bb.fast_load_workbook(target, data_only=True, read_only=True)
     try:
         sheet_names = wb.sheetnames
         ws = wb[sheet] if sheet and sheet in wb.sheetnames else wb.worksheets[0]

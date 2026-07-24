@@ -13,7 +13,6 @@ import json
 import os
 from datetime import datetime, timezone
 
-from openpyxl import load_workbook
 
 from . import be_bridge as bb
 from . import canonical
@@ -136,7 +135,7 @@ def index_file(path: str) -> dict:
         "indexed_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "ingested": False,
     }
-    wb = load_workbook(path, read_only=True, data_only=True)
+    wb = bb.fast_load_workbook(path, read_only=True, data_only=True)
     try:
         for ws in wb.worksheets:
             # CHỈ đọc ~30 dòng đầu để lấy header (KHÔNG duyệt hết — sheet BCTC có thể tới

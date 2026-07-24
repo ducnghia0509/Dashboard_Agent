@@ -4,6 +4,8 @@ không đọc được). Sheet 'CĐPS': A=Tài khoản · B=Tên · C=Nợ đầ
 G=Dư nợ cuối · H=Dư có cuối. Bóc theo TK (chị Điệp: công nợ CĐPS TK131/331):
   · TK 131 -> PTHU (05): dư nợ (đầu C / cuối G, tăng=PS Nợ E, giảm=PS Có F).
   · TK 331 -> PTRA (06): dư có (đầu D / cuối H, tăng=PS Có F, giảm=PS Nợ E).
+  · TK 152/153/154/156 -> TỒN KHO (09): đầu=Nợ đầu C, Nhập=PS Nợ E, Xuất=PS Có F, cuối=Dư nợ G
+    (spec #43 chốt 2026-07-22, thay cách cũ đọc sheet 156_xe per-model).
 
 cong_ty=TC, khối Vinfast Showroom (SRVF thuộc Cổ phần Thịnh Cường). Idempotent theo source_file.
 Chạy: .venv/bin/python scripts/derive_srvf_cdps.py <file.xlsx> --period 2026-06
@@ -63,13 +65,8 @@ def _cdkt_ma(wbk, norm, ma):
     return (None, None)
 
 
-def _cdkt_ma140(wbk, norm):
-    """Mã 140 'Hàng tồn kho' (đầu, cuối) — dùng làm TỔNG tồn kho THẬT để cân dòng '156_xe' thiếu."""
-    return _cdkt_ma(wbk, norm, "140")
-
-
 def extract(path, period, cong_ty="TC"):
-    wb = openpyxl.load_workbook(path, data_only=True, read_only=True)
+    wb = bb.fast_load_workbook(path, data_only=True, read_only=True)
     if "CĐPS" not in wb.sheetnames:
         return {"ok": False, "error": "không thấy sheet CĐPS"}
     rows = [list(r) for r in wb["CĐPS"].iter_rows(values_only=True)]
@@ -145,84 +142,58 @@ def extract(path, period, cong_ty="TC"):
              _json.dumps({"unit": "ty", "nguon": f"CĐPS {_key}"}, ensure_ascii=False), src))
         out[_rt.lower()] = _v
     _dbh.commit()
-    # THUẾ: TK 133 (GTGT được khấu trừ = phải thu, dư NỢ cuối) + TK 333 (thuế phải nộp, dư CÓ cuối)
+    # THUẾ: TK 133 (GTGT được khấu trừ = phải thu, dư NỢ) + TK 333 (thuế phải nộp, dư CÓ). Điền đủ
+    # đầu/PS tăng/PS giảm để bảng cân (cuối = đầu + tăng − giảm). Số dư RÒNG (chiều chính − ngược).
+    #   133: đầu=Nợ đầu−Có đầu, tăng=PS Nợ, giảm=PS Có, cuối=Nợ cuối−Có cuối.
+    #   333: đầu=Có đầu−Nợ đầu, tăng=PS Có, giảm=PS Nợ, cuối=Có cuối−Nợ cuối.
+    def _net(r, pos, neg):
+        p, n = val(r, pos), val(r, neg)
+        return None if (p is None and n is None) else round((p or 0) - (n or 0), 9)
     thue = []
-    for tk, pt, key in (("133", "Phải thu", "no_cuoi"), ("333", "Phải nộp", "co_cuoi")):
+    for tk, pt, dpos, dneg, cpos, cneg, inc, dec in (
+            ("133", "Phải thu", "no_dau", "co_dau", "no_cuoi", "co_cuoi", "ps_no", "ps_co"),
+            ("333", "Phải nộp", "co_dau", "no_dau", "co_cuoi", "no_cuoi", "ps_co", "ps_no")):
         r = find_tk(tk)
-        if r and val(r, key):
+        if not r:
+            continue
+        cuoi, dau, tang, giam = _net(r, cpos, cneg), _net(r, dpos, dneg), val(r, inc), val(r, dec)
+        if any(abs(v or 0) > 1e-9 for v in (cuoi, dau, tang, giam)):   # bỏ dòng toàn 0
             ten = bb.parse_text(r[c["tk"] + 1]) if c["tk"] + 1 < len(r) else None
             thue.append({"Kỳ": period, "Đơn vị": cong_ty,
                          "Loại thuế (GTGT ra/vào, TNCN, TNDN, NK, khác)": ten or f"TK {tk}",
-                         "Phải thu/Phải nộp": pt, "Dư cuối kỳ (tỷ)": val(r, key)})
+                         "Phải thu/Phải nộp": pt, "Dư đầu kỳ (tỷ)": dau,
+                         "PS tăng (tỷ)": tang, "PS giảm (tỷ)": giam, "Dư cuối kỳ (tỷ)": cuoi})
     if thue:
         p = os.path.join(tf.FILLED_DIR, f"SRVF_{period}_10_THUE.xlsx")
         tf.fill("10_THUE", thue, p)
         out["thue"] = tf.import_filled(p, cong_ty=cong_ty, khoi=khoi, source_file=src).get("rows_imported")
 
-    # TỒN KHO xe VinFast: sheet 156_xe, gộp theo MODEL (cột 'Mã kx'). Cột: Dư đầu=L, Giá trị nhập=M,
-    # Giá trị xuất=N, Tồn cuối=O (=L+M-N). Giá trị theo VND.
-    wb2 = openpyxl.load_workbook(path, data_only=True, read_only=True)
-    # Sheet tồn kho xe VinFast ĐỔI TÊN theo tháng: '156_xe' (T03+), '156 xe' (T01), '156' (T02).
-    # Trước khớp CỨNG '156_xe' -> T01/T02 MẤT tồn kho. Nhận theo TÊN chứa '156' (loại '156_khác') +
-    # CHỮ KÝ header ('ma kx'+'ton cuoi') để chắc đúng sheet xe (không nhầm '156_khác'/'152'…).
-    _inv_sheet, xr = None, None
-    for _s in wb2.sheetnames:
-        _ns = norm(_s)
-        if "156" not in _ns or "khac" in _ns:
+    # TỒN KHO (spec #43 chốt 2026-07-22): các TK KHO 152 (NVL) / 153 (CCDC) / 154 (SPDD) / 156 (hàng
+    # hóa) TRÊN CĐPS. Mỗi TK 1 dòng: đầu = Nợ đầu kỳ (C), Nhập = Phát sinh Nợ (E), Xuất = Phát sinh
+    # Có (F), cuối = Dư nợ cuối kỳ (G). Tổng nhập/xuất màn Tồn kho = Σ 4 TK -> khớp #43. Nhất quán
+    # _derive_tonkho_cdps (đơn vị khác). TRƯỚC lấy 156_xe per-model + dòng "khác" cân theo CĐKT mã140
+    # -> nhập/xuất CHỈ phản ánh xe (thiếu movement 152/153/154 & 156 ngoài xe) -> sai #43.
+    _TK_KHO = {"152": "Nguyên vật liệu", "153": "Công cụ, dụng cụ",
+               "154": "Chi phí SXKD dở dang", "156": "Hàng hóa"}
+    recs = []
+    for _tk, _default_ten in _TK_KHO.items():
+        r = find_tk(_tk)
+        if not r:
             continue
-        _xr = [list(r) for r in wb2[_s].iter_rows(values_only=True)]
-        if next((i for i, r in enumerate(_xr[:12])
-                 if any("ma kx" in norm(x) for x in r) and any("ton cuoi" in norm(x) for x in r)), None) is not None:
-            _inv_sheet, xr = _s, _xr
-            break
-    if _inv_sheet is not None:
-        # header: dò dòng có 'ma kx' + 'ton cuoi'
-        xhi = next((i for i, r in enumerate(xr[:12])
-                    if any("ma kx" in norm(x) for x in r) and any("ton cuoi" in norm(x) for x in r)), None)
-        if xhi is not None:
-            low = [norm(x) for x in xr[xhi]]
-            cx = {"model": next((j for j, x in enumerate(low) if "ma kx" in x), None),
-                  "dau": next((j for j, x in enumerate(low) if x == "du dau" or "du dau" in x), None),
-                  "nhap": next((j for j, x in enumerate(low) if "gia tri nhap" in x), None),
-                  "xuat": next((j for j, x in enumerate(low) if "gia tri xuat" in x), None)}
-            agg = {}
-            for r in xr[xhi + 1:]:
-                m = bb.parse_text(r[cx["model"]]) if (cx["model"] is not None and cx["model"] < len(r)) else None
-                if not m or norm(m).startswith(("tong", "cong")):
-                    continue
-                a = agg.setdefault(str(m).strip(), {"dau": 0.0, "nhap": 0.0, "xuat": 0.0})
-                for k in ("dau", "nhap", "xuat"):
-                    v = r[cx[k]] if (cx[k] is not None and cx[k] < len(r) and isinstance(r[cx[k]], (int, float))) else 0
-                    a[k] += v
-            recs = []
-            sum_dau = sum_cuoi = 0.0
-            for m, a in agg.items():
-                cuoi = a["dau"] + a["nhap"] - a["xuat"]
-                sum_dau += a["dau"]
-                sum_cuoi += cuoi
-                if abs(cuoi) < 1e3 and not a["nhap"] and not a["xuat"]:
-                    continue
-                recs.append({"Kỳ": period, "Đơn vị": cong_ty, "Loại HTK (NVL/Vật tư/Hàng hóa…)": m,
-                             "TK (151-156)": "156", "Dư đầu kỳ (tỷ)": TY(a["dau"]),
-                             "Nhập trong kỳ (tỷ)": TY(a["nhap"]), "Xuất trong kỳ (tỷ)": TY(a["xuat"]),
-                             "Dư cuối kỳ (tỷ)": TY(cuoi)})
-            # DÒNG CÂN BẰNG "khác": 156_xe CHỈ là xe (⊂ TK156). Tổng tồn kho THẬT = CĐKT mã140 =
-            # TK152(NVL)+153(CCDC)+154(SPDD)+156(xe+phụ kiện). Thêm 1 dòng = mã140 − Σ156_xe để tổng
-            # màn Tồn kho KHỚP mã140 (trước chỉ 156_xe -> thiếu ~90 tỷ). Đọc mã140 đầu/cuối từ CĐKT.
-            _m140_dau, _m140_cuoi = _cdkt_ma140(wb2, norm)
-            if _m140_dau is not None or _m140_cuoi is not None:
-                _khac_dau = (_m140_dau - sum_dau) if _m140_dau is not None else 0.0
-                _khac_cuoi = (_m140_cuoi - sum_cuoi) if _m140_cuoi is not None else 0.0
-                if _khac_dau > 1e6 or _khac_cuoi > 1e6:   # có tồn kho ngoài xe (NVL/CCDC/SPDD/phụ kiện)
-                    recs.append({"Kỳ": period, "Đơn vị": cong_ty,
-                                 "Loại HTK (NVL/Vật tư/Hàng hóa…)": "Vật tư, CCDC, SPDD & phụ kiện (ngoài xe)",
-                                 "TK (151-156)": "152-156", "Dư đầu kỳ (tỷ)": TY(_khac_dau),
-                                 "Dư cuối kỳ (tỷ)": TY(_khac_cuoi)})
-            if recs:
-                p = os.path.join(tf.FILLED_DIR, f"SRVF_{period}_09_TONKHO.xlsx")
-                tf.fill("09_TONKHO", recs, p)
-                out["tonkho"] = tf.import_filled(p, cong_ty=cong_ty, khoi=khoi, source_file=src).get("rows_imported")
-    wb2.close()
+        _dau, _cuoi = val(r, "no_dau"), val(r, "no_cuoi")
+        # Giữ TK có tồn ĐẦU hoặc CUỐI > 0 (bỏ TK chạy-qua đầu=cuối=0 dù có PS) — như _derive_tonkho_cdps.
+        if not ((_dau and abs(_dau) > 1e-9) or (_cuoi and abs(_cuoi) > 1e-9)):
+            continue
+        _ten = bb.parse_text(r[c["tk"] + 1]) if c["tk"] + 1 < len(r) else None
+        recs.append({"Kỳ": period, "Đơn vị": cong_ty,
+                     "Loại HTK (NVL/Vật tư/Hàng hóa…)": _ten or _default_ten,
+                     "TK (151-156)": _tk, "Dư đầu kỳ (tỷ)": _dau,
+                     "Nhập trong kỳ (tỷ)": val(r, "ps_no"), "Xuất trong kỳ (tỷ)": val(r, "ps_co"),
+                     "Dư cuối kỳ (tỷ)": _cuoi})
+    if recs:
+        p = os.path.join(tf.FILLED_DIR, f"SRVF_{period}_09_TONKHO.xlsx")
+        tf.fill("09_TONKHO", recs, p)
+        out["tonkho"] = tf.import_filled(p, cong_ty=cong_ty, khoi=khoi, source_file=src).get("rows_imported")
 
     if not any(k in out for k in ("pthu", "ptra", "thue", "tonkho")):
         return {"ok": False, "error": "không bóc được gì"}

@@ -74,7 +74,7 @@ def _rows_of(rows, hdr_side, cols):
 
 
 def extract(path, period, cong_ty="GA"):
-    wb = openpyxl.load_workbook(path, data_only=True, read_only=True)
+    wb = bb.fast_load_workbook(path, data_only=True, read_only=True)
     names = {s.strip().lower(): s for s in wb.sheetnames}
     src, khoi = A._source_id(path), A._khoi_of(path)
     out = {"ok": True}

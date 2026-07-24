@@ -11,7 +11,6 @@ import os
 import re
 
 from mcp.server.fastmcp import FastMCP
-from openpyxl import load_workbook
 
 from .common import be_bridge as bb
 from .common import canonical
@@ -57,7 +56,7 @@ def _jsonable(v):
 
 
 def _all_sheets_columns(data: bytes) -> dict:
-    wb = load_workbook(io.BytesIO(data), data_only=True, read_only=True)
+    wb = bb.fast_load_workbook(io.BytesIO(data), data_only=True, read_only=True)
     try:
         out = {}
         for ws in wb.worksheets:
@@ -141,7 +140,7 @@ def sheet_profile(file_path: str, sheet: str = None, max_rows: int = 10,
       - merged_ranges: vùng ô merge (gợi ý ranh giới header nhiều dòng/nhiều cột).
     KHÔNG ghi gì, không cần DB - chỉ đọc file trong INPUT_DIR (qua _read_file)."""
     data = _read_file(file_path)
-    wb = load_workbook(io.BytesIO(data), data_only=True, read_only=True)
+    wb = bb.fast_load_workbook(io.BytesIO(data), data_only=True, read_only=True)
     try:
         if sheet is None:
             return {
@@ -197,7 +196,7 @@ def sheet_routes(file_path: str) -> dict:
       - skip_metadata : Master Data / User / DS báo cáo / BC THU CHI (TỔNG)...
       - empty         : không đủ dòng dữ liệu."""
     data = _read_file(file_path)
-    wb = load_workbook(io.BytesIO(data), data_only=True, read_only=True)
+    wb = bb.fast_load_workbook(io.BytesIO(data), data_only=True, read_only=True)
     try:
         out = []
         for name in wb.sheetnames:
@@ -447,7 +446,7 @@ def import_execute(
     file_name = os.path.basename(file_path)
 
     if dataset_kind == "month":
-        wb = load_workbook(io.BytesIO(data), data_only=True, read_only=True)
+        wb = bb.fast_load_workbook(io.BytesIO(data), data_only=True, read_only=True)
         try:
             is_month = bb.detect_ledger(wb)
         finally:
@@ -586,7 +585,7 @@ def generic_import_execute(
                 f"raw_rows — KHÔNG được tự bịa/suy đoán, phải là 1 trong companies.yaml.")
 
     data = _read_file(file_path)
-    wb = load_workbook(io.BytesIO(data), data_only=True, read_only=True)
+    wb = bb.fast_load_workbook(io.BytesIO(data), data_only=True, read_only=True)
     try:
         if sheet not in wb.sheetnames:
             raise ValueError(f"Sheet '{sheet}' không tồn tại. Các sheet có: {wb.sheetnames}")

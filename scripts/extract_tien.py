@@ -54,7 +54,7 @@ def _sd_extract(rows, period):
     hdr_i = next((i for i, r in enumerate(rows[:15])
                   if any("dau ky" in _norm(c) for c in r) and any("den ngay" in _norm(c) for c in r)), None)
     if hdr_i is None:
-        return [], [], set(), "Không thấy header (ĐẦU KỲ / ĐẾN NGÀY HIỆN TẠI)"
+        return [], [], set(), None, "Không thấy header (ĐẦU KỲ / ĐẾN NGÀY HIỆN TẠI)"
     hdr = rows[hdr_i]
     c_dau = next(j for j, c in enumerate(hdr) if "dau ky" in _norm(c))
     c_cuoi = next(j for j, c in enumerate(hdr) if "den ngay" in _norm(c))
@@ -68,13 +68,16 @@ def _sd_extract(rows, period):
         return dau, cuoi, vt, tn
 
     def _vay_rec(code, bank, dau, cuoi, vt, tn):
+        # DƯ NỢ đầu/cuối theo BANK (giữ, nguồn SD TIỀN). Vay thêm/trả=0 ở đây — nay lấy PER-BANK từ
+        # báo cáo ngân hàng BCTH 2 (cột Tổng vay/Đã thanh toán) trong extract_vay_kyhan (chạy sau).
+        # KHÔNG dùng delta SD TIỀN (sai) cũng KHÔNG dùng BC THU CHI mức công ty (làm bẩn chart theo NH).
         return {"Kỳ": period, "Đơn vị": code, "Ngân hàng": bank,
                 "Dư nợ đầu kỳ (tỷ)": round((dau or 0) / 1e9, 9),
-                "Vay thêm trong kỳ (tỷ)": round(vt / 1e9, 9),
-                "Trả nợ trong kỳ (tỷ)": round(tn / 1e9, 9),
+                "Vay thêm trong kỳ (tỷ)": 0.0,
+                "Trả nợ trong kỳ (tỷ)": 0.0,
                 "Dư nợ cuối kỳ (tỷ)": round((cuoi or 0) / 1e9, 9)}
 
-    sdt, vay, unresolved = [], [], set()
+    sdt, vay, unresolved, dachi = [], [], set(), None
     section = company = None
     vay_seen = False        # 'TIỀN VAY' liệt kê 2 lần cùng số -> chỉ đọc khối ĐẦU (tránh nhân đôi)
     in_vay = False
@@ -103,6 +106,12 @@ def _sd_extract(rows, period):
             continue
         if not section:
             continue
+        # 'Đã chi nhưng chưa có chứng từ' (memo dưới TIỀN MẶT) -> cảnh báo TC (guide 21/7). Bắt theo TÊN
+        # dòng (c2), chặn TRƯỚC nhánh công ty (nếu không sẽ rơi vào unresolved). Lấy cả đầu & cuối kỳ.
+        if section == "tien mat" and c2 and "da chi" in _norm(c2) and "chung tu" in _norm(c2):
+            dachi = {"cuoi": _num(r[c_cuoi]) if c_cuoi < len(r) else None,
+                     "dau": _num(r[c_dau]) if c_dau < len(r) else None}
+            continue
         if c2:                                          # dòng CÔNG TY (subtotal)
             code = _resolve_co(c2)
             cuoi = _num(r[c_cuoi]) if c_cuoi < len(r) else None
@@ -124,7 +133,7 @@ def _sd_extract(rows, period):
                 vay.append(_vay_rec(company, c3, dau, cuoi, vt, tn))
             else:                                        # bank đứng TRƯỚC công ty -> chờ subtotal
                 orphans.append((c3, dau, cuoi, vt, tn))
-    return sdt, vay, unresolved, None
+    return sdt, vay, unresolved, dachi, None
 
 
 # ───────────────────────── BC THU CHI -> THUCHI ─────────────────────────
@@ -132,6 +141,7 @@ _COL_KY = "Kỳ / Ngày"
 _COL_CTY = "Mã Công ty (auto từ CC)"
 _COL_LOAI = "Loại (Thu/Chi)"
 _COL_KM = "Khoản mục (Thu bán hàng, Thu đầu tư, Chi NCC, Chi tài chính, Chi đầu tư TS…)"
+_COL_HT = "Hình thức (TM/TG/Đối trừ CN/Vay)"   # -> dim2 (import map sẵn); tách TM/gửi/vay
 _COL_TH = "Thực hiện (tỷ)"
 
 
@@ -157,11 +167,10 @@ def _thuchi_extract(wb, period):
     sheets = [s for s in wb.sheetnames if re.search(r"THU CHI_T\d", s.upper()) and _co_of_sheet(s)]
     for sh in sheets:
         co = _co_of_sheet(sh)
-        # HT (Xe tải Hưng Thịnh): DÒNG TIỀN lấy từ sheet 'LCTT' của BCTC (spec 50 chỉ tiêu, dòng
-        # 18-19, khớp kế toán tới đồng — xem agent_cli._derive_lctt_ht), KHÔNG lấy từ Báo cáo tiền
-        # tập đoàn để tránh NẠP ĐÔI + khác nguồn. (SDT/VAY của HT vẫn lấy bình thường ở _sd_extract.)
-        if co == "HT":
-            continue
+        # HT (Xe tải Hưng Thịnh): DÒNG TIỀN nay lấy từ 'BC THU CHI_T*_HUNGTHINH' NHƯ MỌI PHÁP NHÂN
+        # (ĐẢO 2026-07-21 — xem memory ht-dongtien-from-lctt: bỏ GỌI _derive_lctt_ht, lấy chung nguồn
+        # để khớp báo cáo tập đoàn + hết nạp đôi). TRƯỚC ĐÂY skip HT ở đây (lấy từ LCTT); nay KHÔNG skip
+        # nữa — _derive_lctt_ht đã không được gọi nên KHÔNG đếm đôi. (SDT/VAY HT vẫn ở _sd_extract.)
         rows = [list(r) for r in wb[sh].iter_rows(values_only=True)]
         vc = _val_col(rows)
         sec = None                                       # 'A' (thu, mục I) / 'B' (chi, mục II)
@@ -173,12 +182,17 @@ def _thuchi_extract(wb, period):
             if c0 == "II":
                 sec = "B"; continue
             if sec and re.fullmatch(r"\d+", c0) and c1:  # khoản mục CẤP 1 (1,2,3…) — bỏ 1.1 / '+…'
-                v = r[vc] if vc < len(r) and isinstance(r[vc], (int, float)) else None
-                if v is None:
-                    continue
-                recs.append({_COL_KY: period, _COL_CTY: co,
-                             _COL_LOAI: "Thu" if sec == "A" else "Chi",
-                             _COL_KM: c1, _COL_TH: round(v / 1e9, 9)})
+                # TÁCH THEO HÌNH THỨC (spec 2026-07-23): cột D (vc) = E(TM) + F(NH/gửi) + G(TVAY) — verify
+                # khớp per khoản mục. Emit 1 dòng/hình thức (Hình thức -> dim2) THAY dòng tổng D: Σ = D nên
+                # inflow/outflow (Σ amount) KHÔNG đổi; có thêm 'tiền mặt/gửi thu-chi' lọc theo dim2. Bỏ dòng =0.
+                loai = "Thu" if sec == "A" else "Chi"
+                for _off, _ht in ((1, "Tiền mặt"), (2, "Tiền gửi"), (3, "Tiền vay")):
+                    _j = vc + _off
+                    _v = r[_j] if _j < len(r) and isinstance(r[_j], (int, float)) else None
+                    if not _v:
+                        continue
+                    recs.append({_COL_KY: period, _COL_CTY: co, _COL_LOAI: loai,
+                                 _COL_KM: c1, _COL_HT: _ht, _COL_TH: round(_v / 1e9, 9)})
     return recs, sheets
 
 
@@ -190,7 +204,10 @@ def extract(path: str, period: str, cong_ty: str = None) -> dict:
     # 1) SDT + VAY
     if SD_SHEET in wb.sheetnames:
         rows = [list(r) for r in wb[SD_SHEET].iter_rows(values_only=True)]
-        sdt, vay, unresolved, err = _sd_extract(rows, period)
+        sdt, vay, unresolved, dachi, err = _sd_extract(rows, period)
+        # VAY: dòng per-BANK giữ dư nợ đầu/cuối (SD TIỀN); vay thêm/trả=0 ở đây — nay lấy PER-BANK từ
+        # báo cáo ngân hàng (BCTH 2) trong extract_vay_kyhan (chạy sau, wired autofill). KHÔNG còn emit
+        # dòng '(Cả <cty>)' mức công ty (làm bẩn chart theo ngân hàng + chart đi vay/trả trống).
         if err:
             out["sd_error"] = err
         if unresolved:
@@ -203,6 +220,30 @@ def extract(path: str, period: str, cong_ty: str = None) -> dict:
             p = os.path.join(tf.FILLED_DIR, f"TIEN_{period}_04_VAY.xlsx")
             tf.fill("04_VAY", vay, p)
             out["vay"] = tf.import_filled(p, cong_ty=None, source_file=src).get("rows_imported")
+        # 'Đã chi nhưng chưa có chứng từ' (cảnh báo TC) -> DACHI_CCT direct-insert (KHÔNG qua template).
+        # amount=cuối, amount2=đầu. Idempotent (DELETE trước). Twin lấy dataset_id/ngay/khoi từ dòng SDT
+        # TC vừa nạp ở trên. Port từ extract_sodu_tien (legacy) -> nay tất định trong extract_tien (wired).
+        if dachi is not None:
+            from servers.common import be_bridge as bb
+            import json as _json
+            _db = bb.db.get_db()
+            _db.execute("DELETE FROM raw_rows WHERE source_file=? AND period_month=? AND report_type=?",
+                        (src, period, "DACHI_CCT"))
+            _tw = _db.execute("SELECT dataset_id, ngay, khoi FROM raw_rows WHERE source_file=? AND "
+                              "period_month=? AND report_type='SDT' AND cong_ty='TC' LIMIT 1",
+                              (src, period)).fetchone()
+            if _tw:
+                _db.execute(
+                    "INSERT INTO raw_rows(dataset_id,report_type,row_index,ngay,cong_ty,khoi,cost_center,"
+                    "period_month,amount,amount2,dim1,dim2,dim3,payload,source_file) "
+                    "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                    (_tw["dataset_id"], "DACHI_CCT", 6000000, _tw["ngay"], "TC", _tw["khoi"], None, period,
+                     round((dachi["cuoi"] or 0) * 1e-9, 9), round((dachi["dau"] or 0) * 1e-9, 9),
+                     "Đã chi nhưng chưa có chứng từ", None, None,
+                     _json.dumps({"unit": "ty", "nguon": "TC01_SD TIỀN - Đã chi chưa có chứng từ"},
+                                 ensure_ascii=False), src))
+                _db.commit()
+                out["dachi_cct"] = round((dachi["cuoi"] or 0) * 1e-9, 9)
     else:
         out["sd_error"] = f"Không thấy sheet {SD_SHEET}"
 

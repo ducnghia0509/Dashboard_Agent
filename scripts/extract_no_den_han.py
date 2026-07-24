@@ -41,8 +41,9 @@ def bank_of(sheet_name):
     return None
 
 
-def compute_plan():
-    """{(cong_ty, period, bank): den_han(VND)} từ báo cáo ngân hàng."""
+def compute_plan(only_period=None):
+    """{(cong_ty, period, bank): den_han(VND)} từ báo cáo ngân hàng. only_period='2026-MM' -> chỉ kỳ đó
+    (autofill gọi scope 1 kỳ để KHÔNG đụng kỳ khác)."""
     plan, unmapped = {}, []
     for f in sorted(glob.glob(os.path.join(ext.DATA_DIR, "*.xlsx"))):
         unit = ext.unit_of(os.path.basename(f))
@@ -51,6 +52,8 @@ def compute_plan():
         if not (unit and month and master):
             continue
         period = f"2026-{month:02d}"
+        if only_period and period != only_period:
+            continue
         wb = ext.load(f)
         for nm in wb.sheetnames:
             if nm.startswith("foxz"):
@@ -100,6 +103,12 @@ def merge(plan, commit):
     if commit:
         db.commit()
     return matched, unmatched
+
+
+def apply(only_period=None, commit=True):
+    """Autofill hook: patch den_han cho 1 kỳ. Trả (matched, unmatched)."""
+    plan, _ = compute_plan(only_period)
+    return merge(plan, commit)
 
 
 def main():

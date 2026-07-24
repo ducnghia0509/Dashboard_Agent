@@ -74,13 +74,15 @@ def lai_by_bank(wb, month, year=2026):
     return out, unmapped
 
 
-def compute():
-    """{(cong_ty, period, bank): lãi(VND)}"""
+def compute(only_period=None):
+    """{(cong_ty, period, bank): lãi(VND)}. only_period='2026-MM' -> chỉ kỳ đó (autofill scope 1 kỳ)."""
     plan, warns = {}, []
     for f in sorted(glob.glob(os.path.join(ext.DATA_DIR, "*.xlsx"))):
         unit = ext.unit_of(os.path.basename(f))
         month = ext.month_of(os.path.basename(f))
         if unit in SKIP_UNITS or unit not in MASTER or not month:
+            continue
+        if only_period and f"2026-{month:02d}" != only_period:
             continue
         wb = ext.load(f)
         lai, unmapped = lai_by_bank(wb, month)
@@ -114,6 +116,12 @@ def merge(plan, commit):
     if commit:
         db.commit()
     return matched, unmatched
+
+
+def apply(only_period=None, commit=True):
+    """Autofill hook: patch amount2 (lãi vay) cho 1 kỳ."""
+    plan, _ = compute(only_period)
+    return merge(plan, commit)
 
 
 def main():

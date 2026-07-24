@@ -14,7 +14,6 @@ Nguyên tắc:
 import io
 import os
 
-from openpyxl import load_workbook
 
 from .common import be_bridge as bb
 from .common import contract as C
@@ -58,7 +57,7 @@ def fill(target_sheet: str, records: list, out_path: str, source_template: str =
     cidx = _col_index(spec)
     start_row = spec["header_row"] + 2  # 1-based, ngay sau dòng header
 
-    wb = load_workbook(src)  # data_only=False -> giữ công thức
+    wb = bb.fast_load_workbook(src)  # data_only=False -> giữ công thức
     try:
         ws = wb[target_sheet]
         written, cells = 0, 0
@@ -90,7 +89,7 @@ def fill(target_sheet: str, records: list, out_path: str, source_template: str =
 
 def _read_source(data: bytes, sheet: str):
     """Đọc sheet nguồn -> (header:list[str], rows:list[list]) (data_only)."""
-    wb = load_workbook(io.BytesIO(data), data_only=True, read_only=True)
+    wb = bb.fast_load_workbook(io.BytesIO(data), data_only=True, read_only=True)
     try:
         ws = wb[sheet] if sheet in wb.sheetnames else wb.worksheets[0]
         rows = [list(r) for r in ws.iter_rows(values_only=True)]
@@ -103,7 +102,7 @@ def _all_sheet_headers(data: bytes, n: int = 20) -> dict:
     """Mở workbook 1 LẦN, trả {sheet: [n dòng đầu]} — đủ để dò header/fingerprint.
     QUAN TRỌNG: file BCTC nặng (vd HO 8MB, sheet CĐPS 16350 cột) tốn ~18s/lần load;
     mở lại theo TỪNG sheet sẽ treo. Load 1 lần + đọc header mọi sheet chỉ ~0.03s."""
-    wb = load_workbook(io.BytesIO(data), data_only=True, read_only=True)
+    wb = bb.fast_load_workbook(io.BytesIO(data), data_only=True, read_only=True)
     try:
         out = {}
         for ws in wb.worksheets:
@@ -278,7 +277,7 @@ def import_filled(path: str, cong_ty: str = None, khoi: str = None, source_file:
     (Không truyền cong_ty -> quay lại hành vi cũ: thay cả kỳ.)"""
     with open(path, "rb") as fh:
         data = fh.read()
-    _wb = load_workbook(io.BytesIO(data), data_only=True, read_only=True)
+    _wb = bb.fast_load_workbook(io.BytesIO(data), data_only=True, read_only=True)
     try:
         is_tmpl = bb.detect_template(_wb)
     finally:
@@ -634,7 +633,7 @@ def fill_from_source(data: bytes, source_sheet: str, target_sheet: str, mapping:
 
 
 def _source_sheets(data: bytes) -> list:
-    wb = load_workbook(io.BytesIO(data), data_only=True, read_only=True)
+    wb = bb.fast_load_workbook(io.BytesIO(data), data_only=True, read_only=True)
     try:
         return list(wb.sheetnames)
     finally:
