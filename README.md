@@ -2,7 +2,8 @@
 
 OpenClaw (Claude Code) multi-agent cho `DashBoard_AI`: 1 orchestrator + 3 subagent
 (`analyst`, `execute`, `qa`), 2 MCP server Python. Không dùng RAG/vector/embeddings —
-mọi tra cứu là deterministic (SQL thật + JSON glossary/discovery). Xem `plan.md` gốc
+mọi tra cứu là deterministic (đọc thẳng file Excel gốc + SQL cho ingest + JSON glossary/
+discovery). Xem `plan.md` gốc
 trong `DashBoard_AI/plan.md` để hiểu bối cảnh đầy đủ; file này chỉ nói cách chạy.
 
 ## 2 luồng
@@ -12,9 +13,13 @@ Luồng 1 (ingest):  file xlsx lạ -> analyst (template_analyze, đối chiếu
                    display_contract.json + kpi_glossary.json) -> [human approve]
                    -> execute (dry-run -> import_execute) -> raw_rows
 
-Luồng 2 (qa):      câu hỏi tiếng Việt -> qa (sql_query / glossary_lookup /
-                   discovery_search / source_inspect) -> trả lời + bảng + nguồn
+Luồng 2 (qa):      câu hỏi tiếng Việt -> qa (catalog_search / source_inspect đọc thẳng
+                   file Excel gốc / glossary_lookup / discovery_search) -> trả lời + bảng + nguồn
 ```
+
+`qa` KHÔNG dùng DB (`sql_query`) nữa (đổi 2026-07-24) — mọi số liệu trả lời đều đọc trực tiếp
+từ file Excel gốc trong `Connect_VPS/received_reports`/`INPUT_DIR` qua `catalog_search` +
+`source_inspect`, xem `agents/qa/SKILL.md`.
 
 **Tốc độ khi nhiều file:** `analyst` luôn thử `autofill_run(dry_run=true)` (không LLM, tra
 fill_spec đã học theo fingerprint) trước khi phân tích lại từ đầu — file/layout đã quen bỏ qua
@@ -82,7 +87,7 @@ cho fallback nếu 1 provider hết quota/lỗi.
 | `orchestrator` | `claude-sonnet` | không gọi tool trực tiếp — chỉ điều phối + spawn subagent |
 | `analyst` | `minimax` | `autofill_run` (bước 0, không LLM — xem dưới), `discover_files`, `template_analyze`, `sheet_profile`, `template_contract_info`, `extraction_guide`, `template_fill`, `glossary_lookup`, `discovery_search`, `report_spec_search` |
 | `execute` | `qwen` | `import_execute`, `generic_import_execute` (luôn `dry_run=true` trước, rồi mới `dry_run=false`) |
-| `qa` | `gpt-5-mini` | `sql_query`, `glossary_lookup`, `discovery_search`, `report_spec_search`, `source_inspect`, `schema_describe` |
+| `qa` | `gpt-5-mini` | `catalog_search`, `source_inspect`, `glossary_lookup`, `discovery_search`, `report_spec_search` |
 
 Model cụ thể ghi trong frontmatter mỗi `SKILL.md` (`model: ...`) — đổi model cho 1
 agent chỉ cần sửa dòng đó + cấu hình route tương ứng bên 9Router, không phải sửa
@@ -91,7 +96,10 @@ triết lý giới hạn tool per-agent của OpenClaw) — `import_plan_validat
 `discovery_record_tool` trong `ingest_server.py` vẫn tồn tại làm tool phụ/thủ công
 nhưng không nằm trong quyền mặc định của agent nào ở trên (validate giờ nằm trong
 bước `dry_run=true` của `import_execute`; `template_analyze` đã tự ghi discovery
-memory nên không cần agent gọi `discovery_record_tool` thủ công nữa).
+memory nên không cần agent gọi `discovery_record_tool` thủ công nữa). Tương tự,
+`sql_query`/`schema_describe` trong `qa_server.py` vẫn tồn tại (dùng cho
+`eval/qa_golden/score.py`) nhưng KHÔNG còn cấp cho `qa` (đổi 2026-07-24: `qa` phải
+trả lời từ file Excel gốc, không dùng DB).
 
 ## Sheet lạ không khớp report_type cố định (`sheet_profile` + `generic_import_execute`)
 
