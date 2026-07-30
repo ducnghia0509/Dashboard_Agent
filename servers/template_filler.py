@@ -334,9 +334,17 @@ def import_filled(path: str, cong_ty: str = None, khoi: str = None, source_file:
         # dữ liệu ĐỘC LẬP -> CHO PHÉP cùng tồn tại (tách nguồn triệt để).
         def _src_root(s):
             return s.split("::", 1)[0] if "::" in (s or "") else None
+
+        def _is_hqkd_bctc(s):
+            # CHỈ 2 tên export CỤ THỂ nói ở trên — cùng thư mục/công ty còn nhận NHIỀU báo cáo
+            # KHÁC HẲN (vd baocaotaisancodinhcongcudungcu = sổ tài sản, không phải KQKD/BCTC)
+            # -> KHÔNG được coi là trùng sổ, phải cho nạp additive song song.
+            b = os.path.basename(s or "").lower()
+            return ("baocaohqkd" in b) or ("baocaotaichinhrieng" in b)
         my_root = _src_root(source_file)
         others = sorted({dict(r)["source_file"] for r in rc
-                         if _src_root(dict(r)["source_file"]) == my_root})
+                         if _src_root(dict(r)["source_file"]) == my_root
+                         and _is_hqkd_bctc(dict(r)["source_file"]) and _is_hqkd_bctc(source_file)})
         if others:
             return {"ok": False, "error": (
                 f"CHẶN NẠP TRÙNG: report_type {sorted(file_types)} của kỳ {period} (công ty "

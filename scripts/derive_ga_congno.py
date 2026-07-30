@@ -85,6 +85,15 @@ def extract(path, period, cong_ty="GA"):
             return None
         return [list(r) for r in wb[sn].iter_rows(values_only=True)]
 
+    # KHÔNG có dòng nào đạt điều kiện tháng này (VD mọi KH chỉ có dư Có, bị lọc) -> vẫn phải XOÁ dữ
+    # liệu CŨ của (source_file, period, report_type) đang có trong DB. Trước đây bỏ qua bước ghi khi
+    # rec rỗng (tf.import_filled không nhận template 0 dòng) -> dòng rác từ 1 lần chạy CŨ hơn (trước
+    # khi filter dư Có được thêm) không bao giờ bị dọn — VD GA T04/T05 "Thịnh Cường" -1,955 tỷ.
+    def _clear_stale(rt):
+        bb.get_db().execute(
+            "DELETE FROM raw_rows WHERE source_file=? AND period_month=? AND report_type=?",
+            [src, period, rt])
+
     # ---- PThu -> 05_PHAITHU (dư cuối NỢ) ----
     pr = sheet_rows("pthu")
     if pr:
@@ -104,6 +113,8 @@ def extract(path, period, cong_ty="GA"):
                 tf.fill("05_PHAITHU", rec, p)
                 out["pthu"] = tf.import_filled(p, cong_ty=cong_ty, khoi=khoi, source_file=src).get("rows_imported")
                 out["pthu_tong"] = round(sum(x["Dư cuối kỳ (tỷ)"] or 0 for x in rec), 6)
+            else:
+                _clear_stale("PTHU")
 
     # ---- PTra -> 06_PHAITRA (dư cuối CÓ) ----
     tr = sheet_rows("ptra")
@@ -124,6 +135,8 @@ def extract(path, period, cong_ty="GA"):
                 tf.fill("06_PHAITRA", rec, p)
                 out["ptra"] = tf.import_filled(p, cong_ty=cong_ty, khoi=khoi, source_file=src).get("rows_imported")
                 out["ptra_tong"] = round(sum(x["Dư cuối kỳ (tỷ)"] or 0 for x in rec), 6)
+            else:
+                _clear_stale("PTRA")
     wb.close()
     return out
 

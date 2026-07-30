@@ -281,28 +281,51 @@ def _heuristic_tk_mapping(file_path: str, sheet: str, canonical_kind: str):
         if t.startswith("co"):
             return "co"
         return None
-    sub_idx = None
+    # Dò dòng 'Nợ/Có' (sub_idx) + 2 cột 'Mã'/'Tên'. Layout PHỔ BIẾN: nhãn Mã/Tên nằm DÒNG NGAY TRÊN
+    # dòng Nợ/Có (2 tầng, vd GA/ANTAXI/ANKHACHSAN). Nhưng: (a) SRVF gộp Mã/Tên + Nợ/Có CÙNG 1 dòng
+    # (1 tầng, nhãn ghép 'Nợ đầu kỳ'…) -> phải thử CHÍNH dòng ứng viên khi dòng trên không ra; (b)
+    # HO có Ô RÁC 'Nợ'/'có' lạc ở dòng NHÃN NHÓM (row group thật, KHÔNG phải sub-row) -> khớp
+    # `hits>=2` NHẦM ở dòng đó, bỏ lỡ dòng Nợ/Có THẬT ngay dưới -> phải kiểm tra có cột 'cuối kỳ'
+    # HỢP LỆ (không chỉ Mã/Tên) trước khi CHỐT ứng viên, nếu không đủ tin cậy thì THỬ DÒNG TIẾP THEO
+    # (không dừng ở ứng viên đầu tiên như trước — đó là lý do bug 'không dò được header 2 tầng').
+    def _find_code_name(row_):
+        ci = ni = None
+        for idx, cell in enumerate(row_):
+            t = norm(cell)
+            if ci is None and (t == "ma" or t.startswith("ma ")
+                               or t.startswith("so tai khoan") or t.startswith("so tk")
+                               or t.startswith("so hieu") or t.startswith("shtk")):
+                ci = idx
+            elif ni is None and (t == "ten" or t.startswith("ten ")):
+                ni = idx
+        return ci, ni
+
+    sub_idx = code_idx = name_idx = group_row = None
     for i, row in enumerate(rows):
         hits = sum(1 for c in row if _side(c))
-        if hits >= 2:
-            sub_idx = i
-            break
-    if sub_idx is None or sub_idx == 0:
+        if hits < 2:
+            continue
+        ci = ni = None
+        grow = None
+        if i > 0:
+            ci, ni = _find_code_name(rows[i - 1])
+            grow = rows[i - 1]
+        if ci is None or ni is None:
+            ci2, ni2 = _find_code_name(row)          # (a) layout 1 tầng: Mã/Tên cùng dòng Nợ/Có
+            if ci2 is not None and ni2 is not None:
+                ci, ni, grow = ci2, ni2, row
+        if ci is None or ni is None:
+            continue
+        gr_ff = _forward_fill(grow)
+        has_cuoi = any("cuoi" in norm(gr_ff[idx] if idx < len(gr_ff) else "")
+                       for idx in range(len(row)) if idx not in (ci, ni) and _side(row[idx]))
+        if not has_cuoi:                             # (b) ứng viên rác -> thử dòng tiếp theo
+            continue
+        sub_idx, code_idx, name_idx, group_row = i, ci, ni, gr_ff
+        break
+    if sub_idx is None:
         return None, {"basis_guess": basis_guess}
-
-    group_row = _forward_fill(rows[sub_idx - 1])
     sub_row = rows[sub_idx]
-    code_idx = name_idx = None
-    for idx, cell in enumerate(rows[sub_idx - 1]):
-        t = norm(cell)
-        if code_idx is None and (t == "ma" or t.startswith("ma ")
-                                 or t.startswith("so tai khoan") or t.startswith("so tk")
-                                 or t.startswith("so hieu") or t.startswith("shtk")):   # 'Số tài khoản'/'SHTK'
-            code_idx = idx
-        elif name_idx is None and (t == "ten" or t.startswith("ten ")):
-            name_idx = idx
-    if code_idx is None or name_idx is None:
-        return None, {"basis_guess": basis_guess}
 
     # Tháng của kỳ (từ tên file, vd M.202601 -> '1') — dùng để nhận cột 'đầu kỳ này' khi nhãn
     # ghi theo tháng ('SỐ DƯ ĐẦU T1'), phân biệt với cột tháng khác (stale) / đầu năm.
@@ -1753,13 +1776,60 @@ def _derive_kqkd(file_path: str, sheet: str, period: str, cong_ty: str):
             "target": "01_HQKD", "value_col_header": str(hdr[val_j])[:30]}
 
 
+# PHẢI NỘP (TK 333) — 5 loại thuế CHUẨN theo TK con (cập nhật 2026-07, thay lấy TK cha "333" với
+# nhãn tự do theo sheet -> gây phân mảnh khi gộp nhiều đơn vị, mỗi đơn vị ghi tên hơi khác nhau cho
+# cùng ý nghĩa "Thuế và các khoản phải nộp Nhà nước"). Nhãn CỐ ĐỊNH, khớp mọi đơn vị/tháng -> gộp
+# đúng theo tên (part() ở metrics_extra.py match đầu kỳ = cuối kỳ tháng trước theo dim2).
+_THUE333_MAP = {
+    "33311": "Thuế Giá trị gia tăng (GTGT)",
+    "3333": "Thuế Xuất khẩu, Thuế Nhập khẩu",
+    "3334": "Thuế Thu nhập doanh nghiệp (TNDN)",
+    "3335": "Thuế Thu nhập cá nhân (TNCN)",
+    "3338": "Các loại thuế khác",
+    # SRVF dùng mã nội bộ RIÊNG (chart không chuẩn — '3331' gộp cả GTGT/TNDN/TNCN-XDV làm con thay
+    # vì theo mã TT200): 33314='Thuế thu nhập doanh nghiệp' (thay 3334), 33316='Thuế TNCN XDV' (gộp
+    # cùng nhóm TNCN với 3335 'khối SR'). Không đụng đơn vị khác (2 mã này không xuất hiện nơi khác).
+    "33314": "Thuế Thu nhập doanh nghiệp (TNDN)",
+    "33316": "Thuế Thu nhập cá nhân (TNCN)",
+}
+
+# HO tự đặt lại Ý NGHĨA các mã con 333 (KHÔNG theo chuẩn TT200 — vd mã 3334 chuẩn=TNDN nhưng HO ghi
+# 'Thuế XNK BP KD Tài sản'). Xác nhận với kế toán HO (2026-07-29): 3331=GTGT, 3332=TNCN,
+# 3333+3334=Xuất nhập khẩu (2 bộ phận), 3337+3338=Thuế khác. HO KHÔNG có dòng TNDN riêng (để 0,
+# không đoán/gộp — tách 3331 thành GTGT/TNDN cần xác nhận thêm nếu sau này kế toán cung cấp).
+_THUE333_MAP_HO = {
+    "3331": "Thuế Giá trị gia tăng (GTGT)",
+    "3332": "Thuế Thu nhập cá nhân (TNCN)",
+    "3333": "Thuế Xuất khẩu, Thuế Nhập khẩu",
+    "3334": "Thuế Xuất khẩu, Thuế Nhập khẩu",
+    "3337": "Các loại thuế khác",
+    "3338": "Các loại thuế khác",
+}
+
+# HTX Xanh Tuyên Quang / HTX Xanh Vĩnh Phúc: TK 333 CHỈ có 2 con trực tiếp (không qua 33311 như
+# chuẩn) — '3331'='Thuế giá trị gia tăng phải nộp' (LÀ GTGT, không gộp thêm loại khác như SRVF)
+# + '3335'='Thuế TNCN' (chuẩn, dùng chung map chính). Định nghĩa map riêng vì '3331' ở SRVF mang
+# NGHĨA KHÁC (gộp GTGT+TNDN+TNCN-XDV) — không thể thêm '3331' vào map mặc định (đụng SRVF).
+_THUE333_MAP_HTX = {
+    "3331": "Thuế Giá trị gia tăng (GTGT)",
+    "3333": "Thuế Xuất khẩu, Thuế Nhập khẩu",
+    "3334": "Thuế Thu nhập doanh nghiệp (TNDN)",
+    "3335": "Thuế Thu nhập cá nhân (TNCN)",
+    "3338": "Các loại thuế khác",
+}
+
+
 def _derive_thue(file_path: str, sheet: str, period: str, cong_ty: str):
     """TẤT ĐỊNH: từ CĐSPS (cùng cấu trúc 2 tầng Nợ/Có như TK131) lọc TK 133 (GTGT được khấu trừ
-    -> PHẢI THU) + TK 333 (thuế phải nộp -> PHẢI NỘP), lấy SỐ DƯ CUỐI KỲ -> 10_THUE -> report_type
-    THẬT 'THUE'. Lấy TK cấp cha (133/333) cho TỔNG đúng (không cộng trùng con). value_scale=1e-9."""
+    -> PHẢI THU, giữ TK cha cho tổng đúng) + 5 TK con 333xx (thuế phải nộp -> PHẢI NỘP, xem
+    _THUE333_MAP) -> 10_THUE -> report_type THẬT 'THUE'. value_scale=1e-9."""
     from openpyxl import load_workbook
     from servers import template_filler as tf
     from servers.common import be_bridge as bb
+    _thue_src = _source_id(file_path).split("::", 1)[0].upper()
+    _thue333_map = (_THUE333_MAP_HO if _thue_src == "HO"
+                    else _THUE333_MAP_HTX if _thue_src in ("HTXXANHTUYENQUANG", "HTXXANHVINHPHUC")
+                    else _THUE333_MAP)
     mp, _meta = _heuristic_tk_mapping(file_path, sheet, "CDPS")   # tái dùng dò 2 tầng Nợ/Có
     if not mp:
         return {"ok": False, "error": "CĐSPS: không dò được header 2 tầng"}
@@ -1788,26 +1858,31 @@ def _derive_thue(file_path: str, sheet: str, period: str, cong_ty: str):
     for ri in range(mp["data_start_row"], len(rows)):
         r = rows[ri]
         code = str(r[code_i]).strip() if code_i < len(r) and r[code_i] not in (None, "") else ""
-        if code not in ("133", "333"):     # chỉ TK cha -> tổng đúng, không cộng trùng con
+        if code not in _thue333_map and code != "133":
             continue
         ten = bb.parse_text(r[name_i]) if (name_i is not None and name_i < len(r)) else None
         if code == "133":   # GTGT được khấu trừ = dư NỢ (phải thu); tăng = PS Nợ, giảm = PS Có
             pt = "Phải thu"
             cuoi, dau = _net(r, cuoi_no, cuoi_co), _net(r, dau_no, dau_co)
             tang, giam = num(r, ps_no), num(r, ps_co)
-        else:               # 333 thuế phải nộp = dư CÓ; tăng = PS Có, giảm = PS Nợ
+            ten = ten or code
+        else:               # 333xx thuế phải nộp: LẤY THẲNG (không net Nợ) theo spec — đầu kỳ = Dư
+            # Có đầu kỳ, tăng = PS Có, giảm = PS Nợ; cuối kỳ = đầu+tăng−giảm (TÍNH ở metrics_extra,
+            # field ở đây chỉ để tương thích/không dùng). Nhãn CỐ ĐỊNH theo _thue333_map.
             pt = "Phải nộp"
-            cuoi, dau = _net(r, cuoi_co, cuoi_no), _net(r, dau_co, dau_no)
+            dau = num(r, dau_co)
             tang, giam = num(r, ps_co), num(r, ps_no)
+            cuoi = round((dau or 0) + (tang or 0) - (giam or 0), 9)
+            ten = _thue333_map[code]
         rec = {"Kỳ": period, "Đơn vị": cong_ty,
-               "Loại thuế (GTGT ra/vào, TNCN, TNDN, NK, khác)": ten or code,
+               "Loại thuế (GTGT ra/vào, TNCN, TNDN, NK, khác)": ten,
                "Phải thu/Phải nộp": pt, "Dư cuối kỳ (tỷ)": cuoi,
                "PS tăng (tỷ)": tang, "PS giảm (tỷ)": giam}
         if not _partial:    # đầu kỳ chỉ điền khi CHẮC (mập mờ -> FE dùng cuối kỳ tháng trước)
             rec["Dư đầu kỳ (tỷ)"] = dau
         records.append(rec)
     if not records:
-        return {"ok": False, "error": "CĐSPS: không thấy TK 133/333"}
+        return {"ok": False, "error": "CĐSPS: không thấy TK 133/333xx"}
     out = os.path.join(tf.FILLED_DIR, f"THUE_{period}_{cong_ty or 'NA'}_10_THUE.xlsx")
     tf.fill("10_THUE", records, out)
     imp = tf.import_filled(out, cong_ty=cong_ty, khoi=_khoi_of(file_path), source_file=_source_id(file_path))
@@ -1882,6 +1957,69 @@ def _derive_thue_cdkt(file_path: str, sheet: str, period: str, cong_ty: str):
     return {"ok": bool(imp.get("rows_imported")), "rows": imp.get("rows_imported"), "target": "10_THUE"}
 
 
+def _derive_thue_ht(file_path: str, period: str, cong_ty: str):
+    """TẤT ĐỊNH (HT — Hưng Thịnh, Khối KD Xe tải): sheet 'cđps hợp nhất' là CĐPS HỢP NHẤT 2 pháp
+    nhân con (HT + TC — xem knowledge/khoi_phapnhan_map.yaml khối 5), layout 6 NHÓM cột: 'Số dư đầu
+    kỳ hợp nhất' | 'loại trừ đầu kỳ' | 'Số phát sinh trong kỳ hợp nhất' | 'Số dư cuối kỳ HT' | 'Số dư
+    cuối kỳ TC' | 'CỘNG ... trước hợp nhất' — KHÔNG khớp _heuristic_tk_mapping (2 nhóm). knowledge/
+    HT.yaml (mục thuế) chốt "KHÔNG bù trừ chéo giữa các pháp nhân" -> LẤY RIÊNG cột 'Số dư cuối kỳ
+    HT' (không cộng TC/CỘNG). Đầu kỳ/PS KHÔNG tách được riêng HT trong sheet hợp nhất này (chỉ có
+    bản 'hợp nhất' gộp cả HT+TC) -> "ghim" đầu kỳ = cuối kỳ (tăng=giảm=0): tránh suy đoán biến động
+    sai lẫn giữa 2 pháp nhân, đồng thời vẫn hiển thị ĐÚNG số dư cuối kỳ thực tế của riêng HT."""
+    from servers import template_filler as tf
+    from servers.common import be_bridge as bb
+    norm = lambda v: bb.normalize_header(v, True)  # noqa: E731
+    wb = bb.fast_load_workbook(file_path, read_only=True, data_only=True)
+    try:
+        sheet = next((s for s in wb.sheetnames
+                      if "cdps" in norm(s).replace(" ", "") and "hop nhat" in norm(s)), None)
+        if sheet is None:
+            return {"ok": False, "error": "không thấy sheet CĐPS hợp nhất"}
+        rows = [list(r) for r in wb[sheet].iter_rows(values_only=True)]
+    finally:
+        wb.close()
+    hdr_i = next((i for i, r in enumerate(rows[:15])
+                  if any("so hieu tai khoan" in norm(c) for c in r)), None)
+    if hdr_i is None:
+        return {"ok": False, "error": "không dò được header (Số hiệu tài khoản)"}
+    hdr = rows[hdr_i]
+    name_i = next((j for j, c in enumerate(hdr) if "ten tai khoan" in norm(c)), 1)
+    # Layout đổi theo tháng (chỉ T06/2026 verify có tách HT/TC riêng): ưu tiên 'Số dư cuối kỳ HT'
+    # (riêng HT, đúng nhất theo yêu cầu không bù trừ chéo pháp nhân) -> fallback 'Số dư cuối kỳ SAU
+    # hợp nhất' (đã trừ nội bộ, số CHÍNH THỨC của cả nhóm khi nguồn không tách được riêng HT — T01-05
+    # không có cột HT/TC) -> fallback 'CỘNG ... trước hợp nhất' (thô hơn, trước loại trừ nội bộ).
+    ht_grp = next((j for j, c in enumerate(hdr) if "cuoi ky ht" in norm(c)), None)
+    if ht_grp is None:
+        ht_grp = next((j for j, c in enumerate(hdr) if "cuoi ky sau hop nhat" in norm(c)), None)
+    if ht_grp is None:
+        ht_grp = next((j for j, c in enumerate(hdr) if "cong" in norm(c) and "cuoi ky" in norm(c)
+                       and "truoc hop nhat" in norm(c)), None)
+    if ht_grp is None:
+        return {"ok": False, "error": "không thấy cột 'Số dư cuối kỳ' (HT/sau hợp nhất/trước hợp nhất)"}
+    cuoi_no_i, cuoi_co_i = ht_grp, ht_grp + 1
+    records = []
+    for _tk, _label in _THUE333_MAP.items():
+        r = next((rr for rr in rows[hdr_i + 2:] if rr and str(rr[0]).strip() == _tk), None)
+        if not r:
+            continue
+        no = r[cuoi_no_i] if cuoi_no_i < len(r) and isinstance(r[cuoi_no_i], (int, float)) else 0.0
+        co = r[cuoi_co_i] if cuoi_co_i < len(r) and isinstance(r[cuoi_co_i], (int, float)) else 0.0
+        cuoi = round((co - no) * 1e-9, 9)
+        # KHÔNG bỏ dòng =0 (khác quy ước chỗ khác): tháng có TK nhưng số 0 thật (vd T01 HT chưa phát
+        # sinh thuế) vẫn phải GHI để kích hoạt atomic-swap xoá bản GHI ĐÈ cũ (nhãn tự do sai) của
+        # tháng đó — nếu bỏ qua, records rỗng -> hàm trả lỗi -> KHÔNG xoá được bản cũ (xem gọi nơi này).
+        records.append({"Kỳ": period, "Đơn vị": cong_ty,
+                        "Loại thuế (GTGT ra/vào, TNCN, TNDN, NK, khác)": _label,
+                        "Phải thu/Phải nộp": "Phải nộp", "Dư đầu kỳ (tỷ)": cuoi,
+                        "PS tăng (tỷ)": 0.0, "PS giảm (tỷ)": 0.0, "Dư cuối kỳ (tỷ)": cuoi})
+    if not records:
+        return {"ok": False, "error": "không thấy mã 333xx nào (cột 'Số dư cuối kỳ HT')"}
+    out = os.path.join(tf.FILLED_DIR, f"HTTHUE_{period}_{cong_ty or 'NA'}_10_THUE.xlsx")
+    tf.fill("10_THUE", records, out)
+    imp = tf.import_filled(out, cong_ty=cong_ty, khoi=_khoi_of(file_path), source_file=_source_id(file_path))
+    return {"ok": bool(imp.get("rows_imported")), "rows": imp.get("rows_imported"), "target": "10_THUE"}
+
+
 def _derive_tonkho_cdps(file_path: str, sheet: str, period: str, cong_ty: str):
     """TẤT ĐỊNH: tồn kho từ CĐPS/CĐSPS (bảng cân đối TK) — lọc các TK kho CẤP CHA 151–156 (151 hàng
     đi đường, 152 NVL, 153 CCDC, 154 SPDD, 155 thành phẩm, 156 hàng hóa) lấy số dư Nợ CUỐI KỲ +
@@ -1944,12 +2082,15 @@ def _derive_tonkho_cdps(file_path: str, sheet: str, period: str, cong_ty: str):
     return {"ok": bool(imp.get("rows_imported")), "rows": imp.get("rows_imported"), "target": "09_TONKHO"}
 
 
-def _derive_tscd(file_path: str, sheet: str, period: str, cong_ty: str):
+def _derive_tscd(file_path: str, sheet: str, period: str, cong_ty: str, het_kh=None):
     """TẤT ĐỊNH: bảng KHẤU HAO-PHÂN BỔ -> 08_TSCD -> report_type THẬT 'TS'. Header nhóm: 'Tài sản'
     (nguyên giá) / 'Khấu hao' (hao mòn) / 'Giá trị sổ sách' (GTCL), tầng dưới là các CỘT NGÀY
     (đầu kỳ / + / - / cuối kỳ). Lấy dòng SUBTOTAL theo LOẠI TS (dòng mở đầu 'False <loại>' =
     tổng mỗi loại) -> dim1=Loại TS, neo=GTCL cuối. NG cuối/HM cuối/PS lấy theo vai. Layout khá
-    đặc thù -> KHÔNG khớp thì trả not-ok (fallback LLM)."""
+    đặc thù -> KHÔNG khớp thì trả not-ok (fallback LLM).
+    het_kh: tuple (con_sd, thanh_ly) RAW VND từ derive_tscd_hetkhauhao.compute() (CÙNG file này)
+    -> gắn thành 1 dòng THÊM trong CÙNG import_filled call (KHÔNG gọi import riêng, tránh 2 lần
+    ghi cùng source_file đè nhau — xem dispatcher)."""
     from openpyxl import load_workbook
     from servers import template_filler as tf
     from servers.common import be_bridge as bb
@@ -2010,10 +2151,16 @@ def _derive_tscd(file_path: str, sheet: str, period: str, cong_ty: str):
         records.append(rec)
     if not records:
         return {"ok": False, "error": "TSCĐ: không bóc được dòng loại tài sản (layout lạ -> để LLM)"}
+    if het_kh is not None:
+        con_sd, thanh_ly = het_kh
+        records.append({"Kỳ": period, "Đơn vị": cong_ty,
+                         "TS hết KH còn sử dụng (NG, tỷ)": round(con_sd * 1e-9, 9),
+                         "TS hết KH chờ thanh lý (NG, tỷ)": round(thanh_ly * 1e-9, 9)})
     out = os.path.join(tf.FILLED_DIR, f"TSCD_{period}_{cong_ty or 'NA'}_08_TSCD.xlsx")
     tf.fill("08_TSCD", records, out)
     imp = tf.import_filled(out, cong_ty=cong_ty, khoi=_khoi_of(file_path), source_file=_source_id(file_path))
-    return {"ok": bool(imp.get("rows_imported")), "rows": imp.get("rows_imported"), "target": "08_TSCD"}
+    return {"ok": bool(imp.get("rows_imported")), "rows": imp.get("rows_imported"), "target": "08_TSCD",
+            "het_kh_attached": het_kh is not None}
 
 
 def _derive_tscd_cdkt(file_path: str, cdkt_sheet: str, period: str, cong_ty: str):
@@ -2070,6 +2217,13 @@ def _derive_tscd_cdkt(file_path: str, cdkt_sheet: str, period: str, cong_ty: str
     rec = {"Kỳ": period, "Đơn vị": cong_ty,
            "Loại TS (Nhà cửa VKT/Máy móc TB/PTVT/Phần mềm-QSDĐ…)": "TSCĐ (theo CĐKT)",
            "Nguyên giá (tỷ)": ng, "Giá trị còn lại (tỷ)": gtcl, "Hao mòn lũy kế (tỷ)": round(abs(hm), 9)}
+    # HO: KHÔNG có sổ chi tiết tài sản để lọc "TS hết khấu hao" (GTCL=0 từng TS, xem
+    # derive_tscd_hetkhauhao.py) -> PROXY mã 223 (Giá trị hao mòn luỹ kế TOÀN BỘ, |cuối kỳ|) làm
+    # "TS hết KH còn sử dụng" — khác bản chất chỉ tiêu nhưng là nguồn duy nhất khả dụng cho HO
+    # (2026-07-29, theo yêu cầu user). Gắn NGAY vào rec này (cùng source_file/import_filled call
+    # với dòng "TSCĐ (theo CĐKT)" ở trên) -> KHÔNG cần ghi riêng, tránh đè lẫn nhau (cùng file).
+    if "hỗ trợ" in (_khoi_of(file_path) or "").lower() and vals.get("223") is not None:
+        rec["TS hết KH còn sử dụng (NG, tỷ)"] = round(abs(vals["223"]), 9)
     out = os.path.join(tf.FILLED_DIR, f"TSCD_{period}_{cong_ty or 'NA'}_08_TSCD.xlsx")
     tf.fill("08_TSCD", [rec], out)
     imp = tf.import_filled(out, cong_ty=cong_ty, khoi=_khoi_of(file_path), source_file=_source_id(file_path))
@@ -2077,12 +2231,13 @@ def _derive_tscd_cdkt(file_path: str, cdkt_sheet: str, period: str, cong_ty: str
             "target": "08_TSCD", "nguyen_gia": ng, "gtcl": gtcl}
 
 
-def _derive_tscd_duan(file_path: str, sheet: str, period: str, cong_ty: str):
+def _derive_tscd_duan(file_path: str, sheet: str, period: str, cong_ty: str, het_kh=None):
     """TSCĐ Khối DỰ ÁN lấy từ sheet 'KH TSCĐ' (BẢNG TRÍCH KHẤU HAO) — layout riêng: header có dòng
     MARKER cột '(1)'..'(22)'. Map: (1)=STT · (4)=tên TS · (7)=Nguyên giá · (14)=Khấu hao lũy kế ·
     (21)=GTCL cuối tháng (=(7)-(14)). CỘNG mọi dòng tài sản (STT là số>0) -> 1 record tổng "TSCĐ
     (theo Biểu khấu hao)" -> 08_TSCD -> report_type TS. Chỉ T05/T06 có sheet này (T01-T04 KHÔNG có
-    -> deriver không được gọi/không có gì). Trả not-ok nếu không thấy marker/không có dòng TS."""
+    -> deriver không được gọi/không có gì). Trả not-ok nếu không thấy marker/không có dòng TS.
+    het_kh: xem _derive_tscd (gắn 1 dòng thêm cùng import_filled call, tránh đè source_file)."""
     from servers import template_filler as tf
     from servers.common import be_bridge as bb
     wb = bb.fast_load_workbook(file_path, read_only=True, data_only=True)
@@ -2125,11 +2280,18 @@ def _derive_tscd_duan(file_path: str, sheet: str, period: str, cong_ty: str):
            "Loại TS (Nhà cửa VKT/Máy móc TB/PTVT/Phần mềm-QSDĐ…)": "TSCĐ (theo Biểu khấu hao)",
            "Nguyên giá (tỷ)": round(ng * 1e-9, 9), "Giá trị còn lại (tỷ)": round(gtcl * 1e-9, 9),
            "Hao mòn lũy kế (tỷ)": round(hm * 1e-9, 9)}
+    records = [rec]
+    if het_kh is not None:
+        con_sd, thanh_ly = het_kh
+        records.append({"Kỳ": period, "Đơn vị": cong_ty,
+                         "TS hết KH còn sử dụng (NG, tỷ)": round(con_sd * 1e-9, 9),
+                         "TS hết KH chờ thanh lý (NG, tỷ)": round(thanh_ly * 1e-9, 9)})
     out = os.path.join(tf.FILLED_DIR, f"TSCD_{period}_{cong_ty or 'NA'}_08_TSCD.xlsx")
-    tf.fill("08_TSCD", [rec], out)
+    tf.fill("08_TSCD", records, out)
     imp = tf.import_filled(out, cong_ty=cong_ty, khoi=_khoi_of(file_path), source_file=_source_id(file_path))
     return {"ok": bool(imp.get("rows_imported")), "rows": imp.get("rows_imported"), "target": "08_TSCD",
-            "nguyen_gia": round(ng * 1e-9, 9), "gtcl": round(gtcl * 1e-9, 9), "n_ts": n}
+            "nguyen_gia": round(ng * 1e-9, 9), "gtcl": round(gtcl * 1e-9, 9), "n_ts": n,
+            "het_kh_attached": het_kh is not None}
 
 
 def _derive_kdvh(file_path: str, sheet: str, period: str, cong_ty: str):
@@ -2518,6 +2680,204 @@ def _derive_cdkt(file_path: str, sheet: str, period: str, cong_ty: str):
             _rec = _by_ma.get(_ma)
             if _rec and "Đầu kỳ (tỷ)" in _rec:
                 _rec["PS tăng trong kỳ (tỷ)"] = round(_rec["Cuối kỳ (tỷ)"] - _rec["Đầu kỳ (tỷ)"], 9)
+
+    # ── 5 nhóm TSCĐ theo TK 211x/213x (Book1_.xlsx cập nhật 2026-07) — THAY THẾ breakdown "Cơ cấu
+    # TSCĐ theo loại"/"Biến động tài sản theo loại" (Khối 12) trước đây dựa mã CĐKT 222/225/228/231
+    # (_by_ma ở trên, VẪN GIỮ NGUYÊN cho đơn vị KHÔNG có trong bảng dưới — additive, fallback).
+    # Ghi tag "T5_NG_<i>"/"T5_HM_<i>" (i=1..5, thứ tự _T5_CATS) vào cột "Ghi chú" — field pass-
+    # through GENERIC, importer không validate whitelist (xem _parse_07_taisan_nv) -> asset_extras()
+    # (DashBoard_AI/backend/app/metrics_extra.py) đọc lại theo tag mới, ưu tiên T5_* nếu có dữ liệu.
+    _T5_CATS = ["Nhà cửa, vật kiến trúc", "Máy móc, thiết bị", "Phương tiện vận tải, truyền dẫn",
+                "Thiết bị, dụng cụ quản lý", "Chương trình phần mềm"]
+
+    def _t5_ng(idx, val):
+        if val is None:
+            return
+        records.append({"Kỳ": period, "Đơn vị": cong_ty,
+                         "Khoản mục (theo CĐKT)": f"[T5] {_T5_CATS[idx]} - Nguyên giá",
+                         "Ghi chú": f"T5_NG_{idx + 1}", "Cuối kỳ (tỷ)": round(val, 9)})
+
+    def _t5_tang(idx, val):
+        if val is None:
+            return
+        tag = f"T5_NG_{idx + 1}"
+        for rec in records:
+            if rec.get("Ghi chú") == tag:
+                rec["PS tăng trong kỳ (tỷ)"] = round(val, 9)
+                return
+
+    def _t5_hm(idx, val):
+        if val is None:
+            return
+        records.append({"Kỳ": period, "Đơn vị": cong_ty,
+                         "Khoản mục (theo CĐKT)": f"[T5] {_T5_CATS[idx]} - Hao mòn LK",
+                         "Ghi chú": f"T5_HM_{idx + 1}", "Cuối kỳ (tỷ)": round(-abs(val), 9)})
+
+    def _sum_opt(*vals):
+        vals = [v for v in vals if v is not None]
+        return round(sum(vals), 9) if vals else None
+
+    # Khớp mã TK: so CHÍNH XÁC (đã strip khoảng trắng — SRVF có TK thụt lề '   2111') HOẶC phần
+    # trước dấu '_' đầu tiên khớp (HO/DUAN gắn hậu tố theo tài sản, vd '2112_MX'/'2118_OTO' — với
+    # '2118_OTO'/'2118_NC'/'2118_K' PHẢI khớp CHÍNH XÁC cả hậu tố, không head-match, để không lẫn
+    # 3 loại '2118_*' vào chung 1 nhóm — xem targets truyền vào, mỗi target riêng biệt theo spec).
+    def _t5_match(tk, targets):
+        tk = str(tk).strip() if tk not in (None, "") else ""
+        if not tk:
+            return False
+        return tk in targets or tk.split("_", 1)[0] in targets
+
+    def _t5_sum_col(cdps_rows, hdr_i, tk_i, col_i, targets):
+        if col_i is None or tk_i is None or hdr_i is None or not cdps_rows:
+            return None
+        s, hit = 0.0, False
+        for r in cdps_rows[hdr_i + 1:]:
+            tk = r[tk_i] if tk_i < len(r) else None
+            if not _t5_match(tk, targets):
+                continue
+            v = r[col_i] if col_i < len(r) and isinstance(r[col_i], (int, float)) else 0.0
+            s += v
+            hit = True
+        return round(s * 1e-9, 9) if hit else None
+
+    def _t5_sum_tang(cdps_rows, hdr_i, tk_i, psno_i, psco_i, targets):
+        if psno_i is None or psco_i is None or tk_i is None or hdr_i is None or not cdps_rows:
+            return None
+        s, hit = 0.0, False
+        for r in cdps_rows[hdr_i + 1:]:
+            tk = r[tk_i] if tk_i < len(r) else None
+            if not _t5_match(tk, targets):
+                continue
+            no = r[psno_i] if psno_i < len(r) and isinstance(r[psno_i], (int, float)) else 0.0
+            co = r[psco_i] if psco_i < len(r) and isinstance(r[psco_i], (int, float)) else 0.0
+            s += (no - co)
+            hit = True
+        return round(s * 1e-9, 9) if hit else None
+
+    # 'SỐ DƯ CUỐI KỲ' Nợ/Có — tương tự _find_ps_no_co (2 layout: (A) 1 dòng nhãn gộp sẵn 'Dư nợ
+    # cuối kỳ'/'Dư có cuối kỳ' (SRVF); (B) 2 dòng, nhãn nhóm 'SỐ DƯ CUỐI KỲ'/'Cuối kỳ' rồi dòng dưới
+    # 'Nợ'/'Có' (HO/DUAN/ANTAXI/ANKHACHSAN/GLOBALAI) — đã verify khớp qua đọc trực tiếp file thật.
+    def _find_cuoi_no_co(cdps_rows):
+        for r in cdps_rows[:15]:
+            if any("no cuoi ky" in norm(c) for c in r) and any("co cuoi ky" in norm(c) for c in r):
+                no_i = next((j for j, c in enumerate(r) if "no cuoi ky" in norm(c)), None)
+                co_i = next((j for j, c in enumerate(r) if "co cuoi ky" in norm(c)), None)
+                if no_i is not None and co_i is not None:
+                    return no_i, co_i
+        for i, r in enumerate(cdps_rows[:15]):
+            grp = next((j for j, c in enumerate(r) if "cuoi ky" in norm(c) or "du cuoi" in norm(c)), None)
+            if grp is None or i + 1 >= len(cdps_rows):
+                continue
+            sub = cdps_rows[i + 1]
+            if (grp + 1 < len(sub) and norm(sub[grp]).startswith("no")
+                    and norm(sub[grp + 1]).startswith("co")):
+                return grp, grp + 1
+        return None, None
+
+    # Nguồn CĐPS cho T5: mặc định tái dùng _cdps_rows đã tìm ở trên; GA dùng RIÊNG sheet "TC_CDPS"
+    # của chính GA (spec Book1_.xlsx xác nhận) — _find_cdps_sheet ở trên CHỦ Ý loại "TC_..." (CĐPS
+    # hợp nhất group, không phải của GA) nên phải tìm lại riêng ở đây.
+    _t5_cdps_rows = _cdps_rows
+    if _src == "GLOBALAI":
+        _wb_t5 = bb.fast_load_workbook(file_path, read_only=True, data_only=True)
+        try:
+            _t5_sheet = next((s for s in _wb_t5.sheetnames
+                               if (s or "").strip().upper().replace(" ", "") == "TC_CDPS"), None)
+            _t5_cdps_rows = [list(r) for r in _wb_t5[_t5_sheet].iter_rows(values_only=True)] if _t5_sheet else None
+        finally:
+            _wb_t5.close()
+    _t5_hdr_i = _t5_tk_i = _t5_psno_i = _t5_psco_i = _t5_cuoi_no_i = _t5_cuoi_co_i = None
+    if _t5_cdps_rows:
+        _t5_hdr_i, _t5_tk_i, _t5_psno_i, _t5_psco_i = _find_ps_no_co(_t5_cdps_rows)
+        if _t5_hdr_i is not None:
+            _t5_cuoi_no_i, _t5_cuoi_co_i = _find_cuoi_no_co(_t5_cdps_rows)
+
+    def _cuoi_no(targets):
+        return _t5_sum_col(_t5_cdps_rows, _t5_hdr_i, _t5_tk_i, _t5_cuoi_no_i, targets)
+
+    def _cuoi_co_abs(targets):
+        v = _t5_sum_col(_t5_cdps_rows, _t5_hdr_i, _t5_tk_i, _t5_cuoi_co_i, targets)
+        return abs(v) if v is not None else None
+
+    def _tang(targets):
+        return _t5_sum_tang(_t5_cdps_rows, _t5_hdr_i, _t5_tk_i, _t5_psno_i, _t5_psco_i, targets)
+
+    if _src == "HO":
+        # Chart 2 (Hao mòn LK/Tăng NG) "Chưa có (yêu cầu cung cấp)" toàn bộ 5 nhóm theo spec ->
+        # CHỈ ghi Chart 1 (Nguyên giá), không ghi HM/Tăng NG.
+        _t5_ng(0, _cuoi_no({"2115"}))
+        _t5_ng(1, _sum_opt(_cuoi_no({"2112"}), _cuoi_no({"2113"})))
+        _t5_ng(2, _cuoi_no({"2118_OTO"}))
+        _t5_ng(3, _sum_opt(_cuoi_no({"2114"}), _cuoi_no({"2116"}), _cuoi_no({"2117"}),
+                           _cuoi_no({"2118_NC"}), _cuoi_no({"2118_K"})))
+    elif _src == "DUAN":
+        # Spec: Chart 2 "Chưa có/ko có" toàn bộ -> chỉ Chart 1.
+        _t5_ng(1, _cuoi_no({"2112"}))
+        _t5_ng(2, _cuoi_no({"2113"}))
+        _t5_ng(3, _cuoi_no({"2114"}))
+    elif "tram sac" in _khoi_l or _src == "TRAMSAC":
+        # Dùng LẠI số đã tính ở override "Biểu khấu hao" trên (đáng tin hơn CĐKT/CĐPS thô) — spec
+        # gán TOÀN BỘ TSCĐ trạm sạc vào nhóm "Máy móc, thiết bị".
+        if "222" in _by_ma:
+            _t5_ng(1, _by_ma["222"].get("Cuối kỳ (tỷ)"))
+            _t5_tang(1, _by_ma["222"].get("PS tăng trong kỳ (tỷ)"))
+        if "223" in _by_ma:
+            _hm = _by_ma["223"].get("Cuối kỳ (tỷ)")
+            if _hm is not None:
+                _t5_hm(1, abs(_hm))
+    elif _src == "SRVF":
+        _t5_ng(0, _sum_opt(_cuoi_no({"2111"}), _cuoi_no({"2131"})))
+        _t5_ng(1, _sum_opt(_cuoi_no({"2112"}), _cuoi_no({"2132"}), _cuoi_no({"2134"}), _cuoi_no({"2118"})))
+        _t5_ng(2, _cuoi_no({"2113"}))
+        _t5_ng(4, _sum_opt(_cuoi_no({"2114"}), _cuoi_no({"2135"})))
+        # (*) spec gốc ghi 'TK 2111+2132+2134+2118' cho Tăng NG nhóm Máy móc — coi là lỗi đánh máy
+        # (chart 1 dùng 2112, không phải 2111 cho nhóm này) -> dùng 2112 để nhất quán NG/Tăng NG.
+        _t5_tang(0, _sum_opt(_tang({"2111"}), _tang({"2131"})))
+        _t5_tang(1, _sum_opt(_tang({"2112"}), _tang({"2132"}), _tang({"2134"}), _tang({"2118"})))
+        _t5_tang(2, _tang({"2113"}))
+        _t5_tang(4, _sum_opt(_tang({"2114"}), _tang({"2135"})))
+        _t5_hm(0, _sum_opt(_cuoi_co_abs({"21411"}), _cuoi_co_abs({"21431"})))
+        _t5_hm(1, _sum_opt(_cuoi_co_abs({"21412"}), _cuoi_co_abs({"21433"}), _cuoi_co_abs({"21418"})))
+        _t5_hm(2, _cuoi_co_abs({"21413"}))
+        _t5_hm(4, _sum_opt(_cuoi_co_abs({"21414"}), _cuoi_co_abs({"21435"})))
+    elif _src == "XANHVINHPHUC":
+        # Spec gán TOÀN BỘ TSCĐ Xanh VP vào nhóm "Phương tiện vận tải" (mã CĐKT 222/223, không có
+        # sheet CĐPS riêng — giống cơ chế Chart 1 4-nhóm cũ ở trên).
+        if "222" in _by_ma:
+            _t5_ng(2, _by_ma["222"].get("Cuối kỳ (tỷ)"))
+            _t5_tang(2, _by_ma["222"].get("PS tăng trong kỳ (tỷ)"))
+        if "223" in _by_ma:
+            _hm = _by_ma["223"].get("Cuối kỳ (tỷ)")
+            if _hm is not None:
+                _t5_hm(2, abs(_hm))
+    elif _src == "ANTAXI":
+        _t5_ng(2, _cuoi_no({"211"}))
+        _t5_ng(4, _cuoi_no({"213"}))
+        _t5_tang(2, _tang({"211"}))
+        _t5_tang(4, _tang({"213"}))
+        _t5_hm(2, _cuoi_co_abs({"2141"}))
+        _t5_hm(4, _cuoi_co_abs({"2143"}))
+    elif _src == "ANKHACHSAN":
+        _t5_ng(0, _cuoi_no({"211"}))
+        _t5_tang(0, _tang({"211"}))
+        _t5_hm(0, _cuoi_co_abs({"214"}))
+    elif _src == "GLOBALAI":
+        _t5_ng(0, _cuoi_no({"2111"}))
+        _t5_ng(1, _cuoi_no({"2112"}))
+        _t5_ng(2, _cuoi_no({"2113"}))
+        _t5_ng(3, _cuoi_no({"2114"}))
+        _t5_ng(4, _cuoi_no({"213"}))
+        _t5_tang(0, _tang({"2111"}))
+        _t5_tang(1, _tang({"2112"}))
+        _t5_tang(2, _tang({"2113"}))
+        _t5_tang(3, _tang({"2114"}))
+        _t5_tang(4, _tang({"213"}))
+        _t5_hm(0, _cuoi_co_abs({"21411"}))
+        _t5_hm(1, _cuoi_co_abs({"21412"}))
+        _t5_hm(2, _cuoi_co_abs({"21413"}))
+        _t5_hm(3, _cuoi_co_abs({"21414"}))
+        _t5_hm(4, _cuoi_co_abs({"2143"}))
+    # VF XDV: không có sheet CĐPS/CĐKT nguồn cho TSCĐ (đã xác nhận) -> không ghi record T5 nào.
 
     out = os.path.join(tf.FILLED_DIR, f"CDKT_{period}_{cong_ty or 'NA'}_07_TAISAN_NV.xlsx")
     tf.fill("07_TAISAN_NV", records, out)
@@ -3372,27 +3732,69 @@ def cmd_autofill(args):
             except Exception as ex:  # noqa: BLE001
                 derived.append({"kind": "10_THUE", "sheet": sheet, "ok": False, "error": str(ex)[:150]})
         # KHÔNG có sheet NXT riêng -> tồn kho TK 151–156 từ CĐPS (DUAN NVL 152, An KS hàng hóa 156).
-        # Loại Trạm sạc/HO: 2 khối này lấy tồn kho từ CĐKT mã140 (nhánh dưới) -> tránh trùng nguồn.
-        if not tonkho_todo and not any(k in (_khoi_of(args.file) or "").lower() for k in ("trạm sạc", "hỗ trợ")):
+        # Loại HO: khối này lấy tồn kho từ CĐKT mã140 (nhánh dưới) -> tránh trùng nguồn.
+        # Trạm sạc (2026-07-24): file chỉ có sheet 'Bảng CĐPS' TỪ T06 trở đi (T01-T05 KHÔNG có) —
+        # khi CÓ thì ưu tiên CĐPS (cho Nhập=PS Nợ/Xuất=PS Có thật, trước đó luôn 0 vì CĐKT mã140
+        # không có cột phát sinh); khi KHÔNG có (tháng cũ, thue_todo rỗng) vòng lặp này tự no-op,
+        # cdps_tonkho_done ở False -> rơi xuống nhánh CĐKT mã140 phía dưới như cũ.
+        cdps_tonkho_done = False
+        if not tonkho_todo and "hỗ trợ" not in (_khoi_of(args.file) or "").lower():
             for sheet in thue_todo:
                 try:
                     rc = _derive_tonkho_cdps(args.file, sheet, period, args.cong_ty)
                     if rc.get("ok"):
+                        cdps_tonkho_done = True
                         derived.append({"kind": "09_TONKHO", "sheet": sheet, "ok": True,
                                         "rows": rc.get("rows"), "error": None, "via": "CĐPS TK152"})
                 except Exception:  # noqa: BLE001
                     pass
-        for sheet in tscd_todo:         # TSCD (khấu hao) -> 08_TSCD -> TS
+        # "TS hết khấu hao còn dùng/chờ thanh lý" (Chart 3/3, 08_TSCD) — báo cáo riêng
+        # "baocaotaisancodinhcongcudungcu" (per-asset). TÍNH TRƯỚC (không ghi DB) rồi GẮN vào
+        # record của _derive_tscd/_derive_tscd_duan NẾU hàm đó ghi thành công cho CHÍNH file này
+        # (An Taxi/Hưng Thịnh, layout NHÓM) — cùng 1 import_filled call, tránh 2 lần ghi cùng
+        # source_file đè nhau. Đơn vị mà 2 hàm trên KHÔNG ghi được (An KS/GA/Xanh VP/Trạm sạc/Dự
+        # án nếu marker DUAN cũ fail/SRVF) -> extract() tự ghi standalone (source_file riêng, an
+        # toàn vì không ai khác ghi report_type TS cho source_file đó). HO xử lý riêng, gắn thẳng
+        # vào _derive_tscd_cdkt (cùng file baocaotaichinhrieng) — KHÔNG qua đây.
+        _het_kh_raw = None
+        try:
+            from derive_tscd_hetkhauhao import compute as _het_kh_compute
+            _het_kh_raw = _het_kh_compute(args.file)
+        except Exception:  # noqa: BLE001
+            _het_kh_raw = None
+        _het_kh_attached = False
+        # Đơn vị dùng CĐKT làm nguồn TSCĐ CHÍNH (khối override phía dưới, _derive_tscd_cdkt "ghi
+        # ĐÈ") -> breakdown Loại TS của _derive_tscd/_derive_tscd_duan (source_file KHÁC) sẽ CỘNG
+        # ĐÔI với dòng "TSCĐ (theo CĐKT)" vào ts_ng/ts_gtcl (chỉ tiêu #17/#18 Overview) vì 2 nguồn
+        # khác source_file cùng tồn tại. -> BỎ QUA breakdown này cho các khối đó, CHỈ ghi hết-KH
+        # (qua fallback standalone dưới) — khớp đúng ý đồ "ghi ĐÈ" đã ghi trong comment CĐKT-override.
+        _kn_cdkt_override = (_khoi_of(args.file) or "").lower()
+        _is_cdkt_primary = any(k in _kn_cdkt_override for k in
+                                ("an taxi", "an ks", "hỗ trợ", "công nghệ", "trạm sạc", "xe tải",
+                                 "dự án", "taxi xanh"))
+        if not _is_cdkt_primary:
+            for sheet in tscd_todo:         # TSCD (khấu hao) -> 08_TSCD -> TS
+                try:
+                    # DUAN: 'KH TSCĐ' layout marker '(n)' riêng -> deriver DUAN; đơn vị khác -> generic.
+                    if "dự án" in (_khoi_of(args.file) or "").lower():
+                        rc = _derive_tscd_duan(args.file, sheet, period, args.cong_ty, het_kh=_het_kh_raw)
+                    else:
+                        rc = _derive_tscd(args.file, sheet, period, args.cong_ty, het_kh=_het_kh_raw)
+                    if rc.get("ok") and rc.get("het_kh_attached"):
+                        _het_kh_attached = True
+                    derived.append({"kind": "08_TSCD", "sheet": sheet, "ok": rc.get("ok"),
+                                    "rows": rc.get("rows"), "via": rc.get("n_ts") and "KH TSCĐ", "error": rc.get("error")})
+                except Exception as ex:  # noqa: BLE001
+                    derived.append({"kind": "08_TSCD", "sheet": sheet, "ok": False, "error": str(ex)[:150]})
+        if _het_kh_raw is not None and not _het_kh_attached:
             try:
-                # DUAN: 'KH TSCĐ' layout marker '(n)' riêng -> deriver DUAN; đơn vị khác -> generic.
-                if "dự án" in (_khoi_of(args.file) or "").lower():
-                    rc = _derive_tscd_duan(args.file, sheet, period, args.cong_ty)
-                else:
-                    rc = _derive_tscd(args.file, sheet, period, args.cong_ty)
-                derived.append({"kind": "08_TSCD", "sheet": sheet, "ok": rc.get("ok"),
-                                "rows": rc.get("rows"), "via": rc.get("n_ts") and "KH TSCĐ", "error": rc.get("error")})
+                from derive_tscd_hetkhauhao import extract as _het_kh_extract
+                rhk = _het_kh_extract(args.file, period, args.cong_ty)
+                if not rhk.get("skip"):
+                    derived.append({"kind": "08_TSCD (TS hết KH)", "ok": rhk.get("ok"),
+                                    "rows": rhk.get("rows"), "error": rhk.get("error")})
             except Exception as ex:  # noqa: BLE001
-                derived.append({"kind": "08_TSCD", "sheet": sheet, "ok": False, "error": str(ex)[:150]})
+                derived.append({"kind": "08_TSCD (TS hết KH)", "ok": False, "error": str(ex)[:150]})
         # SRVF (Chi nhánh VinFast Showroom) — FORMAT RIÊNG, deriver chuyên biệt (cong_ty ÉP 'TC',
         # alias folder SRVF->TC). CĐKT chuẩn TT200 -> _derive_cdkt; P&L ở sheet 'T{mm}BC' (KHÔNG phải
         # 'KQKD') -> _derive_kqkd_srvf; công nợ/thuế/tồn kho (TK152/153/154/156) từ CĐPS 1-tầng -> derive_srvf_cdps.
@@ -3442,20 +3844,58 @@ def cmd_autofill(args):
                             e["reason"] = "công nợ GA nạp bằng derive_ga_congno (tất định)"
             except Exception as ex:  # noqa: BLE001
                 derived.append({"kind": "GA công nợ", "ok": False, "error": str(ex)[:150]})
-            # THUẾ GA: TK133/333 lấy từ CĐKT RIÊNG (mã 152 'Thuế GTGT được khấu trừ' -> Phải thu; mã 313
-            # 'Thuế và các khoản phải nộp' -> Phải nộp). KHÔNG dùng 'TC_CDPS' (CĐPS hợp nhất Thịnh Cường
-            # Group, triệu đồng): _derive_thue fail 'header 2 tầng' -> trước flip need_llm -> analyst, mà
-            # analyst container KHÔNG mount received_reports nên luôn rỗng. Chạy sau _derive_cdkt; đè bản
-            # THUE cũ (LLM dump nhầm 50 dòng không nhãn) theo source_file.
-            _cdkt_sheet = next((e["sheet"] for e in ledger
-                                if e.get("target_sheet") == "07_TAISAN_NV" and (e.get("sheet") or "")), None)
-            if _cdkt_sheet:
+            # Chiều ĐẢO công nợ GA (PTRA_ADV="Trả trước NCC" dư Nợ TK331, PTHU_ADV="Người mua trả
+            # tiền trước" dư Có TK131) — additive, KHÔNG đụng PTHU/PTRA gốc ở trên. Trước đây phải
+            # chạy tay derive_ga_congno_adv.py --write mỗi tháng (số bị bỏ sót, VD T05/T06 "Trả
+            # trước NCC" = 0 dù báo cáo có 30,8tr) — nay nối vào autofill để tự lên mọi tháng.
+            try:
+                from derive_ga_congno_adv import derive as _ga_congno_adv
+                rga = _ga_congno_adv(args.file, period, True, args.cong_ty or "GA")
+                derived.append({"kind": "GA công nợ chiều đảo (PTRA_ADV/PTHU_ADV)",
+                                "ok": not any(b.get("error") for b in rga.get("blocks", [])),
+                                "blocks": rga.get("blocks")})
+            except Exception as ex:  # noqa: BLE001
+                derived.append({"kind": "GA công nợ chiều đảo", "ok": False, "error": str(ex)[:150]})
+            # THUẾ GA: ƯU TIÊN 'TC_CDPS' (sheet CĐPS RIÊNG của GA, dò được TK 133 + 5 loại 333xx đầy đủ
+            # từ khi sửa bug dò header 2 tầng của _heuristic_tk_mapping, 2026-07-29 — trước đây bị chặn
+            # ở đây do lỗi đó, ghi nhầm là 'CĐPS hợp nhất'). Fallback CĐKT mã152/313 (thô hơn, không
+            # tách 5 loại) nếu vì lý do gì đó TC_CDPS fail (vd tháng thiếu sheet). Đè bản THUE cũ theo
+            # source_file (cả 2 nhánh đều gọi tf.import_filled cùng source_file -> idempotent).
+            try:
+                from servers.common import be_bridge as bb
+                _wb_ga = bb.fast_load_workbook(args.file, read_only=True, data_only=True)
                 try:
-                    rtx = _derive_thue_cdkt(args.file, _cdkt_sheet, period, args.cong_ty or "GA")
-                    derived.append({"kind": "10_THUE", "sheet": _cdkt_sheet, "ok": rtx.get("ok"),
-                                    "rows": rtx.get("rows"), "error": rtx.get("error"), "via": "CĐKT mã152/313"})
-                except Exception as ex:  # noqa: BLE001
-                    derived.append({"kind": "10_THUE", "ok": False, "error": str(ex)[:150]})
+                    _ga_tc_sheet = next((s for s in _wb_ga.sheetnames
+                                         if (s or "").strip().upper().replace(" ", "") == "TC_CDPS"), None)
+                finally:
+                    _wb_ga.close()
+                rtx = (_derive_thue(args.file, _ga_tc_sheet, period, args.cong_ty or "GA")
+                       if _ga_tc_sheet else {"ok": False, "error": "không thấy sheet TC_CDPS"})
+                derived.append({"kind": "10_THUE", "sheet": _ga_tc_sheet, "ok": rtx.get("ok"),
+                                "rows": rtx.get("rows"), "error": rtx.get("error"), "via": "TC_CDPS (5 loại thuế)"})
+            except Exception as ex:  # noqa: BLE001
+                rtx = {"ok": False}
+                derived.append({"kind": "10_THUE", "ok": False, "error": str(ex)[:150]})
+            if not rtx.get("ok"):
+                _cdkt_sheet = next((e["sheet"] for e in ledger
+                                    if e.get("target_sheet") == "07_TAISAN_NV" and (e.get("sheet") or "")), None)
+                if _cdkt_sheet:
+                    try:
+                        rtx2 = _derive_thue_cdkt(args.file, _cdkt_sheet, period, args.cong_ty or "GA")
+                        derived.append({"kind": "10_THUE", "sheet": _cdkt_sheet, "ok": rtx2.get("ok"),
+                                        "rows": rtx2.get("rows"), "error": rtx2.get("error"),
+                                        "via": "CĐKT mã152/313 (fallback)"})
+                    except Exception as ex:  # noqa: BLE001
+                        derived.append({"kind": "10_THUE", "ok": False, "error": str(ex)[:150]})
+        # HT (Hưng Thịnh, Khối Xe tải) — THUẾ từ sheet 'cđps hợp nhất' (xem _derive_thue_ht docstring
+        # về lý do cần deriver riêng: layout 6 nhóm cột HT/TC/CỘNG không khớp _heuristic_tk_mapping).
+        if _source_id(args.file).split("::", 1)[0].upper() == "HUNGTHINH":
+            try:
+                rht = _derive_thue_ht(args.file, period, args.cong_ty or "HT")
+                derived.append({"kind": "10_THUE", "ok": rht.get("ok"), "rows": rht.get("rows"),
+                                "error": rht.get("error"), "via": "CĐPS hợp nhất, cột 'Cuối kỳ HT'"})
+            except Exception as ex:  # noqa: BLE001
+                derived.append({"kind": "10_THUE", "ok": False, "error": str(ex)[:150]})
         # An Taxi / An KS (nhóm AAG) — P&L QUẢN TRỊ theo spec 50 chỉ tiêu: An Taxi đọc sheet 'BCQT PT.'
         # (mã 100 DT bán hàng='Doanh thu HH,DV', 120 DT thuần, 130 giá vốn, 150/170/182/192 chi phí,
         # 200 LNTT, 220 LNST); An KS đọc sheet 'BCQT' (Mục I/II/III). Deriver riêng -> 01_HQKD (DThu
@@ -3503,7 +3943,10 @@ def cmd_autofill(args):
         # (tonkho_todo rỗng) -> tránh đè _derive_tonkho. Trạm sạc (mã140 ~3.7 tỷ) + HO (mã140 ~11.9 tỷ
         # tĩnh) chỉ có tồn kho ở CĐKT nên màn Tồn kho trước đây trống. Deriver tự bỏ nếu mã140=0
         # (GA phần mềm -> không tạo dòng). Mở gate cho các khối này (self-exclude khi mã140=0).
-        if not tonkho_todo and any(k in _kn for k in ("trạm sạc", "hỗ trợ")):
+        # Trạm sạc (2026-07-24): CHỈ fallback về đây khi tháng đó KHÔNG có 'Bảng CĐPS'
+        # (cdps_tonkho_done=False, vd T01-T05) — có CĐPS rồi thì nhánh trên đã cho nhập/xuất thật,
+        # KHÔNG ghi đè bằng dòng CĐKT (không có nhập/xuất).
+        if not tonkho_todo and not cdps_tonkho_done and any(k in _kn for k in ("trạm sạc", "hỗ trợ")):
             for sheet in cdkt_todo:
                 try:
                     rc = _derive_tonkho_cdkt(args.file, sheet, period, args.cong_ty)

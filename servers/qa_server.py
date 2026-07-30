@@ -36,19 +36,24 @@ def _norm(s) -> str:
     return bb.normalize_header(s or "", True)
 
 
-@mcp.tool()
-def sql_query(sql: str, params: list = None) -> dict:
-    """Chạy 1 câu SELECT/WITH read-only trên raw_rows (Postgres, role read-only).
-    Guardrails tự chặn DML/DDL/multi-statement và ép LIMIT. Trả rows + sql_executed."""
-    conn = get_ro_db()
-    rows, safe_sql = guardrails.run_readonly(conn, sql, params)
-    return {"rows": rows, "sql_executed": safe_sql, "row_count": len(rows)}
-
-
-@mcp.tool()
-def schema_describe() -> str:
-    """Mô tả cấu trúc bảng raw_rows + report_type hợp lệ (dùng để tự sinh SQL)."""
-    return introspect.schema_describe()
+# TẠM KHÓA (2026-07-24): chặn hẳn đường SQL/Postgres của luồng qa — bắt buộc qa agent
+# dùng source_inspect/catalog_search đọc thẳng file Excel trong Connect_VPS/received_reports
+# thay vì truy vấn raw_rows. Bỏ comment 2 tool dưới (+ restart dashboard-mcp-qa.service) nếu
+# thực sự cần dùng lại sql_query.
+#
+# @mcp.tool()
+# def sql_query(sql: str, params: list = None) -> dict:
+#     """Chạy 1 câu SELECT/WITH read-only trên raw_rows (Postgres, role read-only).
+#     Guardrails tự chặn DML/DDL/multi-statement và ép LIMIT. Trả rows + sql_executed."""
+#     conn = get_ro_db()
+#     rows, safe_sql = guardrails.run_readonly(conn, sql, params)
+#     return {"rows": rows, "sql_executed": safe_sql, "row_count": len(rows)}
+#
+#
+# @mcp.tool()
+# def schema_describe() -> str:
+#     """Mô tả cấu trúc bảng raw_rows + report_type hợp lệ (dùng để tự sinh SQL)."""
+#     return introspect.schema_describe()
 
 
 @mcp.tool()

@@ -142,26 +142,39 @@ def extract(path, period, cong_ty="TC"):
              _json.dumps({"unit": "ty", "nguon": f"CĐPS {_key}"}, ensure_ascii=False), src))
         out[_rt.lower()] = _v
     _dbh.commit()
-    # THUẾ: TK 133 (GTGT được khấu trừ = phải thu, dư NỢ) + TK 333 (thuế phải nộp, dư CÓ). Điền đủ
-    # đầu/PS tăng/PS giảm để bảng cân (cuối = đầu + tăng − giảm). Số dư RÒNG (chiều chính − ngược).
+    # THUẾ: TK 133 (GTGT được khấu trừ = phải thu, dư NỢ) + 5 TK con 333xx (thuế phải nộp, dư CÓ —
+    # xem A._THUE333_MAP, cập nhật 2026-07: thay lấy TK cha "333" nguyên khối -> tách đúng 5 loại
+    # thuế chuẩn, khớp cách các đơn vị khác đang làm). Điền đủ đầu/PS tăng/PS giảm để bảng cân
+    # (cuối = đầu + tăng − giảm). Số dư RÒNG (chiều chính − ngược).
     #   133: đầu=Nợ đầu−Có đầu, tăng=PS Nợ, giảm=PS Có, cuối=Nợ cuối−Có cuối.
-    #   333: đầu=Có đầu−Nợ đầu, tăng=PS Có, giảm=PS Nợ, cuối=Có cuối−Nợ cuối.
+    #   333xx: đầu=Có đầu−Nợ đầu, tăng=PS Có, giảm=PS Nợ, cuối=Có cuối−Nợ cuối.
     def _net(r, pos, neg):
         p, n = val(r, pos), val(r, neg)
         return None if (p is None and n is None) else round((p or 0) - (n or 0), 9)
     thue = []
-    for tk, pt, dpos, dneg, cpos, cneg, inc, dec in (
-            ("133", "Phải thu", "no_dau", "co_dau", "no_cuoi", "co_cuoi", "ps_no", "ps_co"),
-            ("333", "Phải nộp", "co_dau", "no_dau", "co_cuoi", "no_cuoi", "ps_co", "ps_no")):
-        r = find_tk(tk)
+    r133 = find_tk("133")
+    if r133:
+        cuoi, dau = _net(r133, "no_cuoi", "co_cuoi"), _net(r133, "no_dau", "co_dau")
+        tang, giam = val(r133, "ps_no"), val(r133, "ps_co")
+        if any(abs(v or 0) > 1e-9 for v in (cuoi, dau, tang, giam)):
+            ten = bb.parse_text(r133[c["tk"] + 1]) if c["tk"] + 1 < len(r133) else None
+            thue.append({"Kỳ": period, "Đơn vị": cong_ty,
+                         "Loại thuế (GTGT ra/vào, TNCN, TNDN, NK, khác)": ten or "TK 133",
+                         "Phải thu/Phải nộp": "Phải thu", "Dư đầu kỳ (tỷ)": dau,
+                         "PS tăng (tỷ)": tang, "PS giảm (tỷ)": giam, "Dư cuối kỳ (tỷ)": cuoi})
+    for _tk333, _label in A._THUE333_MAP.items():
+        r = find_tk(_tk333)
         if not r:
             continue
-        cuoi, dau, tang, giam = _net(r, cpos, cneg), _net(r, dpos, dneg), val(r, inc), val(r, dec)
+        # LẤY THẲNG (không net Nợ) theo spec: đầu kỳ = Dư Có đầu kỳ, tăng = PS Có, giảm = PS Nợ;
+        # cuối kỳ = đầu+tăng−giảm (metrics_extra tính lại, field ở đây chỉ để tương thích).
+        dau = val(r, "co_dau")
+        tang, giam = val(r, "ps_co"), val(r, "ps_no")
+        cuoi = round((dau or 0) + (tang or 0) - (giam or 0), 9)
         if any(abs(v or 0) > 1e-9 for v in (cuoi, dau, tang, giam)):   # bỏ dòng toàn 0
-            ten = bb.parse_text(r[c["tk"] + 1]) if c["tk"] + 1 < len(r) else None
             thue.append({"Kỳ": period, "Đơn vị": cong_ty,
-                         "Loại thuế (GTGT ra/vào, TNCN, TNDN, NK, khác)": ten or f"TK {tk}",
-                         "Phải thu/Phải nộp": pt, "Dư đầu kỳ (tỷ)": dau,
+                         "Loại thuế (GTGT ra/vào, TNCN, TNDN, NK, khác)": _label,
+                         "Phải thu/Phải nộp": "Phải nộp", "Dư đầu kỳ (tỷ)": dau,
                          "PS tăng (tỷ)": tang, "PS giảm (tỷ)": giam, "Dư cuối kỳ (tỷ)": cuoi})
     if thue:
         p = os.path.join(tf.FILLED_DIR, f"SRVF_{period}_10_THUE.xlsx")
