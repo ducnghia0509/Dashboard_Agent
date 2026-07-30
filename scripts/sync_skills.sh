@@ -5,7 +5,9 @@
 # Phát hiện 2026-07-10: 3/4 SKILL workspace đóng băng từ 2-4/7 trong khi repo đã sửa nhiều lần.
 set -euo pipefail
 REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)/agents"
-STATE_DIR="/home/sysadmin/openclaw/state/agents"
+# $HOME thay vì hard-code /home/sysadmin (user khác -> vòng lặp bỏ qua HẾT, im lặng "đã khớp"
+# giả). Đặt OPENCLAW_STATE_DIR nếu state nằm ngoài home.
+STATE_DIR="${OPENCLAW_STATE_DIR:-$HOME/openclaw/state/agents}"
 changed=0
 for a in analyst orchestrator execute qa; do
   repo="$REPO_DIR/$a/SKILL.md"

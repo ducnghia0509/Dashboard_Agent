@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """SINH org_catalog.json — DANH MỤC TỔ CHỨC (artifact sinh ra, KHÔNG sửa tay).
 
-NGUỒN SỰ THẬT = /home/sysadmin/knowledge/*.yaml (companies/khoi/cost_centers). Sửa YAML rồi chạy
+NGUỒN SỰ THẬT = knowledge/*.yaml (companies/khoi/cost_centers). Sửa YAML rồi chạy
 lại (hoặc knowledge/build.py). aliases/path_khoi ưu tiên đọc từ YAML nếu có field, không thì dùng
 fallback hardcode bên dưới (companies.yaml/source_path_rules.yaml hiện là bản thuần nghiệp vụ,
 không mang field kỹ thuật). Cấp độ dữ liệu (B/F/H/T) + tần suất (D/W/M/Q/Y) lấy từ Danh_Muc_Ma_he_thong.xlsx.
@@ -23,7 +23,8 @@ import yaml
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _ROOT = os.path.dirname(_HERE)
-KNOWLEDGE = os.environ.get("KNOWLEDGE_DIR", "/home/sysadmin/knowledge")
+KNOWLEDGE = os.environ.get("KNOWLEDGE_DIR") or os.path.normpath(
+    os.path.join(_ROOT, "..", "knowledge"))
 DANHMUC = os.path.join(_ROOT, "context", "sources", "Danh_Muc_Ma_he_thong.xlsx")
 OUT = os.path.join(_ROOT, "servers", "common", "org_catalog.json")
 

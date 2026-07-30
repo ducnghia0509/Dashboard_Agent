@@ -31,6 +31,11 @@ def atomic_dump_json(obj, path: str):
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as fh:
             json.dump(obj, fh, ensure_ascii=False, indent=2)
+        # mkstemp tạo file mode 0600 (chỉ owner đọc) - os.replace GIỮ NGUYÊN mode đó, làm file
+        # mất quyền đọc cho tiến trình khác UID (vd MCP server chạy trong container OpenClaw).
+        # _load() phía sau nuốt PermissionError thành "rỗng" im lặng nên bug này rất khó phát
+        # hiện - luôn trả file về 0644 sau khi ghi để tránh tái diễn.
+        os.chmod(tmp, 0o644)
         os.replace(tmp, path)
     except BaseException:
         try:

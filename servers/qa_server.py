@@ -17,6 +17,10 @@ mcp = FastMCP("dashboard_qa")
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _AGENT_ROOT = os.path.normpath(os.path.join(_HERE, ".."))
 _KPI_GLOSSARY_PATH = os.path.join(_AGENT_ROOT, "kpi_glossary.json")
+# Tài liệu tham chiếu (mapping/org chart) - CHỈ ĐỌC, không phải file nguồn báo cáo. Thêm 2026-07-30
+# để qa đọc thẳng Tài liệu/Mapping_Dashboard_QTTC.xlsx (cách tính 50 chỉ tiêu theo từng công ty)
+# thay vì phải hardcode lại nội dung vào SKILL.md.
+_DOCS_DIR = os.path.normpath(os.path.join(_AGENT_ROOT, "..", "Tài liệu"))
 
 _kpi_cache = None
 
@@ -102,23 +106,24 @@ def glossary_lookup(term: str) -> dict:
 
 
 @mcp.tool()
-def discovery_search(query: str = None, report_type: str = None) -> list:
+def discovery_search(query: str = None, report_type: str = None) -> dict:
     """Tìm trong discovery memory: số này/file này từng được phân tích chưa, đến từ
-    sheet/cột nào, report_type gì, mapping ra sao."""
-    return memory.discovery_search(query=query, report_type=report_type)
+    sheet/cột nào, report_type gì, mapping ra sao. Trả {"results": [...]}."""
+    return {"results": memory.discovery_search(query=query, report_type=report_type)}
 
 
 @mcp.tool()
 def report_spec_search(query: str = None, sheet: str = None, target_report_type: str = None,
-                        canonical_kind: str = None) -> list:
+                        canonical_kind: str = None) -> dict:
     """Tìm trong catalog SheetMapping đã học (Extension 2 - sheet lạ không khớp 9 report_type
     cố định, vd '131'/'331'/'Biểu khấu hao'): sheet này đã có cách lấy dữ liệu (mapping) chưa,
     report_type GEN_* này lấy từ sheet/cột nào. canonical_kind (vd 'TK131') tìm được mapping
     đã học ở CÔNG TY KHÁC dù tên sheet/file khác nhau, miễn cùng loại báo cáo. Dùng trước khi
     phân tích lại từ đầu bằng sheet_profile, và dùng làm ngữ cảnh khi qa cần giải thích 1 số
-    liệu GEN_*."""
-    return memory.report_spec_search(query=query, sheet=sheet, target_report_type=target_report_type,
-                                      canonical_kind=canonical_kind)
+    liệu GEN_*. Trả {"results": [...]}."""
+    return {"results": memory.report_spec_search(query=query, sheet=sheet,
+                                                   target_report_type=target_report_type,
+                                                   canonical_kind=canonical_kind)}
 
 
 def _input_dir() -> str:
@@ -135,9 +140,10 @@ def _within(base: str, target: str) -> bool:
 
 def _allowed_read_dirs() -> list:
     """Thư mục source_inspect được phép đọc: INPUT_DIR (template chuẩn) +
-    Connect_VPS/received_reports (file gốc kéo về; catalog_search trả path tuyệt đối ở đây)."""
+    Connect_VPS/received_reports (file gốc kéo về; catalog_search trả path tuyệt đối ở đây) +
+    Tài liệu (tài liệu tham chiếu/mapping, KHÔNG phải file nguồn báo cáo - chỉ đọc)."""
     from .common.source_catalog import RECEIVED_DIR
-    return [_input_dir(), RECEIVED_DIR]
+    return [_input_dir(), RECEIVED_DIR, _DOCS_DIR]
 
 
 def _resolve_readable(file_name: str) -> str:
@@ -151,17 +157,18 @@ def _resolve_readable(file_name: str) -> str:
     in_scope = [t for t in targets if any(_within(b, t) for b in bases)]
     if not in_scope:
         raise ValueError(f"'{file_name}' nằm ngoài thư mục được phép đọc "
-                         f"(INPUT_DIR / Connect_VPS/received_reports) - không được phép.")
+                         f"(INPUT_DIR / Connect_VPS/received_reports / Tài liệu) - không được phép.")
     for t in in_scope:
         if os.path.exists(t):
             return t
-    raise FileNotFoundError(f"Không tìm thấy '{file_name}' trong INPUT_DIR hoặc received_reports.")
+    raise FileNotFoundError(f"Không tìm thấy '{file_name}' trong INPUT_DIR, received_reports hoặc Tài liệu.")
 
 
 @mcp.tool()
 def source_inspect(file_name: str, sheet: str = None, max_rows: int = 200) -> dict:
-    """Mở file gốc (chỉ đọc) trong INPUT_DIR hoặc Connect_VPS/received_reports để đào sâu
-    số CHƯA hiển thị trên dashboard. Chặn path traversal (chỉ 2 thư mục này). Giới hạn max_rows dòng."""
+    """Mở file gốc (chỉ đọc) trong INPUT_DIR, Connect_VPS/received_reports, hoặc Tài liệu
+    (tài liệu tham chiếu/mapping) để đào sâu số CHƯA hiển thị trên dashboard hoặc tra công thức/
+    mapping. Chặn path traversal (chỉ 3 thư mục này). Giới hạn max_rows dòng."""
     from .common import be_bridge as bb
 
     target = _resolve_readable(file_name)
@@ -185,10 +192,11 @@ def source_inspect(file_name: str, sheet: str = None, max_rows: int = 200) -> di
 
 
 @mcp.tool()
-def unmapped_cc_list(include_resolved: bool = False) -> list:
+def unmapped_cc_list(include_resolved: bool = False) -> dict:
     """Cost center chưa khớp MD_COSTCENTER khi điền template (admin cần bổ sung danh mục
-    để lần sau tự roll-up đúng khối). Mỗi mục: raw, cong_ty, sheets, count, first/last_seen."""
-    return memory.unmapped_cc_list(include_resolved=include_resolved)
+    để lần sau tự roll-up đúng khối). Mỗi mục: raw, cong_ty, sheets, count, first/last_seen.
+    Trả {"results": [...]}."""
+    return {"results": memory.unmapped_cc_list(include_resolved=include_resolved)}
 
 
 @mcp.tool()
@@ -208,16 +216,18 @@ def pipeline_state() -> dict:
 
 @mcp.tool()
 def catalog_search(query: str = None, company: str = None, canonical_kind: str = None,
-                   sheet: str = None, only_uningested: bool = False) -> list:
+                   sheet: str = None, only_uningested: bool = False) -> dict:
     """Tra CATALOG toàn bộ file đã kéo về (Connect_VPS/received_reports) — con trỏ lossless,
     trả lời 'có file/sheet/cột nào' tức thì (kể cả file CHƯA import). Không mở file.
 
-    Mỗi mục: file, path, company, report_type, month, ingested, sheets:[{name,columns,nrows,
-    canonical_kind}]. Định vị được file rồi dùng source_inspect đọc chi tiết ô gốc.
+    Trả {"results": [...]} — mỗi mục: file, path, company, report_type, month, ingested,
+    sheets:[{name,columns,nrows,canonical_kind}]. Định vị được file rồi dùng source_inspect
+    đọc chi tiết ô gốc.
     """
     from .common import source_catalog
-    return source_catalog.search(query=query, company=company, canonical_kind=canonical_kind,
-                                 sheet=sheet, only_uningested=only_uningested)
+    return {"results": source_catalog.search(query=query, company=company,
+                                              canonical_kind=canonical_kind, sheet=sheet,
+                                              only_uningested=only_uningested)}
 
 
 if __name__ == "__main__":

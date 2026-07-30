@@ -21,7 +21,11 @@ import json
 import os
 import sys
 
-sys.path.insert(0, "/home/sysadmin")
+# cashflow_vay_extractor nằm CÙNG scripts/ (bản repo); fallback thư mục anh em của repo cho
+# bản cũ đặt ngoài workspace. Không hard-code /home/<user>: user khác là ImportError.
+_HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.normpath(os.path.join(_HERE, "..", "..")))
+sys.path.insert(0, _HERE)
 import cashflow_vay_extractor as ext            # noqa: E402  (unit_of/month_of/load)
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from servers.common import be_bridge as bb      # noqa: E402

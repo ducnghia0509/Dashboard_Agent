@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Lớp 2 — HƯỚNG DẪN LẤY DỮ LIỆU per-đơn vị (xem knowledge/00_index.yaml).
 
-Đọc /home/sysadmin/knowledge/{ma_congty}.yaml NẾU CÓ (thay thế hoàn toàn, KHÔNG merge), ngược lại
+Đọc knowledge/{ma_congty}.yaml NẾU CÓ (thay thế hoàn toàn, KHÔNG merge), ngược lại
 đọc knowledge/_chung.yaml. Đây là loader MỎNG — nội dung/luật nghiệp vụ do business viết trong YAML,
 thêm 1 công ty có quirk riêng chỉ cần tạo file mới, không đụng code này.
 
@@ -12,7 +12,14 @@ import os
 
 import yaml
 
-KNOWLEDGE_DIR = os.environ.get("KNOWLEDGE_DIR", "/home/sysadmin/knowledge")
+_HERE = os.path.dirname(os.path.abspath(__file__))
+_AGENT_ROOT = os.path.normpath(os.path.join(_HERE, "..", ".."))
+
+# knowledge/ là thư mục ANH EM của repo (dùng chung với DashBoard_AI) — resolve tương đối theo
+# repo, KHÔNG hard-code /home/<user>: trên VPS ra đúng ~/knowledge như trước, còn máy dev thì
+# ra <workspace>/knowledge. Env KNOWLEDGE_DIR vẫn ưu tiên (giống contract.py/GOLDEN_TEMPLATE).
+KNOWLEDGE_DIR = os.environ.get("KNOWLEDGE_DIR") or os.path.normpath(
+    os.path.join(_AGENT_ROOT, "..", "knowledge"))
 DEFAULT_GUIDE = "_chung.yaml"
 
 # Tên file HỆ THỐNG trong knowledge/ — KHÔNG BAO GIỜ coi là hướng dẫn per-công-ty, dù trùng basename

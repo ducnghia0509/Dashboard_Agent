@@ -21,8 +21,15 @@ from xml.sax.saxutils import escape
 
 import yaml
 
-KNOWLEDGE = os.environ.get("KNOWLEDGE_DIR", "/home/sysadmin/knowledge")
-GOLDEN = os.environ.get("GOLDEN_TEMPLATE", "/home/sysadmin/template_trust/Template_chuan.xlsx")
+_HERE = os.path.dirname(os.path.abspath(__file__))
+_ROOT = os.path.dirname(_HERE)                       # Dashboard_Agent/
+
+# knowledge/ và template_trust/ là thư mục ANH EM của repo — resolve tương đối (khớp
+# contract.py/gen_kpi_glossary.py) thay vì hard-code /home/<user>.
+KNOWLEDGE = os.environ.get("KNOWLEDGE_DIR") or os.path.normpath(
+    os.path.join(_ROOT, "..", "knowledge"))
+GOLDEN = os.environ.get("GOLDEN_TEMPLATE") or os.path.normpath(
+    os.path.join(_ROOT, "..", "template_trust", "Template_chuan.xlsx"))
 
 
 def _load(name):

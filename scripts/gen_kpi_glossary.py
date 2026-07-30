@@ -28,7 +28,8 @@ ROOT = os.path.dirname(HERE)
 # Ưu tiên env GOLDEN_TEMPLATE (khớp contract.py), mặc định ~/template_trust/Template_chuan.xlsx
 TEMPLATE_XLSX = os.environ.get("GOLDEN_TEMPLATE") or os.path.normpath(
     os.path.join(ROOT, "..", "template_trust", "Template_chuan.xlsx"))
-KNOWLEDGE_DIR = os.environ.get("KNOWLEDGE_DIR", "/home/sysadmin/knowledge")
+KNOWLEDGE_DIR = os.environ.get("KNOWLEDGE_DIR") or os.path.normpath(
+    os.path.join(ROOT, "..", "knowledge"))
 CHI_TIEU_YAML = os.path.join(KNOWLEDGE_DIR, "50_chi_tieu.yaml")
 OUT_PATH = os.path.join(ROOT, "kpi_glossary.json")
 SHEET_NAME = "00_50CHITIEU"

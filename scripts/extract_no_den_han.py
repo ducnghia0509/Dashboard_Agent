@@ -2,7 +2,7 @@
 """Dẫn xuất "NỢ GỐC ĐẾN HẠN TRONG THÁNG" cho màn Dòng tiền (phần Vay) — ADDITIVE.
 
 Nguồn: báo cáo ngân hàng đơn vị trong THUCHI/baocaonganhang (spec:
-/home/sysadmin/nguyen_tac_lay_no_den_han_dashboard.md). Tính = ma trận cột-tháng của
+nguyen_tac_lay_no_den_han_dashboard.md). Tính = ma trận cột-tháng của
 sheet NH/TH (đọc cột = tháng của file) + Thịnh Cường cột rộng 'Trả gốc T<MM>'.
 
 GHI: MERGE (không tạo dòng trùng) — patch payload.den_han vào ĐÚNG dòng report_type='VAY'
@@ -20,7 +20,11 @@ import json
 import os
 import sys
 
-sys.path.insert(0, "/home/sysadmin")               # extractor lõi (đã verify)
+# extractor lõi (đã verify) nằm CÙNG scripts/; fallback thư mục anh em của repo cho bản cũ
+# đặt ngoài workspace. Không hard-code /home/<user>: user khác là ImportError.
+_HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.normpath(os.path.join(_HERE, "..", "..")))
+sys.path.insert(0, _HERE)
 import cashflow_vay_extractor as ext                # noqa: E402
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from servers.common import be_bridge as bb          # noqa: E402

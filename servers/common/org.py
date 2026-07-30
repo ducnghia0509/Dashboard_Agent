@@ -116,7 +116,10 @@ def khoi_from_path(path: str) -> str | None:
     return None
 
 
-_KNOWLEDGE_DIR = os.environ.get("KNOWLEDGE_DIR", "/home/sysadmin/knowledge")
+# knowledge/ = thư mục anh em của repo; resolve tương đối (xem extraction.py) thay vì
+# hard-code /home/<user> — nếu sai đường dẫn thì _load_khoi_phapnhan_map() trả {} âm thầm.
+_KNOWLEDGE_DIR = os.environ.get("KNOWLEDGE_DIR") or os.path.normpath(
+    os.path.join(_HERE, "..", "..", "..", "knowledge"))
 _MAP_PATH = os.path.join(_KNOWLEDGE_DIR, "khoi_phapnhan_map.yaml")
 _map_cache = None
 _map_cache_mtime = None

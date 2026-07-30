@@ -433,7 +433,8 @@ def _load_classification() -> dict:
         try:
             import os
             import yaml
-            kd = os.environ.get("KNOWLEDGE_DIR", "/home/sysadmin/knowledge")
+            kd = os.environ.get("KNOWLEDGE_DIR") or os.path.normpath(
+                os.path.join(_AGENT_ROOT, "..", "knowledge"))
             with open(os.path.join(kd, "classification.yaml"), encoding="utf-8") as fh:
                 _classify_cache = yaml.safe_load(fh) or {}
         except Exception:
