@@ -148,7 +148,12 @@ def _allowed_read_dirs() -> list:
 
 def _resolve_readable(file_name: str) -> str:
     """Phân giải file_name (tên trơn / tương đối / tuyệt đối) về đường dẫn nằm TRONG một
-    thư mục được phép. Chặn path traversal; raise nếu ngoài phạm vi hoặc không tồn tại."""
+    thư mục được phép. Chặn path traversal; raise nếu ngoài phạm vi hoặc không tồn tại.
+
+    Model hay gọi CHỈ tên file trơn (không kèm thư mục con, vd company/report_type) thay vì
+    path tương đối đầy đủ hoặc path tuyệt đối lấy từ catalog_search - fallback: tìm đệ quy theo
+    basename trong các thư mục được phép, chỉ nhận nếu khớp DUY NHẤT (tránh trả nhầm file trùng
+    tên ở công ty khác)."""
     bases = _allowed_read_dirs()
     if os.path.isabs(file_name):
         targets = [os.path.normpath(file_name)]
@@ -161,6 +166,22 @@ def _resolve_readable(file_name: str) -> str:
     for t in in_scope:
         if os.path.exists(t):
             return t
+
+    base_name = os.path.basename(file_name)
+    matches = []
+    for b in bases:
+        if not os.path.isdir(b):
+            continue
+        for root, _dirs, files in os.walk(b):
+            if base_name in files:
+                matches.append(os.path.join(root, base_name))
+    unique = sorted(set(matches))
+    if len(unique) == 1:
+        return unique[0]
+    if len(unique) > 1:
+        raise FileNotFoundError(
+            f"'{file_name}' khớp NHIỀU file trùng tên trong INPUT_DIR/received_reports/Tài liệu "
+            f"- dùng path tương đối đầy đủ (vd từ catalog_search) để chọn đúng: {unique}")
     raise FileNotFoundError(f"Không tìm thấy '{file_name}' trong INPUT_DIR, received_reports hoặc Tài liệu.")
 
 
