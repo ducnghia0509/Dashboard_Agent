@@ -166,6 +166,12 @@ def cmd_pull(args):
                    "fileName": e.get("fileName"), "path": e.get("path"),
                    "month": e.get("month"), "periodType": e.get("periodType", ""),
                    "status": e.get("status", "")}
+        # BỎ HẲN khoá có giá trị None thay vì gửi null: receiver khai `month: int = None` mà chạy
+        # pydantic v2 -> đó là kiểu int (bắt buộc int) với DEFAULT None, default CHỈ áp dụng khi
+        # THIẾU trường; gửi null tường minh bị chặn 422 "Input should be a valid integer".
+        # Vướng đúng file kỳ NĂM (vd '0.KH.GR.Y.2026.Kehoachdoanhthu.xlsx' -> month=null trong
+        # metadata) -> yêu cầu bị chặn ngay, không bao giờ vào hàng đợi, nhìn như "không kéo được".
+        payload = {k: v for k, v in payload.items() if v is not None}
         try:
             results.append({"fileName": e.get("fileName"), "resp": _http("POST", "/request-file", payload)})
         except Exception as ex:
@@ -295,7 +301,12 @@ def cmd_status(args):
         # theo MÃ CÔNG TY (công ty chỉ thuộc đúng 1 khối) rồi mới tới path (thư mục lưu file có
         # thể là thư mục hành chính, vd file công ty GA lại nộp vào thư mục 'HO' — không phản ánh
         # đúng khối vận hành, chỉ nên dùng khi 2 tín hiệu trên đều không có).
-        khoi = C.khoi_from_filename(fn) or C.khoi_for_company(phap_nhan) or C.khoi_from_path(path_for_khoi)
+        # NGOẠI LỆ 'Baocaotaisancodinh' (sổ tài sản B.9.*): số '9' là SỐ THỨ TỰ BÁO CÁO trong bộ
+        # hồ sơ kế toán, KHÔNG phải mã khối (trùng mã 9 = Khối hỗ trợ tập đoàn -> mọi đơn vị bị
+        # gán nhầm HO trên tab Nguồn dữ liệu, phát hiện với SRVF 2026-07-30) -> bỏ tín hiệu tên
+        # file, suy theo công ty/path (cùng lý do derive_tscd_hetkhauhao._khoi_of không dùng nó).
+        _khoi_fn = None if "baocaotaisancodinh" in fn.lower() else C.khoi_from_filename(fn)
+        khoi = _khoi_fn or C.khoi_for_company(phap_nhan) or C.khoi_from_path(path_for_khoi)
         files.append({
             "file": fn,
             # source_key: định danh DUY NHẤT của dòng (company RAW + file) — "company"/"phap_nhan"
