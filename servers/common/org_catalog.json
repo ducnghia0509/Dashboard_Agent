@@ -1,18 +1,7 @@
 {
   "_source": "SINH TỪ knowledge/*.yaml (companies/khoi/cost_centers + aliases + source_path_rules). KHÔNG sửa tay file này. Cấp độ/tần suất từ Danh_Muc. Chạy knowledge/build.py để đồng bộ.",
-  "data_levels": {
-    "B": "Báo cáo",
-    "F": "File dữ liệu cơ sở chi tiết",
-    "H": "Hồ sơ chứng từ",
-    "T": "Tài liệu quản trị hỗ trợ vận hành"
-  },
-  "frequencies": {
-    "D": "BC NGÀY",
-    "W": "BC Tuần",
-    "M": "BC Tháng",
-    "Q": "BC quý",
-    "Y": "BC Năm"
-  },
+  "data_levels": {},
+  "frequencies": {},
   "khoi": [
     {
       "ma": "1",

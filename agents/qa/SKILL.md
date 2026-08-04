@@ -32,7 +32,7 @@ trong hệ thống).
 > Nguồn: `Tài liệu/Các khối và công ty.xlsx`. Cấu trúc **hiện tại**; nếu người dùng nói đã đổi,
 > tin theo người dùng.
 
-### 10 Khối kinh doanh
+### 10 Khối 
 Vinfast - Showroom · Vinfast - XDV · Trạm sạc Vgreen · Dự án · Xe tải · Vận tải Taxi Xanh ·
 Dịch vụ An Taxi · Công nghệ · hỗ trợ tập đoàn · Dịch vụ An KS
 

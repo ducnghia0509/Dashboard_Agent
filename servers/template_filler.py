@@ -13,6 +13,7 @@ Nguyên tắc:
 """
 import io
 import os
+import sys
 
 
 from .common import be_bridge as bb
@@ -268,13 +269,62 @@ def build_records(source_rows: list, header_row: int, mapping: dict,
             "header_warnings": header_warnings}
 
 
-def import_filled(path: str, cong_ty: str = None, khoi: str = None, source_file: str = None) -> dict:
+def next_row_id() -> int:
+    """MAX(id) hiện tại của raw_rows — mốc phân định "dòng có TRƯỚC lượt nạp này".
+
+    Bên gọi chụp mốc này TRƯỚC khi nạp file, rồi truyền cho prune_stale_types() ở cuối."""
+    return bb.get_db().execute("SELECT COALESCE(MAX(id),0) m FROM raw_rows").fetchone()["m"]
+
+
+def prune_stale_types(dataset_id: str, source_file: str, keep_types, before_id: int) -> dict:
+    """Xoá dòng CŨ của `source_file` thuộc report_type mà lượt nạp này KHÔNG CÒN sinh ra.
+
+    VÌ SAO CẦN: import_filled xoá bản cũ theo `report_type IN (<loại của CHÍNH lần gọi đó>)`. Ràng
+    buộc đó là BẮT BUỘC — một file đi qua NHIỀU lần import_filled cùng source_file (extract_tien:
+    SDT/VAY/THUCHI; autofill_file: mỗi sheet 1 lần), bỏ nó thì lần sau xoá luôn dòng lần trước vừa
+    chèn. Nhưng nó để lọt trường hợp: lần nạp TRƯỚC sinh ra loại X, lần này KHÔNG còn (layout đổi,
+    extractor đổi) -> dòng X cũ sống song song với dữ liệu mới mà không ai xoá.
+
+    Nên dọn MỘT LẦN ở cuối, khi đã biết ĐỦ tập loại của lượt này. Chỉ xoá dòng có id <= before_id
+    (dòng có trước lượt nạp) nên không đụng dòng vừa chèn.
+
+    An toàn: thiếu source_file (không định danh được phạm vi) hoặc keep_types rỗng (lượt nạp không
+    ra loại nào -> có thể do lỗi đọc file) -> KHÔNG xoá gì."""
+    keep = sorted({t for t in (keep_types or []) if t})
+    if not (dataset_id and source_file and keep and before_id):
+        return {"pruned": 0, "skipped": True}
+    tph = ",".join(["?"] * len(keep))
+    db = bb.get_db()
+    rows = db.execute(
+        f"SELECT report_type, COUNT(*) n FROM raw_rows WHERE dataset_id=? AND source_file=? "
+        f"AND id<=? AND report_type NOT IN ({tph}) GROUP BY report_type",
+        [dataset_id, source_file, before_id, *keep]).fetchall()
+    stale = {r["report_type"]: r["n"] for r in rows}
+    if not stale:
+        return {"pruned": 0, "types": {}}
+    db.execute(
+        f"DELETE FROM raw_rows WHERE dataset_id=? AND source_file=? AND id<=? "
+        f"AND report_type NOT IN ({tph})",
+        [dataset_id, source_file, before_id, *keep])
+    db.commit()
+    print(f"[prune_stale_types] {source_file}: xoa {stale} (loai khong con sinh ra; giu {keep})",
+          flush=True)
+    return {"pruned": sum(stale.values()), "types": stale}
+
+
+def import_filled(path: str, cong_ty: str = None, khoi: str = None, source_file: str = None,
+                  force_grain: str = None) -> dict:
     """Nạp 1 file ĐÃ ĐIỀN (template chuẩn) vào raw_rows.
 
     GỘP ĐA-CÔNG-TY: mỗi KỲ (tháng) = 1 dataset dùng CHUNG cho mọi công ty; import chỉ thay
     dữ liệu của (kỳ, cong_ty) NÀY (không xoá công ty khác) rồi ĐÓNG DẤU cong_ty cho các dòng
     vừa nạp -> dashboard tập đoàn thấy đủ công ty, filter theo công ty hoạt động.
-    (Không truyền cong_ty -> quay lại hành vi cũ: thay cả kỳ.)"""
+    (Không truyền cong_ty -> quay lại hành vi cũ: thay cả kỳ.)
+
+    force_grain='month': file điền có cột Kỳ dạng NGÀY (yyyy-mm-dd) nhưng vẫn muốn nạp vào
+    DATASET THÁNG (1 dataset/kỳ chứa dòng theo ngày) thay vì tạo 1 dataset cho MỖI NGÀY.
+    Dùng cho dẫn xuất dòng tiền theo ngày (extract_tien.py --daily / THUCHI_DAILY=1): ngày
+    được lấy từ chính data trong tháng nên Σ các ngày == số tháng, không nhân đôi dữ liệu."""
     with open(path, "rb") as fh:
         data = fh.read()
     _wb = bb.fast_load_workbook(io.BytesIO(data), data_only=True, read_only=True)
@@ -287,7 +337,12 @@ def import_filled(path: str, cong_ty: str = None, khoi: str = None, source_file:
     parsed = bb.template_parse(data)
     if not parsed["tuples"]:
         return {"ok": False, "error": "Template chưa có dòng dữ liệu nào (kiểm tra cột Kỳ)."}
-    grain = parsed["grain"]
+    # force_grain chỉ ĐỔI ĐÍCH NẠP (dataset tháng vs dataset/ngày), KHÔNG đổi cột `ngay` của từng
+    # dòng — dòng vẫn giữ ngày thật do importer parse ra. Chỉ nhận 'month'/'day' để không nuốt lỗi
+    # gõ sai thành một grain lạ rơi vào nhánh else (tạo dataset rác mỗi lần nạp).
+    if force_grain not in (None, "month", "day"):
+        return {"ok": False, "error": f"force_grain không hợp lệ: {force_grain!r} (chỉ 'month'/'day')"}
+    grain = force_grain or parsed["grain"]
     period = parsed.get("period")
     db = bb.get_db()
 
@@ -404,6 +459,7 @@ def import_filled(path: str, cong_ty: str = None, khoi: str = None, source_file:
     if grain == "month" and result.get("period"):
         bb.set_period(target, result["period"])
     return {"ok": True, "dataset_id": target, "grain": grain, "cong_ty": cong_ty,
+            "source_file": source_file,   # để bên gọi dọn stale type đúng phạm vi (prune_stale_types)
             "rows_imported": result["rows"], "by_type": result["by_type"],
             "period": result.get("period"), "ngay": result.get("ngay")}
 
@@ -674,12 +730,28 @@ def autofill_file(path: str, period: str = None, cong_ty: str = None, dry_run: b
     nạp raw_rows — bước 0 rẻ (tất định, không LLM) để `analyst` biết ngay layout này ĐÃ học trước
     đó hay chưa, tránh phải phân tích lại từ đầu cho file/công ty đã quen (tăng tốc khi có nhiều
     file cùng layout xử lý liên tiếp)."""
+    # BÁO CÁO NGÀY -> deriver riêng, ra sớm (cùng gate với agent_cli.cmd_autofill — xem
+    # scripts/derive_hqkd_ngay.py). File ngày có mỗi ngày 1 sheet nên nếu để chạy tiếp vào vòng
+    # fill_spec dưới, một sheet-ngày khớp fingerprint sheet-tháng sẽ ghi ĐÈ số tháng bằng số 1 ngày.
+    _scripts = os.path.join(os.path.dirname(_HERE), "scripts")
+    if _scripts not in sys.path:
+        sys.path.insert(0, _scripts)
+    from derive_hqkd_ngay import derive as _hqkd_ngay_derive, is_daily_report as _is_daily_report
+    if _is_daily_report(path):
+        r = _hqkd_ngay_derive(path, write=not dry_run)
+        return {"ok": bool(r.get("ok")), "file": os.path.basename(path), "dry_run": dry_run,
+                "mode": "bao_cao_ngay", "processed": [r], "skipped_sheets": [],
+                "any_processed": bool(r.get("ok"))}
     with open(path, "rb") as fh:
         data = fh.read()
     fname = os.path.basename(path)
     period = period or guess_period(fname)
     comp = C.resolve_company(cong_ty, fname)   # công ty của file (để tra spec scoped, tránh lây B11)
     processed, skipped = [], []
+    # Mốc "dòng có TRƯỚC lượt nạp này" + tập report_type lượt này SINH RA -> cuối hàm dọn loại CŨ
+    # không còn sinh ra (import_filled chỉ xoá theo loại của TỪNG lần gọi; xem prune_stale_types).
+    _before_id = 0 if dry_run else next_row_id()
+    _made, _ds, _src = set(), None, None
     headers = _all_sheet_headers(data)  # mở workbook 1 LẦN (file nặng: load rất chậm)
     for sheet, head in headers.items():
         if not head:
@@ -717,8 +789,18 @@ def autofill_file(path: str, period: str = None, cong_ty: str = None, dry_run: b
                          max_money_ty=r.get("max_money_ty"), source_fingerprint=r.get("source_fingerprint"))
         else:
             entry["rows"] = r.get("rows_written")
-            entry["import"] = (r.get("import") or {}).get("ok")
+            imp = r.get("import") or {}
+            entry["import"] = imp.get("ok")
+            _ds = imp.get("dataset_id") or _ds
+            _made |= set(imp.get("by_type") or {})
+            _src = imp.get("source_file") or _src
         processed.append(entry)
+    pruned = None
+    if not dry_run:
+        # source_file do fill_from_source suy từ source_path; nếu import_filled không trả về thì
+        # dựng lại y hệt cách SC làm để phạm vi xoá vẫn ĐÚNG file này.
+        pruned = prune_stale_types(_ds, _src or SC.source_id_from_path(path), _made, _before_id)
     return {"ok": True, "file": fname, "period": period, "dry_run": dry_run,
+            "pruned_stale": (pruned if (pruned or {}).get("pruned") else None),
             "processed": processed, "skipped_sheets": skipped,
             "any_processed": bool(processed)}
