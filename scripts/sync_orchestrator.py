@@ -78,6 +78,12 @@ def _guess_period(file_name: str):
     m = re.search(r"(0[1-9]|1[0-2])[.\-_](20\d{2})", file_name)
     if m:
         return f"{m.group(2)}-{m.group(1)}"
+    # Dự án: báo cáo NGÀY đặt tên tháng KHÔNG zero-pad ('.D.20268.' = 2026-08, 5 chữ số liền
+    # sau '.D.') -> 2 regex trên (đòi 2 chữ số tháng) không bắt được; khớp riêng, neo dấu '.'
+    # 2 đầu để không lẫn định dạng khác (xem derive_hqkd_ngay._period_of, cùng quy ước).
+    m = re.search(r"\.(20\d{2})(\d)\.", file_name)
+    if m and 1 <= int(m.group(2)) <= 9:
+        return f"{m.group(1)}-{int(m.group(2)):02d}"
     return None
 
 
