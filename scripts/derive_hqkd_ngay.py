@@ -27,6 +27,12 @@ Backend chọn `_D` hay bản tháng theo `grain` của request (xem app/metrics
     Depot Tuyên Quang. Có cột tổng -> ghi thêm dòng "trực tiếp" (không cost center) như bản tháng.
   · HTXXANHTUYENQUANG / HTXXANHVINHPHUC (`B.6.HTX_*.D.<YYYYMM>.Baocaotaichinhrieng.xlsx`) — cũng
     layout "kqkd" nhưng header ở dòng 6 và CHỈ 1 cột giá trị (không có cost center).
+  · ANTAXI (`B.7.AAG.TCKT.**M**.<YYYYMM>.Baocaotaichinhrieng.xlsx`) — layout "antaxi": sheet
+    "1".."31" theo ngày (+ sheet "TH" tổng hợp, bỏ qua). Header dòng 6: TT | CHỈ TIÊU | Tỉ lệ |
+    Sơn Tây | Tỉ lệ | Thái Nguyên | Tỉ lệ | Tổng cộng | Xe thương quyền | … | Lũy kế tháng.
+    ⚠ TÊN FILE ghi `.M.` (trùng hệt báo cáo THÁNG ở `baocaotaichinhrieng/`) — chỉ THƯ MỤC
+    `baocaohqkdngay/` phân biệt được, xem `_period_of`/`_in_day_dir`.
+    ⚠ Số mục La Mã ở cột TT riêng + lệch so với XVP -> bảng anchor riêng, xem `_ANTAXI_ANCHOR`.
 
 Neo dòng chỉ tiêu của layout "kqkd" theo TIỀN TỐ SỐ LA MÃ / số mục đã chuẩn hoá bỏ dấu, KHÔNG theo
 "Mã số" và KHÔNG theo địa chỉ ô cứng (C17/C28/C100… như ghi chú trong file mapping): mã số bị TRÙNG
@@ -71,6 +77,7 @@ _UNITS = {
     "XANHVINHPHUC": {"layout": "kqkd", "cong_ty": "XVP", "khoi": "Khối KD Vận tải Taxi Xanh"},
     "HTXXANHTUYENQUANG": {"layout": "kqkd", "cong_ty": "HTX_XTQ", "khoi": "Khối KD Vận tải Taxi Xanh"},
     "HTXXANHVINHPHUC": {"layout": "kqkd", "cong_ty": "HTX_XVP", "khoi": "Khối KD Vận tải Taxi Xanh"},
+    "ANTAXI": {"layout": "antaxi", "cong_ty": "AAG", "khoi": "Khối KD Dịch vụ An Taxi"},
 }
 
 # Cost center theo TỪ KHOÁ trong tên cột (dò theo tên, không theo vị trí — xem docstring).
@@ -80,6 +87,9 @@ _CC_SRVF = [("uong bi", "UB_SR"), ("b2b", "B2B_SR"), ("oceanpark", "OCP_SR"), ("
             ("vinh phuc", "VP_SR"), ("son tay", "ST_SR"), ("xuan mai", "XM_SR")]
 _CC_XVP = [("depot phu tho", "PT_DP"), ("depot vinh phuc", "VP_DP"), ("depot tuyen quang", "TQ_DP"),
            ("ho", "HO_XVP")]
+# An Taxi: header ghi tên tỉnh trần ("Sơn Tây" / "Thái Nguyên"), mã CC lấy y hệt master_data
+# (app/data/master_data.json: ST_AT 'Depot Sơn Tây', TN_AT 'Depot Thái Nguyên').
+_CC_ANTAXI = [("son tay", "ST_AT"), ("thai nguyen", "TN_AT")]
 
 # Showroom Uông Bí thuộc pháp nhân VFQN (SRVF là thư mục ĐA-pháp-nhân) — giống bản tháng.
 _CC_CONGTY = {"UB_SR": "VFQN"}
@@ -101,16 +111,32 @@ def _source_id(path):
     return f"{folder}::{os.path.basename(path)}"
 
 
-def _period_of(file_name):
-    """'B.1.TC.TCKT.D.202608.BaocaoHQKD.xlsx' -> '2026-08'. None nếu không phải file kỳ .D.<YYYYMM>."""
+_DAY_DIR = "baocaohqkdngay"
+
+
+def _in_day_dir(path):
+    """File có nằm trong thư mục `baocaohqkdngay/` không."""
+    return _nd(os.path.basename(os.path.dirname(os.path.abspath(path)))).replace(" ", "") == _DAY_DIR
+
+
+def _period_of(file_name, in_day_dir=False):
+    """'B.1.TC.TCKT.D.202608.BaocaoHQKD.xlsx' -> '2026-08'. None nếu không phải file kỳ .D.<YYYYMM>.
+
+    An Taxi gửi báo cáo NGÀY nhưng đặt tên '.M.<YYYYMM>' Y HỆT báo cáo THÁNG
+    ('B.7.AAG.TCKT.M.202608.Baocaotaichinhrieng.xlsx' — cùng tên với file trong
+    `baocaotaichinhrieng/`) -> chỉ THƯ MỤC phân biệt được. Vì vậy '.M.' CHỈ được coi là kỳ báo
+    cáo ngày khi `in_day_dir`; nếu nới lỏng theo tên file thì báo cáo THÁNG của An Taxi sẽ bị
+    gate ngày bắt và pipeline tháng không bao giờ chạy."""
     m = re.search(r"\.D\.(\d{4})(\d{2})", file_name)
+    if m is None and in_day_dir:
+        m = re.search(r"\.M\.(\d{4})(\d{2})", file_name)
     return f"{m.group(1)}-{m.group(2)}" if m else None
 
 
 def is_daily_report(path):
     """File này có phải BÁO CÁO NGÀY của đơn vị đã cấu hình không (dùng cho gate ở agent_cli)."""
     folder = _source_id(path).split("::", 1)[0]
-    return bool(_UNITS.get(folder)) and bool(_period_of(os.path.basename(path)))
+    return bool(_UNITS.get(folder)) and bool(_period_of(os.path.basename(path), _in_day_dir(path)))
 
 
 # ---------------------------------------------------------------------------------------------
@@ -218,21 +244,23 @@ def _kqkd_day_sheets(wb, period):
     return sorted(out, key=lambda x: x[1])
 
 
-def _kqkd_facts(rows):
-    """rows -> [(cost_center|None, report_type, dim1, dim3, value_VND)]. [] nếu sai layout."""
+def _kqkd_scan(rows, ccs, anchors):
+    """Dò header + cột giá trị + neo dòng chỉ tiêu cho layout dạng KQKD (dùng cho cả 'kqkd' và
+    'antaxi'). -> (cols, anchored, val) ; cols=[] nếu sai layout."""
     hdr_i = next((i for i, r in enumerate(rows[:10])
                   if any(_nd(c) == "chi tieu" for c in r if c is not None)), None)
     if hdr_i is None:
-        return []
+        return [], {}, None
     hdr = rows[hdr_i]
     ten_j = next(j for j, c in enumerate(hdr) if _nd(c) == "chi tieu")
-    # Cột giá trị: ƯU TIÊN các cột cost center (Depot/HO). CỐ Ý BỎ cột "Tổng cộng" khi đã có cột
-    # cost center — Σ depot khớp ĐÚNG cột tổng (verify XVP 01/08: 283.756.022 + 480.309.773 +
-    # 140.030.764 = 904.096.560), nên ghi thêm dòng tổng chỉ tạo nguy cơ đếm đôi ở các truy vấn
-    # KHÔNG đi qua repository._per_file_resolved (daily_series/sum_by_dim1 — biểu đồ xu hướng ngày).
+    # Cột giá trị: ƯU TIÊN các cột cost center (Depot/HO/tỉnh). CỐ Ý BỎ cột "Tổng cộng" khi đã có
+    # cột cost center — Σ cost center khớp ĐÚNG cột tổng (verify XVP 01/08: 283.756.022 +
+    # 480.309.773 + 140.030.764 = 904.096.560; An Taxi 01/08 DT thuần: 76.225.625 + 34.226.640 =
+    # 110.452.265), nên ghi thêm dòng tổng chỉ tạo nguy cơ đếm đôi ở các truy vấn KHÔNG đi qua
+    # repository._per_file_resolved (daily_series/sum_by_dim1 — biểu đồ xu hướng ngày).
     # Đơn vị 1 cột (HTX, không có cost center) -> dùng cột tổng / cột ngay sau "MÃ SỐ".
     cols = [(cc, j) for j, c in enumerate(hdr) if j != ten_j
-            for cc in [next((cc for kw, cc in _CC_XVP if _nd(c) == kw), None)] if cc]
+            for cc in [next((cc for kw, cc in ccs if _nd(c) == kw), None)] if cc]
     if not cols:
         tong_j = next((j for j, c in enumerate(hdr) if _nd(c).startswith("tong cong")), None)
         if tong_j is None:
@@ -245,15 +273,22 @@ def _kqkd_facts(rows):
         if not r or ten_j >= len(r):
             continue
         n = _nd(r[ten_j])
-        for key, pref in _KQKD_ANCHOR.items():
+        for key, pref in anchors.items():
             if key not in anchored and n.startswith(pref):
                 anchored[key] = r
-    if "dt_thuan" not in anchored:
-        return []
 
     def val(key, j):
         r = anchored.get(key)
         return _num(r[j]) if r is not None and j < len(r) else None
+
+    return cols, anchored, val
+
+
+def _kqkd_facts(rows):
+    """rows -> [(cost_center|None, report_type, dim1, dim3, value_VND)]. [] nếu sai layout."""
+    cols, anchored, val = _kqkd_scan(rows, _CC_XVP, _KQKD_ANCHOR)
+    if not cols or "dt_thuan" not in anchored:
+        return []
 
     facts = []
     for cc, j in cols:
@@ -282,21 +317,110 @@ def _kqkd_facts(rows):
 
 
 # ---------------------------------------------------------------------------------------------
+# Layout "antaxi" — An Taxi (ANTAXI/baocaohqkdngay), mỗi ngày 1 sheet "1".."31" + sheet "TH"
+# ---------------------------------------------------------------------------------------------
+# KHÁC layout "kqkd" ở 2 điểm (verify file thật B.7.AAG.TCKT.M.202608, sheet 1-31, header dòng 6):
+#  1. Số mục La Mã nằm ở cột "TT" RIÊNG, KHÔNG dính vào nhãn: dòng 33 = TT "III" + CHỈ TIÊU
+#     "DOANH THU THUẦN" (XVP ghi "3. Doanh thu thuần" trong CÙNG 1 ô) -> neo theo NHÃN TRẦN.
+#  2. Số La Mã của An Taxi lệch hẳn XVP (LNTT = XI ở An Taxi vs XIII ở XVP; LNST = XIII vs XV;
+#     An Taxi KHÔNG có mục "phân bổ chi phí chung") -> phải có bảng anchor riêng, không dùng chung.
+# Đã verify nhãn nào cũng khớp DUY NHẤT 1 dòng trên cả 31 sheet (các dòng con "Giá vốn bán xe…",
+# "Chi phí hoạt động khác", "LỢI NHUẬN TRƯỚC KHẤU HAO…(EBITDA)" đều KHÔNG startswith nhãn neo).
+_ANTAXI_ANCHOR = {
+    "dt_gross": "doanh thu ban hang",              # I  (mã 100) — DT GỘP
+    "giam_tru": "cac khoan giam tru doanh thu",    # II (mã 110)
+    "dt_thuan": "doanh thu thuan",                 # III (mã 120)
+    "gia_von": "gia von hang ban",                 # IV (mã 130)
+    "ln_gop": "lai gop",                           # V  (mã 140) — An Taxi ghi "LÃI GỘP"
+    "cp_bien_doi": "chi phi bien doi",             # VI (mã 150)
+    "cp_co_dinh": "chi phi co dinh",               # VIII (mã 170)
+    "dt_tai_chinh": "doanh thu tai chinh",         # IX.1
+    "cp_tai_chinh": "chi phi tai chinh",           # IX.2 (mã 182)
+    "tn_khac": "thu nhap khac",                    # X.1
+    "cp_khac": "chi phi khac",                     # X.2 (mã 192)
+    "lntt": "loi nhuan truoc thue",                # XI (mã 200)
+    "lnst": "loi nhuan sau thue",                  # XIII (mã 220)
+}
+# Tổng chi phí = IV + VI + VIII + IX.2 + X.2 (đúng công thức cột "Công thức" của mapping An Taxi;
+# file KHÔNG in dòng tổng chi phí nào để đối chiếu). Verify vòng kín theo LNTT có sẵn trong file —
+# 01/08 Sơn Tây: 76.225.625 (DTT) − 93.342.155 (Σ 5 cấu phần) + 2.965.749 (thu nhập khác) + 0
+# (DT tài chính) = −14.150.781 = ĐÚNG dòng "XI. LỢI NHUÂN TRƯỚC THUẾ TNDN (EBT)".
+# dim1 (nhóm CP) lấy Y HỆT bản THÁNG của CHÍNH An Taxi — raw_rows CHIPHI T6 có đúng 5 nhóm:
+# Giá vốn hàng bán / Chi phí biến đổi / Chi phí cố định / Chi phí tài chính / Chi phí khác
+# (KHÁC XVP dùng 'Chi phí bán hàng'/'Chi phí QLDN') để biểu đồ cơ cấu chi phí đọc được như nhau
+# ở cả 2 chế độ Ngày/Tháng.
+_ANTAXI_CP = [
+    ("gia_von", "Giá vốn hàng bán", "Giá vốn hàng bán"),
+    ("cp_bien_doi", "Chi phí biến đổi", "Chi phí biến đổi"),
+    ("cp_co_dinh", "Chi phí cố định", "Chi phí cố định"),
+    ("cp_tai_chinh", "Chi phí tài chính", "Chi phí tài chính"),
+    ("cp_khac", "Chi phí khác", "Chi phí khác"),
+]
+
+
+def _antaxi_facts(rows):
+    """rows -> [(cost_center, report_type, dim1, dim3, value_VND)]. [] nếu sai layout."""
+    cols, anchored, val = _kqkd_scan(rows, _CC_ANTAXI, _ANTAXI_ANCHOR)
+    if not cols or "dt_thuan" not in anchored:
+        return []
+
+    facts = []
+    for cc, j in cols:
+        dt = val("dt_thuan", j)
+        if dt:
+            facts.append((cc, RT_HQKD, MA_DT, MA_DT, dt))
+            facts.append((cc, RT_DTHU, "Doanh thu thuần", "Doanh thu thuần", dt))
+        tong_cp = 0.0
+        for key, nhom, ten in _ANTAXI_CP:
+            v = val(key, j)
+            if not v:
+                continue
+            tong_cp += v
+            facts.append((cc, RT_CHIPHI, nhom, ten, v))
+        if tong_cp:
+            facts.append((cc, RT_HQKD, MA_CP, MA_CP, tong_cp))
+        # PNLT: giữ ĐÚNG bộ dim1 bản THÁNG của An Taxi. Lưu ý An Taxi là đơn vị DUY NHẤT có dòng
+        # giảm trừ tách riêng, và bản tháng ghi CẢ HAI tên cho DT GỘP ("Doanh thu bán hàng và cung
+        # cấp dịch vụ" = tên đích danh cho bảng "Cấu trúc Doanh thu" ở revenue.py::_gross_of, và
+        # "Doanh thu HH, DV" = tên chung cho KPI #1 ở overview.py) — cùng 1 giá trị, KHÔNG cộng đôi
+        # vì 2 truy vấn lọc dim1_ilike khác nhau. Bỏ 1 trong 2 là mất số ở đúng 1 trong 2 chỗ đó.
+        # ⚠ "Doanh thu HH, DV" của An Taxi là DT GỘP (mã 100), KHÁC XVP/HTX (= DT thuần).
+        for key, rt, dim1 in (("lntt", RT_HQKD, MA_LNTT),
+                              ("dt_gross", RT_PNLT, "Doanh thu bán hàng và cung cấp dịch vụ"),
+                              ("dt_gross", RT_PNLT, "Doanh thu HH, DV"),
+                              ("giam_tru", RT_PNLT, "Các khoản giảm trừ doanh thu"),
+                              ("gia_von", RT_PNLT, "Giá vốn hàng bán"),
+                              ("ln_gop", RT_PNLT, "Lợi nhuận gộp"),
+                              ("dt_tai_chinh", RT_PNLT, "Doanh thu tài chính"),
+                              ("tn_khac", RT_PNLT, "Thu nhập khác"),
+                              ("lntt", RT_PNLT, "Lợi nhuận trước thuế"),
+                              ("lnst", RT_PNLT, "Lợi nhuận sau thuế")):
+            v = val(key, j)
+            if v:
+                facts.append((cc, rt, dim1, dim1, v))
+    return facts
+
+
+_FACTS_FN = {"srvf": _srvf_facts, "kqkd": _kqkd_facts, "antaxi": _antaxi_facts}
+
+
+# ---------------------------------------------------------------------------------------------
 def derive(path, write=False):
     folder = _source_id(path).split("::", 1)[0]
     unit = _UNITS.get(folder)
-    period = _period_of(os.path.basename(path))
+    period = _period_of(os.path.basename(path), _in_day_dir(path))
     if not unit or not period:
         return {"ok": False, "skip": True}
 
     wb = openpyxl.load_workbook(path, data_only=True, read_only=True)
     try:
         srvf = unit["layout"] == "srvf"
+        facts_fn = _FACTS_FN[unit["layout"]]
         sheets = _srvf_day_sheets(wb, period) if srvf else _kqkd_day_sheets(wb, period)
         per_day = []
         for sheet, ngay in sheets:
             rows = [list(r) for r in wb[sheet].iter_rows(values_only=True)]
-            facts = _srvf_facts(rows) if srvf else _kqkd_facts(rows)
+            facts = facts_fn(rows)
             if facts:
                 per_day.append((ngay, facts))
     finally:
