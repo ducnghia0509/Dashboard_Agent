@@ -7,8 +7,8 @@ PHẠM VI (chốt theo Mapping_Dashboard_QTTC.xlsx — cột "Đường link l�
 EXCEL", ngay bên phải cột "Map màn hình"): CHỈ đơn vị có ô này khác "ko có" mới lên được báo cáo
 ngày, và CHỈ cụm chỉ tiêu P&L (doanh thu / giá vốn / chi phí / lợi nhuận). Mọi chỉ tiêu khác của
 màn Công nợ · Tồn kho · Tài sản · Thuế · Dòng tiền ghi "ko có" -> KHÔNG dựng số ngày cho chúng.
-Hiện có 8 đơn vị: SRVF, XANHVINHPHUC, HTXXANHTUYENQUANG, HTXXANHVINHPHUC, ANTAXI, ANKHACHSAN,
-GLOBALAI, TRAMSAC.
+Hiện có 10 đơn vị: SRVF, XANHVINHPHUC, HTXXANHTUYENQUANG, HTXXANHVINHPHUC, ANTAXI, ANKHACHSAN,
+GLOBALAI, TRAMSAC, DUAN, HO.
 
 report_type RIÊNG có hậu tố `_D` (HQKD_D / PNLT_D / CHIPHI_D) — KHÔNG ghi đè HQKD/PNLT/CHIPHI của
 báo cáo tháng. LÝ DO BẮT BUỘC: dòng ngày nằm CÙNG dataset tháng (để bộ lọc "Khoảng ngày" của FE
@@ -64,6 +64,29 @@ Backend chọn `_D` hay bản tháng theo `grain` của request (xem app/metrics
     bắt 6 số đầu sau ".D." nên vẫn ra đúng "2026-08"; sheet "D1" KHÔNG zero-pad (khác header
     'D1' cũng không zero-pad, khác GA có header zero-pad 'D01' — không ảnh hưởng vì `_tcode_facts`
     dò val_j có fallback `ten_j + 1` khi không tìm thấy header dạng d\\d{2}).
+  · DUAN (Khối Dự án, `B.4.TC.TCKT.D.<YYYYM>.BaocaoHQKD.xlsx`) — layout "duan": mỗi ngày 1 sheet
+    tên "1".."31" (không zero-pad, giống "kqkd"). ⚠ THÁNG TRONG TÊN FILE KHÔNG ZERO-PAD ("
+    .D.20268." = kỳ 2026-08, CHỈ 5 CHỮ SỐ — khác 6 chữ số của mọi đơn vị khác) → `_period_of`
+    cần regex fallback riêng, xem bên dưới. Header CHIA 2 DÒNG khác nhau (dòng "STT|CHỈ TIÊU|
+    DỰ ÁN" rồi dòng SAU MỚI liệt kê cột: "Tổng Dự án|HO Dự án|Cao Bằng|Tân Thịnh|Lạng Sơn|Yên
+    Bình 3|Phú Quốc|Bình phước|Quang Sơn") — khác mọi layout khác (đều gộp nhãn cột + tên cost
+    center CÙNG 1 dòng) nên KHÔNG dùng chung `_kqkd_scan`, có `_duan_facts` riêng. Cột "Tổng Dự
+    án" = Σ 7 dự án (verify ngày 01/08: 392.421.525 + 239.351.852 = 631.773.377 = đúng cột Tổng)
+    và "HO Dự án" luôn 0 ở dữ liệu đã verify → BỎ CẢ HAI, chỉ lấy 7 cột dự án (E:K) làm cost
+    center, đúng theo Mapping ("E-K tương ứng cho các Costcenter"). Số La Mã (III/IV/V/VI/VIII/
+    IX/X/XI/XII) nằm ở cột STT RIÊNG (giống "antaxi"), nhãn cột "CHỈ TIÊU" là text trần không số
+    — neo theo nhãn CHUẨN HOÁ, đa số EXACT MATCH (không startswith) vì "Chi phí khác" (X.2, mã
+    neo `cp_khac`) startswith sẽ trúng NHẦM dòng con "Chi phí khác tại dự án" (mục 1.7 của Giá
+    vốn, đứng TRƯỚC trong sheet) nếu dùng prefix "chi phi khac" lỏng lẻo — chỉ 2 mã LNTT/LNST
+    dùng startswith (nhãn có hậu tố "(EBT)"/"(EAT)" đổi được). Tổng chi phí = Giá vốn(IV) + Chi
+    phí biến đổi(VI) + Chi phí cố định(VIII) + Chi phí tài chính(IX.2) + Chi phí khác(X.2) — ĐÚNG
+    công thức "E25+E46+E74+E80+E83" của Mapping, cùng 5 nhóm CP y hệt ANTAXI (không có mục
+    "phân bổ chung" cấp I riêng — đã nằm lồng trong "Chi phí khác"). Mã cost center Cao Bằng/
+    Lạng Sơn/Phú Quốc/Quang Sơn lấy y hệt bản THÁNG (agent_cli._DA_PROJECT_CC: CB_DA/LS_DA/
+    PQ_DA/QS_DA); ⚠ "Tân Thịnh"→YB_DA và "Yên Bình"→TT_DA là NGƯỢC viết tắt đã xác nhận nguồn
+    (xem agent_cli.py dòng ~728, ĐỪNG "sửa cho xuôi"). "Bình phước" CHƯA có trong master_data
+    (giống Núi Pháo/Quảng Ngãi bản tháng) → mã tự đặt BINHPHUOC_DA, backfill cong_ty qua
+    import_filled.
 
 Neo dòng chỉ tiêu của layout "kqkd" theo TIỀN TỐ SỐ LA MÃ / số mục đã chuẩn hoá bỏ dấu, KHÔNG theo
 "Mã số" và KHÔNG theo địa chỉ ô cứng (C17/C28/C100… như ghi chú trong file mapping): mã số bị TRÙNG
@@ -113,6 +136,8 @@ _UNITS = {
     "GLOBALAI": {"layout": "tcode", "cong_ty": "GA", "khoi": "Khối KD Công nghệ"},
     "TRAMSAC": {"layout": "tcode", "cong_ty": "TC", "khoi": "Khối KD Trạm sạc Vgreen",
                "profit_pnlt": ("Lợi nhuận sau thuế",)},
+    "DUAN": {"layout": "duan", "cong_ty": "TC", "khoi": "Khối KD Dự án"},
+    "HO": {"layout": "ho_kqkd", "cong_ty": "TC", "khoi": "Khối hỗ trợ tập đoàn"},
 }
 
 # Cost center theo TỪ KHOÁ trong tên cột (dò theo tên, không theo vị trí — xem docstring).
@@ -163,9 +188,14 @@ def _period_of(file_name, in_day_dir=False):
     cáo ngày khi `in_day_dir`; nếu nới lỏng theo tên file thì báo cáo THÁNG của An Taxi sẽ bị
     gate ngày bắt và pipeline tháng không bao giờ chạy."""
     m = re.search(r"\.D\.(\d{4})(\d{2})", file_name)
+    if m is None:
+        # DUAN: tháng KHÔNG zero-pad ('.D.20268.' = 2026-08, chỉ 5 chữ số) — bắt buộc neo dấu
+        # '.' liền sau để không lẫn với 6-số của các đơn vị khác (regex trên đã tự fail cho
+        # trường hợp đó nên không tranh chấp thứ tự thử).
+        m = re.search(r"\.D\.(\d{4})(\d{1,2})\.", file_name)
     if m is None and in_day_dir:
         m = re.search(r"\.M\.(\d{4})(\d{2})", file_name)
-    return f"{m.group(1)}-{m.group(2)}" if m else None
+    return f"{m.group(1)}-{int(m.group(2)):02d}" if m else None
 
 
 def is_daily_report(path):
@@ -517,7 +547,197 @@ def _tcode_facts(rows, profit_pnlt=("Lợi nhuận trước thuế",)):
     return facts
 
 
-_FACTS_FN = {"srvf": _srvf_facts, "kqkd": _kqkd_facts, "antaxi": _antaxi_facts, "tcode": _tcode_facts}
+# ---------------------------------------------------------------------------------------------
+# Layout "duan" — Khối Dự án (DUAN/baocaohqkdngay), mỗi ngày 1 sheet "1".."31"
+# ---------------------------------------------------------------------------------------------
+# Cột cost center dò theo TỪ KHOÁ (chứa, không cần khớp hệt) vì nhãn cột đổi nhẹ theo tháng (vd
+# "Yên Bình 3"). Mã CC lấy Y HỆT bản THÁNG (agent_cli._DA_PROJECT_CC) — kể cả quy ước NGƯỢC viết
+# tắt Tân Thịnh<->Yên Bình đã xác nhận nguồn, xem docstring đầu file. "Bình phước" mới, chưa có
+# trong master_data -> mã tự đặt (giống Núi Pháo/Quảng Ngãi bản tháng).
+_CC_DUAN = [("cao bang", "CB_DA"), ("tan thinh", "YB_DA"), ("lang son", "LS_DA"),
+            ("yen binh", "TT_DA"), ("phu quoc", "PQ_DA"), ("quang son", "QS_DA"),
+            ("nui phao", "NUIPHAO_DA"), ("quang ngai", "QUANGNGAI_DA"), ("tho chu", "TC_DA"),
+            ("binh phuoc", "BINHPHUOC_DA")]
+
+# (khoá -> (nhãn chuẩn hoá, exact?)). Đa số EXACT (không startswith) vì nhãn ngắn dễ bị dòng con
+# "nuốt" nhầm — vd "chi phi khac" (mục X.2, mã neo cp_khac) là PREFIX của "Chi phí khác tại dự
+# án" (mục con 1.7 của Giá vốn IV, đứng TRƯỚC trong sheet) -> startswith sẽ khoá nhầm dòng đó.
+# Chỉ lntt/lnst dùng startswith vì nhãn gốc có hậu tố đổi được "(EBT)"/"(EAT)".
+_DUAN_ANCHOR = {
+    "dt_thuan": ("doanh thu thuan", True),        # III
+    "gia_von": ("gia von hang ban", True),        # IV
+    "ln_gop": ("lai gop", True),                  # V (nhãn gốc "Lãi gộp")
+    "cp_bien_doi": ("chi phi bien doi", True),    # VI
+    "cp_co_dinh": ("chi phi co dinh", True),      # VIII
+    "cp_tai_chinh": ("chi phi tai chinh", True),  # IX.2
+    "cp_khac": ("chi phi khac", True),            # X.2
+    "lntt": ("loi nhuan truoc thue", False),      # XI "...(EBT)"
+    "lnst": ("loi nhuan sau thue", False),        # XII "...(EAT)"
+}
+# Tổng chi phí = IV + VI + VIII + IX.2 + X.2 (đúng công thức "E25+E46+E74+E80+E83" của Mapping) —
+# 5 nhóm Y HỆT ANTAXI (không có mục "phân bổ chung" cấp I riêng, đã lồng trong "Chi phí khác").
+_DUAN_CP = [
+    ("gia_von", "Giá vốn hàng bán", "Giá vốn hàng bán"),
+    ("cp_bien_doi", "Chi phí biến đổi", "Chi phí biến đổi"),
+    ("cp_co_dinh", "Chi phí cố định", "Chi phí cố định"),
+    ("cp_tai_chinh", "Chi phí tài chính", "Chi phí tài chính"),
+    ("cp_khac", "Chi phí khác", "Chi phí khác"),
+]
+
+
+def _duan_facts(rows):
+    """rows -> [(cost_center, report_type, dim1, dim3, value_VND)]. [] nếu sai layout.
+
+    KHÁC mọi layout khác: nhãn cột "CHỈ TIÊU" (dòng "STT|CHỈ TIÊU|DỰ ÁN") và tên cost center
+    ("Tổng Dự án|HO Dự án|<từng dự án>") nằm ở 2 DÒNG KHÁC NHAU (dòng sau) — `_kqkd_scan` giả
+    định cùng 1 dòng nên không dùng chung được, phải dò riêng."""
+    hdr_i = next((i for i, r in enumerate(rows[:10])
+                  if any(_nd(c) == "tong du an" for c in r if c is not None)), None)
+    ten_i = next((i for i, r in enumerate(rows[:10])
+                  if any(_nd(c) == "chi tieu" for c in r if c is not None)), None)
+    if hdr_i is None or ten_i is None:
+        return []
+    hdr = rows[hdr_i]
+    ten_j = next(j for j, c in enumerate(rows[ten_i]) if _nd(c) == "chi tieu")
+    # BỎ cột "Tổng Dự án"/"HO Dự án" — chỉ lấy 7 cột dự án (E:K, đúng theo Mapping) để Σ cost
+    # center không đếm đôi với cột tổng (verify 01/08: Cao Bằng 392.421.525 + Phú Quốc
+    # 239.351.852 = 631.773.377 = đúng "Tổng Dự án"; "HO Dự án" luôn 0 các ngày đã verify).
+    cols = [(cc, j) for j, c in enumerate(hdr) if isinstance(c, str)
+            for cc in [next((cc for kw, cc in _CC_DUAN if kw in _nd(c)), None)] if cc]
+    if len(cols) < 3:
+        return []
+
+    anchored = {}
+    for r in rows[ten_i + 1:]:
+        if not r or ten_j >= len(r):
+            continue
+        n = _nd(r[ten_j])
+        for key, (pref, exact) in _DUAN_ANCHOR.items():
+            if key not in anchored and (n == pref if exact else n.startswith(pref)):
+                anchored[key] = r
+    if "dt_thuan" not in anchored:
+        return []
+
+    def val(key, j):
+        r = anchored.get(key)
+        return _num(r[j]) if r is not None and j < len(r) else None
+
+    facts = []
+    for cc, j in cols:
+        dt = val("dt_thuan", j)
+        if dt:
+            facts.append((cc, RT_HQKD, MA_DT, MA_DT, dt))
+            facts.append((cc, RT_PNLT, "Doanh thu HH, DV", "Doanh thu HH, DV", dt))
+            facts.append((cc, RT_DTHU, "Doanh thu thuần", "Doanh thu thuần", dt))
+        gv = val("gia_von", j)
+        if gv:
+            facts.append((cc, RT_PNLT, "Giá vốn hàng bán", "Giá vốn hàng bán", gv))
+        ln_gop = val("ln_gop", j)
+        if ln_gop:
+            facts.append((cc, RT_PNLT, "Lợi nhuận gộp", "Lợi nhuận gộp", ln_gop))
+        tong_cp = 0.0
+        for key, nhom, ten in _DUAN_CP:
+            v = val(key, j)
+            if not v:
+                continue
+            tong_cp += v
+            facts.append((cc, RT_CHIPHI, nhom, ten, v))
+        if tong_cp:
+            facts.append((cc, RT_HQKD, MA_CP, MA_CP, tong_cp))
+        lntt = val("lntt", j)
+        if lntt:
+            facts.append((cc, RT_HQKD, MA_LNTT, MA_LNTT, lntt))
+            facts.append((cc, RT_PNLT, "Lợi nhuận trước thuế", "Lợi nhuận trước thuế", lntt))
+        lnst = val("lnst", j)
+        if lnst:
+            facts.append((cc, RT_PNLT, "Lợi nhuận sau thuế", "Lợi nhuận sau thuế", lnst))
+    return facts
+
+
+_FACTS_FN = {"srvf": _srvf_facts, "kqkd": _kqkd_facts, "antaxi": _antaxi_facts, "tcode": _tcode_facts,
+             "duan": _duan_facts}
+
+
+# ---------------------------------------------------------------------------------------------
+# Layout "ho_kqkd" — HO (HO/baocaohqkdngay), sheet "D1".."D31" luỹ kế GIỐNG HỆT "tcode" (GA/
+# TRAMSAC) nhưng KHÔNG dùng mã T-series: cột A ("Mã số") của 3 DÒNG TỔNG (Doanh thu/Chi phí/Lợi
+# nhuận) TRỐNG, chỉ có mã ở các dòng CHI TIẾT (511_TS/5118/515.01... — mã tài khoản kế toán, không
+# phải mã báo cáo) -> PHẢI neo theo NHÃN cột B ("Chỉ tiêu"), không theo mã như "tcode".
+# Verify file thật (kiểm 2026-08-05, kỳ 2026-08 D1/D2): header dòng 5: Mã số | Chỉ tiêu | D01 |
+# %DT | T07 | %DT | T08 | … | T12 | %DT — cột GIÁ TRỊ luôn ngay SAU "Chỉ tiêu" (khớp header dạng
+# d\d{2} zero-pad, dò bằng CHÍNH cơ chế val_j của "tcode"). Cột T07-T12 là TEMPLATE RÁC (mọi kỳ,
+# mọi sheet đều =0/#DIV0!/#REF!, không đổi theo ngày thật) -> CHỈ lấy cột D01 (ngay sau Chỉ tiêu).
+# 3 dòng tổng (không mã): "Tổng Doanh thu" (dòng 6) / "Tổng chi phí" (dòng 14) / "Tổng lợi nhuận"
+# (dòng 26) — user tự ghi rõ ô C6/C14/C26 trong Mapping, nhưng neo THEO NHÃN thay vì địa chỉ ô
+# cứng (số dòng có thể lệch giữa các tháng khi kế toán chèn/xoá dòng chi tiết).
+# LNTT/LNST: verify DB 2026-01..07 — PNLT của HO CHỈ có đúng 1 dim1 'Lợi nhuận sau thuế', giá trị
+# BẰNG TUYỆT ĐỐI HQKD mã 1112 ở CẢ 7 kỳ (vd T07: -4,5950 = -4,5950) -> 'Tổng lợi nhuận' ĐÃ LÀ LNST
+# (giống Trạm sạc, KHÁC GA) -> dùng profit_pnlt=('Lợi nhuận sau thuế',) như Trạm sạc.
+# KHÔNG 'Giá vốn hàng bán'/'Lợi nhuận gộp': HO là khối hỗ trợ tập đoàn (chi phí quản lý/lãi vay),
+# monthly KHÔNG có dim1 'Giá vốn hàng bán' cho HO (đơn vị không có COGS) — daily cũng không suy.
+# Cơ cấu chi phí (CHIPHI_D): monthly HIỆN CHƯA CÓ breakdown nào cho HO (0 dòng CHIPHI) nhưng
+# Mapping yêu cầu rõ (#10: "lấy từng loại chi phí trong file BC (C15-C25)") và file NGÀY CÓ sẵn 11
+# dòng chi tiết (511_TS/5118/… ở phần DT không tính, CHỈ 11 dòng CHI PHÍ nằm giữa 'Tổng chi phí' và
+# 'Tổng lợi nhuận') -> lấy NHÃN GỐC (cột B) làm dim1 THẲNG (không có nhóm chuẩn nào để map vào vì
+# monthly chưa từng phân loại) — daily "đi trước" monthly ở khoản này, chấp nhận, không tự đặt tên
+# nhóm mới có thể sai. Quét theo VÙNG (dòng SAU anchor 'Tổng chi phí', TRƯỚC anchor 'Tổng lợi
+# nhuận'), KHÔNG hardcode "dòng 15-25" vì số dòng chi tiết có thể đổi giữa các tháng.
+_HO_ANCHOR = {"dt": "tong doanh thu", "tong_cp": "tong chi phi", "lntt": "tong loi nhuan"}
+
+
+def _ho_facts(rows):
+    """rows -> [(None, report_type, dim1, dim3, value_VND)] cho 1 ngày. [] nếu sai layout."""
+    hdr_i = next((i for i, r in enumerate(rows[:10]) if any(_nd(c) == "chi tieu" for c in r if c is not None)), None)
+    if hdr_i is None:
+        return []
+    hdr = rows[hdr_i]
+    ten_j = next(j for j, c in enumerate(hdr) if _nd(c) == "chi tieu")
+    val_j = next((j for j, c in enumerate(hdr) if j > ten_j and re.fullmatch(r"d\d{2}", _nd(c))),
+                 ten_j + 1)
+
+    anchor_i = {}
+    for i, r in enumerate(rows[hdr_i + 1:], hdr_i + 1):
+        if not r or ten_j >= len(r):
+            continue
+        n = _nd(r[ten_j])
+        for key, pref in _HO_ANCHOR.items():
+            if key not in anchor_i and n == pref:
+                anchor_i[key] = i
+    if "dt" not in anchor_i or "tong_cp" not in anchor_i or "lntt" not in anchor_i:
+        return []
+
+    def val(key):
+        i = anchor_i.get(key)
+        r = rows[i] if i is not None else None
+        return _num(r[val_j]) if r is not None and val_j < len(r) else None
+
+    facts = []
+    dt = val("dt")
+    if dt:
+        facts.append((None, RT_HQKD, MA_DT, MA_DT, dt))
+        facts.append((None, RT_DTHU, "Doanh thu thuần", "Doanh thu thuần", dt))
+        facts.append((None, RT_PNLT, "Doanh thu HH, DV", "Doanh thu HH, DV", dt))
+    tong_cp = val("tong_cp")
+    if tong_cp:
+        facts.append((None, RT_HQKD, MA_CP, MA_CP, tong_cp))
+    lntt = val("lntt")
+    if lntt:
+        facts.append((None, RT_HQKD, MA_LNTT, MA_LNTT, lntt))
+        facts.append((None, RT_PNLT, "Lợi nhuận sau thuế", "Lợi nhuận sau thuế", lntt))
+    # Cơ cấu chi phí: mọi dòng có nhãn NẰM GIỮA anchor 'tong_cp' và 'lntt' -> 1 dim1 riêng theo
+    # nhãn gốc (xem docstring khối trên).
+    for i in range(anchor_i["tong_cp"] + 1, anchor_i["lntt"]):
+        r = rows[i]
+        if not r or ten_j >= len(r):
+            continue
+        ten = str(r[ten_j]).strip() if r[ten_j] not in (None, "") else None
+        v = _num(r[val_j]) if val_j < len(r) else None
+        if ten and v:
+            facts.append((None, RT_CHIPHI, ten, ten, v))
+    return facts
+
+
+_FACTS_FN["ho_kqkd"] = _ho_facts
 
 
 # ---------------------------------------------------------------------------------------------
@@ -630,7 +850,7 @@ def derive(path, write=False):
                 facts_fn = lambda rows, _pp=pp: _tcode_facts(rows, _pp)  # noqa: E731
             if layout == "srvf":
                 sheets = _srvf_day_sheets(wb, period)
-            elif layout == "tcode":
+            elif layout in ("tcode", "ho_kqkd"):   # cùng kiểu sheet "D1".."D31" luỹ kế
                 sheets = _tcode_day_sheets(wb, period)
             else:
                 sheets = _kqkd_day_sheets(wb, period)
