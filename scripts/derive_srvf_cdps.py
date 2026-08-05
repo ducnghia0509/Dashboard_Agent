@@ -22,7 +22,10 @@ from servers.common import be_bridge as bb  # noqa: E402
 import agent_cli as A  # noqa: E402
 
 norm = lambda v: bb.normalize_header(v, True)  # noqa: E731
-TY = lambda v: round(v * 1e-9, 9) if isinstance(v, (int, float)) else None  # noqa: E731
+# FULL PRECISION khi quy đổi tỷ (bỏ round(…,9) từng dòng, 2026-07-30): KPI cộng nhiều dòng TK
+# (vd Tồn kho = Σ 152/153/154/156) rồi mới làm tròn hiển thị — round từng TK trước khi cộng làm
+# tổng lệch ±1 đồng so với làm tròn thẳng số gộp (QA: 731.578.270.093 vs CĐKT 731.578.270.092,32).
+TY = lambda v: v * 1e-9 if isinstance(v, (int, float)) else None  # noqa: E731
 
 
 def _cols(rows):
@@ -150,7 +153,7 @@ def extract(path, period, cong_ty="TC"):
     #   333xx: đầu=Có đầu−Nợ đầu, tăng=PS Có, giảm=PS Nợ, cuối=Có cuối−Nợ cuối.
     def _net(r, pos, neg):
         p, n = val(r, pos), val(r, neg)
-        return None if (p is None and n is None) else round((p or 0) - (n or 0), 9)
+        return None if (p is None and n is None) else (p or 0) - (n or 0)
     thue = []
     r133 = find_tk("133")
     if r133:
@@ -170,7 +173,7 @@ def extract(path, period, cong_ty="TC"):
         # cuối kỳ = đầu+tăng−giảm (metrics_extra tính lại, field ở đây chỉ để tương thích).
         dau = val(r, "co_dau")
         tang, giam = val(r, "ps_co"), val(r, "ps_no")
-        cuoi = round((dau or 0) + (tang or 0) - (giam or 0), 9)
+        cuoi = (dau or 0) + (tang or 0) - (giam or 0)
         if any(abs(v or 0) > 1e-9 for v in (cuoi, dau, tang, giam)):   # bỏ dòng toàn 0
             thue.append({"Kỳ": period, "Đơn vị": cong_ty,
                          "Loại thuế (GTGT ra/vào, TNCN, TNDN, NK, khác)": _label,

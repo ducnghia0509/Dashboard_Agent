@@ -166,12 +166,14 @@ def index_file(path: str) -> dict:
 
 
 def index_dir(root: str = None) -> dict:
-    """Quét thư mục received_reports, index mọi .xlsx (bỏ file tạm ~$)."""
+    """Quét thư mục received_reports, index mọi .xlsx (bỏ file tạm ~$). Đuôi so KHÔNG phân biệt
+    hoa/thường — SRVF gửi '.Xlsx' (2026-07-30), glob '*.xlsx' bỏ sót -> file nằm trên đĩa nhưng
+    catalog không thấy: tab Nguồn dữ liệu báo 'Mới · chưa kéo về', không analyze/xem được."""
     root = root or RECEIVED_DIR
     if not os.path.isdir(root):
         return {"ok": False, "error": f"Không thấy thư mục: {root}", "indexed": 0}
-    files = [f for f in glob.glob(os.path.join(root, "**", "*.xlsx"), recursive=True)
-             if not os.path.basename(f).startswith("~$")]
+    files = [f for f in glob.glob(os.path.join(root, "**", "*"), recursive=True)
+             if f.lower().endswith(".xlsx") and not os.path.basename(f).startswith("~$")]
     cat = _load()
     done = 0
     for f in files:
