@@ -33,6 +33,10 @@ Backend chọn `_D` hay bản tháng theo `grain` của request (xem app/metrics
     ⚠ TÊN FILE ghi `.M.` (trùng hệt báo cáo THÁNG ở `baocaotaichinhrieng/`) — chỉ THƯ MỤC
     `baocaohqkdngay/` phân biệt được, xem `_period_of`/`_in_day_dir`.
     ⚠ Số mục La Mã ở cột TT riêng + lệch so với XVP -> bảng anchor riêng, xem `_ANTAXI_ANCHOR`.
+  · ANKHACHSAN (`B.10.AAG.TCKT.D.<YYYYMM>.Baocaotaichinhrieng.xlsx`) — layout "anks", KHÁC HẲN
+    4 layout trên: CHỈ 1 SHEET, mỗi NGÀY là 1 CỘT (không phải mỗi ngày 1 sheet). Header dòng 3:
+    TT | Nội dung chi phí | ĐVT | Tổng cộng | 1 | 2 | … | 31 — số ngày nằm sẵn ở header, không
+    suy từ tên sheet. Chỉ 1 cơ sở (Garden Sơn Tây), không cost center. Xem `_anks_all_days`.
 
 Neo dòng chỉ tiêu của layout "kqkd" theo TIỀN TỐ SỐ LA MÃ / số mục đã chuẩn hoá bỏ dấu, KHÔNG theo
 "Mã số" và KHÔNG theo địa chỉ ô cứng (C17/C28/C100… như ghi chú trong file mapping): mã số bị TRÙNG
@@ -78,6 +82,7 @@ _UNITS = {
     "HTXXANHTUYENQUANG": {"layout": "kqkd", "cong_ty": "HTX_XTQ", "khoi": "Khối KD Vận tải Taxi Xanh"},
     "HTXXANHVINHPHUC": {"layout": "kqkd", "cong_ty": "HTX_XVP", "khoi": "Khối KD Vận tải Taxi Xanh"},
     "ANTAXI": {"layout": "antaxi", "cong_ty": "AAG", "khoi": "Khối KD Dịch vụ An Taxi"},
+    "ANKHACHSAN": {"layout": "anks", "cong_ty": "AAG", "khoi": "Khối KD Dịch vụ An KS"},
 }
 
 # Cost center theo TỪ KHOÁ trong tên cột (dò theo tên, không theo vị trí — xem docstring).
@@ -405,6 +410,93 @@ _FACTS_FN = {"srvf": _srvf_facts, "kqkd": _kqkd_facts, "antaxi": _antaxi_facts}
 
 
 # ---------------------------------------------------------------------------------------------
+# Layout "anks" — An KS (ANKHACHSAN), KHÁC HẲN 3 layout trên: chỉ 1 SHEET DUY NHẤT, mỗi NGÀY là
+# 1 CỘT (không phải mỗi ngày 1 sheet). Header dòng 3: TT | Nội dung chi phí | ĐVT | Tổng cộng |
+# 1 | 2 | … | 31 (số ngày nằm NGAY Ở HEADER, không cần suy). Nhãn chỉ tiêu ở cột "Nội dung chi
+# phí", neo theo TIỀN TỐ đã chuẩn hoá (mã La Mã I/II/III ở cột riêng bên trái, không dính nhãn).
+# CỘT "Tổng cộng" = Σ các cột ngày trong tháng (verify ngày 1-4/08: 2.975.000+1.600.000+1.615.000
+# +1.400.000 = 7.590.000 = đúng ô Tổng cộng dòng I) -> BỎ cột này, chỉ lấy cột NGÀY để không đếm
+# đôi khi gộp nhiều ngày (giống lý do bỏ cột "Tổng cộng" ở layout kqkd).
+# KHÔNG cost center: An KS chỉ 1 cơ sở (Garden Sơn Tây) — verify raw_rows bản THÁNG: cột
+# cost_center của khối An KS luôn NULL ở mọi report_type/mọi kỳ.
+# dim1 PNLT/CHIPHI lấy Y HỆT bản THÁNG của An KS (rà DB 2026-06):
+#   CHIPHI: 'Giá vốn hàng bán' / 'Chi phí chung' / 'Chi phí lương + CP khác cho CNV' (3 nhóm,
+#     KHÁC An Taxi/XVP) — đúng 3 dòng con II.1/II.2/II.3 của file.
+#   PNLT: ghi CẢ HAI tên gross ('Doanh thu HH, DV' VÀ 'Doanh thu bán hàng và cung cấp dịch vụ',
+#     cùng giá trị — như An Taxi, xem doanhthu-cautructructure-gross-giamtru) + 'Giá vốn hàng
+#     bán' + CHỈ 'Lợi nhuận sau thuế' (An KS KHÔNG có dòng thuế TNDN -> LNTT=LNST, bản THÁNG
+#     không ghi dim1 'Lợi nhuận trước thuế' riêng, xem An.xlsx spec — daily giữ đúng convention,
+#     KHÔNG tự thêm dòng monthly không có). 'Lợi nhuận gộp' KHÔNG ghi tường minh — bản THÁNG lưu
+#     nó nhưng do BACKEND tự tính (revenue.py::pnl.py fallback DT-giá vốn theo khối khi thiếu
+#     dòng riêng), daily để trống cho backend tự suy, tránh trùng 2 nguồn.
+_ANKS_ANCHOR = {
+    "dt": "tong doanh thu",              # I
+    "tong_cp": "tong chi phi",           # II (nhãn gốc có dấu ':' cuối -> startswith vẫn khớp)
+    "gia_von": "chi phi gia von",        # II.1
+    "chi_chung": "chi phi chung",        # II.2
+    "luong": "chi phi luong",            # II.3 "CHI PHÍ LƯƠNG + CP KHÁC CHO CNV"
+    "lntt": "loi nhuan (i-ii)",          # III — An KS: LNTT = LNST (không có dòng thuế TNDN)
+}
+
+
+def _anks_all_days(rows, period):
+    """1 sheet, mỗi cột 1 ngày -> [(ngay, facts), ...] cho TRỌN THÁNG trong 1 lần gọi (khác hẳn
+    3 layout trên vốn mỗi ngày gọi facts_fn riêng — xem docstring khối trên)."""
+    hdr_i = next((i for i, r in enumerate(rows[:10])
+                  if any(_nd(c) == "tong cong" for c in r if c is not None)), None)
+    if hdr_i is None:
+        return []
+    hdr = rows[hdr_i]
+    tong_j = next(j for j, c in enumerate(hdr) if _nd(c) == "tong cong")
+    y, mm = int(period[:4]), int(period[5:7])
+    day_cols = [(j, int(c)) for j, c in enumerate(hdr) if j > tong_j and isinstance(c, int)
+                and not isinstance(c, bool) and 1 <= c <= 31]
+
+    label_j = next((j for j, c in enumerate(hdr) if _nd(c).startswith("noi dung")), 2)
+    anchored = {}
+    for r in rows[hdr_i + 1:]:
+        if not r or label_j >= len(r):
+            continue
+        n = _nd(r[label_j])
+        for key, pref in _ANKS_ANCHOR.items():
+            if key not in anchored and n.startswith(pref):
+                anchored[key] = r
+
+    def val(key, j):
+        r = anchored.get(key)
+        return _num(r[j]) if r is not None and j < len(r) else None
+
+    per_day = []
+    for j, d in day_cols:
+        facts = []
+        dt = val("dt", j)
+        if dt:
+            facts.append((None, RT_HQKD, MA_DT, MA_DT, dt))
+            facts.append((None, RT_DTHU, "Doanh thu thuần", "Doanh thu thuần", dt))
+            facts.append((None, RT_PNLT, "Doanh thu HH, DV", "Doanh thu HH, DV", dt))
+            facts.append((None, RT_PNLT, "Doanh thu bán hàng và cung cấp dịch vụ",
+                          "Doanh thu bán hàng và cung cấp dịch vụ", dt))
+        tong_cp = val("tong_cp", j)
+        if tong_cp:
+            facts.append((None, RT_HQKD, MA_CP, MA_CP, tong_cp))
+        for key, dim1 in (("gia_von", "Giá vốn hàng bán"), ("chi_chung", "Chi phí chung"),
+                          ("luong", "Chi phí lương + CP khác cho CNV")):
+            v = val(key, j)
+            if v:
+                facts.append((None, RT_CHIPHI, dim1, dim1, v))
+        gia_von = val("gia_von", j)
+        if gia_von:
+            facts.append((None, RT_PNLT, "Giá vốn hàng bán", "Giá vốn hàng bán", gia_von))
+        lntt = val("lntt", j)
+        if lntt:
+            facts.append((None, RT_HQKD, MA_LNTT, MA_LNTT, lntt))
+            facts.append((None, RT_PNLT, "Lợi nhuận sau thuế", "Lợi nhuận sau thuế", lntt))
+        if facts:
+            per_day.append((f"{y:04d}-{mm:02d}-{d:02d}", facts))
+    return per_day
+
+
+# ---------------------------------------------------------------------------------------------
 def derive(path, write=False):
     folder = _source_id(path).split("::", 1)[0]
     unit = _UNITS.get(folder)
@@ -414,15 +506,19 @@ def derive(path, write=False):
 
     wb = openpyxl.load_workbook(path, data_only=True, read_only=True)
     try:
-        srvf = unit["layout"] == "srvf"
-        facts_fn = _FACTS_FN[unit["layout"]]
-        sheets = _srvf_day_sheets(wb, period) if srvf else _kqkd_day_sheets(wb, period)
-        per_day = []
-        for sheet, ngay in sheets:
-            rows = [list(r) for r in wb[sheet].iter_rows(values_only=True)]
-            facts = facts_fn(rows)
-            if facts:
-                per_day.append((ngay, facts))
+        if unit["layout"] == "anks":
+            rows = [list(r) for r in wb[wb.sheetnames[0]].iter_rows(values_only=True)]
+            per_day = _anks_all_days(rows, period)
+        else:
+            srvf = unit["layout"] == "srvf"
+            facts_fn = _FACTS_FN[unit["layout"]]
+            sheets = _srvf_day_sheets(wb, period) if srvf else _kqkd_day_sheets(wb, period)
+            per_day = []
+            for sheet, ngay in sheets:
+                rows = [list(r) for r in wb[sheet].iter_rows(values_only=True)]
+                facts = facts_fn(rows)
+                if facts:
+                    per_day.append((ngay, facts))
     finally:
         wb.close()
 
