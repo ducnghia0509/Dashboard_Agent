@@ -207,6 +207,40 @@ def _khoi_of(file_path: str):
     return C.khoi_from_filename(fn) or C.khoi_from_path(file_path)
 
 
+def _prune_missing_sheet_types(file_path: str, period: str, report_types: list) -> dict:
+    """Xoá dòng CŨ của (file này, kỳ này) thuộc các report_type mà file KHÔNG CÒN NGUỒN để sinh ra
+    (sheet nguồn đã bị bỏ khỏi file). -> {report_type: số dòng đã xoá}, {} nếu không có gì để xoá.
+
+    Bên gọi PHẢI xác định `report_types` theo SỰ TỒN TẠI của sheet nguồn, không theo việc extractor
+    có chạy thành công hay không — xem ghi chú ở nhánh SRVF trong cmd_autofill. Cùng vai với
+    template_filler.prune_stale_types (dành cho đường fill_spec); các deriver chuyên biệt không đi
+    qua đường đó nên cần bản này.
+
+    Phạm vi hẹp NHẤT có thể: chỉ source_file NÀY + period_month NÀY -> không đụng kỳ khác của cùng
+    file, cũng không đụng file khác của cùng kỳ.
+    """
+    rts = sorted({t for t in (report_types or []) if t})
+    if not (rts and period):
+        return {}
+    src = _source_id(file_path)
+    from servers.common import be_bridge as bb
+    db = bb.db.get_db()
+    ph = ",".join(["?"] * len(rts))
+    rows = db.execute(
+        f"SELECT report_type, COUNT(*) n FROM raw_rows WHERE source_file=? AND period_month=? "
+        f"AND report_type IN ({ph}) GROUP BY report_type", (src, period, *rts)).fetchall()
+    hit = {r["report_type"]: r["n"] for r in rows}
+    if not hit:
+        return {}
+    db.execute(
+        f"DELETE FROM raw_rows WHERE source_file=? AND period_month=? AND report_type IN ({ph})",
+        (src, period, *rts))
+    db.commit()
+    print(f"[prune_missing_sheet] {src} {period}: xoa {hit} (sheet nguon khong con trong file)",
+          file=sys.stderr)
+    return hit
+
+
 def _forward_fill(cells: list) -> list:
     out, last = [], None
     for c in cells:
@@ -4059,8 +4093,30 @@ def cmd_autofill(args):
                 _shs = _wb.sheetnames
                 _ck = next((s for s in _shs if "CĐKT" in s or s.upper().replace(" ", "") == "CDKT"), None)
                 _bc = next((s for s in _shs if s.upper().replace(" ", "") == f"T{_mm}BC"), None)
+                _cp = next((s for s in _shs if "CĐPS" in s or s.upper().replace(" ", "") == "CDPS"), None)
                 _bcrows = [list(r) for r in _wb[_bc].iter_rows(values_only=True)] if _bc else None
                 _wb.close()
+                # THIẾU SHEET -> KHÔNG LÊN SỐ: dọn dòng CŨ của đúng các loại sinh ra từ sheet đó.
+                # import_filled chỉ xoá theo report_type mà CHÍNH lượt nạp này sinh ra, nên khi kế
+                # toán thay file bỏ hẳn 1 sheet (T07 SRVF bỏ CĐKT+CĐPS, chỉ còn P&L) thì dòng của
+                # lượt nạp TRƯỚC sống sót mãi. Đã phải xoá tay 144 dòng ngày 2026-08-05 (TSNV 127 +
+                # THUE 5 + HH 4 + BS 3 + PTHU/PTRA/TS/_ADV), khiến khối Showroom hiện số dư T07 y hệt
+                # T06 và view "Tất cả các kỳ" tụt từ 7.355,96 xuống 4.979,10 tỷ (TC bị kéo về ngày
+                # chốt 31/07 chỉ còn Showroom, mất HO + Dự án + Trạm sạc).
+                # NEO VÀO SỰ TỒN TẠI CỦA SHEET, KHÔNG neo vào extractor chạy thành công: sheet CÓ mà
+                # parse lỗi (đổi layout, công thức #REF!) thì phải GIỮ số cũ + báo lỗi, xoá đi là mất
+                # dữ liệu thật vì một lỗi tạm thời.
+                _absent = ([] if _ck else ["TSNV", "BS", "TS"]) \
+                    + ([] if _cp else ["PTHU", "PTRA", "PTHU_ADV", "PTRA_ADV", "THUE", "HH"]) \
+                    + ([] if _bcrows else ["HQKD", "PNLT", "DTHU", "CHIPHI", "TREND"])
+                if _absent:
+                    _pr = _prune_missing_sheet_types(args.file, period, _absent)
+                    if _pr:
+                        derived.append({"kind": "SRVF dọn loại thiếu sheet", "ok": True,
+                                        "rows": _pr,
+                                        "via": f"thiếu {'CĐKT ' if not _ck else ''}"
+                                               f"{'CĐPS ' if not _cp else ''}"
+                                               f"{f'T{_mm}BC' if not _bcrows else ''}".strip()})
                 if _ck:                                    # CĐKT -> TSNV (số dư, công nợ, tồn kho, tiền)
                     rc = _derive_cdkt(args.file, _ck, period, "TC")
                     derived.append({"kind": "07_TAISAN_NV", "sheet": _ck, "ok": rc.get("ok"),
