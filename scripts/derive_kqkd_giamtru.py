@@ -177,12 +177,26 @@ def extract(path, period, khoi=None, cong_ty=None):
     if r is None:
         db.commit()
         return {"ok": False, "skip": True}
+    # cong_ty: suy TẤT ĐỊNH từ THƯ MỤC NGUỒN (contract._COMPANY_FOLDER_ALIAS) trước, chỉ fallback
+    # sang cong_ty của dòng cùng-khối khi thư mục không nằm trong map.
+    # BUG đã bắt 2026-08-05: khối Vận tải Taxi Xanh có 3 PHÁP NHÂN RIÊNG (XVP / HTX_XVP / HTX_XTQ)
+    # cùng nộp file đặt tên 'B.6.XVP...', chỉ THƯ MỤC phân biệt được. Lấy `twin` bằng
+    # (period, khoi) + LIMIT 1 KHÔNG ORDER BY nên bốc pháp nhân bất kỳ trong khối -> trên prod cả 3
+    # thư mục đều bị đóng dấu lẫn XVP/HTX_XTQ và HTX_XVP KHÔNG có dòng nào. Khối-tổng vẫn đúng
+    # (revenue._giamtru_of group theo khoi) nhưng view lọc theo Công ty và user bị giới hạn data
+    # scope theo pháp nhân thì đọc sai pháp nhân.
+    ct = cong_ty
+    if not ct:
+        from servers.common import contract as C
+        from servers.common import source_catalog as SC
+        ct = C.resolve_company(raw=SC.raw_company_from_path(path),
+                               file_name=os.path.basename(path))
     twin = db.execute("SELECT dataset_id, ngay, cong_ty FROM raw_rows WHERE period_month=? AND khoi=? "
                       "AND dataset_id IS NOT NULL LIMIT 1", (period, khoi)).fetchone()
     if not twin:
         db.commit()
         return {"ok": False, "error": "chưa có dataset của kỳ này"}
-    ct = cong_ty or twin["cong_ty"]
+    ct = ct or twin["cong_ty"]
     has_other_tong = db.execute(
         "SELECT 1 FROM raw_rows WHERE source_file=? AND period_month=? AND report_type='PNLT' "
         "AND dim1 IN (?,?) LIMIT 1", (src, period, *_EXISTING_TONG_NAMES)).fetchone()
