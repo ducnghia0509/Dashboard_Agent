@@ -4,9 +4,11 @@ B.<n>.<MÃ>.D.<YYYYMM>.<Tên>.xlsx` (ký tự **D** trong tên = Day; bản **M*
 pipeline riêng, KHÔNG đụng tới).
 
 PHẠM VI (chốt theo Mapping_Dashboard_QTTC.xlsx — cột "Đường link lấy dữ liệu ngày tạm thời trên
-EXCEL", ngay bên phải cột "Map màn hình"): CHỈ 4 đơn vị có ô này khác "ko có" mới lên được báo cáo
+EXCEL", ngay bên phải cột "Map màn hình"): CHỈ đơn vị có ô này khác "ko có" mới lên được báo cáo
 ngày, và CHỈ cụm chỉ tiêu P&L (doanh thu / giá vốn / chi phí / lợi nhuận). Mọi chỉ tiêu khác của
 màn Công nợ · Tồn kho · Tài sản · Thuế · Dòng tiền ghi "ko có" -> KHÔNG dựng số ngày cho chúng.
+Hiện có 8 đơn vị: SRVF, XANHVINHPHUC, HTXXANHTUYENQUANG, HTXXANHVINHPHUC, ANTAXI, ANKHACHSAN,
+GLOBALAI, TRAMSAC.
 
 report_type RIÊNG có hậu tố `_D` (HQKD_D / PNLT_D / CHIPHI_D) — KHÔNG ghi đè HQKD/PNLT/CHIPHI của
 báo cáo tháng. LÝ DO BẮT BUỘC: dòng ngày nằm CÙNG dataset tháng (để bộ lọc "Khoảng ngày" của FE
@@ -37,6 +39,31 @@ Backend chọn `_D` hay bản tháng theo `grain` của request (xem app/metrics
     4 layout trên: CHỈ 1 SHEET, mỗi NGÀY là 1 CỘT (không phải mỗi ngày 1 sheet). Header dòng 3:
     TT | Nội dung chi phí | ĐVT | Tổng cộng | 1 | 2 | … | 31 — số ngày nằm sẵn ở header, không
     suy từ tên sheet. Chỉ 1 cơ sở (Garden Sơn Tây), không cost center. Xem `_anks_all_days`.
+  · GLOBALAI (`B.8.GA.TCKT.D.<YYYYMM><DD>.Baocaotaichinhrieng.xlsx`) — layout "tcode": mỗi ngày 1
+    sheet tên "D1".."D31" (file LUỸ KẾ trong tháng — số sheet tăng dần theo ngày đã qua, KHÔNG
+    zero-pad "D1" chứ không phải "D01"). Mã T100/T200/T300 ở cột A y hệt sheet THÁNG "HQKD HỢP
+    NHẤT GA" (cột B = Chỉ tiêu, cột giá trị header ghi "D01".."D31" — CÓ zero-pad, khác tên sheet).
+    KHÔNG cost center (GA 1 pháp nhân, không showroom/depot).
+    ⚠ Tên file ghi thêm 2 số NGÀY snapshot ở cuối (".D.20260601." = kỳ 2026-06, KHÔNG PHẢI báo cáo
+    của riêng ngày 01 — file là snapshot LUỸ KẾ cả tháng tính đến ngày lưu) — `_period_of` chỉ bắt
+    6 số đầu sau ".D." nên vẫn ra đúng "2026-06" dù tên có thêm 2 số dư.
+    Chỉ nạp 4 chỉ tiêu CÓ NGUỒN theo Mapping (DT thuần T101, Giá vốn T201, Tổng chi phí T200, LNTT
+    T300) + breakdown chi phí T201-T204 (giá vốn/tài chính/bán hàng/QLDN, khớp nhãn TT200 mà bản
+    THÁNG của GA đang dùng — xem `_TCODE_CP`). KHÔNG suy diễn "Lợi nhuận sau thuế"/"Lợi nhuận gộp"
+    từ T300: file NGÀY không tách dòng thuế TNDN, khác bản THÁNG (đang đọc sheet 'KQKD' TT200 hợp
+    lệ, có dòng thuế riêng mã 51/52) — gán LNST=T300 như HT (T-series) sẽ SAI khi GA phát sinh
+    thuế thật; để trống, tương tự các chỉ tiêu khác ghi "ko có" trong Mapping cho GA.
+  · TRAMSAC (`B.3.TC.TCKT.D.<YYYYMMDD>.Baocaotaichinhrieng.xlsx`) — CÙNG layout "tcode" với GA
+    (mã T100/T200/T300, sheet "D1".."D31" luỹ kế) nhưng KHÁC 1 ĐIỂM: quy ước PNLT LNTT/LNST.
+    Verify DB 2026-06: PNLT của Trạm sạc CHỈ có đúng 1 dim1 'Lợi nhuận sau thuế' (không có 'Lợi
+    nhuận trước thuế' riêng), giá trị BẰNG TUYỆT ĐỐI HQKD mã 1112 (-0,3844 = -0,3844) -> T300 ở
+    Trạm sạc ĐÃ LÀ LNST (không như GA còn lăn tăn thuế TNDN chưa tách). Gán nhãn 'Lợi nhuận trước
+    thuế' cho Trạm sạc như GA sẽ SAI TÊN cột trên bảng Cấu trúc Doanh thu/Chi phí (dim1 không khớp
+    quy ước THÁNG). Xem tham số `profit_pnlt` của `_tcode_facts` — set qua `_UNITS["TRAMSAC"]`.
+    ⚠ Tên file có NGÀY ĐẦY ĐỦ ".D.20260801." (8 số, khác GA chỉ dư 2 số) nhưng `_period_of` chỉ
+    bắt 6 số đầu sau ".D." nên vẫn ra đúng "2026-08"; sheet "D1" KHÔNG zero-pad (khác header
+    'D1' cũng không zero-pad, khác GA có header zero-pad 'D01' — không ảnh hưởng vì `_tcode_facts`
+    dò val_j có fallback `ten_j + 1` khi không tìm thấy header dạng d\\d{2}).
 
 Neo dòng chỉ tiêu của layout "kqkd" theo TIỀN TỐ SỐ LA MÃ / số mục đã chuẩn hoá bỏ dấu, KHÔNG theo
 "Mã số" và KHÔNG theo địa chỉ ô cứng (C17/C28/C100… như ghi chú trong file mapping): mã số bị TRÙNG
@@ -83,6 +110,9 @@ _UNITS = {
     "HTXXANHVINHPHUC": {"layout": "kqkd", "cong_ty": "HTX_XVP", "khoi": "Khối KD Vận tải Taxi Xanh"},
     "ANTAXI": {"layout": "antaxi", "cong_ty": "AAG", "khoi": "Khối KD Dịch vụ An Taxi"},
     "ANKHACHSAN": {"layout": "anks", "cong_ty": "AAG", "khoi": "Khối KD Dịch vụ An KS"},
+    "GLOBALAI": {"layout": "tcode", "cong_ty": "GA", "khoi": "Khối KD Công nghệ"},
+    "TRAMSAC": {"layout": "tcode", "cong_ty": "TC", "khoi": "Khối KD Trạm sạc Vgreen",
+               "profit_pnlt": ("Lợi nhuận sau thuế",)},
 }
 
 # Cost center theo TỪ KHOÁ trong tên cột (dò theo tên, không theo vị trí — xem docstring).
@@ -406,7 +436,88 @@ def _antaxi_facts(rows):
     return facts
 
 
-_FACTS_FN = {"srvf": _srvf_facts, "kqkd": _kqkd_facts, "antaxi": _antaxi_facts}
+# ---------------------------------------------------------------------------------------------
+# Layout "tcode" — Global AI (GLOBALAI/baocaohqkdngay), mỗi ngày 1 sheet "D1".."D31"
+# ---------------------------------------------------------------------------------------------
+# Neo theo MÃ SỐ T-series (cột A, y hệt sheet THÁNG "HQKD HỢP NHẤT GA") — KHÁC layout "kqkd"/
+# "antaxi" (neo theo NHÃN đã chuẩn hoá) vì GA không bị trùng mã như HTX/XVP, xem docstring đầu file.
+# T201/T202/T203/T204 = CON TRỰC TIẾP của T200 (Σ 4 dòng = T200, verify sheet THÁNG khi có số thật)
+# — cùng 4 nhóm CP mà bản THÁNG của GA hiện dùng qua sheet TT200 'KQKD' (mã 11/22/25/26 -> nhãn
+# 'Giá vốn hàng bán'/'Chi phí tài chính'/'Chi phí bán hàng'/'Chi phí quản lý doanh nghiệp') để biểu
+# đồ cơ cấu chi phí đọc được như nhau ở cả 2 chế độ Ngày/Tháng — xem agent_cli._TT200_CHITIEU.
+_TCODE_CP = [
+    ("T201", "Giá vốn hàng bán", "Giá vốn hàng bán"),
+    ("T202", "Chi phí tài chính", "Chi phí tài chính"),
+    ("T203", "Chi phí bán hàng", "Chi phí bán hàng"),
+    ("T204", "Chi phí quản lý doanh nghiệp", "Chi phí quản lý doanh nghiệp"),
+]
+
+
+def _tcode_day_sheets(wb, period):
+    """[(sheet_name, 'YYYY-MM-DD')] — sheet 'D1'..'D31' (file LUỸ KẾ: số sheet tăng dần theo ngày
+    đã qua trong tháng, tên sheet KHÔNG zero-pad)."""
+    y, mm = int(period[:4]), int(period[5:7])
+    out = []
+    for s in wb.sheetnames:
+        m = re.fullmatch(r"[Dd](\d{1,2})", s.strip())
+        if m and 1 <= int(m.group(1)) <= 31:
+            out.append((s, f"{y:04d}-{mm:02d}-{int(m.group(1)):02d}"))
+    return sorted(out, key=lambda x: x[1])
+
+
+def _tcode_facts(rows, profit_pnlt=("Lợi nhuận trước thuế",)):
+    """rows -> [(None, report_type, dim1, dim3, value_VND)] cho 1 ngày. [] nếu sai layout.
+    Cột giá trị dò theo header khớp 'D\\d{2}' (zero-pad) — TỰ suy ra cột đúng của sheet này, không
+    cần biết trước số ngày, vì mỗi sheet chỉ có DUY NHẤT 1 cột như vậy.
+
+    `profit_pnlt`: (các) tên dim1 PNLT ghi từ T300 — THAM SỐ HOÁ vì 2 đơn vị dùng chung mã T-series
+    nhưng quy ước LNTT/LNST bản THÁNG KHÁC NHAU (xem docstring khối 'tcode' + đơn vị TRAMSAC):
+    GA ghi 'Lợi nhuận trước thuế' (chưa chắc = LNST thật khi phát sinh thuế); Trạm sạc bản THÁNG
+    CHỈ có đúng 1 dim1 PNLT 'Lợi nhuận sau thuế' (không có 'Lợi nhuận trước thuế' riêng, verify DB
+    2026-06: PNLT 'Lợi nhuận sau thuế' = HQKD 1112 = -0,3844, bằng nhau tuyệt đối -> T300 ở Trạm
+    sạc ĐÃ LÀ LNST, gán nhãn 'Lợi nhuận trước thuế' cho nó sẽ SAI tên cột trên bảng Cấu trúc CP."""
+    hdr_i = next((i for i, r in enumerate(rows[:10]) if any(_nd(c) == "ma so" for c in r if c is not None)), None)
+    if hdr_i is None:
+        return []
+    hdr = rows[hdr_i]
+    ma_j = next(j for j, c in enumerate(hdr) if _nd(c) == "ma so")
+    ten_j = next((j for j, c in enumerate(hdr) if _nd(c).startswith("chi tieu")), ma_j + 1)
+    val_j = next((j for j, c in enumerate(hdr) if j not in (ma_j, ten_j)
+                  and re.fullmatch(r"d\d{2}", _nd(c))), ten_j + 1)
+
+    byco = {}
+    for r in rows[hdr_i + 1:]:
+        c = str(r[ma_j]).strip() if ma_j < len(r) and r[ma_j] not in (None, "") else ""
+        if re.fullmatch(r"T\d{3}", c) and c not in byco:
+            byco[c] = _num(r[val_j]) if val_j < len(r) else None
+    if "T101" not in byco or "T200" not in byco or "T300" not in byco:
+        return []
+
+    facts = []
+    dt = byco.get("T101")
+    if dt:
+        facts.append((None, RT_HQKD, MA_DT, MA_DT, dt))
+        facts.append((None, RT_PNLT, "Doanh thu HH, DV", "Doanh thu HH, DV", dt))
+        facts.append((None, RT_DTHU, "Doanh thu thuần", "Doanh thu thuần", dt))
+    tong_cp = byco.get("T200")
+    if tong_cp:
+        facts.append((None, RT_HQKD, MA_CP, MA_CP, tong_cp))
+    lntt = byco.get("T300")
+    if lntt:
+        facts.append((None, RT_HQKD, MA_LNTT, MA_LNTT, lntt))
+        for nm in profit_pnlt:
+            facts.append((None, RT_PNLT, nm, nm, lntt))
+    gv = byco.get("T201")
+    if gv:
+        facts.append((None, RT_PNLT, "Giá vốn hàng bán", "Giá vốn hàng bán", gv))
+    for code, nhom, ten in _TCODE_CP:
+        v = byco.get(code)
+        if v:
+            facts.append((None, RT_CHIPHI, nhom, ten, v))
+    return facts
+
+
+_FACTS_FN = {"srvf": _srvf_facts, "kqkd": _kqkd_facts, "antaxi": _antaxi_facts, "tcode": _tcode_facts}
 
 
 # ---------------------------------------------------------------------------------------------
@@ -510,9 +621,19 @@ def derive(path, write=False):
             rows = [list(r) for r in wb[wb.sheetnames[0]].iter_rows(values_only=True)]
             per_day = _anks_all_days(rows, period)
         else:
-            srvf = unit["layout"] == "srvf"
-            facts_fn = _FACTS_FN[unit["layout"]]
-            sheets = _srvf_day_sheets(wb, period) if srvf else _kqkd_day_sheets(wb, period)
+            layout = unit["layout"]
+            facts_fn = _FACTS_FN[layout]
+            if layout == "tcode":
+                # 2 đơn vị chung layout "tcode" (GA/TRAMSAC) nhưng quy ước PNLT LNTT/LNST khác
+                # nhau — xem docstring `_tcode_facts` param `profit_pnlt`.
+                pp = unit.get("profit_pnlt", ("Lợi nhuận trước thuế",))
+                facts_fn = lambda rows, _pp=pp: _tcode_facts(rows, _pp)  # noqa: E731
+            if layout == "srvf":
+                sheets = _srvf_day_sheets(wb, period)
+            elif layout == "tcode":
+                sheets = _tcode_day_sheets(wb, period)
+            else:
+                sheets = _kqkd_day_sheets(wb, period)
             per_day = []
             for sheet, ngay in sheets:
                 rows = [list(r) for r in wb[sheet].iter_rows(values_only=True)]
