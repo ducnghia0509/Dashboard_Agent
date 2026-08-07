@@ -1237,6 +1237,37 @@ def _bcqt_single_month_total_col(rows, period, header_rows=12):
                  if _norm(c).startswith("tong cong")), None)
 
 
+def _bcqt_antaxi_single_month_col(rows, period, header_rows=12):
+    """Cột 'Năm nay' (hoặc 'Tổng cộng') — DỰ PHÒNG cho sheet 'BCQT.' rút gọn 1 tháng khi
+    `_bcqt_month_col` không tìm được cột 'T{mm}/26' (sheet này không có nhiều cột theo tháng, chỉ
+    có 1 cột giá trị của ĐÚNG tháng đang xem — phát hiện 2026-08-07 ở file An Taxi).
+
+    Nhận diện bằng tiêu đề 'Từ ngày 01/{mm}/{yyyy} - Đến ngày .../{mm}/{yyyy}' — CÙNG tháng ở CẢ 2
+    mốc. Bắt buộc neo theo tiêu đề (giống `_bcqt_single_month_total_col`): bản 'BCQT PT.' ghi tiêu
+    đề lũy kế cả năm 'Từ ngày 01/01 - Đến ngày 31/12' (2 mốc KHÁC tháng) nên không khớp — tránh lấy
+    nhầm cột của bản 12 tháng. Trả None nếu tiêu đề không khớp đúng tháng hoặc không thấy cột."""
+    from servers.common import be_bridge as bb
+    _norm = lambda v: bb.remove_diacritics("" if v is None else str(v)).strip().lower()  # noqa: E731
+    if not (period and "-" in period):
+        return None
+    yyyy, mm = period.split("-")[0], period.split("-")[1]
+    if not mm.isdigit():
+        return None
+    ok_title = False
+    for r in rows[:header_rows]:
+        text = " ".join(_norm(c) for c in r if c is not None)
+        m1 = _re_bcqt.search(r"tu ngay \d{2}/(\d{2})/(\d{4})", text)
+        m2 = _re_bcqt.search(r"den ngay \d{2}/(\d{2})/(\d{4})", text)
+        if (m1 and m2 and m1.group(1) == mm and m1.group(2) == yyyy
+                and m2.group(1) == mm and m2.group(2) == yyyy):
+            ok_title = True
+            break
+    if not ok_title:
+        return None
+    return next((j for r in rows[:header_rows] for j, c in enumerate(r)
+                 if _norm(c) in ("nam nay", "tong cong")), None)
+
+
 def _derive_kqkd_antaxi(file_path: str, period: str, cong_ty: str):
     """TẤT ĐỊNH — An Taxi: sheet 'BCQT PT.' (P&L quản trị B02-DN, MÃ SỐ ở cột B: 100 DT bán hàng,
     110 giảm trừ, 120 DT thuần, 130 giá vốn, 140 lãi gộp, 150 CP biến đổi, 170 CP cố định, 182 CP
@@ -1246,13 +1277,22 @@ def _derive_kqkd_antaxi(file_path: str, period: str, cong_ty: str):
       PNLT   : 'Doanh thu bán hàng và cung cấp dịch vụ'=Mã100 (GỘP = 'Doanh thu HH,DV' #1) · giảm trừ
                =Mã110 · DT thuần=Mã120 · giá vốn=Mã130 · LN gộp=Mã140 · LNST=Mã220.
       02_CHIPHI: giá vốn(130)+biến đổi(150)+cố định(170)+tài chính(182)+khác(192) — Σ == 1047.
-    Trả None nếu KHÔNG phải layout BCQT PT (0 ảnh hưởng file khác)."""
+    Trả None nếu KHÔNG phải layout BCQT PT (0 ảnh hưởng file khác).
+
+    Tên sheet ƯU TIÊN 'BCQT PT.' (bản 12 cột T01/26..T12/26, cột dò theo `_bcqt_month_col`); chỉ
+    dùng 'BCQT.' làm DỰ PHÒNG khi KHÔNG có 'BCQT PT.' (phát hiện 2026-08-07: có tháng kế toán nộp
+    file chỉ còn 1 sheet 'BCQT.' dạng RÚT GỌN 1 tháng — nhưng vẫn 'Mã số' + layout y hệt, chỉ khác
+    cột 'Năm nay' thay vì 'T{mm}/26'). BẪY đã gặp: nhiều tháng (vd T06) có CẢ 2 sheet cùng lúc (PT.
+    = 12 cột, còn 'BCQT.' = bản rút gọn CÙNG THÁNG, KHÔNG có cột 'T{mm}/26' nên dò cột tháng sẽ
+    fail nếu lỡ chọn nhầm) — do đó PHẢI thử 'BCQT PT.' trước, tuyệt đối không gộp 2 tên vào 1 lượt
+    dò (dò gộp sẽ ăn theo thứ tự xuất hiện trong file, không phải theo độ ưu tiên đúng)."""
     from openpyxl import load_workbook
     from servers import template_filler as tf
     from servers.common import be_bridge as bb
     _norm = lambda v: bb.remove_diacritics("" if v is None else str(v)).strip().lower()  # noqa: E731
     wb = bb.fast_load_workbook(file_path, read_only=True, data_only=True)
-    sh = next((s for s in wb.sheetnames if _norm(s).replace(".", "").replace(" ", "") == "bcqtpt"), None)
+    sh = (next((s for s in wb.sheetnames if _norm(s).replace(".", "").replace(" ", "") == "bcqtpt"), None)
+          or next((s for s in wb.sheetnames if _norm(s).replace(".", "").replace(" ", "") == "bcqt"), None))
     if not sh:
         wb.close()
         return None
@@ -1260,6 +1300,8 @@ def _derive_kqkd_antaxi(file_path: str, period: str, cong_ty: str):
     wb.close()
     ma_j = next((j for r in rows[:12] for j, c in enumerate(r) if _norm(c) == "ma so"), 1)
     val_j = _bcqt_month_col(rows, period)
+    if val_j is None:
+        val_j = _bcqt_antaxi_single_month_col(rows, period)
     if val_j is None:
         return {"ok": False, "error": f"BCQT PT: không thấy cột tháng {period}"}
 
@@ -1312,14 +1354,136 @@ def _derive_kqkd_antaxi(file_path: str, period: str, cong_ty: str):
             "target": "01_HQKD", "value_col_header": f"T{period.split('-')[1]}/26", "chiphi": cpr}
 
 
+def _antaxi_daily4_block(ws):
+    """Đọc khối cột 'Tổng xe công ty' ở DÒNG TỔNG CẢ THÁNG của 1 trong 4 sheet ngày An Taxi lớp mới
+    (xem `_derive_kqkd_antaxi_daily4`). Mỗi sheet: dòng 4 = tên 3 khối lặp (Sơn Tây/Thái Nguyên/
+    Tổng xe công ty), dòng 5 = tên cột con của từng khối, dòng 6.. = 1 dòng/NGÀY (cột A = số ngày,
+    cột B = ngày dạng datetime), rồi tới DÒNG TỔNG (cột A rỗng, cột cuối luôn có số — verify cả 4
+    sheet T07/2026). Trả {tên cột con đã chuẩn hoá: giá trị dòng tổng} hoặc None nếu sai layout."""
+    from servers.common import be_bridge as bb
+    _norm = lambda v: bb.remove_diacritics("" if v is None else str(v)).strip().lower()  # noqa: E731
+    rows = [list(r) for r in ws.iter_rows(values_only=True)]
+    branch_i = next((i for i, r in enumerate(rows[:8])
+                     if any(_norm(c) == "tong xe cong ty" for c in r if c is not None)), None)
+    if branch_i is None or branch_i + 1 >= len(rows):
+        return None
+    j0 = next(j for j, c in enumerate(rows[branch_i]) if _norm(c) == "tong xe cong ty")
+    field_row = rows[branch_i + 1]
+    total_row = next((r for r in rows[branch_i + 2:] if r and r[0] is None and r[-1] is not None), None)
+    if total_row is None:
+        return None
+    out = {}
+    for j in range(j0, len(field_row)):
+        name = _norm(field_row[j]) if field_row[j] is not None else None
+        if name and name not in out:
+            out[name] = total_row[j] if j < len(total_row) else None
+    return out
+
+
+def _derive_kqkd_antaxi_daily4(file_path: str, period: str, cong_ty: str):
+    """TẤT ĐỊNH — An Taxi, NHÁNH DỰ PHÒNG khi file KHÔNG còn sheet 'BCQT PT.'/'BCQT.' hợp lệ (kế
+    toán đổi cấu trúc file từ kỳ 2026-07: tách P&L thành 4 sheet 'Doanh thu'/'Giá vốn'/'cp biến
+    đổi'/'CP khác', mỗi sheet 1 dòng/NGÀY × 3 khối chi nhánh Sơn Tây/Thái Nguyên/Tổng xe công ty,
+    có sẵn 1 DÒNG TỔNG cả tháng — xem `_antaxi_daily4_block`). Cố ý TÁCH RIÊNG hàm này (không gộp
+    vào `_derive_kqkd_antaxi`) để 2 layout không đụng nhau — nhánh này chỉ được gọi ở
+    `cmd_autofill` khi nhánh 'BCQT PT.' đã thử và KHÔNG ra kết quả (xem điểm gọi).
+
+    Map đã verify KHỚP TUYỆT ĐỐI (đối chiếu raw_rows T07/2026 sẵn có, ăn từ bản file CŨ trước khi
+    đổi cấu trúc — chốt với user 2026-08-07):
+      100 = Dịch vụ taxi + Dịch vụ thương quyền + DT khác (sheet Doanh thu, khối Tổng xe công ty)
+      110 = Chiết khấu hàng bán (sheet Doanh thu)                      · 120 = 100 − 110
+      130 = 'Tổng cộng' (sheet Giá vốn)                                 · 140 = 120 − 130
+      150 = 'Tổng cộng' (sheet cp biến đổi)
+      170 = Chi phí thuê mặt bằng + Chi phí khấu hao và phân bổ (sheet CP khác)
+      181/182/191/192 = Doanh thu tài chính / Chi phí tài chính / Thu nhập khác / Chi phí khác —
+        lấy TRỰC TIẾP từng cột RIÊNG của sheet CP khác, KHÔNG dùng cột 'Tổng cộng' của sheet này
+        (cột đó cộng lẫn cả Doanh thu tài chính như 1 khoản chi phí — sai kinh tế, đã verify lệch
+        nếu dùng — user xác nhận tách theo cột sau khi đối chiếu khớp từng đồng với số cũ).
+      200 (LNTT) = 120 − 130 − 150 − 170 − 182 + 181 + 191 − 192 (verify khớp -0,392524627 tỷ đúng
+        số cũ trên prod T07/2026). KHÔNG có nguồn thuế TNDN riêng trong 4 sheet mới -> 220 (LNST)
+        = 200, giữ đúng quy ước kỳ này (giống hệt bản BCQT PT. cũ khi thuế TNDN = 0).
+    Trả None nếu thiếu bất kỳ sheet nào trong 4 sheet trên hoặc thiếu khối 'Tổng xe công ty'."""
+    from servers import template_filler as tf
+    from servers.common import be_bridge as bb
+    _norm = lambda v: bb.remove_diacritics("" if v is None else str(v)).strip().lower()  # noqa: E731
+    wb = bb.fast_load_workbook(file_path, read_only=True, data_only=True)
+    by_name = {_norm(s): s for s in wb.sheetnames}
+    sheets = {k: by_name.get(k) for k in ("doanh thu", "gia von", "cp bien doi", "cp khac")}
+    if not all(sheets.values()):
+        wb.close()
+        return None
+    blocks = {k: _antaxi_daily4_block(wb[sheets[k]]) for k in sheets}
+    wb.close()
+    if not all(blocks.values()):
+        return None
+    dt_blk, gv_blk, bd_blk, kh_blk = (blocks["doanh thu"], blocks["gia von"],
+                                       blocks["cp bien doi"], blocks["cp khac"])
+
+    def g(blk, *keys):
+        for k in keys:
+            x = blk.get(k)
+            if isinstance(x, (int, float)):
+                return x
+        return 0
+
+    ma100 = g(dt_blk, "dich vu taxi") + g(dt_blk, "dich vu thuong quyen") + g(dt_blk, "dt khac")
+    ma110 = g(dt_blk, "chiet khau hang ban")
+    ma120 = ma100 - ma110
+    ma130 = g(gv_blk, "tong cong")
+    ma140 = ma120 - ma130
+    ma150 = g(bd_blk, "tong cong")
+    ma170 = g(kh_blk, "chi phi thue mat bang (thue vp)", "chi phi thue mat bang") + g(kh_blk, "chi phi khau hao va phan bo")
+    ma181, ma182 = g(kh_blk, "doanh thu tai chinh"), g(kh_blk, "chi phi tai chinh")
+    ma191, ma192 = g(kh_blk, "thu nhap khac"), g(kh_blk, "chi phi khac")
+    lntt = ma120 - ma130 - ma150 - ma170 - ma182 + ma181 + ma191 - ma192
+    lnst = lntt
+
+    def b(x):
+        return round(x * 1e-9, 9)
+
+    records = []
+
+    def add(ten, val):
+        if val is not None:
+            records.append({"Kỳ (yyyy-mm)": period, "Chỉ tiêu KQKD": ten, "Thực hiện (tỷ)": val})
+    add("Doanh thu thuần", b(ma120))
+    tong_cp = round(ma130 + ma150 + ma170 + ma182 + ma192, 9)   # #8 GỘP, y hệt _derive_kqkd_antaxi
+    add("Tổng chi phí", b(tong_cp))
+    add("Lợi nhuận trước thuế", b(lntt))
+    add("Doanh thu bán hàng và cung cấp dịch vụ", b(ma100))
+    add("Doanh thu HH, DV", b(ma100))
+    add("Các khoản giảm trừ doanh thu", b(ma110))
+    add("Giá vốn hàng bán", b(ma130))
+    add("Lợi nhuận gộp", b(ma140))
+    add("Lợi nhuận sau thuế", b(lnst))
+    add("Doanh thu tài chính", b(ma181))
+    add("Thu nhập khác", b(ma191))
+    out = os.path.join(tf.FILLED_DIR, f"KQKD_{period}_{cong_ty or 'NA'}_01_HQKD.xlsx")
+    tf.fill("01_HQKD", records, out)
+    imp = tf.import_filled(out, cong_ty=cong_ty, khoi=_khoi_of(file_path), source_file=_source_id(file_path))
+    cp_groups = [("Giá vốn hàng bán", b(ma130)), ("Chi phí biến đổi", b(ma150)),
+                 ("Chi phí cố định", b(ma170)), ("Chi phí tài chính", b(ma182)),
+                 ("Chi phí khác", b(ma192))]
+    cp_recs = [{"Kỳ (yyyy-mm)": period, "Nhóm CP (chuẩn mực KT)": n, "Khoản mục chi tiết": n,
+                "Thực hiện (tỷ)": val} for n, val in cp_groups if val]
+    cpr = _fill_import_chiphi(cp_recs, period, cong_ty, file_path) if cp_recs else None
+    return {"ok": bool(imp.get("rows_imported")), "rows": imp.get("rows_imported"),
+            "target": "01_HQKD", "via": "An Taxi 4-sheet ngày (Doanh thu/Giá vốn/cp biến đổi/CP khác)",
+            "chiphi": cpr}
+
+
 def _derive_kqkd_ankhachsan(file_path: str, period: str, cong_ty: str):
     """TẤT ĐỊNH — An KS: sheet 'BCQT' (P&L quản trị theo MỤC ở cột B: I TỔNG DOANH THU [I.1 DOANH THU
-    KHÁCH SẠN], II TỔNG CHI PHÍ [II.1 CHI PHÍ GIÁ VỐN, II.2 CHI PHÍ CHUNG, II.3 CHI PHÍ LƯƠNG + CP
-    KHÁC], III LỢI NHUẬN (I−II)). Cột giá trị = 'Tháng {mm}'. BCQT gộp thu nhập khác vào Mục I nên
-    DThu=Mục I, Tổng chi phí=Mục II, LNTT=Mục III đã cân đối (An KS không có thuế TNDN -> LNST=LNTT).
-      01_HQKD: DThu thuần(1000)=Mục I · Tổng chi phí(1047)=Mục II · LNTT(1112)=Mục III.
+    KHÁCH SẠN, I.2 DT khác], II TỔNG CHI PHÍ [II.1 CHI PHÍ GIÁ VỐN, II.2 CHI PHÍ CHUNG, II.3 CHI PHÍ
+    LƯƠNG + CP KHÁC], III LỢI NHUẬN (I−II)). Cột giá trị = 'Tháng {mm}'. Tổng chi phí=Mục II, LNTT=
+    Mục III đã cân đối (An KS không có thuế TNDN -> LNST=LNTT).
+      01_HQKD: DThu thuần(1000)=Mục I.1 'Doanh thu khách sạn' (XÁC NHẬN NGHIỆP VỤ 2026-08-07 —
+               TRƯỚC lấy nguyên Mục I TỔNG DOANH THU = I.1+I.2 DT khác, THỪA cho "doanh thu thuần"
+               giống lỗi đã sửa ở HT/GA/XDV: Mục I gộp cả DT khác không phải doanh thu bán hàng
+               cốt lõi) · Tổng chi phí(1047)=Mục II · LNTT(1112)=Mục III.
       PNLT   : 'Doanh thu bán hàng và cung cấp dịch vụ'=Mục I.1 (Doanh thu HH,DV) · giá vốn=Mục II.1 ·
-               LN gộp=Mục I−Mục II.1 · LNST=Mục III.
+               LN gộp=Mục I−Mục II.1 (GIỮ NGUYÊN dùng Mục I tổng, KHÔNG đổi theo Doanh thu thuần mới
+               — chỉ chỉ tiêu #1 "Doanh thu thuần" đổi, các công thức khác không đụng) · LNST=Mục III.
       02_CHIPHI: II.1 giá vốn + II.2 chi phí chung + II.3 chi phí lương. Trả None nếu KHÔNG phải BCQT."""
     from openpyxl import load_workbook
     from servers import template_filler as tf
@@ -1383,7 +1547,10 @@ def _derive_kqkd_ankhachsan(file_path: str, period: str, cong_ty: str):
     def add(ten, val):
         if val is not None:
             records.append({"Kỳ (yyyy-mm)": period, "Chỉ tiêu KQKD": ten, "Thực hiện (tỷ)": val})
-    add("Doanh thu thuần", dt)                                        # -> 1000 + DTHU
+    # Doanh thu thuần = Mục I.1 'Doanh thu khách sạn' (KHÔNG phải Mục I TỔNG DOANH THU = I.1+I.2 DT
+    # khác — xác nhận nghiệp vụ 2026-08-07, y hệt lý do đã sửa T100->T101 ở GA). Fallback `dt` (Mục
+    # I) khi file không tách được I.1 (0 ảnh hưởng khi I.2 DT khác = 0, giữ hành vi cũ nếu thiếu mã).
+    add("Doanh thu thuần", dt_ks if dt_ks is not None else dt)         # -> 1000 + DTHU
     add("Tổng chi phí", cp)                                           # -> 1047 (Mục II)
     add("Lợi nhuận trước thuế", ln)                                   # -> 1112 (Mục III)
     add("Doanh thu bán hàng và cung cấp dịch vụ", dt_ks if dt_ks is not None else dt)  # -> PNLT (nuôi Cấu trúc DT)
@@ -3644,6 +3811,23 @@ def _extract_json_block(text: str):
 
 
 def cmd_autofill(args):
+    """Bọc `_cmd_autofill_impl` bằng khoá per-file (servers/common/filelock.py) — chống 2 lượt
+    ingest CÙNG 1 FILE chồng thời gian nhau (bấm 2 lần liên tiếp / cron trùng lúc user bấm tay)
+    ghi đè lẫn nhau (mỗi lượt tự chụp before_id riêng nên không xoá được dòng mới của lượt kia
+    -> dữ liệu nhân đôi thật, xem incident SRVF Showroom 2026-08-07). KHÔNG sửa bên trong
+    import_filled/từng deriver — khoá ở đây là điểm DUY NHẤT mọi nguồn gọi (web /source/analyze
+    và /source/reprocess, cron_thuchi_daily.py, cron_hqkdngay_daily.py, chạy tay) đều đi qua cho
+    MỖI file, nên chặn đúng phạm vi race mà không phải rải sửa nhiều nơi."""
+    from servers.common.filelock import IngestInProgress, ingest_lock
+    sid = _source_id(args.file)
+    try:
+        with ingest_lock(sid):
+            return _cmd_autofill_impl(args)
+    except IngestInProgress as ex:
+        _out({"ok": False, "file": os.path.basename(args.file), "error": str(ex), "skipped_lock": True})
+
+
+def _cmd_autofill_impl(args):
     """LOOP TẤT ĐỊNH điền template vàng — thay 1-prompt-nhồi-tất-cả. Mỗi sheet rơi vào ĐÚNG 1
     'bucket' (đảm bảo phủ, không sót): filled_learned (đã học mapping -> điền ngay, KHÔNG LLM) |
     need_llm (đã route ra sheet đích nhưng chưa học -> analyst đề xuất) | need_human (chưa nhận
@@ -3869,6 +4053,24 @@ def cmd_autofill(args):
                            "canonical_kind": ck, "reason": "đầu tư (gom giao dịch) tất định"})
             continue
         if status == "routed" and ck == "KQKD":
+            # SRVF có nhánh riêng ĐẦY ĐỦ xử lý ĐÚNG sheet 'T{mm}BC' (chạy Ở DƯỚI, sau vòng lặp này)
+            # -> BỎ QUA route KQKD chung cho MỌI sheet của SRVF, không chỉ chờ kqkd_done. Lý do
+            # (bắt 2026-08-07, QA CHIPHI Showroom "Giá vốn hàng bán" đứng yên 1727,94 tỷ mọi tháng):
+            # sheet 'LNQ1' (tồn tại trong MỌI file SRVF, mã A100/A300/A600 GIỐNG T{mm}BC nhưng
+            # KHÔNG có cột T01..T12, chỉ có 'Kỳ này'/'Lũy kế') CŨNG khớp gate của _derive_kqkd_srvf
+            # -> route chung gọi _derive_kqkd_srvf(rows=LNQ1,...) TRƯỚC khi tới sheet T{mm}BC thật,
+            # val_j rơi về fallback 'Kỳ này' (đứng yên/lũy kế, KHÔNG phải số tháng) -> _fill_import_chiphi
+            # ghi ĐÈ 02_CHIPHI bằng số sai NGAY TRONG vòng lặp này — dù nhánh SRVF riêng chạy ĐÚNG
+            # sau đó, nó không tự biết phải "sửa lại" data đã bị route chung ghi trước tại đây (mỗi
+            # lần gọi import_filled là 1 lượt ghi độc lập, không có cờ nào báo "đã có lượt SAI").
+            # SRVF-only vì đây là công ty DUY NHẤT có sheet dạng LNQ1 gây trùng gate (xem memory
+            # srvf-khoi-vs-costcenter-total) — công ty khác route KQKD chung vẫn chạy y hệt trước đây.
+            if _source_id(args.file).split("::", 1)[0].upper() == "SRVF":
+                ledger.append({"sheet": sheet, "bucket": "skip_dup", "target_sheet": "01_HQKD",
+                               "canonical_kind": ck,
+                               "reason": "SRVF: 01_HQKD+02_CHIPHI lấy từ T{mm}BC ở nhánh riêng, "
+                                        "bỏ route KQKD chung tránh sheet LNQ1 ghi đè sai"})
+                continue
             if kqkd_done:   # 01_HQKD đã có nguồn tất định từ sheet KQKD trước -> BỎ (tránh đè/đôi)
                 ledger.append({"sheet": sheet, "bucket": "skip_dup", "target_sheet": "01_HQKD",
                                "canonical_kind": ck, "reason": "01_HQKD đã có nguồn KQKD tất định khác"})
@@ -4126,8 +4328,19 @@ def cmd_autofill(args):
                                     "rows": rc2.get("rows"), "via": "SRVF CĐKT mã220"})
                 if _bcrows:                                # T{mm}BC -> 01_HQKD + 02_CHIPHI + PNLT (A-series)
                     rk = _derive_kqkd_srvf(_bcrows, period, "TC", args.file)
+                    # PHẢI mang "chiphi" (rk đã có sẵn từ _derive_kqkd_srvf) sang entry "derived" —
+                    # thiếu key này (bắt 2026-08-07) khiến guard post-loop dò "_dcp" (tìm entry
+                    # kind='01_HQKD' có chiphi.ok=True để BIẾT deriver P&L riêng đã emit CHIPHI rồi,
+                    # xem comment "KHÔNG chạy extract_chiphi post-loop" bên dưới) KHÔNG THẤY gì ->
+                    # tưởng CHƯA có CHIPHI -> chạy generic extract_chiphi.extract() ĐÈ LẠI bằng sheet
+                    # sai (kqkd_entry rơi về sheet 'LNQ1' — sheet SRVF nào đó bị skip_dup trong vòng
+                    # lặp trên nhưng vẫn mang target_sheet='01_HQKD') -> ghi đè 02_CHIPHI bằng số SAI
+                    # (cột 'Kỳ này' đứng yên của LNQ1) NGAY SAU KHI vừa ghi đúng — đúng nguyên nhân
+                    # "Giá vốn hàng bán" Showroom đứng yên 1727,94 tỷ mọi tháng dù nhánh SRVF đã tính
+                    # đúng theo cột T{mm}.
                     derived.append({"kind": "01_HQKD", "sheet": _bc, "ok": bool(rk and rk.get("ok")),
-                                    "rows": (rk or {}).get("rows"), "via": "SRVF T{mm}BC"})
+                                    "rows": (rk or {}).get("rows"), "via": "SRVF T{mm}BC",
+                                    "chiphi": (rk or {}).get("chiphi")})
                 from derive_srvf_cdps import extract as _srvf_cdps   # công nợ + thuế + tồn kho xe
                 rd = _srvf_cdps(args.file, period, "TC")
                 derived.append({"kind": "SRVF CĐPS (PTHU/PTRA/THUE/HH)", "ok": rd.get("ok"),
@@ -4215,7 +4428,15 @@ def cmd_autofill(args):
         if _an_folder == "ANTAXI":
             try:
                 rk = _derive_kqkd_antaxi(args.file, period, args.cong_ty or "AAG")
-                derived.append({"kind": "01_HQKD", "ok": bool(rk and rk.get("ok")), "via": "An Taxi BCQT PT",
+                # NHÁNH DỰ PHÒNG (phát hiện 2026-08-07): 'BCQT PT.'/'BCQT.' không có/không ra số ->
+                # thử layout MỚI 4 sheet ngày ('Doanh thu'/'Giá vốn'/'cp biến đổi'/'CP khác') — xem
+                # `_derive_kqkd_antaxi_daily4`. CHỈ thử khi nhánh cũ thất bại, tránh ghi trùng.
+                if not (rk and rk.get("ok")):
+                    rk4 = _derive_kqkd_antaxi_daily4(args.file, period, args.cong_ty or "AAG")
+                    if rk4 is not None:
+                        rk = rk4
+                derived.append({"kind": "01_HQKD", "ok": bool(rk and rk.get("ok")),
+                                "via": (rk or {}).get("via", "An Taxi BCQT PT"),
                                 "rows": (rk or {}).get("rows"), "chiphi": (rk or {}).get("chiphi"),
                                 "error": (rk or {}).get("error")})
             except Exception as ex:  # noqa: BLE001
