@@ -49,6 +49,9 @@ coding trước khi thêm, KHÔNG đoán).
       J "Tổng nợ phải thu" (= K+L+M, verify được ở dòng 0 = dòng tổng của sheet)
       K "Công nợ trong hạn"      L "Công nợ đến hạn"       M "Công nợ quá hạn" (= N+O+P+Q)
       N quá hạn 1-30 ngày · O >30-90 · P >90-180 · Q >180 ngày (sub-header dòng dưới header chính)
+  - "hanno_tong" / "hanno_tong_xdv": ĐỌC THẲNG DÒNG TỔNG nằm NGAY TRÊN header (HT/Dự án/XDV) —
+    spec user chỉ đích danh ô ở dòng đó, xem `_agg_hanno_tong`. Riêng XDV bố cục cột khác template
+    (không có "đến hạn", 5 dải quá hạn thay vì 4) -> resolver riêng `_find_cols_xdv`.
     -> KHÔNG tính age_days per dòng (khác hẳn "age") — CỘNG THẲNG giá trị các cột trên qua mọi
     dòng khách hàng. Payload dùng field riêng (tong_no/trong_han/den_han/qua_han/qh_1_30/qh_30_90/
     qh_90_180/qh_180p) — KHÔNG tái dùng key `tuoi_no_1t`/`aging_13`/`aging_36`/`aging_6p` của mode
@@ -84,14 +87,22 @@ DB_URL = (os.environ.get("DATABASE_URL") or os.environ.get("TC_DATABASE_URL")
 # spec — đơn vị khác không nằm trong dict này -> derive() no-op (skip=True), không ảnh hưởng gì.
 # (cong_ty, khoi) verify qua raw_rows thật kỳ 2026-06 (DB coding 5435) trước khi thêm.
 _UNITS = {
-    "XANHVINHPHUC": ("XVP", "Khối KD Vận tải Taxi Xanh", "age"),
-    "HTXXANHTUYENQUANG": ("HTX_XTQ", "Khối KD Vận tải Taxi Xanh", "age"),
-    "HTXXANHVINHPHUC": ("HTX_XVP", "Khối KD Vận tải Taxi Xanh", "age"),
-    # Chưa có file thật (2026-08-03) — cấu hình sẵn theo spec mới, verify lại cong_ty/khoi khi có
-    # file đầu tiên (dry-run trước khi --write).
+    # XVP/HTX_XTQ/HTX_XVP/TRẠM SẠC/GLOBAL AI đổi 'age'->'hanno' (2026-08-08, QA đối chiếu chart
+    # "Phân loại phải thu theo kỳ hạn thu nợ" ở màn Công nợ với chỉ tiêu #14 Tổng quan): giả định cũ
+    # "Thời hạn nợ ghi 1825 ngày = 5 năm nên cột quá hạn luôn 0" đã lỗi thời — file thật hiện có ĐỦ
+    # cột trong hạn/đến hạn/quá hạn với số liệu KHÁC 0 (vd Trạm sạc T06/2026 quá hạn 476,35 triệu).
+    # `_agg_hanno` giờ tính LUÔN age-bucket (payload tuoi_no_1t/aging_13/aging_36/aging_6p) song song
+    # field hạn-nợ nên đổi mode KHÔNG làm mất số ở chart "aging" như trước khi thêm tính năng đó.
+    "XANHVINHPHUC": ("XVP", "Khối KD Vận tải Taxi Xanh", "hanno"),
+    "HTXXANHTUYENQUANG": ("HTX_XTQ", "Khối KD Vận tải Taxi Xanh", "hanno"),
+    "HTXXANHVINHPHUC": ("HTX_XVP", "Khối KD Vận tải Taxi Xanh", "hanno"),
+    # HO: file "Báo cáo tuổi nợ" thật đã có (2026-08-08) nhưng KHÔNG có dòng khách hàng nào (toàn bộ
+    # cột Mã khách/Tổng nợ phải thu rỗng ở mọi kỳ 202601-202606, verify trực tiếp trên file) -> để
+    # nguyên 'age' (ra 0 y hệt 'hanno' vì không có dữ liệu, không đổi gì để giảm rủi ro không cần
+    # thiết); đổi khi có dữ liệu chi tiết khách hàng thật.
     "HO": ("TC", "Khối hỗ trợ tập đoàn", "age"),
-    "TRAMSAC": ("TC", "Khối KD Trạm sạc Vgreen", "age"),
-    "GLOBALAI": ("GA", "Khối KD Công nghệ", "age"),
+    "TRAMSAC": ("TC", "Khối KD Trạm sạc Vgreen", "hanno"),
+    "GLOBALAI": ("GA", "Khối KD Công nghệ", "hanno"),
     # SRVF: verify 2026-08-03 qua raw_rows thật (PTHU/CDPS) trên DB coding — cong_ty='TC',
     # khoi='Khối KD Vinfast - Showroom' (folder SRVF cũng có dữ liệu cong_ty='VFQN' ở nguồn khác,
     # nhưng file baocaotuoino/*.xlsx hiện có TẤT CẢ đều tên "B.1.TC...." -> chỉ company TC).
@@ -106,6 +117,27 @@ _UNITS = {
     # report_type PTHU_TUOINO (verify qua PTHU/CDPS khác thay, khớp raw_rows thật).
     "ANTAXI": ("AAG", "Khối KD Dịch vụ An Taxi", "hanno"),
     "ANKHACHSAN": ("AAG", "Khối KD Dịch vụ An KS", "hanno"),
+    # ---- mode 'hanno_tong': ĐỌC THẲNG DÒNG TỔNG (spec user 2026-08-06, bản 2 — có file thật) ----
+    # Phần tử thứ 4 = GỢI Ý TÊN SHEET (đã chuẩn hoá `_nd`): 2 file này KHÔNG có sheet tên "tuổi nợ"
+    # nên `_find_sheet` không tự tìm ra, phải chỉ tên.
+    #
+    # XE TẢI HƯNG THỊNH — `HUNGTHINH/baocaotuoino/B5.HT.TCKT.M.<YYYYMM>.Baocaocongnoxetai.xlsx`,
+    # sheet "Phải thu" (KHÔNG phải "Báo cáo tuổi nợ_Mẫu" như spec bản 1 đoán). Spec chỉ ĐÍCH DANH
+    # ô ở DÒNG TỔNG (dòng 4, nằm NGAY TRÊN header dòng 5): H4 tổng · J4 trong hạn · K4 đến hạn ·
+    # L4 quá hạn · M4/N4/O4/P4 = 4 dải. Cột I = 'CÓ' (khách ứng trước) -> KHÔNG thuộc aging.
+    #
+    # DỰ ÁN — `DUAN/baocaotuoino/B.4.TC.TCKT.M.<YYYYM>.Baocaotuoinophaithu.xlsx`, sheet "Tháng {m}".
+    # Cùng kiểu nhưng cột lệch: D3 tổng · F3 trong hạn · G3 đến hạn · H3 quá hạn · I3/J3/K3/L3 dải
+    # (E = 'Có'). Header dòng 4, 4 dải nằm NGAY TRÊN header chính chứ không ở sub-header như HT ->
+    # `_find_cols_hanno` phải dò dải ở CẢ 2 dòng (xem hàm đó).
+    # (cong_ty, khoi) verify 2026-08-06 trên DB coding 5435: HT|'Khối KD Xe tải', TC|'Khối KD Dự án'.
+    "HUNGTHINH": ("HT", "Khối KD Xe tải", "hanno_tong", ("phai thu",)),
+    "DUAN": ("TC", "Khối KD Dự án", "hanno_tong", ("thang",)),
+    # XƯỞNG DỊCH VỤ VINFAST (spec user 2026-08-06) — `XDV/baocaotuoino/B9.TC.TCKT.M.<YYYYMM>.
+    # TUOINOPHAITHU.xlsx`, sheet "Tuổi nợ ". Cũng đọc DÒNG TỔNG nằm TRÊN header như HT/Dự án, nhưng
+    # bố cục cột KHÁC HẲN template -> mode riêng 'hanno_tong_xdv' (xem `_find_cols_xdv`).
+    # (cong_ty, khoi) verify 2026-08-06 trên DB coding 5435: TC | 'Khối KD Vinfast - XDV'.
+    "XDV": ("TC", "Khối KD Vinfast - XDV", "hanno_tong_xdv", ("tuoi no",)),
 }
 
 
@@ -130,13 +162,39 @@ def _source_id(path):
     return f"{folder}::{os.path.basename(path)}"
 
 
-def _find_sheet(wb, period=None):
-    """Tên sheet KHÔNG cố định — file kỳ 06/2026 đặt tên đầy đủ 'Báo cáo tuổi nợ_Mẫu(...)', các
+def _find_sheet(wb, period=None, hints=None):
+    """`hints` (2026-08-06): gợi ý tên sheet khai ở `_UNITS` cho đơn vị mà tên sheet KHÔNG chứa
+    'tuổi nợ' và cũng không theo dạng 'T{mm}' — HT dùng sheet "Phải thu", Dự án dùng "Tháng {m}".
+    Ưu tiên khớp '<hint> {mm}' (đúng THÁNG của kỳ, tránh vớ nhầm 'Tháng 6' khi đang xử lý kỳ 07 nếu
+    file có nhiều sheet tháng — cùng bẫy `_sheet_thang` ở derive_tscd_hetkhauhao), sau đó mới khớp
+    mở đầu tên. Hết hints thì rơi về logic cũ y nguyên (không đổi hành vi đơn vị đang chạy).
+
+    Tên sheet KHÔNG cố định — file kỳ 06/2026 đặt tên đầy đủ 'Báo cáo tuổi nợ_Mẫu(...)', các
     kỳ trước (T01-T05, phát hiện 2026-08-03 khi HTX_XTQ/HTX_XVP có thêm 6 tháng) chỉ đặt 'T1'..'T6'
     (số trùng THÁNG); An Taxi (phát hiện 2026-08-04) đặt kiểu 'AN T6.26' (có tiền tố + hậu tố năm).
     Ưu tiên tên mô tả; fallback khớp token 't{mm}' ở BẤT KỲ ĐÂU trong tên (biên không phải chữ số,
     tránh 'T1' khớp nhầm 'T10'/'T11') thay vì đòi tên sheet == 'T{mm}' tuyệt đối — không lấy 'T1'
     đầu tiên bừa (cùng bẫy đã gặp ở derive_tscd_hetkhauhao._sheet_thang với sheet 'Tháng N')."""
+    if hints:
+        mm = int(period[5:7]) if period else None
+        for h in hints:
+            sn = next((s for s in wb.sheetnames if _nd(s) == f"{h} {mm}"), None)
+            if sn:
+                return sn
+        for h in hints:
+            # khớp BẰNG tên hint: XDV kỳ 02 có CẢ 'Tuổi nợ ' và 'Tuổi nợ, ', kỳ 04 có 'Tuổi nợ..'
+            # (bản nháp, cùng số liệu) -> startswith sẽ ra 2 ứng viên rồi trả None ở dưới; sheet
+            # ĐÚNG luôn là cái tên sạch = hint.
+            sn = next((s for s in wb.sheetnames if _nd(s) == h), None)
+            if sn:
+                return sn
+        for h in hints:
+            cand = [s for s in wb.sheetnames if _nd(s).startswith(h)]
+            if len(cand) == 1:
+                return cand[0]
+            if cand:
+                return None      # NHIỀU sheet khớp mà không cái nào đúng tháng -> KHÔNG đoán bừa
+        return None
     sn = next((s for s in wb.sheetnames if "tuoi no" in _nd(s) or "tuoi_no" in _nd(s)), None)
     if sn or not period:
         return sn
@@ -151,16 +209,24 @@ def _period_end(period):
     return dt.date(y, m, calendar.monthrange(y, m)[1])
 
 
+def _is_tong_hdr(s):
+    """Header cột TỔNG dư nợ. Template chuẩn (SRVF/XVP/HTX/HO/An Taxi) + Dự án ghi 'Tổng nợ phải
+    thu'; spec 2026-08-06 gọi chỉ tiêu này là 'Tổng số dư nợ'; file thật của HT (sheet "Phải thu")
+    ghi gọn 'Tổng nợ' -> nhận cả 3 cách gọi (dò theo TÊN, không cứng chữ cột: mỗi đơn vị một vị trí).
+    'tong no' để KHỚP BẰNG chứ không startswith — nếu không sẽ vớ nhầm 'Tổng nợ quá hạn'."""
+    return s == "tong no" or s.startswith("tong no phai thu") or s.startswith("tong so du no")
+
+
 def _find_cols(rows):
     """Dò header theo TÊN — chỉ cần 'Ngày hóa đơn' (ngày phát sinh) + 'Tổng nợ phải thu' (dư PT).
     Trả (data_start, ngay_i, tong_i) hoặc (None, None, None)."""
     hdr_i = next((i for i, r in enumerate(rows[:6])
-                  if any(_nd(c).startswith("tong no phai thu") for c in r if c)), None)
+                  if any(_is_tong_hdr(_nd(c)) for c in r if c)), None)
     if hdr_i is None:
         return None, None, None
     h = rows[hdr_i]
     ngay_i = next((j for j, c in enumerate(h) if c and _nd(c).startswith("ngay hoa don")), None)
-    tong_i = next((j for j, c in enumerate(h) if c and _nd(c).startswith("tong no phai thu")), None)
+    tong_i = next((j for j, c in enumerate(h) if c and _is_tong_hdr(_nd(c))), None)
     ma_i = next((j for j, c in enumerate(h) if c and _nd(c) == "ma khach"), None)
     if ngay_i is None or tong_i is None:
         return None, None, None
@@ -174,7 +240,7 @@ def _find_cols_hanno(rows):
     chỉ xuất hiện ở hàng phụ) — verify bằng file thật SRVF/baocaotuoino T06/2026.
     Trả dict cột hoặc None nếu không đủ cột (fallback sang mode 'age' ở derive())."""
     hdr_i = next((i for i, r in enumerate(rows[:6])
-                  if any(_nd(c).startswith("tong no phai thu") for c in r if c)), None)
+                  if any(_is_tong_hdr(_nd(c)) for c in r if c)), None)
     if hdr_i is None or hdr_i + 1 >= len(rows):
         return None
     h, sub = rows[hdr_i], rows[hdr_i + 1]
@@ -182,21 +248,85 @@ def _find_cols_hanno(rows):
     def _idx(row, pred):
         return next((j for j, c in enumerate(row) if c and pred(_nd(c))), None)
 
+    def _idx2(pred):
+        """4 dải quá hạn: SRVF/An Taxi/HT để ở SUB-HEADER, Dự án để THẲNG trên header chính
+        (2026-08-06) -> tìm sub trước rồi mới tới hàng chính."""
+        return _idx(sub, pred) if _idx(sub, pred) is not None else _idx(h, pred)
+
     cols = {
-        "tong": _idx(h, lambda s: s.startswith("tong no phai thu")),
+        "tong": _idx(h, _is_tong_hdr),
         "trong_han": _idx(h, lambda s: s.startswith("cong no trong han")),
         "den_han": _idx(h, lambda s: s.startswith("cong no den han")),
         "qua_han": _idx(h, lambda s: s.startswith("cong no qua han")),
-        "qh_1_30": _idx(sub, lambda s: s.startswith("1-30")),
-        "qh_30_90": _idx(sub, lambda s: "30-90" in s),
-        "qh_90_180": _idx(sub, lambda s: "90-180" in s),
-        "qh_180p": _idx(sub, lambda s: s.startswith("180") or s.startswith(">180")),
+        "qh_1_30": _idx2(lambda s: s.startswith("1-30")),
+        "qh_30_90": _idx2(lambda s: "30-90" in s),
+        "qh_90_180": _idx2(lambda s: "90-180" in s),
+        "qh_180p": _idx2(lambda s: s.startswith("180") or s.startswith(">180")),
     }
     if any(v is None for v in cols.values()):
         return None
     ma_i = _idx(h, lambda s: s == "ma khach")
     cols["ma"] = ma_i if ma_i is not None else 4
+    cols["hdr_i"] = hdr_i
     cols["data_start"] = hdr_i + 2
+    # 'Ngày hóa đơn' (2026-08-08): CÓ trên MỌI file mode 'hanno' đã khảo sát (SRVF/An Taxi/An KS/
+    # Trạm sạc/XVP/HTX_XTQ/HTX_XVP) — cho phép _agg_hanno TÍNH THÊM age-bucket (tuoi_no_1t/aging_13/
+    # aging_36/aging_6p, field "aging" đọc ở debt.py) CÙNG LÚC với field hạn-nợ, để đổi mode 1 đơn vị
+    # từ 'age' sang 'hanno' KHÔNG làm mất số liệu ở màn "Phân loại phải thu theo kỳ hạn thu nợ" đang
+    # có sẵn. Optional (không có -> None, _agg_hanno chỉ ghi field hạn-nợ như cũ, không lỗi).
+    cols["ngay"] = _idx(h, lambda s: s.startswith("ngay hoa don"))
+    return cols
+
+
+# XDV: file chia 5 DẢI quá hạn (1-30 · 30-60 · 60-90 · 90-180 · >180) còn dashboard chỉ có 4 dải
+# -> dải ">30-90" = 30-60 + 60-90 (CỘNG 2 cột, đúng ý spec user "Công nợ quá hạn >30-90 ngày").
+_XDV_DAI = {
+    "qh_1_30": ("qua han 1-30",),
+    "qh_30_90": ("qua han 30-60", "qua han 60-90"),
+    "qh_90_180": ("qua han 90-180",),
+    "qh_180p": ("qua han >180",),
+}
+
+
+def _find_cols_xdv(rows):
+    """Dò cột cho mode 'hanno_tong_xdv' (XƯỞNG DỊCH VỤ VINFAST) — sheet "Tuổi nợ " KHÔNG theo
+    template chuẩn, khảo sát cả 7 file 202601..202607 (2026-08-06):
+
+      T01-06: header DÒNG 2, dòng tổng DÒNG 1 -> D "Tổng cn" · E "Trog hạn" · F..J = 5 dải
+      T07   : title dòng 1, header DÒNG 3, dòng tổng DÒNG 2 -> E "Tổng cn" · F "Trog hạn" · G..K = 5 dải
+
+    3 chỗ lệch với spec user (spec map cơ học từ template chuẩn nên bị trượt 1 cột — GHI THEO TÊN
+    header, KHÔNG theo chữ cột trong spec, nếu không T07 sẽ ra tổng = 0 vì D2 rỗng):
+      1. Spec ghi ô ở DÒNG 2; thực tế dòng tổng là dòng 1 (T01-06) hay dòng 2 (T07) -> `_agg_hanno_tong`
+         quét NGƯỢC lên trên header, không hardcode số dòng.
+      2. **KHÔNG có cột "Công nợ đến hạn"** trong file XDV (cột spec gọi 'đến hạn' thực chất là
+         "Quá hạn 1-30 ngày") -> `den_han` = None -> payload 0. Verify: Tổng = Trong hạn + Σ 5 dải
+         khớp TUYỆT ĐỐI cả 7 kỳ, không còn chỗ cho phần "đến hạn".
+      3. KHÔNG có cột tổng "Công nợ quá hạn" -> `qua_han` = None, `_agg_hanno_tong` tự cộng 4 dải.
+    Tên cột trong file có typo "Trog hạn" (thiếu 'n') -> nhận cả 2 cách viết.
+    Trả dict cột (giá trị có thể là tuple nhiều cột phải CỘNG, hoặc None nếu file không có cột đó)."""
+    hdr_i = next((i for i, r in enumerate(rows[:8])
+                  if any(_nd(c).startswith("tong cn") for c in r if c)), None)
+    if hdr_i is None:
+        return None
+    h = rows[hdr_i]
+
+    def _idx(pre):
+        return next((j for j, c in enumerate(h) if c and _nd(c).startswith(pre)), None)
+
+    cols = {"tong": _idx("tong cn"),
+            "trong_han": next((j for j in (_idx("trog han"), _idx("trong han")) if j is not None), None),
+            "den_han": None,     # không có trong file XDV (xem docstring)
+            "qua_han": None}     # không có cột tổng -> cộng 4 dải
+    if cols["tong"] is None or cols["trong_han"] is None:
+        return None
+    for k, names in _XDV_DAI.items():
+        idxs = tuple(j for j in (_idx(n) for n in names) if j is not None)
+        if len(idxs) != len(names):
+            return None          # thiếu dải -> coi như đổi layout, KHÔNG ghi số lệch
+        cols[k] = idxs if len(idxs) > 1 else idxs[0]
+    cols["hdr_i"] = hdr_i
+    cols["data_start"] = hdr_i + 1   # KHÔNG có sub-header như template chuẩn
     return cols
 
 
@@ -240,14 +370,22 @@ def _agg_age(rows, report_date):
             "agg_ty": {k: round(v * 1e-9, 9) for k, v in agg.items()}, "payload": payload}
 
 
-def _agg_hanno(rows):
-    """mode 'hanno' (SRVF) — CỘNG THẲNG các cột trong-hạn/đến-hạn/quá-hạn (J..Q) đã có sẵn theo
-    khách hàng trong sheet, KHÔNG tính age_days (khác trục 'age', xem docstring đầu file)."""
+def _agg_hanno(rows, report_date=None):
+    """mode 'hanno' (SRVF/An Taxi/An KS + Trạm sạc/XVP/HTX_XTQ/HTX_XVP/Global AI từ 2026-08-08) —
+    CỘNG THẲNG các cột trong-hạn/đến-hạn/quá-hạn (J..Q) đã có sẵn theo khách hàng trong sheet.
+
+    Kèm age-bucket (2026-08-08): file mode 'hanno' NÀO CŨNG có cột 'Ngày hóa đơn' (verify SRVF/An
+    Taxi/Trạm sạc/XVP/HTX_XTQ/HTX_XVP) nên tính LUÔN tuoi_no_1t/aging_13/aging_36/aging_6p per dòng
+    (giống hệt `_agg_age`, dùng CHUNG report_date) và gộp vào CÙNG payload — để field "aging" ở
+    debt.py (màn "Phân loại phải thu theo kỳ hạn thu nợ") không bị mất số khi 1 đơn vị đổi mode từ
+    'age' sang 'hanno'. `report_date=None` (gọi cũ, nếu có) -> bỏ qua age-bucket, giữ hành vi cũ."""
     cols = _find_cols_hanno(rows)
     if cols is None:
         return None
     keys = ("tong", "trong_han", "den_han", "qua_han", "qh_1_30", "qh_30_90", "qh_90_180", "qh_180p")
     agg = {k: 0.0 for k in keys}
+    age_agg = {"b1": 0.0, "b13": 0.0, "b36": 0.0, "b6p": 0.0}
+    ngay_i = cols.get("ngay")
     n_rows = 0
     for r in rows[cols["data_start"]:]:
         if not r or cols["ma"] >= len(r) or not r[cols["ma"]]:
@@ -258,14 +396,95 @@ def _agg_hanno(rows):
         n_rows += 1
         for k in keys:
             agg[k] += vals[k] or 0.0
+        if report_date is not None and ngay_i is not None:
+            ngay = r[ngay_i] if ngay_i < len(r) else None
+            if isinstance(ngay, (dt.date, dt.datetime)):
+                age_days = (report_date - (ngay.date() if isinstance(ngay, dt.datetime) else ngay)).days
+                bucket = "b1" if age_days < 30 else "b13" if age_days < 90 else "b36" if age_days < 180 else "b6p"
+                age_agg[bucket] += vals["tong"]
     tong_all = round(agg["tong"] * 1e-9, 9)
     payload = {"tong_no": round(agg["tong"] * 1e-9, 9), "trong_han": round(agg["trong_han"] * 1e-9, 9),
                "den_han": round(agg["den_han"] * 1e-9, 9), "qua_han": round(agg["qua_han"] * 1e-9, 9),
                "qh_1_30": round(agg["qh_1_30"] * 1e-9, 9), "qh_30_90": round(agg["qh_30_90"] * 1e-9, 9),
                "qh_90_180": round(agg["qh_90_180"] * 1e-9, 9), "qh_180p": round(agg["qh_180p"] * 1e-9, 9),
                "unit": "ty"}
+    if report_date is not None and ngay_i is not None:
+        payload.update({"tuoi_no_1t": round(age_agg["b1"] * 1e-9, 9), "aging_13": round(age_agg["b13"] * 1e-9, 9),
+                         "aging_36": round(age_agg["b36"] * 1e-9, 9), "aging_6p": round(age_agg["b6p"] * 1e-9, 9)})
     return {"n_rows": n_rows, "tong_all": tong_all, "agg_ty": {k: round(v * 1e-9, 9) for k, v in agg.items()},
             "payload": payload}
+
+
+_HANNO_KEYS = ("tong", "trong_han", "den_han", "qua_han",
+               "qh_1_30", "qh_30_90", "qh_90_180", "qh_180p")
+
+
+def _hanno_payload(agg):
+    p = {("tong_no" if k == "tong" else k): round(agg[k] * 1e-9, 9) for k in _HANNO_KEYS}
+    p["unit"] = "ty"
+    return p
+
+
+def _cell(row, spec):
+    """Giá trị 1 chỉ tiêu ở `row` theo `spec` của dict cột:
+      int   -> 1 cột (mọi đơn vị mode 'hanno_tong')
+      tuple -> CỘNG nhiều cột (XDV: dải '>30-90' = '30-60' + '60-90')
+      None  -> cột KHÔNG tồn tại trong file -> 0 (XDV: 'Công nợ đến hạn')."""
+    if spec is None:
+        return 0.0
+    idxs = spec if isinstance(spec, tuple) else (spec,)
+    return sum((_num(row[j]) or 0.0) if j < len(row) else 0.0 for j in idxs)
+
+
+def _has_num(row, spec):
+    """Dòng có SỐ ở cột `spec` (dùng để tìm dòng tổng / lọc dòng chi tiết)."""
+    idxs = (spec,) if isinstance(spec, int) else (spec or ())
+    return any(j < len(row) and _num(row[j]) is not None for j in idxs)
+
+
+def _agg_hanno_tong(rows, cols=None):
+    """mode 'hanno_tong' (HƯNG THỊNH / DỰ ÁN, spec user 2026-08-06) và 'hanno_tong_xdv' (XƯỞNG DỊCH
+    VỤ VINFAST — truyền `cols` từ `_find_cols_xdv`) — ĐỌC THẲNG DÒNG TỔNG thay vì cộng từng khách
+    hàng như `_agg_hanno`.
+
+    Spec chỉ đích danh ô ở dòng tổng (HT: H4/J4/K4/L4/M4-P4 · Dự án: D3/F3/G3/H3/I3-L3) — dòng đó
+    nằm NGAY TRÊN header, nên KHÔNG dò được bằng `data_start` (vốn tính xuôi xuống dưới header).
+    Cách dò: sau khi có cột từ `_find_cols_hanno`, quét NGƯỢC các dòng TRƯỚC header, lấy dòng đầu
+    tiên có số ở cột `tong`. Không hardcode số dòng/chữ cột — file đổi bố cục nhẹ vẫn chạy.
+
+    Vẫn cộng luôn phần chi tiết để ĐỐI CHIẾU (`sum_chi_tiet_ty` trong dry-run): 2026-08-06 khớp
+    tuyệt đối 8/8 cột ở cả 2 file. Nếu sau này LỆCH -> vẫn LẤY DÒNG TỔNG (đúng spec) nhưng cờ
+    `lech_tong_vs_chi_tiet` bật lên để biết mà đi hỏi kế toán, không âm thầm ra số khác."""
+    cols = cols if cols is not None else _find_cols_hanno(rows)
+    if cols is None:
+        return None
+    hdr_i = cols["hdr_i"]
+    tot_i = next((i for i in range(hdr_i - 1, -1, -1) if _has_num(rows[i], cols["tong"])), None)
+    if tot_i is None:
+        return None
+    tr = rows[tot_i]
+    agg = {k: _cell(tr, cols[k]) for k in _HANNO_KEYS}
+
+    chi_tiet = {k: 0.0 for k in _HANNO_KEYS}
+    n_rows = 0
+    for r in rows[cols["data_start"]:]:
+        if not r or not _has_num(r, cols["tong"]):
+            continue
+        n_rows += 1
+        for k in _HANNO_KEYS:
+            chi_tiet[k] += _cell(r, cols[k])
+    # File không có cột tổng "Công nợ quá hạn" (XDV) -> = Σ 4 dải. Suy CẢ ở dòng tổng và ở phần chi
+    # tiết để cờ `lech_tong_vs_chi_tiet` vẫn so đúng cùng cách tính.
+    if cols["qua_han"] is None:
+        for d in (agg, chi_tiet):
+            d["qua_han"] = d["qh_1_30"] + d["qh_30_90"] + d["qh_90_180"] + d["qh_180p"]
+    lech = any(abs(agg[k] - chi_tiet[k]) > 1 for k in _HANNO_KEYS)
+
+    return {"n_rows": n_rows, "tong_all": round(agg["tong"] * 1e-9, 9),
+            "dong_tong": tot_i + 1,          # số dòng Excel (1-based) đã lấy — đối chiếu với spec
+            "agg_ty": {k: round(v * 1e-9, 9) for k, v in agg.items()},
+            "sum_chi_tiet_ty": {k: round(v * 1e-9, 9) for k, v in chi_tiet.items()},
+            "lech_tong_vs_chi_tiet": lech, "payload": _hanno_payload(agg)}
 
 
 def derive(path, period, write=False):
@@ -273,25 +492,52 @@ def derive(path, period, write=False):
     unit = _UNITS.get(folder)
     if not unit:
         return {"ok": False, "skip": True}
-    cong_ty, khoi, mode = unit
+    cong_ty, khoi, mode = unit[:3]
+    sheet_hints = unit[3] if len(unit) > 3 else None
+    # agent_cli gọi deriver này cho MỌI file của folder (không chỉ file tuổi nợ) -> phải phân biệt
+    # "file tuổi nợ mà hỏng" (báo error) với "file loại khác" (skip câm). Mọi file tuổi nợ hiện có
+    # đều nằm ở thư mục con/tên file chứa 'tuoino' (baocaotuoino/baocaotuoinophaithu/TUOINOPHAITHU).
+    # Với file KHÁC loại, CHỈ nhận sheet có tên mô tả 'tuổi nợ' — KHÔNG cho fallback 'T{mm}' của
+    # _find_sheet chạy: nếu bật, file B5.HT.TCTC.M.202605 (Hưng Thịnh) có sheet "chi tiết xe tc xuất
+    # ht5 tháng" sẽ khớp NHẦM 't5' rồi báo lỗi cột rác mỗi lượt nạp báo cáo tài chính.
+    is_tuoino_file = "tuoino" in _nd(path)
     wb = openpyxl.load_workbook(path, data_only=True, read_only=True)
     try:
-        sn = _find_sheet(wb, period)
+        sn = _find_sheet(wb, period if is_tuoino_file else None,
+                         sheet_hints if is_tuoino_file else None)
         if not sn:
-            return {"ok": False, "error": "không thấy sheet 'Báo cáo tuổi nợ'"}
+            # Đơn vị có `sheet_hints` = tên sheet XÁC ĐỊNH -> file trong thư mục tuoino mà không có
+            # sheet đó là BÁO CÁO KHÁC, skip CÂM (không báo lỗi mỗi lượt nạp). Cụ thể
+            # XDV/baocaotuoino còn chứa B.2.TC.TCKT.[DM].20260500.Baocaocongnophaithu*.xlsx (đối soát
+            # công nợ VF, 10-50 sheet, không có sheet 'Tuổi nợ') — cùng bệnh đã fix cho HT ở bản 4.
+            # Layout đổi THẬT (sheet còn đó, cột lệch) vẫn báo error ở bước _agg_* bên dưới.
+            if sheet_hints:
+                return {"ok": False, "skip": True}
+            return ({"ok": False, "error": "không thấy sheet 'Báo cáo tuổi nợ'"}
+                    if is_tuoino_file else {"ok": False, "skip": True})
         rows = [list(r) for r in wb[sn].iter_rows(values_only=True)]
     finally:
         wb.close()
 
-    result = _agg_hanno(rows) if mode == "hanno" else _agg_age(rows, _period_end(period))
+    result = (_agg_hanno_tong(rows, _find_cols_xdv(rows)) if mode == "hanno_tong_xdv"
+              else _agg_hanno_tong(rows) if mode == "hanno_tong"
+              else _agg_hanno(rows, _period_end(period)) if mode == "hanno"
+              else _agg_age(rows, _period_end(period)))
     if result is None:
-        err = ("không dò được cột trong-hạn/đến-hạn/quá-hạn (J..Q)" if mode == "hanno"
+        err = ("không dò được cột 'Tổng cn'/'Trog hạn'/5 dải quá hạn, hoặc không thấy DÒNG TỔNG phía "
+               "trên header" if mode == "hanno_tong_xdv"
+               else "không dò được cột trong-hạn/đến-hạn/quá-hạn, hoặc không thấy DÒNG TỔNG phía trên "
+               "header" if mode == "hanno_tong"
+               else "không dò được cột trong-hạn/đến-hạn/quá-hạn (J..Q)" if mode == "hanno"
                else "không dò được cột 'Ngày hóa đơn'/'Tổng nợ phải thu'")
         return {"ok": False, "error": err}
     n_rows, tong_all, payload = result["n_rows"], result["tong_all"], result["payload"]
 
     out = {"file": os.path.basename(path), "period": period, "cong_ty": cong_ty, "mode": mode,
-           "n_rows": n_rows, "tong_ty": tong_all, "agg_ty": result["agg_ty"]}
+           "sheet": sn, "n_rows": n_rows, "tong_ty": tong_all, "agg_ty": result["agg_ty"]}
+    for k in ("dong_tong", "sum_chi_tiet_ty", "lech_tong_vs_chi_tiet"):
+        if k in result:
+            out[k] = result[k]
 
     if write:
         source_file = _source_id(path)
