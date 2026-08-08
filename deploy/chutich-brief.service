@@ -1,0 +1,40 @@
+# /etc/systemd/system/chutich-brief.service
+#
+# Giữ Tài liệu/BRIEF_CHUTICH.xlsx luôn cập nhật để agent qa_chutich lúc nào cũng sẵn số liệu.
+#
+# Cài (cần sudo — user itadmin có Linger=no nên KHÔNG dùng được `systemctl --user`,
+# service sẽ chết khi đăng xuất):
+#   sudo cp /home/itadmin/AI_Dashboard_QT/Dashboard_Agent/deploy/chutich-brief.service \
+#           /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now chutich-brief
+#   systemctl status chutich-brief
+#   journalctl -u chutich-brief -f
+#
+# Không có sudo thì chạy tạm (mất khi reboot):
+#   cd /home/itadmin/AI_Dashboard_QT/Dashboard_Agent && \
+#   nohup .venv/bin/python scripts/chutich_brief_watcher.py \
+#         >> /home/itadmin/AI_Dashboard_QT/AI_coding/logs/chutich_brief.log 2>&1 &
+
+[Unit]
+Description=Brief Chu tich - giu BRIEF_CHUTICH.xlsx luon cap nhat
+# Nguồn trigger là inbox_events.jsonl do receiver_server ghi; receiver không phải systemd unit
+# nên chỉ cần network. Watcher tự dựng full lúc khởi động nên không phụ thuộc thứ tự start.
+After=network.target
+
+[Service]
+Type=simple
+User=itadmin
+Group=itadmin
+WorkingDirectory=/home/itadmin/AI_Dashboard_QT/Dashboard_Agent
+ExecStart=/home/itadmin/AI_Dashboard_QT/Dashboard_Agent/.venv/bin/python \
+          scripts/chutich_brief_watcher.py
+Restart=always
+RestartSec=10
+# Dựng full mất ~80s; đừng để systemd giết giữa chừng khi stop/restart.
+TimeoutStopSec=180
+StandardOutput=append:/home/itadmin/AI_Dashboard_QT/AI_coding/logs/chutich_brief.log
+StandardError=append:/home/itadmin/AI_Dashboard_QT/AI_coding/logs/chutich_brief.log
+
+[Install]
+WantedBy=multi-user.target
