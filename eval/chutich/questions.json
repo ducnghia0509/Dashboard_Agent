@@ -1,0 +1,554 @@
+{
+  "version": "1.0",
+  "source_doc": "~/trust me bro.txt",
+  "agent": "qa_chutich",
+  "total": 71,
+  "legend": {
+    "traffic_light": {
+      "green": "Trả lời được bằng số thật từ dữ liệu hiện có. Bắt buộc có số + dòng Nguồn + mốc as_of.",
+      "yellow": "Chỉ có proxy/heuristic. Bắt buộc mở đầu bằng cảnh báo 'Dấu hiệu cần xác minh, chưa phải kết luận' + nêu dữ liệu còn thiếu.",
+      "red": "Không có nguồn dữ liệu nào. Bắt buộc từ chối + nêu thiếu gì + soạn sẵn nội dung yêu cầu gửi phòng phụ trách (route_to)."
+    },
+    "counts": { "green": 49, "yellow": 12, "red": 10 }
+  },
+  "questions": [
+    {
+      "id": "L1-01", "level": 1, "level_name": "Hỏi tổng quan",
+      "question": "Điều gì bất thường nhất hôm nay?",
+      "domain": "canhbao", "traffic_light": "green", "brief_sheet": "L1_CANHBAO",
+      "source_report_types": ["baocaohqkdngay", "baocaothuchi"],
+      "expected_shape": "1 mục dẫn đầu + 2-3 mục kế, mỗi mục: chỉ tiêu, đơn vị, số hôm nay, lệch so baseline 30 ngày (%, tuyệt đối)",
+      "notes": "Bất thường = lệch quá ngưỡng z-score/ngưỡng đỏ trong kpi_glossary.json, KHÔNG phải cảm nhận."
+    },
+    {
+      "id": "L1-02", "level": 1, "level_name": "Hỏi tổng quan",
+      "question": "Chỉ tiêu nào đáng lo nhất?",
+      "domain": "canhbao", "traffic_light": "green", "brief_sheet": "L1_CANHBAO",
+      "source_report_types": ["baocaohqkdngay", "baocaotaichinhrieng", "baocaothuchi"],
+      "expected_shape": "1 chỉ tiêu + số hiện tại + ngưỡng đỏ + xu hướng 3 kỳ gần nhất"
+    },
+    {
+      "id": "L1-03", "level": 1, "level_name": "Hỏi tổng quan",
+      "question": "Hôm nay công ty đang mất tiền ở đâu?",
+      "domain": "dongtien", "traffic_light": "green", "brief_sheet": "L1_CANHBAO",
+      "source_report_types": ["baocaothuchi", "baocaohqkdngay"],
+      "expected_shape": "Bảng: đơn vị/khoản mục | chi ra hôm nay | so baseline | ghi chú"
+    },
+    {
+      "id": "L1-04", "level": 1, "level_name": "Hỏi tổng quan",
+      "question": "5 chỉ tiêu cần Chủ tịch quan tâm ngay.",
+      "domain": "canhbao", "traffic_light": "green", "brief_sheet": "L1_CANHBAO",
+      "source_report_types": ["baocaohqkdngay", "baocaotaichinhrieng", "baocaothuchi", "baocaotuoino"],
+      "expected_shape": "Đúng 5 dòng, xếp theo mức nghiêm trọng giảm dần"
+    },
+    {
+      "id": "L1-05", "level": 1, "level_name": "Hỏi tổng quan",
+      "question": "Có dấu hiệu rủi ro tài chính nào không?",
+      "domain": "ruiro", "traffic_light": "green", "brief_sheet": "L1_CANHBAO",
+      "source_report_types": ["baocaotaichinhrieng", "baocaothuchi", "baocaotuoino"],
+      "expected_shape": "Danh sách rủi ro + chỉ số chứng minh (hệ số nợ, khả năng thanh toán, tuổi nợ)"
+    },
+    {
+      "id": "L1-06", "level": 1, "level_name": "Hỏi tổng quan",
+      "question": "Nếu hôm nay chỉ xử lý 3 việc thì nên xử lý việc gì?",
+      "domain": "tuvan", "traffic_light": "green", "brief_sheet": "L1_CANHBAO",
+      "source_report_types": ["baocaohqkdngay", "baocaothuchi", "baocaotuoino"],
+      "expected_shape": "Đúng 3 việc, mỗi việc kèm số tiền tác động ước tính + đơn vị chịu trách nhiệm"
+    },
+
+    {
+      "id": "L2-01", "level": 2, "level_name": "Đào sâu doanh thu",
+      "question": "Doanh thu tăng do đâu?",
+      "domain": "doanhthu", "traffic_light": "yellow", "brief_sheet": "L2_DOANHTHU",
+      "source_report_types": ["baocaotaichinhrieng", "baocaohqkdngay", "baocaotuoino"],
+      "required_dimensions": ["tăng khách hàng", "tăng giá", "tăng sản lượng", "tăng dự án", "tăng showroom"],
+      "expected_shape": "Phân rã theo 5 chiều yêu cầu; chiều nào không có dữ liệu phải nói rõ",
+      "notes": "Phân rã được theo đơn vị/khối/dự án/showroom và sản lượng (đếm Số khung trong baocaotuoino). KHÔNG tách được 'tăng giá' vì không có đơn giá bán."
+    },
+    {
+      "id": "L2-02", "level": 2, "level_name": "Đào sâu doanh thu",
+      "question": "Đơn vị nào đóng góp doanh thu nhiều nhất?",
+      "domain": "doanhthu", "traffic_light": "green", "brief_sheet": "L2_DOANHTHU",
+      "source_report_types": ["baocaotaichinhrieng", "baocaohqkdngay"],
+      "expected_shape": "Bảng xếp hạng: đơn vị | doanh thu | % đóng góp | biến động so kỳ trước"
+    },
+    {
+      "id": "L2-03", "level": 2, "level_name": "Đào sâu doanh thu",
+      "question": "Đơn vị nào giảm mạnh nhất?",
+      "domain": "doanhthu", "traffic_light": "green", "brief_sheet": "L2_DOANHTHU",
+      "source_report_types": ["baocaotaichinhrieng", "baocaohqkdngay"],
+      "expected_shape": "Bảng xếp hạng giảm dần theo mức giảm tuyệt đối và %"
+    },
+    {
+      "id": "L2-04", "level": 2, "level_name": "Đào sâu doanh thu",
+      "question": "Có doanh thu nào chưa thu tiền?",
+      "domain": "congno", "traffic_light": "green", "brief_sheet": "L5_CONGNO",
+      "source_report_types": ["baocaotuoino", "baocaotuoinophaithu"],
+      "expected_shape": "Tổng phải thu + tách trong hạn/quá hạn + theo đơn vị"
+    },
+    {
+      "id": "L2-05", "level": 2, "level_name": "Đào sâu doanh thu",
+      "question": "Bao nhiêu doanh thu có nguy cơ không thu được?",
+      "domain": "congno", "traffic_light": "green", "brief_sheet": "L5_CONGNO",
+      "source_report_types": ["baocaotuoino"],
+      "expected_shape": "Số tiền nợ quá hạn >180 ngày + % trên tổng phải thu + top đơn vị",
+      "notes": "Dùng cột 'số ngày quá hạn' có sẵn trong sheet 'Chi tiết theo hợp đồng'."
+    },
+    {
+      "id": "L2-06", "level": 2, "level_name": "Đào sâu doanh thu",
+      "question": "Top 20 khách hàng chiếm bao nhiêu % doanh thu?",
+      "domain": "khachhang", "traffic_light": "yellow", "brief_sheet": "L5_CONGNO",
+      "source_report_types": ["baocaotuoino"],
+      "expected_shape": "Top 20 theo Mã khách + % trên tổng, kèm cảnh báo đây là proxy",
+      "notes": "Proxy: xếp theo 'Phát sinh nợ' của từng Mã khách, KHÔNG phải doanh thu ghi nhận. Không có báo cáo doanh thu theo khách hàng."
+    },
+    {
+      "id": "L2-07", "level": 2, "level_name": "Đào sâu doanh thu",
+      "question": "Khách hàng nào đang giảm mua?",
+      "domain": "khachhang", "traffic_light": "yellow", "brief_sheet": "L5_CONGNO",
+      "source_report_types": ["baocaotuoino"],
+      "expected_shape": "Danh sách Mã khách có phát sinh nợ giảm liên tiếp, kèm cảnh báo proxy",
+      "notes": "Proxy như L2-06. Khách mua trả tiền ngay sẽ không xuất hiện trong công nợ -> mù một phần."
+    },
+
+    {
+      "id": "L3-01", "level": 3, "level_name": "Đào sâu lợi nhuận",
+      "question": "Vì sao lợi nhuận thấp hơn kế hoạch?",
+      "domain": "loinhuan", "traffic_light": "yellow", "brief_sheet": "L3_LOINHUAN",
+      "source_report_types": ["baocaotaichinhrieng", "baocaokehoachdoanhthu"],
+      "required_dimensions": ["giá vốn tăng", "chi phí tăng", "doanh thu giảm", "chi phí tài chính", "hoàn nhập dự phòng", "thu nhập khác"],
+      "expected_shape": "Cầu nối kế hoạch -> thực hiện, tách theo 6 chiều yêu cầu",
+      "notes": "Chỉ có KẾ HOẠCH DOANH THU (0.KH.GR.Y.2026), KHÔNG có kế hoạch lợi nhuận/chi phí -> phần chênh lệch so kế hoạch chỉ so được ở vế doanh thu; các chiều còn lại chỉ so được với kỳ trước."
+    },
+    {
+      "id": "L3-02", "level": 3, "level_name": "Đào sâu lợi nhuận",
+      "question": "Nếu cắt 10% chi phí thì lợi nhuận tăng bao nhiêu?",
+      "domain": "chiphi", "traffic_light": "green", "brief_sheet": "L3_LOINHUAN",
+      "source_report_types": ["baocaotaichinhrieng"],
+      "expected_shape": "Số tiền tuyệt đối + LNTT/LNST sau khi cắt, tách theo đơn vị"
+    },
+    {
+      "id": "L3-03", "level": 3, "level_name": "Đào sâu lợi nhuận",
+      "question": "5 khoản chi phí lớn nhất.",
+      "domain": "chiphi", "traffic_light": "green", "brief_sheet": "L7_CHIPHI",
+      "source_report_types": ["baocaotaichinhrieng"],
+      "expected_shape": "Đúng 5 dòng: khoản mục | số tiền | % tổng chi phí | biến động"
+    },
+    {
+      "id": "L3-04", "level": 3, "level_name": "Đào sâu lợi nhuận",
+      "question": "Chi phí nào tăng bất thường?",
+      "domain": "chiphi", "traffic_light": "green", "brief_sheet": "L7_CHIPHI",
+      "source_report_types": ["baocaotaichinhrieng", "baocaohqkdngay"],
+      "expected_shape": "Khoản mục vượt ngưỡng lệch so trung bình 3 kỳ, kèm mức lệch"
+    },
+    {
+      "id": "L3-05", "level": 3, "level_name": "Đào sâu lợi nhuận",
+      "question": "Chi phí nào không tạo ra doanh thu?",
+      "domain": "chiphi", "traffic_light": "green", "brief_sheet": "L7_CHIPHI",
+      "source_report_types": ["baocaotaichinhrieng", "baocaohqkdngay"],
+      "expected_shape": "Cost center có chi phí > 0 nhưng doanh thu = 0 hoặc gần 0"
+    },
+    {
+      "id": "L3-06", "level": 3, "level_name": "Đào sâu lợi nhuận",
+      "question": "Chi phí nào có thể tiết kiệm ngay?",
+      "domain": "chiphi", "traffic_light": "green", "brief_sheet": "L7_CHIPHI",
+      "source_report_types": ["baocaotaichinhrieng"],
+      "expected_shape": "Danh sách khuyến nghị dựa trên L3-04 + L3-05, mỗi mục kèm số tiền/kỳ"
+    },
+
+    {
+      "id": "L4-01", "level": 4, "level_name": "Đào sâu dòng tiền",
+      "question": "Tiền đang nằm ở đâu?",
+      "domain": "dongtien", "traffic_light": "green", "brief_sheet": "L4_DONGTIEN",
+      "source_report_types": ["baocaothuchi", "baocaonganhang", "baocaotuoino", "baocaotaichinhrieng", "baocaotaisancodinhcongcudungcu"],
+      "required_dimensions": ["ngân hàng", "công nợ", "tồn kho", "đầu tư", "tài sản"],
+      "expected_shape": "Bảng 5 chiều yêu cầu, mỗi chiều 1 số + % tổng",
+      "notes": "Chiều 'tồn kho' chỉ lấy được 1 dòng tổng trên CĐKT, phải ghi rõ không có chi tiết."
+    },
+    {
+      "id": "L4-02", "level": 4, "level_name": "Đào sâu dòng tiền",
+      "question": "Tiền bị kẹt nhiều nhất ở đâu?",
+      "domain": "dongtien", "traffic_light": "green", "brief_sheet": "L4_DONGTIEN",
+      "source_report_types": ["baocaotuoino", "baocaotaichinhrieng"],
+      "expected_shape": "Xếp hạng theo số tiền kẹt: công nợ quá hạn > tồn kho > tạm ứng..."
+    },
+    {
+      "id": "L4-03", "level": 4, "level_name": "Đào sâu dòng tiền",
+      "question": "Nếu thu hết công nợ thì dòng tiền tăng bao nhiêu?",
+      "domain": "dongtien", "traffic_light": "green", "brief_sheet": "L4_DONGTIEN",
+      "source_report_types": ["baocaotuoino"],
+      "expected_shape": "Tổng phải thu cuối kỳ + số dư tiền hiện tại + tổng sau khi thu"
+    },
+    {
+      "id": "L4-04", "level": 4, "level_name": "Đào sâu dòng tiền",
+      "question": "Bao nhiêu tiền sẽ về trong 30 ngày?",
+      "domain": "dongtien", "traffic_light": "green", "brief_sheet": "L4_DONGTIEN",
+      "source_report_types": ["baocaotuoino"],
+      "expected_shape": "Tổng khoản có 'Ngày đến hạn' trong 30 ngày tới, tách theo đơn vị",
+      "notes": "Dùng cột 'đến hạn'/'Ngày đến hạn' có sẵn."
+    },
+    {
+      "id": "L4-05", "level": 4, "level_name": "Đào sâu dòng tiền",
+      "question": "Bao nhiêu tiền phải trả trong 30 ngày?",
+      "domain": "dongtien", "traffic_light": "green", "brief_sheet": "L4_DONGTIEN",
+      "source_report_types": ["baocaotaichinhrieng", "baocaothuchi"],
+      "expected_shape": "Phải trả đến hạn + gốc/lãi vay đến hạn trong 30 ngày"
+    },
+    {
+      "id": "L4-06", "level": 4, "level_name": "Đào sâu dòng tiền",
+      "question": "Tháng sau có thiếu tiền không?",
+      "domain": "dongtien", "traffic_light": "yellow", "brief_sheet": "L4_DONGTIEN",
+      "source_report_types": ["baocaothuchi", "baocaotuoino"],
+      "expected_shape": "Số dư dự kiến cuối tháng sau = số dư hiện tại + thu đến hạn - phải trả đến hạn, kèm cảnh báo là ước tính",
+      "notes": "Heuristic: không có mô hình dự báo, chỉ cộng trừ khoản đã biết ngày đến hạn. Chi phí vận hành thường xuyên ước theo trung bình 3 tháng."
+    },
+    {
+      "id": "L4-07", "level": 4, "level_name": "Đào sâu dòng tiền",
+      "question": "Bao giờ thiếu tiền?",
+      "domain": "dongtien", "traffic_light": "yellow", "brief_sheet": "L4_DONGTIEN",
+      "source_report_types": ["baocaothuchi", "baocaotuoino"],
+      "expected_shape": "Mốc thời gian ước tính số dư chạm 0, kèm giả định đã dùng",
+      "notes": "Heuristic như L4-06."
+    },
+    {
+      "id": "L4-08", "level": 4, "level_name": "Đào sâu dòng tiền",
+      "question": "Khoản vay nào sắp đến hạn?",
+      "domain": "vay", "traffic_light": "green", "brief_sheet": "L4_DONGTIEN",
+      "source_report_types": ["baocaothuchi", "baocaotaichinhrieng"],
+      "expected_shape": "Bảng: ngân hàng | loại vay (ngắn/trung/dài) | số dư | kỳ hạn"
+    },
+
+    {
+      "id": "L5-01", "level": 5, "level_name": "Đào sâu công nợ",
+      "question": "Công nợ này gồm những khách hàng nào?",
+      "domain": "congno", "traffic_light": "green", "brief_sheet": "L5_CONGNO",
+      "source_report_types": ["baocaotuoino"],
+      "expected_shape": "Bảng theo Mã khách + Tên KH + đơn vị + số dư, phân trang top N"
+    },
+    {
+      "id": "L5-02", "level": 5, "level_name": "Đào sâu công nợ",
+      "question": "Top 20 khách nợ nhiều nhất.",
+      "domain": "congno", "traffic_light": "green", "brief_sheet": "L5_CONGNO",
+      "source_report_types": ["baocaotuoino"],
+      "expected_shape": "Đúng 20 dòng: Mã khách | Tên KH | đơn vị | nợ cuối kỳ | số ngày quá hạn"
+    },
+    {
+      "id": "L5-03", "level": 5, "level_name": "Đào sâu công nợ",
+      "question": "Nợ quá hạn bao nhiêu?",
+      "domain": "congno", "traffic_light": "green", "brief_sheet": "L5_CONGNO",
+      "source_report_types": ["baocaotuoino"],
+      "expected_shape": "Tổng quá hạn + tách B2C/B2B/GF-xe cũ + theo đơn vị",
+      "notes": "Sheet 'CN theo đơn vị' đã tách sẵn quá hạn/trong hạn theo TK 13111/13116/1316."
+    },
+    {
+      "id": "L5-04", "level": 5, "level_name": "Đào sâu công nợ",
+      "question": "Có khoản nợ nào trên 180 ngày?",
+      "domain": "congno", "traffic_light": "green", "brief_sheet": "L5_CONGNO",
+      "source_report_types": ["baocaotuoino"],
+      "expected_shape": "Danh sách khoản có 'số ngày quá hạn' > 180 + tổng tiền"
+    },
+    {
+      "id": "L5-05", "level": 5, "level_name": "Đào sâu công nợ",
+      "question": "Có khoản nào có nguy cơ mất vốn?",
+      "domain": "congno", "traffic_light": "green", "brief_sheet": "L5_CONGNO",
+      "source_report_types": ["baocaotuoino"],
+      "expected_shape": "Khoản quá hạn > 360 ngày hoặc không phát sinh thu trong 6 kỳ, kèm tổng tiền"
+    },
+    {
+      "id": "L5-06", "level": 5, "level_name": "Đào sâu công nợ",
+      "question": "Nếu thu được 30% công nợ thì dòng tiền cải thiện bao nhiêu?",
+      "domain": "congno", "traffic_light": "green", "brief_sheet": "L5_CONGNO",
+      "source_report_types": ["baocaotuoino", "baocaothuchi"],
+      "expected_shape": "30% tổng phải thu + số dư tiền sau khi thu"
+    },
+
+    {
+      "id": "L6-01", "level": 6, "level_name": "Đào sâu tồn kho",
+      "question": "Tồn kho tăng vì sao?",
+      "domain": "tonkho", "traffic_light": "yellow", "brief_sheet": "L4_DONGTIEN",
+      "source_report_types": ["baocaotaichinhrieng"],
+      "expected_shape": "Biến động dòng 'Hàng tồn kho' trên CĐKT qua các kỳ + đối chiếu giá vốn, kèm cảnh báo không có chi tiết mặt hàng",
+      "notes": "Chỉ mô tả ĐƯỢC mức tăng, KHÔNG giải thích được nguyên nhân theo mặt hàng."
+    },
+    {
+      "id": "L6-02", "level": 6, "level_name": "Đào sâu tồn kho",
+      "question": "Bao nhiêu tồn kho chậm luân chuyển?",
+      "domain": "tonkho", "traffic_light": "red", "brief_sheet": "ROUTING",
+      "source_report_types": [],
+      "route_to": { "phong": "CUVT (Cung ứng - Vật tư) + TCKT", "du_lieu_can": "Báo cáo tồn kho chi tiết theo mặt hàng, kèm ngày nhập kho và số lượng xuất trong kỳ" }
+    },
+    {
+      "id": "L6-03", "level": 6, "level_name": "Đào sâu tồn kho",
+      "question": "Hàng nào tồn trên 90 ngày?",
+      "domain": "tonkho", "traffic_light": "red", "brief_sheet": "ROUTING",
+      "source_report_types": [],
+      "route_to": { "phong": "CUVT (Cung ứng - Vật tư) + TCKT", "du_lieu_can": "Báo cáo tồn kho chi tiết theo mặt hàng, kèm ngày nhập kho" }
+    },
+    {
+      "id": "L6-04", "level": 6, "level_name": "Đào sâu tồn kho",
+      "question": "Bao nhiêu tiền đang nằm chết trong kho?",
+      "domain": "tonkho", "traffic_light": "red", "brief_sheet": "ROUTING",
+      "source_report_types": [],
+      "route_to": { "phong": "CUVT (Cung ứng - Vật tư) + TCKT", "du_lieu_can": "Tồn kho chi tiết theo mặt hàng + tuổi tồn + giá trị ghi sổ" }
+    },
+    {
+      "id": "L6-05", "level": 6, "level_name": "Đào sâu tồn kho",
+      "question": "Nếu bán thanh lý tồn kho sẽ thu về bao nhiêu?",
+      "domain": "tonkho", "traffic_light": "red", "brief_sheet": "ROUTING",
+      "source_report_types": [],
+      "route_to": { "phong": "CUVT (Cung ứng - Vật tư) + TCKT", "du_lieu_can": "Tồn kho chi tiết + giá trị thuần có thể thực hiện được (NRV) hoặc giá thanh lý tham chiếu" }
+    },
+
+    {
+      "id": "L7-01", "level": 7, "level_name": "Đào sâu chi phí",
+      "question": "Chi phí nào tăng mạnh nhất?",
+      "domain": "chiphi", "traffic_light": "green", "brief_sheet": "L7_CHIPHI",
+      "source_report_types": ["baocaotaichinhrieng", "baocaohqkdngay"],
+      "expected_shape": "Xếp hạng khoản mục theo mức tăng tuyệt đối và %"
+    },
+    {
+      "id": "L7-02", "level": 7, "level_name": "Đào sâu chi phí",
+      "question": "Chi phí nào tăng nhưng doanh thu không tăng?",
+      "domain": "chiphi", "traffic_light": "green", "brief_sheet": "L7_CHIPHI",
+      "source_report_types": ["baocaotaichinhrieng", "baocaohqkdngay"],
+      "expected_shape": "Cost center có Δchi phí > 0 và Δdoanh thu <= 0"
+    },
+    {
+      "id": "L7-03", "level": 7, "level_name": "Đào sâu chi phí",
+      "question": "Đơn vị nào vượt ngân sách?",
+      "domain": "chiphi", "traffic_light": "red", "brief_sheet": "ROUTING",
+      "source_report_types": [],
+      "route_to": { "phong": "TCKT", "du_lieu_can": "Kế hoạch CHI PHÍ theo đơn vị/khối (hiện chỉ có 0.KH.GR.Y.2026.Kehoachdoanhthu — kế hoạch doanh thu)" }
+    },
+    {
+      "id": "L7-04", "level": 7, "level_name": "Đào sâu chi phí",
+      "question": "Chi phí nào chưa có chứng từ?",
+      "domain": "chiphi", "traffic_light": "red", "brief_sheet": "ROUTING",
+      "source_report_types": [],
+      "route_to": { "phong": "TCKT", "du_lieu_can": "Trạng thái chứng từ theo bút toán (đã/chưa có hóa đơn, chứng từ gốc)" }
+    },
+    {
+      "id": "L7-05", "level": 7, "level_name": "Đào sâu chi phí",
+      "question": "Khoản nào có dấu hiệu bất thường?",
+      "domain": "chiphi", "traffic_light": "green", "brief_sheet": "L7_CHIPHI",
+      "source_report_types": ["baocaotaichinhrieng", "baocaohqkdngay", "baocaothuchi"],
+      "expected_shape": "Khoản mục lệch quá ngưỡng thống kê, kèm mức lệch và kỳ so sánh"
+    },
+
+    {
+      "id": "L8-01", "level": 8, "level_name": "Đào sâu theo công ty",
+      "question": "Xếp hạng toàn bộ công ty từ tốt đến xấu.",
+      "domain": "xephang", "traffic_light": "green", "brief_sheet": "L8_XEPHANG",
+      "source_report_types": ["baocaotaichinhrieng"],
+      "expected_shape": "Bảng 8 pháp nhân: doanh thu | LNTT | LNST | biên LN | thứ hạng"
+    },
+    {
+      "id": "L8-02", "level": 8, "level_name": "Đào sâu theo công ty",
+      "question": "Công ty nào kéo lợi nhuận toàn tập đoàn xuống?",
+      "domain": "xephang", "traffic_light": "green", "brief_sheet": "L8_XEPHANG",
+      "source_report_types": ["baocaotaichinhrieng"],
+      "expected_shape": "Công ty có LN âm hoặc giảm mạnh nhất + mức đóng góp âm vào LN hợp nhất"
+    },
+    {
+      "id": "L8-03", "level": 8, "level_name": "Đào sâu theo công ty",
+      "question": "Công ty nào đang sử dụng vốn kém hiệu quả?",
+      "domain": "xephang", "traffic_light": "green", "brief_sheet": "L8_XEPHANG",
+      "source_report_types": ["baocaotaichinhrieng"],
+      "expected_shape": "Xếp hạng theo ROA/vòng quay tài sản, công thức lấy từ kpi_glossary"
+    },
+    {
+      "id": "L8-04", "level": 8, "level_name": "Đào sâu theo công ty",
+      "question": "Công ty nào nên kiểm tra ngay?",
+      "domain": "xephang", "traffic_light": "green", "brief_sheet": "L8_XEPHANG",
+      "source_report_types": ["baocaotaichinhrieng", "baocaotuoino"],
+      "expected_shape": "1-2 công ty + lý do định lượng (số cảnh báo đỏ đang bật)"
+    },
+
+    {
+      "id": "L9-01", "level": 9, "level_name": "Đào sâu theo dự án",
+      "question": "Dự án nào lãi cao nhất?",
+      "domain": "duan", "traffic_light": "green", "brief_sheet": "L9_DUAN",
+      "source_report_types": ["baocaotaichinhrieng", "baocaohqkdngay"],
+      "expected_shape": "Xếp hạng 7 cost center dự án (CB/LS/QS/YB/TT/PQ/TC_DA) theo LN"
+    },
+    {
+      "id": "L9-02", "level": 9, "level_name": "Đào sâu theo dự án",
+      "question": "Dự án nào đang lỗ?",
+      "domain": "duan", "traffic_light": "green", "brief_sheet": "L9_DUAN",
+      "source_report_types": ["baocaotaichinhrieng", "baocaohqkdngay"],
+      "expected_shape": "Danh sách dự án LN < 0 + mức lỗ"
+    },
+    {
+      "id": "L9-03", "level": 9, "level_name": "Đào sâu theo dự án",
+      "question": "Vì sao lỗ?",
+      "domain": "duan", "traffic_light": "green", "brief_sheet": "L9_DUAN",
+      "source_report_types": ["baocaotaichinhrieng"],
+      "expected_shape": "Phân rã doanh thu - giá vốn - chi phí của dự án lỗ, chỉ ra khoản chiếm tỷ trọng lớn nhất"
+    },
+    {
+      "id": "L9-04", "level": 9, "level_name": "Đào sâu theo dự án",
+      "question": "Giá vốn tăng từ đâu?",
+      "domain": "duan", "traffic_light": "green", "brief_sheet": "L9_DUAN",
+      "source_report_types": ["baocaotaichinhrieng"],
+      "expected_shape": "Biến động giá vốn theo dự án/kỳ + tỷ lệ giá vốn/doanh thu so ngưỡng đỏ"
+    },
+    {
+      "id": "L9-05", "level": 9, "level_name": "Đào sâu theo dự án",
+      "question": "Máy nào gây chi phí lớn nhất?",
+      "domain": "duan", "traffic_light": "red", "brief_sheet": "ROUTING",
+      "source_report_types": [],
+      "route_to": { "phong": "KDVH (khối Dự án / Xe tải)", "du_lieu_can": "Chi phí theo đầu máy/thiết bị (mã máy, giờ vận hành, chi phí sửa chữa - nhiên liệu)" }
+    },
+    {
+      "id": "L9-06", "level": 9, "level_name": "Đào sâu theo dự án",
+      "question": "Nhiên liệu vượt định mức ở đâu?",
+      "domain": "duan", "traffic_light": "red", "brief_sheet": "ROUTING",
+      "source_report_types": [],
+      "route_to": { "phong": "KDVH (khối Dự án / Xe tải)", "du_lieu_can": "Bảng định mức nhiên liệu theo đầu xe/máy + sản lượng nhiên liệu thực dùng" }
+    },
+
+    {
+      "id": "L10-01", "level": 10, "level_name": "AI như Kiểm toán nội bộ",
+      "question": "Hãy tìm các giao dịch bất thường hôm nay.",
+      "domain": "kiemtoan", "traffic_light": "yellow", "brief_sheet": "L10_NGHIVAN",
+      "source_report_types": ["baocaothuchi", "baocaohqkdngay"],
+      "expected_shape": "Danh sách dòng thu/chi theo ngày lệch quá ngưỡng so baseline 30 ngày",
+      "notes": "'Giao dịch' ở đây là DÒNG THU/CHI THEO NGÀY THEO LOẠI, không phải bút toán đơn lẻ — dữ liệu không có sổ giao dịch."
+    },
+    {
+      "id": "L10-02", "level": 10, "level_name": "AI như Kiểm toán nội bộ",
+      "question": "Khoản nào có dấu hiệu gian lận cần xác minh?",
+      "domain": "kiemtoan", "traffic_light": "yellow", "brief_sheet": "L10_NGHIVAN",
+      "source_report_types": ["baocaotuoino", "baocaothuchi"],
+      "expected_shape": "Danh sách nghi vấn có bằng chứng cụ thể (trùng số HĐ, trùng số khung, số tròn bất thường), KHÔNG kết luận gian lận",
+      "notes": "Bắt buộc dùng từ 'cần xác minh', cấm dùng từ khẳng định gian lận."
+    },
+    {
+      "id": "L10-03", "level": 10, "level_name": "AI như Kiểm toán nội bộ",
+      "question": "Có thanh toán nào vượt quyền phê duyệt không?",
+      "domain": "kiemtoan", "traffic_light": "red", "brief_sheet": "ROUTING",
+      "source_report_types": [],
+      "route_to": { "phong": "KSNB", "du_lieu_can": "Ma trận hạn mức phê duyệt theo chức danh + log duyệt chi (ai duyệt, số tiền, thời điểm)" }
+    },
+    {
+      "id": "L10-04", "level": 10, "level_name": "AI như Kiểm toán nội bộ",
+      "question": "Có khoản thanh toán trùng không?",
+      "domain": "kiemtoan", "traffic_light": "yellow", "brief_sheet": "L10_NGHIVAN",
+      "source_report_types": ["baocaotuoino", "baocaotuoinophaithu"],
+      "expected_shape": "Cặp bản ghi trùng (Mã khách + số tiền + ngày gần nhau), kèm cảnh báo phạm vi",
+      "notes": "Chỉ phủ được phía PHẢI THU. Thanh toán cho nhà cung cấp không có dữ liệu chi tiết."
+    },
+    {
+      "id": "L10-05", "level": 10, "level_name": "AI như Kiểm toán nội bộ",
+      "question": "Có hóa đơn nào bị ghi nhận hai lần?",
+      "domain": "kiemtoan", "traffic_light": "green", "brief_sheet": "L10_NGHIVAN",
+      "source_report_types": ["baocaotuoino"],
+      "expected_shape": "Danh sách 'Số hóa đơn' xuất hiện >1 lần và 'Số khung' (VIN) xuất hiện >1 lần, kèm đơn vị và số tiền",
+      "notes": "VIN theo bản chất phải duy nhất -> trùng số khung là bằng chứng mạnh, không phải heuristic."
+    },
+    {
+      "id": "L10-06", "level": 10, "level_name": "AI như Kiểm toán nội bộ",
+      "question": "Có công ty nào cố tình đẩy chi phí sang tháng sau?",
+      "domain": "kiemtoan", "traffic_light": "yellow", "brief_sheet": "L10_NGHIVAN",
+      "source_report_types": ["baocaotaichinhrieng", "baocaohqkdngay"],
+      "expected_shape": "Đơn vị có chi phí cuối tháng thấp bất thường rồi đầu tháng sau vọt lên, kèm số liệu 2 kỳ",
+      "notes": "Heuristic thuần, cấm dùng từ 'cố tình' trong câu trả lời."
+    },
+    {
+      "id": "L10-07", "level": 10, "level_name": "AI như Kiểm toán nội bộ",
+      "question": "Có khoản doanh thu ghi nhận sớm bất thường?",
+      "domain": "kiemtoan", "traffic_light": "yellow", "brief_sheet": "L10_NGHIVAN",
+      "source_report_types": ["baocaotuoino"],
+      "expected_shape": "Mức độ dồn 'Ngày hóa đơn' vào 3 ngày cuối tháng so với phần còn lại của tháng",
+      "notes": "Heuristic. Dồn cuối tháng có thể do chu kỳ bán hàng bình thường."
+    },
+    {
+      "id": "L10-08", "level": 10, "level_name": "AI như Kiểm toán nội bộ",
+      "question": "Có giao dịch ngoài giờ hành chính?",
+      "domain": "kiemtoan", "traffic_light": "red", "brief_sheet": "ROUTING",
+      "source_report_types": [],
+      "route_to": { "phong": "KSNB + CNTT", "du_lieu_can": "Sổ giao dịch có TIMESTAMP (giờ:phút). Toàn bộ dữ liệu hiện tại chỉ có ngày, trường 'Ngày hóa đơn' luôn là 00:00" }
+    },
+
+    {
+      "id": "L11-01", "level": 11, "level_name": "AI tư vấn cho Chủ tịch",
+      "question": "Điều gì cần tôi quyết định ngay hôm nay?",
+      "domain": "tuvan", "traffic_light": "green", "brief_sheet": "L1_CANHBAO",
+      "source_report_types": ["baocaohqkdngay", "baocaothuchi", "baocaotuoino"],
+      "expected_shape": "1-3 quyết định, mỗi cái kèm số tiền tác động + hạn chót",
+      "quick_button": true
+    },
+    {
+      "id": "L11-02", "level": 11, "level_name": "AI tư vấn cho Chủ tịch",
+      "question": "Nếu không xử lý hôm nay sẽ thiệt hại bao nhiêu tiền?",
+      "domain": "tuvan", "traffic_light": "green", "brief_sheet": "L1_CANHBAO",
+      "source_report_types": ["baocaotuoino", "baocaothuchi"],
+      "expected_shape": "Số tiền ước tính + cách tính (lãi vay phát sinh, nợ trượt sang dải quá hạn cao hơn...)",
+      "quick_button": true
+    },
+    {
+      "id": "L11-03", "level": 11, "level_name": "AI tư vấn cho Chủ tịch",
+      "question": "Ba rủi ro lớn nhất của tập đoàn là gì?",
+      "domain": "tuvan", "traffic_light": "green", "brief_sheet": "L1_CANHBAO",
+      "source_report_types": ["baocaotaichinhrieng", "baocaotuoino", "baocaothuchi"],
+      "expected_shape": "Đúng 3 rủi ro, mỗi cái kèm chỉ số chứng minh",
+      "quick_button": true
+    },
+    {
+      "id": "L11-04", "level": 11, "level_name": "AI tư vấn cho Chủ tịch",
+      "question": "Ba cơ hội cải thiện lợi nhuận nhanh nhất là gì?",
+      "domain": "tuvan", "traffic_light": "green", "brief_sheet": "L7_CHIPHI",
+      "source_report_types": ["baocaotaichinhrieng", "baocaotuoino"],
+      "expected_shape": "Đúng 3 cơ hội + số tiền/kỳ ước tính",
+      "quick_button": true
+    },
+    {
+      "id": "L11-05", "level": 11, "level_name": "AI tư vấn cho Chủ tịch",
+      "question": "Đơn vị nào hoạt động kém nhất và nguyên nhân?",
+      "domain": "xephang", "traffic_light": "green", "brief_sheet": "L8_XEPHANG",
+      "source_report_types": ["baocaotaichinhrieng", "baocaohqkdngay"],
+      "expected_shape": "1 đơn vị + phân rã nguyên nhân theo doanh thu/giá vốn/chi phí",
+      "quick_button": true
+    },
+    {
+      "id": "L11-06", "level": 11, "level_name": "AI tư vấn cho Chủ tịch",
+      "question": "Tiền đang bị kẹt ở đâu và làm thế nào để giải phóng?",
+      "domain": "dongtien", "traffic_light": "green", "brief_sheet": "L4_DONGTIEN",
+      "source_report_types": ["baocaotuoino", "baocaotaichinhrieng"],
+      "expected_shape": "Bảng nơi kẹt + số tiền + hành động giải phóng tương ứng",
+      "quick_button": true
+    },
+    {
+      "id": "L11-07", "level": 11, "level_name": "AI tư vấn cho Chủ tịch",
+      "question": "Khoản chi nào có thể cắt ngay mà không ảnh hưởng hoạt động?",
+      "domain": "chiphi", "traffic_light": "green", "brief_sheet": "L7_CHIPHI",
+      "source_report_types": ["baocaotaichinhrieng"],
+      "expected_shape": "Danh sách khoản chi ở cost center không tạo doanh thu + số tiền/kỳ",
+      "quick_button": true
+    },
+    {
+      "id": "L11-08", "level": 11, "level_name": "AI tư vấn cho Chủ tịch",
+      "question": "Top 10 cảnh báo đỏ cần Chủ tịch xem ngay.",
+      "domain": "canhbao", "traffic_light": "green", "brief_sheet": "L1_CANHBAO",
+      "source_report_types": ["baocaotaichinhrieng", "baocaohqkdngay", "baocaothuchi", "baocaotuoino"],
+      "expected_shape": "Đúng 10 dòng xếp theo mức nghiêm trọng, mỗi dòng: cảnh báo | đơn vị | số | ngưỡng",
+      "quick_button": true
+    },
+    {
+      "id": "L11-09", "level": 11, "level_name": "AI tư vấn cho Chủ tịch",
+      "question": "Ba quyết định có tác động lớn nhất đến lợi nhuận trong 30 ngày tới là gì?",
+      "domain": "tuvan", "traffic_light": "green", "brief_sheet": "L7_CHIPHI",
+      "source_report_types": ["baocaotaichinhrieng", "baocaotuoino", "baocaothuchi"],
+      "expected_shape": "Đúng 3 quyết định + tác động ước tính đến LN trong 30 ngày",
+      "quick_button": true
+    },
+    {
+      "id": "L11-10", "level": 11, "level_name": "AI tư vấn cho Chủ tịch",
+      "question": "Nếu anh là CFO của tập đoàn, anh sẽ yêu cầu triển khai việc gì đầu tiên?",
+      "domain": "tuvan", "traffic_light": "green", "brief_sheet": "L1_CANHBAO",
+      "source_report_types": ["baocaotaichinhrieng", "baocaotuoino", "baocaothuchi"],
+      "expected_shape": "1 việc + lý do định lượng + bước triển khai đầu tiên",
+      "quick_button": true
+    }
+  ]
+}

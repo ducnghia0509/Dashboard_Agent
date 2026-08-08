@@ -36,3 +36,10 @@ memory/
 
 logs/
 uploads/
+
+# Khoa per-file cua servers/common/filelock.py - trang thai runtime, khong commit
+.ingest_locks/
+
+# Ket qua chay eval Chu tich: chua so lieu tai chinh THAT (doanh thu/chi phi/cong no) trong
+# phan 'answer' - cung ly do voi *.xlsx o tren. Chi commit bo cau hoi questions.json.
+eval/chutich/ketqua-*.json
