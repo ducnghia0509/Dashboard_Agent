@@ -1,0 +1,40 @@
+{
+  "id": "vhkd_pthu_kenh",
+  "_mo_ta": "Công nợ phải thu theo ĐƠN VỊ × KÊNH × trong hạn/quá hạn (DASHBOARD 2 chỉ tiêu 3-5, màn vhkd3). Nguồn: BaocaoCongno, sheet 'CN theo đơn vị'.",
+  "_bay": [
+    "Header LẶP TÊN ('Công nợ quá hạn'/'Công nợ trong hạn' xuất hiện 4 lần cho TOTAL/B2C/GF/B2B) nên KHÔNG dò được theo tên -> đây là ngoại lệ duy nhất phải chỉ đích danh CHỮ CỘT. Nhóm kênh nằm ở dòng 4, tên cột ở dòng 6.",
+    "BỎ cột B/C/D (nhóm TOTAL) — cộng cả TOTAL lẫn 3 kênh là đếm đôi.",
+    "Dòng 'Total' (r17) và BÊN DƯỚI còn một bảng phụ 'Công nợ quá hạn đã có COC' cũng liệt kê tên Showroom ở cột A -> phải `dung_khi` gặp Total, nếu không sẽ nuốt luôn bảng phụ.",
+    "Kỳ lấy từ hậu tố _T<m>, không lấy cụm ngày lập báo cáo trong tên file.",
+    "File T1 CÙNG tên sheet nhưng BỐ CỤC KHÁC (không tách kênh, header ở dòng 5) -> `kiem_tra_o` bắt buộc, nếu không T1 vẫn chạy và đẻ ra 9,86 tỷ vô nghĩa mà không báo lỗi.",
+    "Tổng sheet này (121,46 tỷ ở T7) THẤP HƠN sheet Tuổi nợ / số dư nợ chuẩn (128,70 tỷ) 7,24 tỷ — vì 3 cột kênh chỉ phủ TK 13111/13116/1316, còn dư nợ ở TK khác (vd 13163) không có cột. Đừng dùng sheet này làm TỔNG phải thu."
+  ],
+  "report_type": "VHKD_PTHU_KENH",
+  "row_index_base": 6610000,
+  "khoi": "Khối KD Vinfast - Showroom",
+  "nguon": { "folder": "SRVF/baocaocongnophaithu", "file_glob": "*.xlsx", "sheet": { "ten": "CN theo đơn vị" } },
+  "kiem_tra_o": [
+    { "o": "E4", "bang": "B2C" },
+    { "o": "I4", "bang": "B2B" },
+    { "o": "A6", "bang": "Đơn vị" }
+  ],
+  "header": { "khong_co": true },
+  "dong_bat_dau": 7,
+  "ky_tu_ten_file": { "regex_nam": "M\\.(\\d{4})", "regex_thang": "_T(\\d{1,2})" },
+  "cot": {
+    "cost_center": { "cot": "A", "chuan_hoa": "sr_showroom" },
+    "payload.don_vi": { "cot": "A" }
+  },
+  "dung_khi": [ { "cot": "payload.don_vi", "dieu_kien": "chua", "gia_tri": "Total" } ],
+  "ban_ghi": "moi_cot_gia_tri",
+  "cot_gia_tri": [
+    { "cot": "E", "dim1": "Quá hạn",  "dim2": "B2C", "he_so": 1e-9 },
+    { "cot": "F", "dim1": "Trong hạn", "dim2": "B2C", "he_so": 1e-9 },
+    { "cot": "G", "dim1": "Quá hạn",  "dim2": "GF",  "he_so": 1e-9 },
+    { "cot": "H", "dim1": "Trong hạn", "dim2": "GF",  "he_so": 1e-9 },
+    { "cot": "I", "dim1": "Quá hạn",  "dim2": "B2B", "he_so": 1e-9 },
+    { "cot": "J", "dim1": "Trong hạn", "dim2": "B2B", "he_so": 1e-9 }
+  ],
+  "loc": [ { "cot": "amount", "dieu_kien": "khac_rong" } ],
+  "payload_them": { "unit": "ty" }
+}

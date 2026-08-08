@@ -1,0 +1,38 @@
+{
+  "id": "vhkd_kqkd",
+  "_mo_ta": "Bán xe / xuất hóa đơn khối Vinfast - Showroom (DASHBOARD 1 chỉ tiêu 7.2, 8, 10-12). Nguồn Nextcloud: 1.VINFAST_SR/QUANTRINOIBO_VHKD/BaocaoKQKD.",
+  "_bay": [
+    "Kênh KHÔNG có trong sheet — phải lấy từ TÊN FILE (Xuathoadon_B2B/B2C/GF).",
+    "Mỗi file GF và 2 file B2C có ~594 dòng rác 'B2B_PKD 2: Hạ Hữu Quỳnh' không có Ngày hóa đơn (vùng dán thừa) -> lọc bằng ngay khác rỗng.",
+    "Lãi gộp kênh B2C ÂM là ĐÚNG (khớp cột V 'Lãi lỗ xe' của chính file) — phần lỗ thu lại qua Claim A230, đừng đảo dấu."
+  ],
+  "report_type": "KDVH",
+  "row_index_base": 6400000,
+  "khoi": "Khối KD Vinfast - Showroom",
+  "nguon": {
+    "folder": "SRVF/baocaokqkd",
+    "file_glob": "*Xuathoadon_*.xlsx",
+    "sheet": { "batdau": "CHI TIẾT XHĐ" }
+  },
+  "header": { "dong": 1 },
+  "chieu_tu_ten_file": {
+    "dim2": { "regex": "Xuathoadon_(B2B|B2C|GF)", "hoa": true }
+  },
+  "cot": {
+    "cost_center": { "header": "Tên DVCS", "chuan_hoa": "sr_showroom" },
+    "ngay": { "header": "Ngày hóa đơn", "kieu": "date" },
+    "amount": { "header": "Giá bán", "kieu": "so", "he_so": 1e-9 },
+    "dim1": { "header": "Loại xe", "chuan_hoa": "hoa" },
+    "dim3": { "header": "Tên TVBH", "chuan_hoa": "cat" },
+    "payload.san_luong": { "header": "Số lượng", "kieu": "so" },
+    "payload.gia_von": { "header": "Giá vốn xe", "kieu": "so", "he_so": 1e-9 }
+  },
+  "ban_ghi": "moi_dong",
+  "dan_xuat": {
+    "payload.lng": "amount - payload_gia_von"
+  },
+  "loc": [
+    { "cot": "ngay", "dieu_kien": "khac_rong" }
+  ],
+  "payload_them": { "unit": "ty" }
+}

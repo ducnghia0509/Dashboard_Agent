@@ -1,0 +1,27 @@
+{
+  "id": "vhkd_tonkho_vatly",
+  "_mo_ta": "Tồn kho xe VẬT LÝ theo SR (DASHBOARD 4 chỉ tiêu 14-15, khối B màn vhkd4). Nguồn: 1.VINFAST_SR/QUANTRINOIBO_VHKD/Baocaotonkhoxevatly.",
+  "_bay": [
+    "Sheet KHÔNG có dòng tiêu đề — dữ liệu chạy thẳng từ dòng 2, 3 cột: A tên SR, B số VIN, C mã kho. Vì vậy phải khai `header.khong_co` + chỉ đích danh chữ cột.",
+    "File KHÔNG có dòng xe và KHÔNG có giá trị -> chỉ đếm được SỐ XE theo SR. Bảng 'Chênh lệch tồn vật lý – hóa đơn theo dòng xe' trong thiết kế hiện CHƯA làm được, cần xin thêm cột Loại xe.",
+    "amount = 1 (đếm xe), không phải tiền.",
+    "T1-T4 có 16 xe đứng tên 'CHI NHÁNH VINFAST HÀ NỘI' (không thuộc SR nào) — GIỮ LẠI với cost_center rỗng để tổng tồn không hụt; tên thô ở payload.don_vi. Trên UI gom vào nhóm 'Chưa phân bổ SR'."
+  ],
+  "report_type": "VHKD_TONVATLY",
+  "row_index_base": 6900000,
+  "khoi": "Khối KD Vinfast - Showroom",
+  "nguon": { "folder": "SRVF/baocaotonkhoxevatly", "file_glob": "*.xlsx", "sheet": { "ten": "Tồn kho" } },
+  "header": { "khong_co": true },
+  "dong_bat_dau": 2,
+  "ky_tu_ten_file": { "regex_nam": "M\\.(\\d{4})", "regex_thang": "_T(\\d{1,2})" },
+  "cot": {
+    "cost_center": { "cot": "A", "chuan_hoa": "sr_showroom", "giu_khi_khong_map": true },
+    "payload.don_vi": { "cot": "A" },
+    "payload.so_vin": { "cot": "B" },
+    "payload.ma_kho": { "cot": "C" }
+  },
+  "ban_ghi": "moi_dong",
+  "dan_xuat": { "amount": "1" },
+  "loc": [ { "cot": "payload.so_vin", "dieu_kien": "khac_rong" } ],
+  "payload_them": { "unit": "xe" }
+}
