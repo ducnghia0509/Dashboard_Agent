@@ -280,29 +280,45 @@ def _find_cols_hanno(rows):
 
 # XDV: file chia 5 DẢI quá hạn (1-30 · 30-60 · 60-90 · 90-180 · >180) còn dashboard chỉ có 4 dải
 # -> dải ">30-90" = 30-60 + 60-90 (CỘNG 2 cột, đúng ý spec user "Công nợ quá hạn >30-90 ngày").
+# Mỗi dải nhận NHIỀU cách bố trí: mỗi phần tử của tuple ngoài là MỘT phương án, phương án là
+# tuple các tên cột phải CỘNG lại. Dò lần lượt, lấy phương án khớp đầu tiên.
+# Vì sao cần nhiều phương án: file XDV đổi bố cục theo tháng — T01/02/03/05/06/07 có MỘT cột
+# "Quá hạn 30-90 ngày" (đúng mapping), riêng T04 tách thành "30-60" + "60-90". Bản cũ chỉ khai
+# phương án của T04 nên 6 tháng còn lại rớt hết ở bước dò cột (đó chính là lỗi "không dò được cột").
 _XDV_DAI = {
-    "qh_1_30": ("qua han 1-30",),
-    "qh_30_90": ("qua han 30-60", "qua han 60-90"),
-    "qh_90_180": ("qua han 90-180",),
-    "qh_180p": ("qua han >180",),
+    "qh_1_30": (("qua han 1-30",),),
+    "qh_30_90": (("qua han 30-90",), ("qua han 30-60", "qua han 60-90")),
+    "qh_90_180": (("qua han 90-180",),),
+    "qh_180p": (("qua han >180",),),
 }
 
 
 def _find_cols_xdv(rows):
-    """Dò cột cho mode 'hanno_tong_xdv' (XƯỞNG DỊCH VỤ VINFAST) — sheet "Tuổi nợ " KHÔNG theo
-    template chuẩn, khảo sát cả 7 file 202601..202607 (2026-08-06):
+    """Dò cột cho mode 'hanno_tong_xdv' (XƯỞNG DỊCH VỤ VINFAST), sheet "Tuổi nợ ".
 
-      T01-06: header DÒNG 2, dòng tổng DÒNG 1 -> D "Tổng cn" · E "Trog hạn" · F..J = 5 dải
-      T07   : title dòng 1, header DÒNG 3, dòng tổng DÒNG 2 -> E "Tổng cn" · F "Trog hạn" · G..K = 5 dải
+    MAPPING (bản kế toán gửi 2026-08-08) — đây là CHUẨN cần bám:
+      D Tổng số dư nợ · E Công nợ trong hạn · F Công nợ đến hạn ·
+      G quá hạn 1-30 · H quá hạn 30-90 · I quá hạn 90-180 · J quá hạn >180
+      Công nợ quá hạn = G+H+I+J   ·   Tỷ lệ nợ quá hạn = quá hạn / tổng dư nợ
 
-    3 chỗ lệch với spec user (spec map cơ học từ template chuẩn nên bị trượt 1 cột — GHI THEO TÊN
-    header, KHÔNG theo chữ cột trong spec, nếu không T07 sẽ ra tổng = 0 vì D2 rỗng):
-      1. Spec ghi ô ở DÒNG 2; thực tế dòng tổng là dòng 1 (T01-06) hay dòng 2 (T07) -> `_agg_hanno_tong`
-         quét NGƯỢC lên trên header, không hardcode số dòng.
-      2. **KHÔNG có cột "Công nợ đến hạn"** trong file XDV (cột spec gọi 'đến hạn' thực chất là
-         "Quá hạn 1-30 ngày") -> `den_han` = None -> payload 0. Verify: Tổng = Trong hạn + Σ 5 dải
-         khớp TUYỆT ĐỐI cả 7 kỳ, không còn chỗ cho phần "đến hạn".
-      3. KHÔNG có cột tổng "Công nợ quá hạn" -> `qua_han` = None, `_agg_hanno_tong` tự cộng 4 dải.
+    THỰC TẾ FILE (khảo sát lại cả 7 kỳ 202601..202607, 2026-08-08) — 4/7 kỳ đúng y mapping,
+    3 kỳ lệch, nên KHÔNG đọc theo chữ cột mà dò theo TÊN header rồi quy về schema của mapping:
+      T01,02,03,05 : D..J đúng mapping.
+      T06          : đúng VỊ TRÍ mapping nhưng cột F ghi nhãn "Công nợ trong hạn" (gõ nhầm,
+                     trùng tên cột E) -> nhận theo VỊ TRÍ, nhãn thật lưu ở `den_han_theo_vi_tri`.
+      T04          : KHÔNG có cột "đến hạn", và tách "30-90" thành "30-60" + "60-90" (5 dải)
+                     -> cộng 2 cột đó lại thành qh_30_90 để cùng schema với 6 kỳ kia.
+      T07          : thêm cột "Tên đối tượng" (mọi cột dịch phải 1) và header xuống DÒNG 3.
+
+    BẢN TRƯỚC (2026-08-06) SAI Ở ĐÂU: nó được viết bám theo T04 — mà T04 lại là kỳ lệch chuẩn
+    nhất — nên khai cứng "phải có cả 30-60 lẫn 60-90" và gán `den_han = None`. Hệ quả: chạy được
+    đúng kỳ sai chuẩn, còn 4 kỳ ĐANG ĐÚNG mapping thì rớt ở bước dò cột ("không dò được cột").
+
+    Hai chỗ mapping ghi không khớp file, đã xử lý mà không sửa mapping:
+      - Mapping ghi ô ở DÒNG 2; thực tế dòng tổng ở dòng 1 (T01-06) hoặc dòng 2 (T07)
+        -> `_agg_hanno_tong` quét ngược lên trên header, không hardcode số dòng.
+      - Mapping không có cột tổng "Công nợ quá hạn" trong file -> `qua_han=None`, cộng 4 dải
+        đúng như công thức mapping.
     Tên cột trong file có typo "Trog hạn" (thiếu 'n') -> nhận cả 2 cách viết.
     Trả dict cột (giá trị có thể là tuple nhiều cột phải CỘNG, hoặc None nếu file không có cột đó)."""
     hdr_i = next((i for i, r in enumerate(rows[:8])
@@ -315,16 +331,32 @@ def _find_cols_xdv(rows):
         return next((j for j, c in enumerate(h) if c and _nd(c).startswith(pre)), None)
 
     cols = {"tong": _idx("tong cn"),
+            # "Trog hạn" là typo có thật trong file nguồn (thiếu 'n') -> nhận cả 2 cách viết.
             "trong_han": next((j for j in (_idx("trog han"), _idx("trong han")) if j is not None), None),
-            "den_han": None,     # không có trong file XDV (xem docstring)
-            "qua_han": None}     # không có cột tổng -> cộng 4 dải
+            "qua_han": None}     # file không có cột tổng quá hạn -> cộng 4 dải (đúng mapping)
     if cols["tong"] is None or cols["trong_han"] is None:
         return None
-    for k, names in _XDV_DAI.items():
-        idxs = tuple(j for j in (_idx(n) for n in names) if j is not None)
-        if len(idxs) != len(names):
+    for k, phuong_an in _XDV_DAI.items():
+        chon = None
+        for names in phuong_an:
+            idxs = tuple(j for j in (_idx(n) for n in names) if j is not None)
+            if len(idxs) == len(names):
+                chon = idxs if len(idxs) > 1 else idxs[0]
+                break
+        if chon is None:
             return None          # thiếu dải -> coi như đổi layout, KHÔNG ghi số lệch
-        cols[k] = idxs if len(idxs) > 1 else idxs[0]
+        cols[k] = chon
+
+    # "Công nợ đến hạn" — mapping đặt nó ở cột NGAY GIỮA "Trong hạn" và "Quá hạn 1-30 ngày".
+    # Dò theo TÊN trước; không thấy thì dùng đúng quy tắc VỊ TRÍ của mapping. Cần bước vị trí vì
+    # T06 ghi nhãn cột này là "Công nợ trong hạn" (gõ nhầm — trùng tên cột bên cạnh), còn T04/T07
+    # thì KHÔNG có cột này thật (giữa hai cột kia không còn khe nào) -> để None, không bịa số 0.
+    j1, j2 = cols["trong_han"], (cols["qh_1_30"][0] if isinstance(cols["qh_1_30"], tuple) else cols["qh_1_30"])
+    dh = _idx("cong no den han")
+    if dh is None and j2 - j1 == 2:
+        dh = j1 + 1
+        cols["den_han_theo_vi_tri"] = str(h[dh] or "").strip()   # ghi lại nhãn thật để đối chiếu
+    cols["den_han"] = dh
     cols["hdr_i"] = hdr_i
     cols["data_start"] = hdr_i + 1   # KHÔNG có sub-header như template chuẩn
     return cols
