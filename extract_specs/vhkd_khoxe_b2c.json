@@ -1,0 +1,33 @@
+{
+  "id": "vhkd_khoxe_b2c",
+  "_mo_ta": "Tồn kho hóa đơn kênh B2C (DASHBOARD 4 chỉ tiêu 4-6, màn vhkd4). Nguồn: 1.VINFAST_SR/QUANTRINOIBO_VHKD/BaocaoKhoxe_B2C.",
+  "_bay": [
+    "Mapping ghi 'Tên KH' ở cột O — SAI. File thật: O = 'Số ngày tồn theo hóa đơn', P = 'Tên KH'. Dò theo TÊN nên không ảnh hưởng.",
+    "Dòng 2 là dòng CHÚ THÍCH ('Admin HO paste dữ liệu') chứ không phải dữ liệu -> dong_bat_dau = 3.",
+    "File KHÔNG có cột giá trị -> amount = 1 (đếm XE). Muốn ra giá trị tồn kho B2C phải xin thêm cột giá hoặc ghép với bảng giá.",
+    "Chỉ có DUY NHẤT 1 ảnh chụp và tên file '2026.7.1.6' không rõ là ngày nào — tạm hiểu 01/07/2026. CẦN XÁC NHẬN với kế toán trước khi tin số theo kỳ.",
+    "cost_center lấy 'SR Phân bổ sau khi kéo khách' (cột C, đã tính công thức) chứ không phải 'SR nhận xe thực tế' (cột A, nơi nhập xe)."
+  ],
+  "report_type": "VHKD_KHOXE",
+  "row_index_base": 6810000,
+  "khoi": "Khối KD Vinfast - Showroom",
+  "nguon": { "folder": "SRVF/baocaokhoxeb2c", "file_glob": "*.xlsx", "sheet": { "so": 0 } },
+  "kiem_tra_o": [ { "o": "A1", "bang": "SR nhận xe thực tế" }, { "o": "N1", "bang": "Số ngày tồn thực tế" } ],
+  "header": { "dong": 1 },
+  "dong_bat_dau": 3,
+  "ngay_tu_ten_file": { "regex": "M\\.(\\d{4})\\.(\\d{1,2})\\.(\\d{1,2})" },
+  "moi_ky_lay_file_moi_nhat": true,
+  "chieu_co_dinh": { "dim2": "B2C" },
+  "cot": {
+    "cost_center": { "header": "SR Phân bổ sau khi kéo khách", "chuan_hoa": "sr_showroom" },
+    "dim1": { "header": "Loại xe" },
+    "payload.so_vin": { "header": "SốVin" },
+    "payload.so_ngay_ton": { "header": "Số ngày tồn thực tế", "kieu": "so" },
+    "payload.ten_kh": { "header": "Tên KH", "bat_buoc": false },
+    "payload.sr_nhan": { "header": "SR nhận xe thực tế (Tạo PO)", "bat_buoc": false }
+  },
+  "ban_ghi": "moi_dong",
+  "dan_xuat": { "amount": "1" },
+  "loc": [ { "cot": "payload.so_vin", "dieu_kien": "khac_rong" } ],
+  "payload_them": { "unit": "xe", "kenh": "B2C" }
+}

@@ -1,0 +1,31 @@
+{
+  "id": "vhkd_khoxe_b2b",
+  "_mo_ta": "Tồn kho hóa đơn kênh B2B (DASHBOARD 4 chỉ tiêu 7-9, màn vhkd4). Nguồn: 1.VINFAST_SR/QUANTRINOIBO_VHKD/BaocaoKhoxe_B2B.",
+  "_bay": [
+    "Mapping ghi 'Trạng thái trên 30/45 ngày' ở cột AK — SAI. File thật: AK = 'Số ngày tồn kho thực tế', AM = 'Trạng thái'. Ở đây dò theo TÊN nên không lệ thuộc chữ cột.",
+    "Tháng 7 có 2 ảnh chụp (7.24 và 7.31) -> bật moi_ky_lay_file_moi_nhat, nếu không mỗi VIN bị đếm 2 lần.",
+    "cost_center CỐ TÌNH để trống: cột P 'TÊN SR XHĐ' là SR XUẤT HÓA ĐƠN (blank = chưa ghép khách), không phải nơi để xe; trong đó có 'Vinfast HCM' và 'Vinfast B2B-Long Biên' không thuộc khối Showroom. Nơi để xe nằm ở 'Kho vật lý' nhưng tên kho ('VF SMC', 'HCM') chưa có bảng quy đổi -> lưu thô vào payload, chờ chốt rồi thêm hook.",
+    "Tên dòng xe ở đây là TÊN ('Limo Green', 'VF 5') còn báo cáo bán xe dùng MÃ ('LM1', 'VF5') -> muốn so tồn với bán phải có bảng quy đổi dòng xe (chưa có)."
+  ],
+  "report_type": "VHKD_KHOXE",
+  "row_index_base": 6800000,
+  "khoi": "Khối KD Vinfast - Showroom",
+  "nguon": { "folder": "SRVF/baocaokhoxeb2b", "file_glob": "*.xlsx", "sheet": { "chua": "Tonkho" } },
+  "kiem_tra_o": [ { "o": "A1", "bang": "Lô xe" }, { "o": "K1", "bang": "Số Vin" } ],
+  "header": { "dong": 1 },
+  "ngay_tu_ten_file": { "regex": "M\\.(\\d{4})\\.(\\d{1,2})\\.(\\d{1,2})" },
+  "moi_ky_lay_file_moi_nhat": true,
+  "chieu_co_dinh": { "dim2": "B2B" },
+  "cot": {
+    "dim1": { "header": "Loại xe" },
+    "amount": { "header": "Giá XHĐ", "kieu": "so", "he_so": 1e-9 },
+    "payload.so_vin": { "header": "Số Vin" },
+    "payload.so_ngay_ton": { "header": "Số ngày tồn kho thực tế", "kieu": "so" },
+    "payload.trang_thai_ton": { "header": "Trạng thái" },
+    "payload.kho_vat_ly": { "header": "Kho vật lý" },
+    "payload.sr_xhd": { "header": "TÊN SR XHĐ", "bat_buoc": false }
+  },
+  "ban_ghi": "moi_dong",
+  "loc": [ { "cot": "payload.so_vin", "dieu_kien": "khac_rong" } ],
+  "payload_them": { "unit": "ty", "kenh": "B2B" }
+}

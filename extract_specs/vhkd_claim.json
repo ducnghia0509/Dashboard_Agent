@@ -1,0 +1,32 @@
+{
+  "id": "vhkd_claim",
+  "_mo_ta": "Claim khối Showroom (DASHBOARD 3 chỉ tiêu 1-5, màn vhkd2). Nguồn: 1.VINFAST_SR/QUANTRINOIBO_VHKD/BaocaoClaim.",
+  "_bay": [
+    "Tên cột trạng thái ĐỔI giữa các kỳ: T1/T2 ghi 'Check', T3-T6 ghi 'Trạng thái' -> khai cả 2 ứng viên.",
+    "Header nằm trên 2 dòng (nhóm XE/PIN ở dòng 1, tên cột thật ở dòng 2) và dòng 3 là dòng CHÚ THÍCH -> dong_bat_dau = 4.",
+    "Tên sheet đổi theo kỳ ('HS Claim T1.2026 ' … có cả dấu cách thừa) -> chọn sheet bằng 'chua'.",
+    "Trạng thái thực tế: SAP phê duyệt / SAP từ chối / HO Từ chối / Chưa đẩy hồ sơ / Waiting SAP / Waiting HO / Open. KHÔNG có nhãn 'VF từ chối' như thiết kế — gộp ở tầng builder, không sửa dữ liệu thô.",
+    "Chỉ có kênh B2C (T1-T6). Chưa có file B2B/GF.",
+    "T1/T2 có CỘT MỒI ở dòng 1 cũng tên 'Trạng thái' nhưng chứa ĐỊA CHỈ khách -> mọi cột trạng thái/SR/số tiền đều khai `dong_header: 2`. Bỏ ràng buộc này là trạng thái claim biến thành tên thôn/xã mà không có lỗi nào.",
+    "Lọc theo cost_center (KHÔNG lọc theo amount): claim trạng thái 'Chưa đẩy hồ sơ' có số tiền = 0 nhưng vẫn phải đếm được SỐ LƯỢNG hồ sơ."
+  ],
+  "report_type": "VHKD_CLAIM",
+  "row_index_base": 6700000,
+  "khoi": "Khối KD Vinfast - Showroom",
+  "nguon": { "folder": "SRVF/baocaoclaim", "file_glob": "*.xlsx", "sheet": { "chua": "HS Claim" } },
+  "header": { "dong": [2, 1] },
+  "dong_bat_dau": 4,
+  "ky_tu_ten_file": { "regex_nam": "M\\.(\\d{4})", "regex_thang": "_T(\\d{1,2})" },
+  "chieu_tu_ten_file": { "dim2": { "regex": "BaocaoClaim_(B2C|B2B|GF)", "hoa": true } },
+  "cot": {
+    "cost_center": { "header": "SR", "dong_header": 2, "chuan_hoa": "sr_showroom" },
+    "dim1": { "header": ["Check", "Trạng thái"], "dong_header": 2, "chuan_hoa": "cat" },
+    "amount": { "header": "Số tiền", "dong_header": 2, "kieu": "so", "he_so": 1e-9 },
+    "payload.loai_xe": { "header": "Loại xe" },
+    "payload.so_khung": { "header": "Số khung", "bat_buoc": false },
+    "payload.ma_dms": { "header": "Mã đơn hàng trên DMS", "bat_buoc": false }
+  },
+  "ban_ghi": "moi_dong",
+  "loc": [ { "cot": "cost_center", "dieu_kien": "khac_rong" } ],
+  "payload_them": { "unit": "ty" }
+}

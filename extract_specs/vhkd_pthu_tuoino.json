@@ -1,0 +1,42 @@
+{
+  "id": "vhkd_pthu_tuoino",
+  "_mo_ta": "Tuổi nợ phải thu khối Showroom (DASHBOARD 2 chỉ tiêu 3-5, màn vhkd3 'Quản lý phải thu'). Nguồn: 1.VINFAST_SR/QUANTRINOIBO_VHKD/BaocaoCongno, sheet 'Tuổi nợ phải thu'.",
+  "_bay": [
+    "Header nằm trên 2 DÒNG: dòng 2 ghi nhóm ('Công nợ quá hạn'), dòng 3 ghi dải thật ('1-30 ngày', '>30-90'…). Khai header.dong = [3, 2] để dòng 3 THẮNG — nếu để [2,3] thì cột H sẽ mang tên nhóm và 4 dải quá hạn dồn hết vào 1.",
+    "Dòng 1 có ô tổng, NHƯNG ở file T7 các ô đó KHÔNG khớp tổng cộng dồn từng dòng (1,857 tỷ vs 34,6 tỷ) — công thức cũ/chỉ phủ 1 phần vùng. Luôn cộng từ dòng chi tiết, đừng đọc dòng tổng.",
+    "Kỳ lấy từ hậu tố _T<m> của tên file, KHÔNG lấy cụm '2026.07.22' (đó là ngày lập báo cáo, giống nhau ở mọi kỳ).",
+    "File T7 có dòng đơn vị '#N/A' — sẽ hiện trong cảnh báo 'KHÔNG MAP ĐƯỢC'; đó là lỗi công thức của file nguồn, cần báo kế toán."
+  ],
+  "report_type": "VHKD_PTHU",
+  "row_index_base": 6600000,
+  "khoi": "Khối KD Vinfast - Showroom",
+  "nguon": {
+    "folder": "SRVF/baocaocongnophaithu",
+    "file_glob": "*.xlsx",
+    "sheet": { "ten": "Tuổi nợ phải thu" }
+  },
+  "header": { "dong": [3, 2] },
+  "dong_bat_dau": 4,
+  "ky_tu_ten_file": {
+    "regex_nam": "M\\.(\\d{4})",
+    "regex_thang": "_T(\\d{1,2})",
+    "ngay": "cuoi_thang"
+  },
+  "cot": {
+    "cost_center": { "header": "Tên đơn vị", "chuan_hoa": "sr_showroom" },
+    "dim3": { "header": "Tên khách hàng", "chuan_hoa": "cat" },
+    "payload.ma_hop_dong": { "header": "Mã Hợp đồng" }
+  },
+  "ban_ghi": "moi_cot_gia_tri",
+  "cot_gia_tri": [
+    { "header": "Công nợ trong hạn", "dim1": "Trong hạn", "he_so": 1e-9 },
+    { "header": "1-30 ngày", "dim1": "Quá hạn 1-30 ngày", "he_so": 1e-9 },
+    { "header": ">30-90", "dim1": "Quá hạn 31-90 ngày", "he_so": 1e-9 },
+    { "header": ">90-180", "dim1": "Quá hạn 91-180 ngày", "he_so": 1e-9 },
+    { "header": ">180 ngày", "dim1": "Quá hạn > 180 ngày", "he_so": 1e-9 }
+  ],
+  "loc": [
+    { "cot": "amount", "dieu_kien": "khac_rong" }
+  ],
+  "payload_them": { "unit": "ty", "nguon": "aging_theo_khach_hang" }
+}
