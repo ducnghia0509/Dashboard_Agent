@@ -3849,6 +3849,25 @@ def _cmd_autofill_impl(args):
               "dry_run": bool(args.dry_run), "derived": [r]})
         return
 
+    # NGUỒN KHAI BẰNG JSON SPEC (extract_specs/*.json — toàn bộ VHKD + XDV): ra sớm y như gate báo
+    # cáo ngày. Thiếu nhánh này (trước 10/08/2026) thì bấm "Phân tích AI" cho file XDV sẽ đẩy cả
+    # workbook sang LLM để "học layout" — vừa tốn, vừa vô nghĩa vì layout đã được tả bằng JSON, và
+    # kết quả là 0 dòng vào DB mà không báo lỗi. Xem `spec_extract.specs_for_path`.
+    from spec_extract import run_for_path as _spec_run_for_path
+    _spec_kq = _spec_run_for_path(args.file, write=not args.dry_run)
+    if _spec_kq:
+        _cb = [c for r in _spec_kq for c in (r.get("canh_bao") or [])]
+        _thieu_ds = sorted({k for r in _spec_kq for k in (r.get("bo_qua_chua_co_dataset") or [])})
+        if _thieu_ds:
+            _cb.append(f"CHƯA CÓ dataset cho kỳ {', '.join(_thieu_ds)} — số của (các) kỳ này KHÔNG "
+                       f"được nạp. Tạo dataset kỳ đó rồi nạp lại.")
+        _dong = sum(int(r.get("written") or 0) if not args.dry_run else int(r.get("dong") or 0)
+                    for r in _spec_kq)
+        _out({"ok": _dong > 0, "file": os.path.basename(args.file), "mode": "spec_json",
+              "dry_run": bool(args.dry_run), "derived": _spec_kq,
+              "rows": _dong, "canh_bao": _cb})
+        return
+
     routes = ing.sheet_routes(args.file).get("routes", [])
     with open(args.file, "rb") as fh:
         data = fh.read()

@@ -1,0 +1,83 @@
+{
+  "id": "xdv_lsc_ton",
+  "_mo_ta": "Lệnh sửa chữa tồn theo số ngày tồn, nguồn DMS (mapping XDV #23)",
+  "_bay": [
+    "Kỳ lấy từ tên file (W.2026.8.1.3 = tuần), quy về NGÀY CUỐI THÁNG vì file không có ô 'ngày báo cáo' nào. Bật moi_ky_lay_file_moi_nhat để nhiều bản tuần trong cùng tháng không cộng đôi.",
+    "Dòng cuối là 'Tổng' — tự bị loại vì không map ra xưởng nào; đừng cộng nó vào.",
+    "14 xưởng, khớp master_data."
+  ],
+  "report_type": "XDV_LSC_TON",
+  "row_index_base": 7500000,
+  "khoi": "Khối KD Vinfast - XDV",
+  "nguon": {
+    "folder": "XDV/baocaolscdms",
+    "file_glob": "*.xlsx",
+    "sheet": {
+      "ten": "DMS-BC LSC"
+    }
+  },
+  "kiem_tra_o": [
+    {
+      "o": "C2",
+      "bang": "XDV"
+    },
+    {
+      "o": "D2",
+      "bang": "Tổng lệnh sửa chữa"
+    }
+  ],
+  "header": {
+    "khong_co": true
+  },
+  "dong_bat_dau": 4,
+  "ky_tu_ten_file": {
+    "regex_nam": "W\\.(\\d{4})\\.",
+    "regex_thang": "W\\.\\d{4}\\.(\\d{1,2})\\."
+  },
+  "moi_ky_lay_file_moi_nhat": true,
+  "cot": {
+    "cost_center": {
+      "cot": "C",
+      "chuan_hoa": "xdv"
+    },
+    "payload.don_vi": {
+      "cot": "C"
+    }
+  },
+  "ban_ghi": "moi_cot_gia_tri",
+  "cot_gia_tri": [
+    {
+      "cot": "F",
+      "dim1": "Tồn 0-7 ngày",
+      "he_so": 1
+    },
+    {
+      "cot": "G",
+      "dim1": "Tồn 8-30 ngày",
+      "he_so": 1
+    },
+    {
+      "cot": "H",
+      "dim1": "Tồn 31-90 ngày",
+      "he_so": 1
+    },
+    {
+      "cot": "I",
+      "dim1": "Tồn > 90 ngày",
+      "he_so": 1
+    }
+  ],
+  "loc": [
+    {
+      "cot": "cost_center",
+      "dieu_kien": "khac_rong"
+    },
+    {
+      "cot": "amount",
+      "dieu_kien": "khac_rong"
+    }
+  ],
+  "payload_them": {
+    "unit": "lenh"
+  }
+}

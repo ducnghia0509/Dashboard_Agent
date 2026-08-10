@@ -742,6 +742,29 @@ def autofill_file(path: str, period: str = None, cong_ty: str = None, dry_run: b
         return {"ok": bool(r.get("ok")), "file": os.path.basename(path), "dry_run": dry_run,
                 "mode": "bao_cao_ngay", "processed": [r], "skipped_sheets": [],
                 "any_processed": bool(r.get("ok"))}
+    # NGUỒN KHAI BẰNG JSON SPEC (extract_specs/*.json — toàn bộ VHKD + XDV) -> ra sớm, cùng hình
+    # dạng với gate báo cáo ngày ở trên. Trước 10/08/2026 nhánh này KHÔNG có: 18 nguồn đó chỉ nạp
+    # được bằng lệnh tay `spec_extract.py <id> --write`, nên bấm "Đồng bộ & nạp" báo thành công mà
+    # 0 dòng vào DB — im lặng, và bước "Cập nhật lại" của theo-dõi-thay-đổi cũng nạp ra 0 dòng rồi
+    # tự đánh thất bại.
+    #
+    # Đặt TRƯỚC vòng fill_spec, không phải sau: các file này không có fill_spec nào nên vòng dưới
+    # chỉ chạy không rồi trả any_processed=False, nhưng nó mở workbook (file 17MB) một cách vô ích.
+    from spec_extract import run_for_path as _spec_run_for_path
+    _spec_kq = _spec_run_for_path(path, write=not dry_run)
+    if _spec_kq:
+        _cb = [c for r in _spec_kq for c in (r.get("canh_bao") or [])]
+        _thieu_ds = sorted({k for r in _spec_kq for k in (r.get("bo_qua_chua_co_dataset") or [])})
+        if _thieu_ds:
+            # Nói THẲNG ra UI: sang tháng mới mà chưa ai tạo dataset cho kỳ đó thì spec bỏ qua
+            # toàn bộ kỳ — "thành công nhưng 0 dòng" đúng kiểu im lặng vừa phải đi vá.
+            _cb.append(f"CHƯA CÓ dataset cho kỳ {', '.join(_thieu_ds)} — số của (các) kỳ này KHÔNG "
+                       f"được nạp. Tạo dataset kỳ đó rồi nạp lại.")
+        _dong = sum(int(r.get("written") or 0) if not dry_run else int(r.get("dong") or 0)
+                    for r in _spec_kq)
+        return {"ok": _dong > 0, "file": os.path.basename(path), "dry_run": dry_run,
+                "mode": "spec_json", "processed": _spec_kq, "skipped_sheets": [],
+                "canh_bao": _cb, "any_processed": _dong > 0}
     with open(path, "rb") as fh:
         data = fh.read()
     fname = os.path.basename(path)
