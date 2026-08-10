@@ -1,0 +1,59 @@
+{
+  "id": "xdv_doanhthu_ngay",
+  "_mo_ta": "Doanh thu XDV theo NGÀY, theo xưởng và loại lệnh (mapping XDV #1,2,3,8,9). Nguồn: 2.VINFAST_XDV/BAOCAOQUANTRIVANHANH/Baocaodoanhthungay, sheet 'T<m>.<yyyy>_Doanh thu vụ việc'.",
+  "_bay": [
+    "Tên sheet có TIỀN TỐ KỲ ('T8.2026_Doanh thu vụ việc') khác mapping -> chọn sheet bằng 'chua'.",
+    "Bảng PHÂN CẤP 2 tầng: 5 khối loại lệnh (I Tổng / II bảo hành W / III bảo hiểm Y / IV khách lẻ C / V nội bộ N), trong mỗi khối là phần TỔNG hệ thống rồi lặp 14 xưởng. Tên xưởng nằm ở DÒNG TIÊU ĐỀ riêng (cột A = loại xưởng '3S có đồng sơn', cột B = tên xưởng), các dòng mã B110..B150 bên dưới mới là số.",
+    "Dòng tiêu đề xưởng nhận biết bằng: cột A có chữ NHƯNG KHÔNG phải mã (B\\d+) — nếu bỏ điều kiện này thì 3 dòng chi tiết không mã (Doanh thu công gò/công sơn/công sửa chữa) bị nhận nhầm là tên xưởng.",
+    "Khi sang khối loại lệnh mới phải XOÁ cost_center, nếu không xưởng cuối của khối trước bị mang sang phần TỔNG của khối sau.",
+    "Cột C = Kế hoạch tháng (ghi vào amount2), D = luỹ kế thực hiện, G..AK = 31 ngày. Ở đây lấy MỖI NGÀY 1 bản ghi để dùng được cả biểu đồ theo ngày lẫn cộng thành tháng.",
+    "dong_bat_dau phải là 8 (KHÔNG phải 10): dòng tiêu đề khối I nằm ở dòng 8, bắt đầu từ 10 thì cả khối Tổng mất ngữ cảnh loại lệnh và ra 0.",
+    "File ghi 14 xưởng — khớp master_data. Mapping ghi '13 XDV' và thiết kế ghi '9 xưởng' đều là số cũ."
+  ],
+  "report_type": "XDV_DTHU",
+  "row_index_base": 7000000,
+  "khoi": "Khối KD Vinfast - XDV",
+  "nguon": {
+    "folder": "XDV/baocaodoanhthungay",
+    "file_glob": "*.xlsx",
+    "sheet": { "chua": "Doanh thu vụ việc" }
+  },
+  "kiem_tra_o": [ { "o": "A9", "bang": "Mã số" }, { "o": "C9", "bang": "Kế hoạch tháng" } ],
+  "header": { "dong": 9 },
+  "dong_bat_dau": 8,
+  "ngu_canh_dong": [
+    {
+      "_vi_sao": "mở khối loại lệnh — đồng thời quên xưởng của khối trước",
+      "khi": [ { "cot": "A", "dieu_kien": "regex", "gia_tri": "^(I|II|III|IV|V)/" } ],
+      "xoa": [ "cost_center", "cong_ty" ],
+      "gan": {
+        "dim2": {
+          "cot": "A",
+          "anh_xa": { "BẢO HÀNH": "Bảo hành", "BẢO HIỂM": "Bảo hiểm", "KhÁCh lẻ": "Khách lẻ", "NỘI BỘ": "Nội bộ" },
+          "mac_dinh": "Tổng"
+        }
+      }
+    },
+    {
+      "_vi_sao": "dòng tên xưởng",
+      "khi": [
+        { "cot": "A", "dieu_kien": "khac_rong" },
+        { "cot": "A", "dieu_kien": "khong_regex", "gia_tri": "^(B\\d+|Mã số)$" },
+        { "cot": "B", "dieu_kien": "khac_rong" }
+      ],
+      "gan": {
+        "cost_center": { "cot": "B", "chuan_hoa": "xdv" },
+        "payload.loai_xuong": { "cot": "A" }
+      }
+    }
+  ],
+  "cot": {
+    "dim1": { "header": "Mã số", "chuan_hoa": "cat" },
+    "dim3": { "header": "Chỉ tiêu", "chuan_hoa": "cat" },
+    "amount2": { "header": "Kế hoạch tháng", "kieu": "so", "he_so": 1e-9 }
+  },
+  "ban_ghi": "moi_cot_ngay",
+  "cot_ngay": { "tu": "G", "den": "AK", "he_so": 1e-9 },
+  "loc": [ { "cot": "dim1", "dieu_kien": "khac_rong" } ],
+  "payload_them": { "unit": "ty" }
+}

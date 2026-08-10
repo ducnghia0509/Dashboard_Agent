@@ -1,0 +1,38 @@
+{
+  "id": "vhkd_nhapxe_b2b",
+  "_mo_ta": "Xe NHẬP MỚI kênh B2B — vế 'Nhập trong kỳ' của bảng tổng hợp xuất tồn (DASHBOARD 4 mục 13, màn vhkd4). Mapping 'Mô tả sơ bộ' dòng 24 'Số lượng xe nhập mới đến hiện tại B2B = Tổng số VIN'. Nguồn: 1.VINFAST_SR/QUANTRINOIBO_VHKD/BaocaoNhapxe_B2B.",
+  "_bay": [
+    "Kỳ lấy từ TÊN FILE, KHÔNG lấy cột 'Ngày xe về SR': (1) cột đó RỖNG ở nhiều dòng — engine sẽ ghi đè `ngay` bằng None và làm rơi mất dòng; (2) file 7.31 có dòng ngày về 03/08. Cách theo tên file đã được KIỂM CHỨNG bằng đối chiếu tồn kho (xem _kiem_chung), đừng đổi sang cột ngày mà không chạy lại đối chiếu đó.",
+    "File KHÔNG lũy kế (340/315/712/365/454/490/220 xe qua T1-T7, không tăng dần) — mỗi file là lượng nhập của MỘT tháng, nạp cả 7 file không đếm đôi.",
+    "Dòng xe ở đây ghi TÊN ('Limo Green', 'VF 5') — cùng từ vựng với tồn kho B2B, nhưng KHÁC báo cáo bán xe (KDVH dùng MÃ 'LM1', 'VF5'). Vì vậy vế XUẤT theo dòng xe phải SUY RA (đầu + nhập − cuối) chứ không ghép trực tiếp với KDVH. Xem app/metrics/vhkd.py::_xuat_ton.",
+    "Chọn sheet bằng SỐ (sheet đầu) chứ không theo tên: 6/7 file đặt tên sheet 'F.1.TC...Nhapxe' nhưng file T5 để nguyên 'Sheet1' (bố cục y hệt) — dò theo tên là im lặng bỏ mất cả tháng 5. Layout do `kiem_tra_o` gác.",
+    "Cột U 'Giá XHĐ' cùng tên với cột giá của tồn kho B2B nhưng KHÔNG cùng cơ sở với giá vốn/giá bán của KDVH: rollforward theo GIÁ TRỊ lệch 8-10% (T2 cần 105,9 tỷ, KDVH cho 99,6 giá bán / 96,2 giá vốn). Nạp `amount` để dành, nhưng màn hình CHỈ dùng SỐ LƯỢNG cho tới khi nghiệp vụ chốt cơ sở định giá."
+  ],
+  "_kiem_chung": [
+    "Rollforward số lượng B2B khớp CHÍNH XÁC: T2 = 304 (tồn T1) + 315 (nhập T2) − 165 (bán T2) = 454 = tồn T2.",
+    "T4 = 426 + 365 − 464 = 327 = tồn T4. T3 lệch 7 xe (454 + 712 − 747 = 419 vs tồn 426)."
+  ],
+  "report_type": "VHKD_NHAPXE",
+  "row_index_base": 6840000,
+  "khoi": "Khối KD Vinfast - Showroom",
+  "nguon": {
+    "folder": "SRVF/baocaonhapxeb2b",
+    "file_glob": "*NHAPXE.xlsx",
+    "sheet": { "so": 0 }
+  },
+  "kiem_tra_o": [{ "o": "A1", "bang": "Lô xe" }, { "o": "K1", "bang": "Số Vin" }],
+  "header": { "dong": 1 },
+  "ngay_tu_ten_file": { "regex": "M\\.(\\d{4})\\.(\\d{1,2})\\.(\\d{1,2})" },
+  "moi_ky_lay_file_moi_nhat": true,
+  "chieu_co_dinh": { "dim2": "B2B" },
+  "cot": {
+    "dim1": { "header": "Loại xe" },
+    "amount": { "header": "Giá XHĐ", "kieu": "so", "he_so": 1e-9 },
+    "payload.so_vin": { "header": "Số Vin" },
+    "payload.kho_vat_ly": { "header": "Kho vật lý" },
+    "payload.lo_xe": { "header": "Lô xe", "bat_buoc": false }
+  },
+  "ban_ghi": "moi_dong",
+  "loc": [{ "cot": "payload.so_vin", "dieu_kien": "khac_rong" }],
+  "payload_them": { "unit": "ty", "kenh": "B2B" }
+}

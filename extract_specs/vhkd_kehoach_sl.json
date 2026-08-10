@@ -1,0 +1,35 @@
+{
+  "id": "vhkd_kehoach_sl",
+  "_mo_ta": "KẾ HOẠCH SẢN LƯỢNG bán xe khối Vinfast - Showroom theo tháng × kênh (sheet KHDT, phần B SẢN LƯỢNG).",
+  "_bay": [
+    "Tách report_type riêng khỏi VHKD_KH vì ĐƠN VỊ KHÁC: đây là SỐ XE (he_so = 1), VHKD_KH là TỶ ĐỒNG. Gộp chung một report_type là cộng tiền với xe.",
+    "Không đổi report_type thành VHKD_KH: `_ghi` xoá theo (report_type, source_file), hai spec cùng report_type + cùng file thì spec chạy sau XOÁ MẤT dữ liệu của spec chạy trước.",
+    "Phần B chỉ có A200 (bán xe) — không có kế hoạch sản lượng cho A230/A250."
+  ],
+  "report_type": "VHKD_KH_SL",
+  "row_index_base": 6820000,
+  "khoi": "Khối KD Vinfast - Showroom",
+  "nguon": {
+    "folder": "KEHOACH/baocaokehoachthang",
+    "file_glob": "1.SR.*.Kehoachthang.xlsx",
+    "sheet": { "ten": "KHDT" }
+  },
+  "header": { "dong": 2 },
+  "kiem_tra_o": [{ "o": "C2", "bang": "Khối" }],
+  "ngu_canh_dong": [
+    {
+      "khi": [{ "cot": "B", "dieu_kien": "regex", "gia_tri": "^\\s*(GIÁ TRỊ|SẢN LƯỢNG)\\s*$" }],
+      "gan": { "dim3": { "cot": "B", "chuan_hoa": "hoa" } }
+    }
+  ],
+  "cot": {
+    "dim1": { "header": "Khối", "chuan_hoa": "kh_dong" }
+  },
+  "ban_ghi": "moi_cot_thang",
+  "cot_thang": { "tu": "G", "den": "R", "he_so": 1.0 },
+  "loc": [
+    { "cot": "dim2", "dieu_kien": "khac_rong" },
+    { "cot": "dim3", "dieu_kien": "bang", "gia_tri": "SẢN LƯỢNG" }
+  ],
+  "payload_them": { "unit": "xe", "loai": "kehoach" }
+}

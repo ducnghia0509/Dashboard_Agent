@@ -1,0 +1,132 @@
+{
+  "id": "xdv_congno_xhd",
+  "_mo_ta": "Công nợ đã xuất hoá đơn theo xưởng × đối tượng × tuổi nợ (mapping XDV #14,15,17)",
+  "_bay": [
+    "Kỳ lấy từ tên file (W.2026.8.1.3 = tuần), quy về NGÀY CUỐI THÁNG vì file không có ô 'ngày báo cáo' nào. Bật moi_ky_lay_file_moi_nhat để nhiều bản tuần trong cùng tháng không cộng đôi.",
+    "Dòng cuối là 'Tổng' — tự bị loại vì không map ra xưởng nào; đừng cộng nó vào.",
+    "14 xưởng, khớp master_data."
+  ],
+  "report_type": "XDV_PTHU",
+  "row_index_base": 7300000,
+  "khoi": "Khối KD Vinfast - XDV",
+  "nguon": {
+    "folder": "XDV/baocaocongnoxhd",
+    "file_glob": "*.xlsx",
+    "sheet": {
+      "ten": "Báo cáo"
+    }
+  },
+  "kiem_tra_o": [
+    {
+      "o": "C2",
+      "bang": "XDV"
+    },
+    {
+      "o": "D2",
+      "bang": "Trong hạn"
+    },
+    {
+      "o": "L2",
+      "bang": "Quá hạn"
+    },
+    {
+      "o": "T2",
+      "bang": "Nợ xấu"
+    }
+  ],
+  "header": {
+    "khong_co": true
+  },
+  "dong_bat_dau": 5,
+  "ky_tu_ten_file": {
+    "regex_nam": "W\\.(\\d{4})\\.",
+    "regex_thang": "W\\.\\d{4}\\.(\\d{1,2})\\."
+  },
+  "moi_ky_lay_file_moi_nhat": true,
+  "cot": {
+    "cost_center": {
+      "cot": "C",
+      "chuan_hoa": "xdv"
+    },
+    "payload.don_vi": {
+      "cot": "C"
+    }
+  },
+  "ban_ghi": "moi_cot_gia_tri",
+  "cot_gia_tri": [
+    {
+      "cot": "G",
+      "dim1": "Trong hạn",
+      "dim2": "Bảo hành",
+      "he_so": 1e-09
+    },
+    {
+      "cot": "I",
+      "dim1": "Trong hạn",
+      "dim2": "Bảo hiểm",
+      "he_so": 1e-09
+    },
+    {
+      "cot": "K",
+      "dim1": "Trong hạn",
+      "dim2": "Khách hàng",
+      "he_so": 1e-09
+    },
+    {
+      "cot": "O",
+      "dim1": "Quá hạn",
+      "dim2": "Bảo hành",
+      "he_so": 1e-09
+    },
+    {
+      "cot": "Q",
+      "dim1": "Quá hạn",
+      "dim2": "Bảo hiểm",
+      "he_so": 1e-09
+    },
+    {
+      "cot": "S",
+      "dim1": "Quá hạn",
+      "dim2": "Khách hàng",
+      "he_so": 1e-09
+    },
+    {
+      "cot": "W",
+      "dim1": "Nợ xấu",
+      "dim2": "Bảo hành",
+      "he_so": 1e-09
+    },
+    {
+      "cot": "Y",
+      "dim1": "Nợ xấu",
+      "dim2": "Bảo hiểm",
+      "he_so": 1e-09
+    },
+    {
+      "cot": "AA",
+      "dim1": "Nợ xấu",
+      "dim2": "Khách hàng",
+      "he_so": 1e-09
+    }
+  ],
+  "loc": [
+    {
+      "cot": "cost_center",
+      "dieu_kien": "khac_rong"
+    },
+    {
+      "cot": "amount",
+      "dieu_kien": "khac_rong"
+    }
+  ],
+  "payload_them": {
+    "unit": "ty"
+  },
+  "dung_khi": [
+    {
+      "cot": "payload.don_vi",
+      "dieu_kien": "chua",
+      "gia_tri": "Tổng"
+    }
+  ]
+}

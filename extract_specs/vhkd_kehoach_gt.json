@@ -1,0 +1,44 @@
+{
+  "id": "vhkd_kehoach_gt",
+  "_mo_ta": "KẾ HOẠCH GIÁ TRỊ khối Vinfast - Showroom theo tháng × kênh (sheet KHDT, phần A GIÁ TRỊ). Nguồn Nextcloud: 0.BANLANHDAO/Kehoachnam2026/1.SR.OO.M.<yyyymm>.Kehoachthang.xlsx.",
+  "_bay": [
+    "GLOB PHẢI GHIM TIỀN TỐ '1.SR.' — thư mục baocaokehoachthang còn có '2.XDV.OO.M.202608.Kehoachthang.xlsx'. File XDV đó (nhận 2026-08-10) thực chất là BẢN SAO NGUYÊN VĂN của file SR: diff toàn bộ 9 sheet chỉ lệch 3 ô nhãn mã CT ở cột A của 'CT Vận hành', mọi con số đều là của Showroom. Dùng glob '*.Kehoachthang.xlsx' là nạp cùng nội dung 2 lần dưới 2 source_file khác nhau -> kế hoạch Showroom NHÂN ĐÔI (T8 thành 2.229 tỷ) mà `_ghi` không phát hiện được vì nó chỉ xoá theo (report_type, source_file).",
+    "MỘT file cấp kế hoạch cho CẢ 12 THÁNG (cột 'Tháng 1'..'Tháng 12') — kỳ KHÔNG lấy theo tên file, chỉ lấy NĂM. Tên file 202608 chỉ là kỳ phát hành bản kế hoạch.",
+    "Mã nhóm theo ĐÚNG file: A230 = doanh thu khác, A250 = claim. Thiết kế Dashboard.dc.html ghi NGƯỢC hai mã này (chốt nghiệp vụ 2026-08-10 — lấy theo file).",
+    "Sheet có 2 phần dùng NHÃN DÒNG TRÙNG NHAU: 'Bán xe kênh B2C' xuất hiện cả ở phần A (GIÁ TRỊ) lẫn phần B (SẢN LƯỢNG). Phân biệt bằng ngữ cảnh cột B ('GIÁ TRỊ'/'SẢN LƯỢNG') -> dim3, rồi lọc. Bỏ chốt này là trộn tiền với số xe.",
+    "Chỉ lấy các dòng CHI TIẾT theo kênh. Dòng tổng ('Doanh thu bán xe', 'Cộng Tổng doanh thu', 'Tổng doanh thu kênh B2C') bị hook loại — cộng vào là đếm đôi.",
+    "A230/A250 chỉ có kế hoạch từ T7 trở đi (T1-T6 để trống) — ô rỗng bị bỏ, KHÔNG sinh 'kế hoạch = 0' giả.",
+    "Kế hoạch KHÔNG có chiều Showroom và KHÔNG có chiều dòng xe — đừng cố suy ra, xem `thieuNguon` ở app/metrics/vhkd.py.",
+    "CHƯA NẠP (thiết kế chưa vẽ chỗ dùng): sheet 'KHngày' + 3 sheet 'KH ngày Kênh B2B/B2C/GF' có kế hoạch TỪNG NGÀY 01-31. Cần khi muốn %HT LŨY KẾ ĐẾN NGÀY cho tháng đang chạy dở — hiện chưa cần vì dữ liệu thực hiện mới tới hết T7 (tháng đủ). Sheet 'CT Vận hành' cũng chưa nạp: CT33/CT34/CT36 suy được từ chính sheet này, còn CT35/CT38 kẹt vì thiếu số nhân viên bán."
+  ],
+  "_kiem_chung": [
+    "T8: tổng KH giá trị = 1.114,691866 tỷ, khớp ô 'Cộng Tổng doanh thu' (N16) của file.",
+    "T7: 823,271212 tỷ; T1: 880,289492 tỷ."
+  ],
+  "report_type": "VHKD_KH",
+  "row_index_base": 6800000,
+  "khoi": "Khối KD Vinfast - Showroom",
+  "nguon": {
+    "folder": "KEHOACH/baocaokehoachthang",
+    "file_glob": "1.SR.*.Kehoachthang.xlsx",
+    "sheet": { "ten": "KHDT" }
+  },
+  "header": { "dong": 2 },
+  "kiem_tra_o": [{ "o": "C2", "bang": "Khối" }],
+  "ngu_canh_dong": [
+    {
+      "khi": [{ "cot": "B", "dieu_kien": "regex", "gia_tri": "^\\s*(GIÁ TRỊ|SẢN LƯỢNG)\\s*$" }],
+      "gan": { "dim3": { "cot": "B", "chuan_hoa": "hoa" } }
+    }
+  ],
+  "cot": {
+    "dim1": { "header": "Khối", "chuan_hoa": "kh_dong" }
+  },
+  "ban_ghi": "moi_cot_thang",
+  "cot_thang": { "tu": "G", "den": "R", "he_so": 1e-9 },
+  "loc": [
+    { "cot": "dim2", "dieu_kien": "khac_rong" },
+    { "cot": "dim3", "dieu_kien": "bang", "gia_tri": "GIÁ TRỊ" }
+  ],
+  "payload_them": { "unit": "ty", "loai": "kehoach" }
+}

@@ -36,7 +36,8 @@ CẤU TRÚC SPEC (khoá tiếng Việt cho kế toán/BA đọc được):
     "ngay":   {"header": "Ngày hóa đơn", "kieu": "date"},                // payload.<khoá bất kỳ>
     "amount": {"header": "Giá bán", "kieu": "so", "he_so": 1e-9}
   },
-  "ban_ghi": "moi_dong",                 // | "moi_cot_gia_tri" (xem dưới)
+  "ban_ghi": "moi_dong",                 // | "moi_cot_gia_tri" | "moi_cot_ngay"
+                                         // | "moi_cot_thang" (xem dưới)
   "cot_gia_tri": [                       // chỉ dùng khi ban_ghi = "moi_cot_gia_tri":
     {"header": "Công nợ trong hạn", "dim1": "Trong hạn", "he_so": 1e-9}
   ],                                     // -> mỗi dòng nguồn đẻ N bản ghi, amount lấy từng cột
@@ -49,6 +50,10 @@ CẤU TRÚC SPEC (khoá tiếng Việt cho kế toán/BA đọc được):
   - "moi_dong"        : 1 dòng nguồn -> 1 bản ghi (bảng chi tiết: xuất hoá đơn, claim, kho xe).
   - "moi_cot_gia_tri" : 1 dòng nguồn -> N bản ghi, mỗi cột giá trị thành 1 dòng có dim1 riêng
                         (bảng ma trận: "Tuổi nợ phải thu" có sẵn cột trong hạn/1-30/>30-90/…).
+  - "moi_cot_ngay"    : 1 dòng nguồn -> N bản ghi theo dải cột NGÀY trong tháng (`cot_ngay`).
+  - "moi_cot_thang"   : 1 dòng nguồn -> N bản ghi theo dải cột THÁNG (`cot_thang`), mỗi bản ghi
+                        neo vào ngày cuối tháng đó. Dùng cho bản KẾ HOẠCH năm: một file duy nhất
+                        cấp số cho cả 12 kỳ, nên đừng đặt kỳ theo tên file.
 
 Ghi DB idempotent theo `source_file` = "<FOLDER>::<tên file>" — cùng quy ước mọi deriver khác.
 `--write` mới ghi; mặc định dry-run in ra tổng hợp để đối chiếu với file gốc.
@@ -68,7 +73,7 @@ import unicodedata
 
 import openpyxl
 import psycopg
-from openpyxl.utils import column_index_from_string
+from openpyxl.utils import column_index_from_string, get_column_letter
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _ROOT = os.path.normpath(os.path.join(_HERE, ".."))
@@ -146,13 +151,54 @@ def _cc_showroom(ten):
 
 
 def _cc_xdv(ten):
-    return _cc_theo_khoi(ten, "Khối KD Vinfast - XDV", {})
+    """Tên xưởng trong file -> cost center khối XDV. 13/14 xưởng khớp thẳng sau khi bỏ tiền tố
+    ("Ocean Park" ↔ master "Vinfast Ocean Park"); riêng xưởng HCM có tới BA tên gọi nên phải
+    khai alias: master "Vinfast Hồ Chí Minh", bản THỰC HIỆN ghi "HCM", bản KẾ HOẠCH
+    (Baocaodoanhthukehoachngay, 10/08/2026) ghi theo quận — "Quận 12"."""
+    # Khoá alias phải viết theo dạng ĐÃ CHUẨN HOÁ của `_nd` — bỏ dấu, bỏ cả khoảng trắng:
+    # "Quận 12" -> "quan12". Viết "quan 12" thì không bao giờ khớp và xưởng đó lặng lẽ mất.
+    return _cc_theo_khoi(ten, "Khối KD Vinfast - XDV",
+                         {"hcm": ("HCM_XDV", "TC"), "quan12": ("HCM_XDV", "TC")})
+
+
+def _master_loader():
+    """Nạp `app/master_data/loader.py` của backend THEO ĐƯỜNG DẪN FILE, không theo tên package.
+
+    Vì sao không `sys.path.insert(...)` rồi `from app.master_data import loader` như trước: khi
+    hàm này chạy TRONG tiến trình đã import `servers/template_filler.py` (đường "Đồng bộ & nạp" và
+    bước nạp lại của theo-dõi-thay-đổi), `app` ĐÃ nằm trong sys.modules và trỏ vào backend CŨ
+    (`DashBoard_AI/backend`, theo BACKEND_PATH) — bản đó không có `master_data`, nên import ném
+    ModuleNotFoundError và toàn bộ spec có chuẩn hoá cost center trả 0 dòng. Chạy CLI thì lại
+    không lỗi (chưa ai import `app`), nên bug chỉ hiện khi bấm nút trên web — đúng kiểu khó tìm.
+    Nạp theo đường dẫn file thì tên `app` của ai cũng không ảnh hưởng.
+
+    loader.py chỉ dùng stdlib và đọc JSON trong `app/data/` nên nạp rời hoàn toàn an toàn.
+    """
+    import importlib.util
+    ung_vien = [
+        os.environ.get("MASTER_DATA_BACKEND"),
+        os.path.join(_ROOT, "..", "AI_coding", "tc-admin-api"),      # bản test
+        os.path.join(os.path.expanduser("~"), "apps/tc-console/tc-admin-api"),   # bản prod
+    ]
+    for base in ung_vien:
+        if not base:
+            continue
+        p = os.path.normpath(os.path.join(base, "app", "master_data", "loader.py"))
+        if not os.path.isfile(p):
+            continue
+        spec = importlib.util.spec_from_file_location("tc_master_data_loader", p)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        return mod
+    # Đường cũ làm lưới cuối: có thể chạy ở nơi bố cục thư mục khác hẳn dự đoán ở trên.
+    sys.path.insert(0, os.path.join(_ROOT, "..", "AI_coding", "tc-admin-api"))
+    from app.master_data import loader as master   # noqa: PLC0415
+    return master
 
 
 def _cc_theo_khoi(ten, khoi, alias):
     if khoi not in _CC_CACHE:
-        sys.path.insert(0, os.path.join(_ROOT, "..", "AI_coding", "tc-admin-api"))
-        from app.master_data import loader as master
+        master = _master_loader()
         m = {}
         for cc in master.master_data().get("costCenters", []):
             if (cc.get("khoi") or "") != khoi:
@@ -172,9 +218,30 @@ def _bo_tien_to(n):
     return n
 
 
+# Nhãn dòng của sheet KHDT (bản kế hoạch) -> (mã nhóm, kênh). Khớp CHÍNH XÁC sau chuẩn hoá, KHÔNG
+# khớp kiểu "chứa": ngay dưới các dòng chi tiết còn có dòng tổng "Tổng doanh thu kênh B2C" —
+# khớp kiểu chứa là cộng đôi toàn bộ kế hoạch mà không có dấu hiệu gì.
+# Mã nhóm theo ĐÚNG file kế hoạch: A230 = doanh thu khác, A250 = claim (thiết kế
+# Dashboard.dc.html ghi ngược hai mã này — đã chốt với nghiệp vụ 2026-08-10, lấy theo file).
+_KH_DONG = {}
+for _ma, _nhan in (("A200", "Bán xe kênh {}"),
+                   ("A230", "Doanh thu khác Kênh {}"),
+                   ("A250", "Claim kênh {}")):
+    for _k in ("B2C", "B2B", "GF"):
+        _KH_DONG[_nd(_nhan.format(_k))] = (_ma, _k)
+
+
+def _kh_dong(nhan):
+    """Nhãn dòng kế hoạch -> {dim1: mã nhóm, dim2: kênh}. Dòng tổng/tiêu đề -> không đặt gì
+    (bản ghi thiếu dim2 sẽ bị `loc` loại), nên chỉ các dòng CHI TIẾT theo kênh được giữ."""
+    got = _KH_DONG.get(_nd(nhan))
+    return {"dim1": got[0], "dim2": got[1]} if got else {}
+
+
 _CHUAN_HOA = {
     "sr_showroom": _cc_showroom,
     "xdv": _cc_xdv,
+    "kh_dong": _kh_dong,
     "hoa": lambda v: str(v or "").strip().upper() or None,
     "cat": lambda v: str(v or "").strip() or None,
 }
@@ -185,6 +252,54 @@ def load_spec(ref):
     path = ref if os.path.isfile(ref) else os.path.join(SPEC_DIR, f"{ref}.json")
     with open(path, encoding="utf-8") as f:
         return json.load(f)
+
+
+def specs_for_path(path):
+    """Các spec phụ trách FILE này, suy từ `nguon.folder` — [] nếu file không thuộc nguồn nào.
+
+    Vì sao cần: `agent_cli.cmd_autofill` (nút "Phân tích AI") và `template_filler.autofill_file`
+    ("Đồng bộ & nạp" + bước nạp lại của theo-dõi-thay-đổi) là hai cửa DUY NHẤT mọi nguồn đi qua,
+    và cả hai điều phối bằng một bảng viết tay: mỗi loại báo cáo một deriver. 18 nguồn khai bằng
+    JSON spec ra sau nên chưa có tên trong bảng đó — bấm ingest thì báo thành công mà 0 dòng, im
+    lặng, không ai hiểu vì sao (đúng lỗi user gặp 10/08/2026). Hàm này là mảnh nối còn thiếu.
+
+    MỘT THƯ MỤC CÓ THỂ CÓ NHIỀU SPEC: `XDV/baocaodoanhthungay` cấp cho 3 spec (doanh thu vụ
+    việc / doanh thu RO / số lượng RO) và `KEHOACH/baocaokehoachthang` cấp cho 2. Phải trả về
+    TẤT CẢ, chạy thiếu một cái là màn hình thiếu đúng một khối số.
+    """
+    p = os.path.normpath(os.path.abspath(path)).replace("\\", "/")
+    out = []
+    for f in sorted(glob.glob(os.path.join(SPEC_DIR, "*.json"))):
+        try:
+            with open(f, encoding="utf-8") as fh:
+                sp = json.load(fh)
+        except Exception:
+            continue                      # spec hỏng cú pháp KHÔNG được làm chết luồng nạp
+        folder = ((sp.get("nguon") or {}).get("folder") or "").strip("/")
+        if not folder:
+            continue
+        if f"/{folder}/" in p:
+            out.append(sp)
+    return out
+
+
+def run_for_path(path, write=False):
+    """Chạy mọi spec phụ trách file này. Trả [] nếu KHÔNG spec nào phụ trách -> caller đi đường cũ.
+
+    Từng spec bọc riêng try/except: một spec lỗi không được kéo theo các spec còn lại, và tuyệt
+    đối không được ném ra ngoài — hàm này nằm trên đường nạp CHUNG của mọi báo cáo.
+    """
+    ket_qua = []
+    for sp in specs_for_path(path):
+        try:
+            r = run(sp, path, write=write)
+        except Exception as e:                                     # noqa: BLE001
+            r = {"file": os.path.basename(path), "dong": 0,
+                 "canh_bao": [f"LỖI spec {sp.get('id')}: {type(e).__name__}: {e}"]}
+        r["spec"] = sp.get("id")
+        r["report_type"] = sp.get("report_type")
+        ket_qua.append(r)
+    return ket_qua
 
 
 def _chon_sheet(wb, cfg):
@@ -312,6 +427,38 @@ def _qua_loc(rec, loc):
     return True
 
 
+def _qua_loc_o(row, dieu_kien):
+    """Bản `_qua_loc` chạy THẲNG trên ô của dòng nguồn (địa chỉ theo CHỮ CỘT), dùng cho
+    `ngu_canh_dong` — lúc đó bản ghi chưa được dựng nên chưa có trường nào để so.
+
+    `khong_regex` là điều kiện chủ lực: dòng tiêu đề đơn vị nhận biết bằng "cột A có chữ nhưng
+    KHÔNG phải mã chỉ tiêu" (mã dạng B110/B120…). Không có nó thì các dòng chi tiết không mã
+    (Doanh thu công gò/công sơn) cũng bị nhận nhầm là tiêu đề đơn vị.
+    """
+    if not dieu_kien:
+        return False
+    for f in dieu_kien:
+        j = column_index_from_string(f["cot"]) - 1
+        v = row[j] if j < len(row) else None
+        s = str(v).strip() if v is not None else ""
+        dk, gt = f.get("dieu_kien", "khac_rong"), f.get("gia_tri")
+        if dk == "khac_rong" and not s:
+            return False
+        if dk == "rong" and s:
+            return False
+        if dk == "bang" and s != str(gt):
+            return False
+        if dk == "khac" and s == str(gt):
+            return False
+        if dk == "regex" and not re.search(gt, s):
+            return False
+        if dk == "khong_regex" and re.search(gt, s):
+            return False
+        if dk == "chua" and _nd(gt) not in _nd(s):
+            return False
+    return True
+
+
 def _dan_xuat(rec, cong_thuc):
     """eval trong sandbox hẹp — spec là cấu hình nội bộ tin cậy (xem docstring đầu file)."""
     if not cong_thuc:
@@ -355,6 +502,16 @@ def ngay_tu_ten_file(spec, path):
         else:
             warn.append(f"không dò được ngày từ tên file: {ten}")
     return None, warn
+
+
+def _ky_thang(spec, path):
+    """-> ((năm, tháng), [cảnh báo]) cho `ban_ghi = moi_cot_ngay`. Kỳ lấy từ TÊN FILE
+    (vd '...202608.Baocaodoanhthungay.xlsx'), vì các cột chỉ ghi số ngày, không ghi tháng."""
+    c = spec.get("ky_thang_tu_ten_file") or {"regex": r"\.(\d{4})(\d{2})\."}
+    m = re.search(c["regex"], os.path.basename(path))
+    if not m:
+        return None, [f"không dò được kỳ (năm/tháng) từ tên file: {os.path.basename(path)}"]
+    return (int(m.group(1)), int(m.group(2))), []
 
 
 def loc_file_moi_nhat(spec, files):
@@ -430,12 +587,128 @@ def extract_file(spec, path):
                   for c in gia_tri_cols]
         gt_idx = [(j, c) for j, c in gt_idx if j is not None]
 
+        # Cột-theo-ngày: đọc SỐ NGÀY từ chính dòng tiêu đề của từng cột rồi ghép với kỳ của file.
+        # KHÔNG đánh số ngày theo thứ tự cột: tháng 2 chỉ có 28-29 cột có nghĩa, và vài file chèn
+        # thêm cột phụ giữa dải ngày — suy theo vị trí sẽ lệch ngày mà không có dấu hiệu gì.
+        # 3 khoá TUỲ CHỌN thêm 10/08/2026 cho bản KẾ HOẠCH doanh thu theo ngày của XDV
+        # (Baocaodoanhthukehoachngay, sheet "KHDT theo ngày") — mặc định giữ nguyên hành vi cũ
+        # nên mọi spec đang chạy không đổi một ly:
+        #   "dong": 9       -> đọc mốc ngày từ DÒNG KHÁC dòng tiêu đề. File đó ghi ngày ở dòng 9
+        #                      (ô gộp 2 cột), còn dòng 10 là tiêu đề con "Số lượng"/"Doanh thu".
+        #   ô là NGÀY THẬT  -> chấp nhận cell datetime/date, không chỉ số "1".."31". Kèm kiểm
+        #                      tháng/năm khớp kỳ của file: lệch thì BỎ cột đó và cảnh báo, vì
+        #                      nhận sai là gán số của tháng khác vào kỳ này mà không ai thấy.
+        #   "lech_amount"   -> giá trị KHÔNG nằm ở cột mang mốc ngày mà lệch sang phải n cột.
+        #                      Ở file này mỗi ngày chiếm 2 cột: (Số lượng, Doanh thu).
+        #   "lech_amount2"  -> cột thứ hai của cặp, ghi vào amount2 (giữ luôn KH số lượng RO để
+        #                      tính "doanh thu bình quân/RO mục tiêu" mà không cần nạp 2 lần).
+        nc_ngay = spec.get("cot_ngay") or {}
+        ngay_theo_cot = []
+        if spec.get("ban_ghi") == "moi_cot_ngay":
+            nam_thang, w3 = _ky_thang(spec, path)
+            warn.extend(w3)
+            if nam_thang:
+                y, mo = nam_thang
+                j1 = column_index_from_string(nc_ngay.get("tu", "G")) - 1
+                j2 = column_index_from_string(nc_ngay.get("den", "AK")) - 1
+                dong_ngay = nc_ngay.get("dong")
+                if dong_ngay:
+                    moc_row = [c.value for c in ws[int(dong_ngay)]]
+                else:
+                    moc_row = head_rows[(hdr_dong[-1] if isinstance(hdr_dong, list) else hdr_dong) - 1]
+                for j in range(j1, j2 + 1):
+                    raw = moc_row[j] if j < len(moc_row) else None
+                    ngay_cot = None
+                    if isinstance(raw, (dt.datetime, dt.date)):
+                        if (raw.year, raw.month) == (y, mo):
+                            ngay_cot = dt.date(raw.year, raw.month, raw.day).isoformat()
+                        else:
+                            warn.append(f"cột {get_column_letter(j + 1)} ghi ngày {raw} không thuộc "
+                                        f"kỳ {y}-{mo:02d} của file -> bỏ cột")
+                    else:
+                        m = re.match(r"^\s*(\d{1,2})\s*$", str(raw or ""))
+                        if m:
+                            try:
+                                ngay_cot = dt.date(y, mo, int(m.group(1))).isoformat()
+                            except ValueError:
+                                ngay_cot = None   # ngày 30/31 ở tháng ngắn -> cột thừa, bỏ qua
+                    if ngay_cot:
+                        ngay_theo_cot.append((j, ngay_cot))
+            if not ngay_theo_cot:
+                return [], [*warn, "BỎ QUA — không dựng được dải cột theo ngày"]
+
+        # Cột-theo-THÁNG: bảng KẾ HOẠCH xếp 12 cột "Tháng 1".."Tháng 12" — MỘT file cấp kế hoạch
+        # cho cả năm, nên một lần nạp phải đẻ ra 12 kỳ. Tháng đọc từ CHÍNH tiêu đề cột (không suy
+        # theo vị trí): trước dải tháng còn có "Tổng năm" / "6 tháng đầu năm" / "6 tháng cuối năm"
+        # và mấy cột tổng này rất hay bị chèn thêm giữa các bản kế hoạch. Năm lấy từ tên file.
+        nc_thang = spec.get("cot_thang") or {}
+        thang_theo_cot = []
+        if spec.get("ban_ghi") == "moi_cot_thang":
+            nam_thang, w4 = _ky_thang(spec, path)
+            warn.extend(w4)
+            if nam_thang:
+                y = nam_thang[0]
+                j1 = column_index_from_string(nc_thang.get("tu", "G")) - 1
+                j2 = column_index_from_string(nc_thang.get("den", "R")) - 1
+                hdr_row = head_rows[(hdr_dong[-1] if isinstance(hdr_dong, list) else hdr_dong) - 1]
+                for j in range(j1, j2 + 1):
+                    m = re.match(r"^thang(\d{1,2})$", _nd(hdr_row[j] if j < len(hdr_row) else None))
+                    if not m or not 1 <= int(m.group(1)) <= 12:
+                        continue
+                    mo = int(m.group(1))
+                    # Kỳ của kế hoạch là CẢ THÁNG -> neo vào ngày cuối tháng, giống mọi nguồn
+                    # ảnh chụp khác, để `period_month` rơi đúng tháng đó.
+                    thang_theo_cot.append(
+                        (j, dt.date(y, mo, calendar.monthrange(y, mo)[1]).isoformat()))
+            if not thang_theo_cot:
+                return [], [*warn, "BỎ QUA — không dựng được dải cột theo tháng"]
+
         khong_map, bo_loc = {}, 0
+        ngu_canh = {}          # ngữ cảnh mang từ dòng tiêu đề xuống, xem `ngu_canh_dong`
+        nc_cfg = spec.get("ngu_canh_dong")
         for row in ws.iter_rows(min_row=bat_dau, values_only=True):
+            # BẢNG PHÂN CẤP: một số báo cáo không lặp lại tên đơn vị trên từng dòng mà đặt nó ở
+            # DÒNG TIÊU ĐỀ riêng, các dòng bên dưới ngầm hiểu là của đơn vị đó (báo cáo doanh thu
+            # XDV: dòng "3S có đồng sơn | Ocean Park" rồi 8 dòng mã B110..B150 bên dưới).
+            # Dòng tiêu đề KHÔNG tự sinh bản ghi — nó chỉ đặt ngữ cảnh.
+            # `ngu_canh_dong` nhận 1 quy tắc (dict) hoặc NHIỀU quy tắc (list) — file doanh thu XDV
+            # có 2 TẦNG ngữ cảnh lồng nhau: dòng "II/ DOANH THU LỆNH W (BẢO HÀNH)" mở một khối
+            # loại lệnh, bên trong lại có các dòng tên xưởng. Quy tắc xét theo thứ tự, khớp cái
+            # đầu tiên; `xoa` liệt kê các trường phải quên khi sang khối mới (đổi khối loại lệnh
+            # thì cost_center của xưởng cuối khối trước KHÔNG được mang sang).
+            hit = False
+            for rule in ([nc_cfg] if isinstance(nc_cfg, dict) else (nc_cfg or [])):
+                if not _qua_loc_o(row, rule.get("khi") or []):
+                    continue
+                for k in rule.get("xoa") or []:
+                    ngu_canh.pop(k, None)
+                for dich, c in (rule.get("gan") or {}).items():
+                    v = _lay_o(row, column_index_from_string(c["cot"]) - 1, c)
+                    if c.get("anh_xa"):
+                        # Nhãn trong file dài dòng ("II/ DOANH THU LỆNH W (BẢO HÀNH)") -> quy về
+                        # giá trị ngắn dùng cho dim. So theo kiểu "chứa", bỏ dấu.
+                        v = next((out for key, out in c["anh_xa"].items() if _nd(key) in _nd(v)),
+                                 c.get("mac_dinh"))
+                    hook = c.get("chuan_hoa")
+                    if hook and v is not None:
+                        res = _CHUAN_HOA[hook](v)
+                        if isinstance(res, dict):
+                            if res.get("_khong_map"):
+                                khong_map[res["_khong_map"]] = khong_map.get(res["_khong_map"], 0) + 1
+                            ngu_canh.update({k: x for k, x in res.items() if k != "_khong_map"})
+                            continue
+                        v = res
+                    ngu_canh[dich] = v
+                hit = True
+                break
+            if hit:
+                continue          # dòng tiêu đề KHÔNG tự sinh bản ghi
             base = {"payload": dict(spec.get("payload_them") or {})}
             if spec.get("khoi"):
                 base["khoi"] = spec["khoi"]
             base.update(spec.get("chieu_co_dinh") or {})   # vd {"dim2": "B2B"} cho file 1 kênh
+            for dich, v in ngu_canh.items():
+                _dat(base, dich, v)
             base.update({k: v for k, v in chieu.items()})
             if ngay_file:
                 base["ngay"] = ngay_file
@@ -470,7 +743,41 @@ def extract_file(spec, path):
             if spec.get("dung_khi") and _qua_loc(base, spec["dung_khi"]):
                 break
             outs = []
-            if spec.get("ban_ghi") == "moi_cot_gia_tri":
+            if spec.get("ban_ghi") == "moi_cot_ngay":
+                # Bảng có MỘT CỘT MỖI NGÀY (báo cáo doanh thu XDV: G..AK = ngày 01..31, tiêu đề
+                # cột chính là số ngày). Mỗi ô có số -> 1 bản ghi mang đúng `ngay` của cột đó,
+                # nhờ vậy vừa vẽ được biểu đồ theo ngày vừa cộng lên tháng mà không đếm đôi.
+                # Ô rỗng/0 bị bỏ: tháng đang dở thì các ngày chưa tới đều là 0, giữ lại chỉ làm
+                # phình bảng và đẻ ra "ngày có số 0" giả.
+                lech = int(nc_ngay.get("lech_amount", 0))
+                lech2 = nc_ngay.get("lech_amount2")
+                for j, ngay_cot in ngay_theo_cot:
+                    jv = j + lech
+                    v = _so(row[jv] if jv < len(row) else None, float(nc_ngay.get("he_so", 1.0)))
+                    if not v:
+                        continue
+                    r2 = json.loads(json.dumps(base))
+                    r2["ngay"] = ngay_cot
+                    r2["amount"] = v
+                    if lech2 is not None:
+                        j2v = j + int(lech2)
+                        # he_so RIÊNG: cột thứ hai của cặp là SỐ LƯỢNG RO (đơn vị lệnh), không
+                        # phải tiền — dùng chung he_so 1e-9 của tiền là ra 0.0000005 lệnh.
+                        r2["amount2"] = _so(row[j2v] if j2v < len(row) else None,
+                                            float(nc_ngay.get("he_so_amount2", 1.0)))
+                    outs.append(r2)
+            elif spec.get("ban_ghi") == "moi_cot_thang":
+                # Ô rỗng/0 bị bỏ: bản kế hoạch để trống các tháng chưa đăng ký (A230/A250 trống
+                # hết T1-T6). Giữ lại là đẻ ra "kế hoạch = 0" giả, và %HT sẽ chia cho 0.
+                for j, ngay_cot in thang_theo_cot:
+                    v = _so(row[j] if j < len(row) else None, float(nc_thang.get("he_so", 1.0)))
+                    if not v:
+                        continue
+                    r2 = json.loads(json.dumps(base))
+                    r2["ngay"] = ngay_cot
+                    r2["amount"] = v
+                    outs.append(r2)
+            elif spec.get("ban_ghi") == "moi_cot_gia_tri":
                 for j, c in gt_idx:
                     r2 = json.loads(json.dumps(base))
                     r2["amount"] = _so(row[j] if j < len(row) else None,
@@ -484,10 +791,15 @@ def extract_file(spec, path):
             for r2 in outs:
                 _dan_xuat(r2, spec.get("dan_xuat"))
                 hong = r2.pop("_khong_map", None)
-                if not _qua_loc(r2, spec.get("loc")):
-                    bo_loc += 1
-                elif hong:
+                # Đơn vị KHÔNG map được mà dòng CÓ SỐ -> luôn báo ra, KHÔNG để bộ lọc nuốt trước.
+                # Bắt được 2026-08-09: spec lọc `cost_center khác rỗng`, nên xưởng "Quận 12" (có
+                # thật trong file DMS, chưa có trong master_data) rơi vào nhánh "bỏ N dòng không
+                # qua bộ lọc" — mất 19 lệnh mà không một cảnh báo nào. Dòng không map mà TOÀN 0
+                # thì vẫn coi là rác (dòng tổng/дòng trống), đếm vào bo_loc cho đỡ nhiễu.
+                if hong and (r2.get("amount") or 0):
                     khong_map[hong] = khong_map.get(hong, 0) + 1
+                elif hong or not _qua_loc(r2, spec.get("loc")):
+                    bo_loc += 1
                 else:
                     recs.append(r2)
         if bo_loc:
