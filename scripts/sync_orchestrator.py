@@ -329,6 +329,10 @@ def cmd_status(args):
             "month": a.get("month"),
             "period_type": a.get("periodType") or a.get("period_type"),
             "state": state, "label": label,
+            # Máy nguồn (.253) CÒN file này không? `avail` là danh sách nó gửi lần gần nhất.
+            # File đã kéo về mà biến mất khỏi danh sách = nghiệp vụ đã xoá/đổi tên bên đó -> bản
+            # local thành mồ côi, và nếu nó đang cấp số cho dashboard thì số đó đã lỗi thời.
+            "con_o_nguon": bool(a),
             "path": c.get("path") if c else None,          # đường dẫn file đã kéo về (để analyst đọc)
             "period": _guess_period(fn),                   # 'YYYY-MM' suy từ tên file
             "canonical_kinds": sorted({s.get("canonical_kind") for s in (c or {}).get("sheets", [])
@@ -338,7 +342,14 @@ def cmd_status(args):
                "new": sum(1 for f in files if f["state"] == "new"),
                "pending": sum(1 for f in files if f["state"] == "pending"),
                "ingested": sum(1 for f in files if f["state"] == "ingested")}
-    return {"summary": summary, "files": files}
+    # Mốc của danh sách nguồn — mọi kết luận "mất ở nguồn" chỉ đúng TỚI mốc này. Không có mốc
+    # thì người xem không biết đang so với danh sách cũ tới mức nào.
+    try:
+        from datetime import datetime as _dt
+        nguon_luc = _dt.fromtimestamp(os.path.getmtime(AVAILABLE_META)).isoformat(timespec="seconds")
+    except OSError:
+        nguon_luc = None
+    return {"summary": summary, "files": files, "nguon_cap_nhat": nguon_luc}
 
 
 def main():

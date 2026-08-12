@@ -19,6 +19,11 @@ import openpyxl, glob, json, os, re, datetime, sys
 _WS = os.path.normpath(os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".."))  # cha của Dashboard_Agent/
 DATA_DIR = os.path.join(_WS, "Connect_VPS", "received_reports", "THUCHI", "baocaonganhang")
+# Gốc quét THẬT: cả THUCHI/, không riêng baocaonganhang. Từ 11/08/2026 agent .253 đổi cách phân
+# loại, đẩy 10 file ngân hàng T07/T08 sang `baocaothuchi/<Báo cáo X>/` (qua sub_folder) — glob một
+# thư mục không đệ quy nên bỏ qua sạch, chain VAY vẫn đọc bản cũ nằm ở chỗ cũ và tháng 8 thiếu
+# 86,9 tỷ dư nợ (Thịnh Cường lệch 85,09 tỷ). Không ai thấy vì cả hai bản đều tồn tại.
+SCAN_ROOT = os.path.join(_WS, "Connect_VPS", "received_reports", "THUCHI")
 # Ghi cạnh DATA_DIR (thư mục anh em của repo) — trước hard-code /home/sysadmin nên user khác
 # chạy là PermissionError. Env OUT_JSON để ghi chỗ khác.
 OUT_JSON = os.environ.get("OUT_JSON") or os.path.join(_WS, "cashflow_vay_extract.json")
@@ -322,8 +327,36 @@ def extract_file(f):
     wb.close()
     return rec
 
+def files_can_doc(root=None):
+    """Danh sách file ngân hàng CẦN ĐỌC — quét đệ quy, mỗi (đơn vị, tháng) giữ bản MỚI NHẤT.
+
+    Ba lý do phải làm chỗ này thay vì glob thẳng:
+      1. File có thể nằm ở `baocaonganhang/` HOẶC `baocaothuchi/<Báo cáo X>/` — agent đổi cách
+         phân loại là chỗ cũ đứng yên, không báo lỗi.
+      2. Cùng một (đơn vị, tháng) có mặt ở CẢ HAI nơi với nội dung KHÁC nhau; đọc nhầm bản cũ là
+         sai số thật, không phải sai nhãn.
+      3. Đuôi `.Xlsx` viết hoa cũng phải bắt — cùng bẫy đã diệt ở spec_extract.
+
+    Bản mới nhất chọn theo mtime, không theo thư mục: không giả định nơi nào "đúng" hơn.
+    """
+    root = root or SCAN_ROOT
+    tot = {}
+    for f in glob.glob(os.path.join(root, "**", "*"), recursive=True):
+        ten = os.path.basename(f)
+        if not ten.lower().endswith((".xlsx", ".xlsm")) or ten.startswith("~$"):
+            continue
+        u = unit_of(ten)
+        if u is None:
+            continue                        # không nhận ra đơn vị -> không phải báo cáo ngân hàng
+        khoa = (u, month_of(ten))
+        cu_hon = tot.get(khoa)
+        if cu_hon is None or os.path.getmtime(f) > os.path.getmtime(cu_hon):
+            tot[khoa] = f
+    return sorted(tot.values())
+
+
 def main():
-    files = sorted(glob.glob(os.path.join(DATA_DIR, "*.xlsx")))
+    files = files_can_doc()
     out = []
     for f in files:
         if unit_of(os.path.basename(f)) is None: continue

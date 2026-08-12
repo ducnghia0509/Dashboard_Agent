@@ -8,7 +8,8 @@
     "Khi sang khối loại lệnh mới phải XOÁ cost_center, nếu không xưởng cuối của khối trước bị mang sang phần TỔNG của khối sau.",
     "Cột C = Kế hoạch tháng (ghi vào amount2), D = luỹ kế thực hiện, G..AK = 31 ngày. Ở đây lấy MỖI NGÀY 1 bản ghi để dùng được cả biểu đồ theo ngày lẫn cộng thành tháng.",
     "dong_bat_dau phải là 8 (KHÔNG phải 10): dòng tiêu đề khối I nằm ở dòng 8, bắt đầu từ 10 thì cả khối Tổng mất ngữ cảnh loại lệnh và ra 0.",
-    "File ghi 14 xưởng — khớp master_data. Mapping ghi '13 XDV' và thiết kế ghi '9 xưởng' đều là số cũ."
+    "File ghi 14 xưởng — khớp master_data. Mapping ghi '13 XDV' và thiết kế ghi '9 xưởng' đều là số cũ.",
+    "LỌC BỎ dim1='Mã số': dòng TIÊU ĐỀ của mỗi khối lọt vào dữ liệu (cột 'Mã số' có chữ nên qua bộ lọc khac_rong) và nó có mặt ở ĐỦ 31 ngày với giá trị ~0. Số tiền không sai (các KPI đều lọc theo mã) nhưng ĐẾM NGÀY thì sai: 'ngày có phát sinh' ra 31 trong khi mới có số 9 ngày, làm doanh thu bình quân/ngày thấp đi 3,4 lần. Phát hiện 10/08/2026."
   ],
   "report_type": "XDV_DTHU",
   "row_index_base": 7000000,
@@ -16,20 +17,47 @@
   "nguon": {
     "folder": "XDV/baocaodoanhthungay",
     "file_glob": "*.xlsx",
-    "sheet": { "chua": "Doanh thu vụ việc" }
+    "sheet": {
+      "chua": "Doanh thu vụ việc"
+    }
   },
-  "kiem_tra_o": [ { "o": "A9", "bang": "Mã số" }, { "o": "C9", "bang": "Kế hoạch tháng" } ],
-  "header": { "dong": 9 },
+  "kiem_tra_o": [
+    {
+      "o": "A9",
+      "bang": "Mã số"
+    },
+    {
+      "o": "C9",
+      "bang": "Kế hoạch tháng"
+    }
+  ],
+  "header": {
+    "dong": 9
+  },
   "dong_bat_dau": 8,
   "ngu_canh_dong": [
     {
       "_vi_sao": "mở khối loại lệnh — đồng thời quên xưởng của khối trước",
-      "khi": [ { "cot": "A", "dieu_kien": "regex", "gia_tri": "^(I|II|III|IV|V)/" } ],
-      "xoa": [ "cost_center", "cong_ty" ],
+      "khi": [
+        {
+          "cot": "A",
+          "dieu_kien": "regex",
+          "gia_tri": "^(I|II|III|IV|V)/"
+        }
+      ],
+      "xoa": [
+        "cost_center",
+        "cong_ty"
+      ],
       "gan": {
         "dim2": {
           "cot": "A",
-          "anh_xa": { "BẢO HÀNH": "Bảo hành", "BẢO HIỂM": "Bảo hiểm", "KhÁCh lẻ": "Khách lẻ", "NỘI BỘ": "Nội bộ" },
+          "anh_xa": {
+            "BẢO HÀNH": "Bảo hành",
+            "BẢO HIỂM": "Bảo hiểm",
+            "KhÁCh lẻ": "Khách lẻ",
+            "NỘI BỘ": "Nội bộ"
+          },
           "mac_dinh": "Tổng"
         }
       }
@@ -37,23 +65,64 @@
     {
       "_vi_sao": "dòng tên xưởng",
       "khi": [
-        { "cot": "A", "dieu_kien": "khac_rong" },
-        { "cot": "A", "dieu_kien": "khong_regex", "gia_tri": "^(B\\d+|Mã số)$" },
-        { "cot": "B", "dieu_kien": "khac_rong" }
+        {
+          "cot": "A",
+          "dieu_kien": "khac_rong"
+        },
+        {
+          "cot": "A",
+          "dieu_kien": "khong_regex",
+          "gia_tri": "^(B\\d+|Mã số)$"
+        },
+        {
+          "cot": "B",
+          "dieu_kien": "khac_rong"
+        }
       ],
       "gan": {
-        "cost_center": { "cot": "B", "chuan_hoa": "xdv" },
-        "payload.loai_xuong": { "cot": "A" }
+        "cost_center": {
+          "cot": "B",
+          "chuan_hoa": "xdv"
+        },
+        "payload.loai_xuong": {
+          "cot": "A"
+        }
       }
     }
   ],
   "cot": {
-    "dim1": { "header": "Mã số", "chuan_hoa": "cat" },
-    "dim3": { "header": "Chỉ tiêu", "chuan_hoa": "cat" },
-    "amount2": { "header": "Kế hoạch tháng", "kieu": "so", "he_so": 1e-9 }
+    "dim1": {
+      "header": "Mã số",
+      "chuan_hoa": "cat"
+    },
+    "dim3": {
+      "header": "Chỉ tiêu",
+      "chuan_hoa": "cat"
+    },
+    "amount2": {
+      "header": "Kế hoạch tháng",
+      "kieu": "so",
+      "he_so": 1e-09
+    }
   },
   "ban_ghi": "moi_cot_ngay",
-  "cot_ngay": { "tu": "G", "den": "AK", "he_so": 1e-9 },
-  "loc": [ { "cot": "dim1", "dieu_kien": "khac_rong" } ],
-  "payload_them": { "unit": "ty" }
+  "cot_ngay": {
+    "tu": "G",
+    "den": "AK",
+    "he_so": 1e-09
+  },
+  "loc": [
+    {
+      "cot": "dim1",
+      "dieu_kien": "khac_rong"
+    },
+    {
+      "cot": "dim1",
+      "dieu_kien": "khac",
+      "gia_tri": "Mã số"
+    }
+  ],
+  "payload_them": {
+    "unit": "ty"
+  }
 }

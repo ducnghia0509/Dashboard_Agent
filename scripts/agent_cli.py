@@ -591,12 +591,21 @@ def _derive_kqkd_tseries(rows, period, cong_ty, file_path):
         if c in ("T100", "T200", "T300"):
             continue
         add(_canon.get(c, lab), val)
-    # Lợi nhuận gộp = T100 − T201 (sheet HT KHÔNG có dòng LN gộp riêng, spec #6 = DT thuần − giá vốn).
+    # Lợi nhuận gộp = DOANH THU THUẦN − giá vốn (sheet T-series KHÔNG có dòng LN gộp riêng; spec #6).
     # -> PNLT (metrics gross = ILIKE '%lợi nhuận gộp%'; biên LNG = LNG/DT thuần tính ở BE). Chỉ khi có
     # T201 -> đơn vị T-series không có giá vốn (Trạm sạc) KHÔNG bị thêm dòng (0 ảnh hưởng).
-    _gv201, _dt100 = byco.get("T201", (None, None))[1], byco["T100"][1]
-    if _gv201 is not None and _dt100 is not None:
-        add("Lợi nhuận gộp", round(_dt100 - _gv201, 9))
+    #
+    # SỬA 11/08/2026 — trước đây lấy T100 thay vì T101. `T100 = T101 + T102 (DT tài chính) + T103
+    # (thu nhập khác)`, chính chú thích ở `add("Doanh thu thuần", ...)` phía trên và knowledge/GA.yaml
+    # đều đã ghi rõ điều đó và đều dùng T101 cho doanh thu thuần — riêng dòng này lấy T100, tức trộn
+    # doanh thu tài chính + thu nhập khác vào LÃI GỘP. Hệ quả đo trên kỳ 06/2026:
+    #   · Hưng Thịnh   LN gộp 4,535576 -> ĐÚNG 4,189939 tỷ  (thổi lên 345,6 triệu)
+    #   · GlobalAI     LN gộp 0,000006 -> ĐÚNG 0            (file TT200 mã 20 ghi 0)
+    #   · Trạm sạc     không đổi (T100 == T101, đơn vị này không có DT tài chính)
+    # GA còn kiểm chéo được: file có sẵn sheet TT200 'KQKD', mã 20 'Lợi nhuận gộp' ghi đúng 0.
+    _gv201, _dt_thuan = byco.get("T201", (None, None))[1], _dt_ban_hang
+    if _gv201 is not None and _dt_thuan is not None:
+        add("Lợi nhuận gộp", round(_dt_thuan - _gv201, 9))
     # Doanh thu HH, DV (chỉ tiêu #1 bảng 50 = doanh thu bán hàng) = CÙNG giá trị vừa dùng cho
     # "Doanh thu thuần" (_dt_ban_hang, Σ T101.x hoặc T101 gộp) — 2 khái niệm trùng nhau ở đơn vị này.
     if _dt_ban_hang is not None:
@@ -622,22 +631,76 @@ def _derive_kqkd_tseries(rows, period, cong_ty, file_path):
 
 
 def _chiphi_recs_tseries(rows, code_j, lab_j, val_j, period):
-    """Dòng 02_CHIPHI cho HT (P&L T-series): các mã CON TRỰC TIẾP của T200 = '^T2\\d{2}$' (trừ T200)
-    -> T201 giá vốn / T202 CP tài chính / T203 CP vận hành; tổng = T200. Mã ở CỘT code_j, nhãn ở CỘT
-    lab_j (HT dựng lại file: mã sang cột C nên KHÔNG hard-code cột 0/1). Giá trị tại val_j (cột tháng,
-    đúng cột P&L). dim1=dim3=nhãn gốc. Bỏ dòng 0/None. (T2xx.y là con của T2xx -> loại để không cộng trùng.)"""
+    """Dòng 02_CHIPHI cho HT/Trạm sạc (P&L T-series): các mã CON TRỰC TIẾP của T200 = '^T2\\d{2}$'
+    (trừ T200) -> T201 giá vốn / T202 CP tài chính / T203 (bán hàng/vận hành) / T204 QLDN (Trạm sạc
+    có cả 4; HT chỉ 201-203); tổng = T200. Mã ở CỘT code_j, nhãn ở CỘT lab_j (HT dựng lại file: mã
+    sang cột C nên KHÔNG hard-code cột 0/1). Giá trị tại val_j (cột tháng, đúng cột P&L).
+
+    dim2 'Yếu tố chi phí' (2026-08-08, chart "Chi phí theo yếu tố"): T201 (giá vốn) LUÔN dim2='CP
+    Giá vốn' nguyên khối (không bóc con). T202/T203/T204 nếu có DÒNG CON ngay sau (quét theo VỊ TRÍ
+    tới khi gặp mã KHÁC) -> THAY dòng lump bằng các dòng con, dim1 GIỮ NGUYÊN = nhãn Mục cha (để
+    tổng theo dim1/by_nhom KHÔNG đổi), dim3 = nhãn dòng con, dim2 = _yeuto_cp(nhãn dòng con). Dòng
+    con có 2 KIỂU tuỳ đơn vị (verify thực tế 2026-08-08): HT đánh mã con 'T2xx.n' (vd T203.1..18);
+    Trạm sạc để MÃ TRỐNG cho dòng con (chỉ cột nhãn cột A 'MHN' + cột C tên dòng có giá trị) — quét
+    CẢ 2 kiểu (mã trống HOẶC mã khớp 'T2xx\\.\\d+'), dừng khi gặp mã KHÁC không rỗng/không khớp.
+    Không có dòng con -> giữ lump, dim2 = _yeuto_cp(nhãn Mục).
+
+    GUARD Σcon≈lump (bắt 2026-08-08, verify Trạm sạc T07): dòng NGAY TRƯỚC Mục kế tiếp có thể là 1
+    dòng "thừa" KHÔNG nằm trong công thức tổng của Mục cha (vd Trạm sạc T204 'Chi phí công tác BPQL'
+    đứng cuối cùng trước T300 nhưng KHÔNG cộng vào T204 — Σ 6 dòng con đầu ĐÃ khớp đúng T204, dòng
+    thứ 7 dư ra). Nếu Σ dòng con LỆCH > 1% so với giá trị lump của chính Mục đó -> KHÔNG tin dòng
+    con, dùng lại lump (dim2=_yeuto_cp(nhãn Mục)) để không làm sai tổng theo dim1/by_nhom."""
     import re as _re
+    from extract_chiphi import _yeuto_cp
+
+    def _code(r):
+        return str(r[code_j]).strip() if r and code_j < len(r) and r[code_j] not in (None, "") else ""
+
+    def _name_val(r):
+        nm_ = str(r[lab_j]).strip() if lab_j < len(r) and r[lab_j] not in (None, "") else ""
+        vl_ = r[val_j] if val_j < len(r) else None
+        return nm_, vl_
+
     recs = []
-    for r in rows:
-        cd = str(r[code_j]).strip() if r and code_j < len(r) and r[code_j] not in (None, "") else ""
+    n_rows = len(rows)
+    i = 0
+    while i < n_rows:
+        cd = _code(rows[i])
         if not _re.fullmatch(r"T2\d{2}", cd) or cd == "T200":
+            i += 1
             continue
-        val = r[val_j] if val_j < len(r) else None
-        if not isinstance(val, (int, float)) or val == 0:
-            continue
-        nm = str(r[lab_j]).strip() if lab_j < len(r) and r[lab_j] not in (None, "") else cd
-        recs.append({"Kỳ (yyyy-mm)": period, "Nhóm CP (chuẩn mực KT)": nm,
-                     "Khoản mục chi tiết": nm, "Thực hiện (tỷ)": round(val * 1e-9, 9)})
+        nm, val = _name_val(rows[i])
+        nm = nm or cd
+        child_pat = _re.compile(_re.escape(cd) + r"\.\d+")
+        children = []
+        j = i + 1
+        while j < n_rows:
+            ccd = _code(rows[j])
+            if ccd and not child_pat.fullmatch(ccd):
+                break   # gặp mã KHÁC (Mục kế tiếp) -> dừng gom con
+            cnm, cval = _name_val(rows[j])
+            if cnm and isinstance(cval, (int, float)) and cval:
+                children.append((cnm, cval))
+            j += 1
+        if children and isinstance(val, (int, float)) and val:
+            _csum = sum(v for _, v in children)
+            if abs(_csum - val) > abs(val) * 0.01:   # dòng con lệch >1% lump -> không tin, bỏ hết
+                children = []
+        if cd == "T201":
+            if isinstance(val, (int, float)) and val:
+                recs.append({"Kỳ (yyyy-mm)": period, "Nhóm CP (chuẩn mực KT)": nm,
+                             "Khoản mục chi tiết": nm, "Yếu tố chi phí": "CP Giá vốn",
+                             "Thực hiện (tỷ)": round(val * 1e-9, 9)})
+        elif children:
+            for cnm, cval in children:
+                recs.append({"Kỳ (yyyy-mm)": period, "Nhóm CP (chuẩn mực KT)": nm,
+                             "Khoản mục chi tiết": cnm, "Yếu tố chi phí": _yeuto_cp(cnm),
+                             "Thực hiện (tỷ)": round(cval * 1e-9, 9)})
+        elif isinstance(val, (int, float)) and val:
+            recs.append({"Kỳ (yyyy-mm)": period, "Nhóm CP (chuẩn mực KT)": nm,
+                         "Khoản mục chi tiết": nm, "Yếu tố chi phí": _yeuto_cp(nm),
+                         "Thực hiện (tỷ)": round(val * 1e-9, 9)})
+        i = j
     return recs
 
 
@@ -795,9 +858,18 @@ def _chiphi_recs_duan(rows, val_j, period):
     TỪNG MỤC CON của 'Giá vốn' (NVL, nhân công TT, nhiên liệu, khấu hao, bán buôn, thầu phụ, khác
     tại dự án) + TỪNG MỤC CON của 'Chi phí phân bổ HO' (lương+BH, xăng xe HO, khấu hao HO, bảo dưỡng
     HO, NH HO, khác HO, lãi vay HO). Σ == mã 1047 (Giá vốn + CP phân bổ HO). dim1(Nhóm)=dim3(chi
-    tiết)=nhãn gốc; dim2 để trống (chuẩn template). Lấy dòng NẰM GIỮA mốc, bỏ dòng 0/None/nhãn rỗng.
-    Robust theo file mới: mọi mục con thêm/bớt trong 2 block tự vào cơ cấu (khớp theo TÊN, ko vị trí)."""
+    tiết)=nhãn gốc. Lấy dòng NẰM GIỮA mốc, bỏ dòng 0/None/nhãn rỗng. Robust theo file mới: mọi mục
+    con thêm/bớt trong 2 block tự vào cơ cấu (khớp theo TÊN, ko vị trí).
+
+    dim2 'Yếu tố chi phí' (2026-08-08): mọi dòng con của block 'Giá vốn' -> dim2='CP Giá vốn' NGUYÊN
+    KHỐI (không phân theo từ khoá dù trong đó có "Chi phí khấu hao"/"Chi phí nhân công TT" — nguyên
+    tắc #1 kế hoạch "Chi phí theo yếu tố": Giá vốn luôn 1 khối riêng). Dòng con block 'Chi phí phân
+    bổ HO' + 'Chi phí lãi vay' -> dim2=_yeuto_cp(tên dòng) (từ khoá, chịu được nhãn đổi qua tháng —
+    vd 'Khấu hao phân bổ' T01-05 -> 'Chi phí khấu hao HO' T06, cả 2 đều khớp 'khau hao'). GAP đã
+    biết: 3/4 cấu phần "CP DV mua ngoài" (marketing/năng lượng-ĐT/mặt bằng) không có dòng nào ở Dự
+    án -> sẽ không xuất hiện, chấp nhận (dữ liệu nguồn không có)."""
     from servers.common import be_bridge as bb
+    from extract_chiphi import _yeuto_cp
     _norm = lambda v: bb.remove_diacritics("" if v is None else str(v)).strip().lower()  # noqa: E731
     labs = [(_norm(r[1]) if len(r) > 1 and r[1] not in (None, "") else "") for r in rows]
 
@@ -818,11 +890,16 @@ def _chiphi_recs_duan(rows, val_j, period):
     # 'gia von' khớp CHÍNH XÁC (tránh trùng mục con chứa 'giá vốn'); CP phân bổ HO khớp chứa.
     # Block 3 = 'Chi phí lãi vay' RIÊNG giữa 'Thu nhập trước lãi suất & thuế' và 'Thu nhập trước
     # thuế' (một số tháng T02/T04 có; T06 = 0) -> Σ đủ 1047 (= DT − LNTT = giá vốn + CP HO + lãi vay).
-    lines = _block("gia von", "loi nhuan gop", start_exact=True) \
-        + _block("chi phi phan bo ho", "thu nhap truoc") \
+    gia_von = _block("gia von", "loi nhuan gop", start_exact=True)
+    khac = _block("chi phi phan bo ho", "thu nhap truoc") \
         + _block("thu nhap truoc lai suat", "thu nhap truoc thue")
-    return [{"Kỳ (yyyy-mm)": period, "Nhóm CP (chuẩn mực KT)": ten,
-             "Khoản mục chi tiết": ten, "Thực hiện (tỷ)": v} for ten, v in lines]
+    recs = [{"Kỳ (yyyy-mm)": period, "Nhóm CP (chuẩn mực KT)": ten,
+             "Khoản mục chi tiết": ten, "Yếu tố chi phí": "CP Giá vốn", "Thực hiện (tỷ)": v}
+            for ten, v in gia_von]
+    recs += [{"Kỳ (yyyy-mm)": period, "Nhóm CP (chuẩn mực KT)": ten,
+              "Khoản mục chi tiết": ten, "Yếu tố chi phí": _yeuto_cp(ten), "Thực hiện (tỷ)": v}
+             for ten, v in khac]
+    return recs
 
 
 def _fill_import_chiphi(recs, period, cong_ty, file_path):
@@ -960,7 +1037,18 @@ def _chiphi_recs_xdv(rows, code, name_j, val_j, period):
     khớp định nghĩa 1047 của deriver để byNhom==byKhoi). Tách B500 -> B600 (nhân sự) + B700 (hoạt
     động xưởng) cho chi tiết hơn NẾU B600+B700==B500, không thì để nguyên B500. dim1 (Nhóm) dùng
     NHÃN TỰ NHIÊN (tên XDV generic 'nhân sự/cố định' không hợp keyword _nhom_cp -> sẽ rơi hết 'khác');
-    dim3 = tên gốc. Bỏ dòng 0/None. Sum khớp 1047 (đã verify T01-T05)."""
+    dim3 = tên gốc. Bỏ dòng 0/None. Sum khớp 1047 (đã verify T01-T05).
+
+    dim2 'Yếu tố chi phí' (2026-08-08): B300 LUÔN dim2='CP Giá vốn' nguyên khối (không bóc B310-312).
+    B600/B700/B810 MỖI mã đều có dòng con mã RÕ RÀNG (B610-670/B710-718/B811-812, verify thực tế) ->
+    bóc con lấy dim2 = _yeuto_cp(nhãn con), dim1 GIỮ nhãn Mục cha (nhân sự/hoạt động xưởng/cố định)
+    để tổng theo dim1 KHÔNG đổi; guard Σcon≈lump (>1% lệch -> bỏ con, dùng lump) như tseries. B822
+    (tài chính)/B833 (khác) không có con -> lump, dim2=_yeuto_cp(nhãn). GAP đã biết: XDV không có
+    dòng bán hàng/marketing nào -> nhóm "CP DV mua ngoài" thiếu 1/4 cấu phần (chấp nhận, dữ liệu
+    nguồn không có, không phải lỗi code)."""
+    import re as _re
+    from extract_chiphi import _yeuto_cp
+
     def val(cd):
         r = next((x for x in rows if code(x) == cd), None)
         v = r[val_j] if r is not None and val_j < len(r) else None
@@ -970,20 +1058,52 @@ def _chiphi_recs_xdv(rows, code, name_j, val_j, period):
         r = next((x for x in rows if code(x) == cd), None)
         s = str(r[name_j]).strip() if r is not None and name_j < len(r) and r[name_j] not in (None, "") else ""
         return s or default
+
+    def children(parent_cd, pat):
+        out = []
+        for r in rows:
+            cd_ = code(r)
+            if cd_ == parent_cd or not pat.fullmatch(cd_):
+                continue
+            v = r[val_j] if val_j < len(r) else None
+            if isinstance(v, (int, float)) and v:
+                out.append((nm(cd_, cd_), v))
+        return out
+
+    def emit(recs, cd, label, pat, force_yeuto=None):
+        v = val(cd)
+        if v is None or v == 0:
+            return
+        kids = children(cd, pat) if pat is not None else []
+        if kids:
+            ksum = sum(x[1] for x in kids)
+            if abs(ksum - v) > abs(v) * 0.01:
+                kids = []
+        if force_yeuto:
+            recs.append({"Kỳ (yyyy-mm)": period, "Nhóm CP (chuẩn mực KT)": label,
+                         "Khoản mục chi tiết": nm(cd, label), "Yếu tố chi phí": force_yeuto,
+                         "Thực hiện (tỷ)": round(v * 1e-9, 9)})
+        elif kids:
+            for kn, kv in kids:
+                recs.append({"Kỳ (yyyy-mm)": period, "Nhóm CP (chuẩn mực KT)": label,
+                             "Khoản mục chi tiết": kn, "Yếu tố chi phí": _yeuto_cp(kn),
+                             "Thực hiện (tỷ)": round(kv * 1e-9, 9)})
+        else:
+            recs.append({"Kỳ (yyyy-mm)": period, "Nhóm CP (chuẩn mực KT)": label,
+                         "Khoản mục chi tiết": nm(cd, label), "Yếu tố chi phí": _yeuto_cp(nm(cd, label)),
+                         "Thực hiện (tỷ)": round(v * 1e-9, 9)})
+
     b500, b600, b700 = val("B500"), val("B600"), val("B700")
-    groups = [("B300", "Giá vốn hàng bán")]   # GỒM giá vốn (B300) vào tổng chi phí — chốt 2026-07-17 (khớp 1047 mới, BCHN TC)
-    if b500 is not None and b600 is not None and b700 is not None and abs((b600 + b700) - b500) < 1000:
-        groups += [("B600", "Chi phí nhân sự"), ("B700", "Chi phí hoạt động xưởng")]
-    else:
-        groups += [("B500", "Chi phí xưởng dịch vụ")]
-    groups += [("B810", "Chi phí cố định"), ("B822", "Chi phí tài chính"), ("B833", "Chi phí khác")]
     recs = []
-    for cd, nhom in groups:
-        x = val(cd)
-        if x is None or x == 0:
-            continue
-        recs.append({"Kỳ (yyyy-mm)": period, "Nhóm CP (chuẩn mực KT)": nhom,
-                     "Khoản mục chi tiết": nm(cd, nhom), "Thực hiện (tỷ)": round(x * 1e-9, 9)})
+    emit(recs, "B300", "Giá vốn hàng bán", None, force_yeuto="CP Giá vốn")
+    if b500 is not None and b600 is not None and b700 is not None and abs((b600 + b700) - b500) < 1000:
+        emit(recs, "B600", "Chi phí nhân sự", _re.compile(r"B6\d{2}"))
+        emit(recs, "B700", "Chi phí hoạt động xưởng", _re.compile(r"B7\d{2}"))
+    else:
+        emit(recs, "B500", "Chi phí xưởng dịch vụ", None)
+    emit(recs, "B810", "Chi phí cố định", _re.compile(r"B81\d"))
+    emit(recs, "B822", "Chi phí tài chính", None)
+    emit(recs, "B833", "Chi phí khác", None)
     return recs
 
 
@@ -1104,13 +1224,22 @@ def _derive_kqkd_srvf(rows, period, cong_ty, file_path):
 def _chiphi_recs_srvf(rows, code, name_j, val_j, period):
     """Dòng 02_CHIPHI cho SRVF: các mã thành phần TRỰC TIẾP của A300 (parse công thức A300, fallback
     list). code(r)=mã ở cột 'Mã số'; giá trị lấy tại val_j (cột tháng như P&L). Nhóm CP theo
-    _nhom_cp (dùng chung extract_chiphi). Bỏ dòng thiếu/0."""
+    _nhom_cp (dùng chung extract_chiphi). Bỏ dòng thiếu/0.
+
+    dim2 'Yếu tố chi phí' (2026-08-08): A310 (giá vốn) LUÔN dim2='CP Giá vốn' nguyên khối. A360
+    ('CHI PHÍ KHÁC KINH DOANH KHỐI') là bucket cha CHỨA cả marketing (A365)/khấu hao (A369)/sửa
+    chữa (A362)/... bên trong (verify thực tế file T07) — bóc con (mã A360A + A361-A369, trừ A368
+    là dòng TỔNG con) lấy dim2 = _yeuto_cp(nhãn con), dim1 GIỮ 'CHI PHÍ KHÁC KINH DOANH KHỐI'; guard
+    Σcon≈lump (>1% lệch -> bỏ con, dùng lump, vì cấu trúc A360 không rõ công thức chính xác gồm
+    những mã con nào — chấp nhận gap khi guard chặn, không suy diễn sai). Các mã A3xx còn lại
+    (A320/A325/A330/A340/A350/A500...) không có dòng con -> dim2 = _yeuto_cp(nhãn) trực tiếp."""
     import re as _re
-    from extract_chiphi import _nhom_cp
+    from extract_chiphi import _nhom_cp, _yeuto_cp
     _a300 = next((r for r in rows if code(r) == "A300"), None)
     _f = next((str(c) for c in (_a300 or []) if isinstance(c, str)
                and _re.search(r"A\d{3}\s*\+\s*A\d{3}", str(c))), "")
     comp = _re.findall(r"A\d{3}", _f) or ["A310", "A320", "A325", "A330", "A340", "A350", "A360", "A500"]
+    _a360_child_pat = _re.compile(r"A36[0-9]A?")
     recs = []
     for cd in comp:
         r = next((x for x in rows if code(x) == cd), None)
@@ -1120,8 +1249,36 @@ def _chiphi_recs_srvf(rows, code, name_j, val_j, period):
         if not isinstance(val, (int, float)) or val == 0:
             continue
         nm = str(r[name_j]).strip() if name_j < len(r) and r[name_j] not in (None, "") else cd
-        recs.append({"Kỳ (yyyy-mm)": period, "Nhóm CP (chuẩn mực KT)": _nhom_cp(nm, cd),
-                     "Khoản mục chi tiết": nm, "Thực hiện (tỷ)": round(val * 1e-9, 9)})
+        nhom = _nhom_cp(nm, cd)
+        if cd == "A310":
+            recs.append({"Kỳ (yyyy-mm)": period, "Nhóm CP (chuẩn mực KT)": nhom,
+                         "Khoản mục chi tiết": nm, "Yếu tố chi phí": "CP Giá vốn",
+                         "Thực hiện (tỷ)": round(val * 1e-9, 9)})
+            continue
+        children = []
+        if cd == "A360":
+            for rc in rows:
+                ccd = code(rc)
+                if ccd in ("A360", "A368") or not _a360_child_pat.fullmatch(ccd):
+                    continue
+                cval = rc[val_j] if val_j < len(rc) else None
+                if not isinstance(cval, (int, float)) or not cval:
+                    continue
+                cnm = str(rc[name_j]).strip() if name_j < len(rc) and rc[name_j] not in (None, "") else ccd
+                children.append((cnm, cval))
+            if children:
+                _csum = sum(v for _, v in children)
+                if abs(_csum - val) > abs(val) * 0.01:
+                    children = []
+        if children:
+            for cnm, cval in children:
+                recs.append({"Kỳ (yyyy-mm)": period, "Nhóm CP (chuẩn mực KT)": nhom,
+                             "Khoản mục chi tiết": cnm, "Yếu tố chi phí": _yeuto_cp(cnm),
+                             "Thực hiện (tỷ)": round(cval * 1e-9, 9)})
+        else:
+            recs.append({"Kỳ (yyyy-mm)": period, "Nhóm CP (chuẩn mực KT)": nhom,
+                         "Khoản mục chi tiết": nm, "Yếu tố chi phí": _yeuto_cp(nm),
+                         "Thực hiện (tỷ)": round(val * 1e-9, 9)})
     return recs
 
 
@@ -1192,8 +1349,47 @@ def _derive_kqkd_ho(rows, period, cong_ty, file_path):
     out = os.path.join(tf.FILLED_DIR, f"KQKD_{period}_{cong_ty or 'NA'}_01_HQKD.xlsx")
     tf.fill("01_HQKD", records, out)
     imp = tf.import_filled(out, cong_ty=cong_ty, khoi=_khoi_of(file_path), source_file=_source_id(file_path))
+    _cpr = _fill_import_chiphi(_ho_chiphi_recs(rows, val_j, period), period, cong_ty, file_path)
     return {"ok": bool(imp.get("rows_imported")), "rows": imp.get("rows_imported"),
-            "target": "01_HQKD", "value_col_header": f"T{mm}"}
+            "target": "01_HQKD", "value_col_header": f"T{mm}", "chiphi": _cpr}
+
+
+def _ho_chiphi_recs(rows, val_j, period):
+    """Dòng 02_CHIPHI cho HO (2026-08-08, TRƯỚC ĐÂY HO KHÔNG sinh CHIPHI — "Tổng chi phí" HQKD của
+    HO = 0 vì phân bổ 100% sang khối vận hành, nên hàm cũ không gọi _fill_import_chiphi). Nhưng CÁC
+    DÒNG CHI TIẾT nằm giữa 'Tổng chi phí' và 'Tổng lợi nhuận' (BH nhân thọ NV/BHYT/công đoàn, bảo
+    dưỡng sửa chữa, 'Chi phí Anh Thịnh', xăng nhiên liệu, khấu hao TSCĐ, quản lý công ty, lương
+    thưởng công ty, phí NH, lãi vay, chi phí khác) LÀ CHI PHÍ THẬT của HO TRƯỚC KHI phân bổ ra —
+    verify thực tế: Σ các dòng này ≈ ĐÚNG trị tuyệt đối dòng 'Phân bổ HO về các khối' (âm, contra) —
+    HO chi thật rồi ghi NGƯỢC DẤU để phân bổ hết sang khối khác, nên 'Tổng chi phí' RÒNG của HO = 0.
+
+    Chart "Chi phí theo yếu tố" muốn biết HO tiêu tiền thật vào đâu (nhân sự/khấu hao/DV mua
+    ngoài/...) nên LẤY các dòng chi tiết này, LOẠI RIÊNG dòng 'Phân bổ HO về các khối' (không phải
+    chi phí thật, là bút toán đối ứng — giữ nó sẽ vừa tạo 1 "yếu tố" âm vô nghĩa vừa triệt tiêu các
+    dòng thật về gần 0). HỆ QUẢ CHỦ Ý: Σ dim2 của HO (chục tỷ tuỳ kỳ) sẽ KHÔNG khớp 'Tổng chi phí'
+    ở màn Tổng quan/HQKD (=0, đã phân bổ hết) — đây là 2 câu hỏi khác nhau (chi TIÊU THẬT vs chi RÒNG
+    sau phân bổ), không phải bug, cần nói rõ với người dùng khi bàn giao."""
+    from extract_chiphi import _yeuto_cp
+    from servers.common import be_bridge as bb
+    _norm = lambda v: bb.remove_diacritics("" if v is None else str(v)).strip().lower()  # noqa: E731
+    labs = [(_norm(r[1]) if len(r) > 1 and r[1] not in (None, "") else "") for r in rows]
+    si = next((i for i, k in enumerate(labs) if k == "tong chi phi"), None)
+    ei = next((i for i, k in enumerate(labs) if k == "tong loi nhuan"), None)
+    if si is None or ei is None or ei <= si:
+        return []
+    recs = []
+    for i in range(si + 1, ei):
+        r = rows[i]
+        ten = str(r[1]).strip() if len(r) > 1 and r[1] not in (None, "") else ""
+        if not ten or "phan bo" in _norm(ten):   # loại dòng phân bổ HO (contra, không phải CP thật)
+            continue
+        v = r[val_j] if val_j < len(r) else None
+        if not isinstance(v, (int, float)) or not v:
+            continue
+        recs.append({"Kỳ (yyyy-mm)": period, "Nhóm CP (chuẩn mực KT)": ten,
+                     "Khoản mục chi tiết": ten, "Yếu tố chi phí": _yeuto_cp(ten),
+                     "Thực hiện (tỷ)": round(v * 1e-9, 9)})
+    return recs
 
 
 def _bcqt_month_col(rows, period, header_rows=12):
@@ -1345,13 +1541,72 @@ def _derive_kqkd_antaxi(file_path: str, period: str, cong_ty: str):
     out = os.path.join(tf.FILLED_DIR, f"KQKD_{period}_{cong_ty or 'NA'}_01_HQKD.xlsx")
     tf.fill("01_HQKD", records, out)
     imp = tf.import_filled(out, cong_ty=cong_ty, khoi=_khoi_of(file_path), source_file=_source_id(file_path))
-    cp_groups = [("Giá vốn hàng bán", gia_von), ("Chi phí biến đổi", cp_bd),
-                 ("Chi phí cố định", cp_cd), ("Chi phí tài chính", cp_tc), ("Chi phí khác", cp_khac)]
-    cp_recs = [{"Kỳ (yyyy-mm)": period, "Nhóm CP (chuẩn mực KT)": n, "Khoản mục chi tiết": n,
-                "Thực hiện (tỷ)": val} for n, val in cp_groups if val]
+    cp_recs = _antaxi_cp_recs(rows, code, val_j, period,
+                               {"130": ("Giá vốn hàng bán", gia_von), "150": ("Chi phí biến đổi", cp_bd),
+                                "170": ("Chi phí cố định", cp_cd), "182": ("Chi phí tài chính", cp_tc),
+                                "192": ("Chi phí khác", cp_khac)})
     cpr = _fill_import_chiphi(cp_recs, period, cong_ty, file_path) if cp_recs else None
     return {"ok": bool(imp.get("rows_imported")), "rows": imp.get("rows_imported"),
             "target": "01_HQKD", "value_col_header": f"T{period.split('-')[1]}/26", "chiphi": cpr}
+
+
+def _antaxi_cp_recs(rows, code, val_j, period, groups):
+    """Dòng 02_CHIPHI cho An Taxi (mẫu B02-DN 'BCQT PT.', mã dạng '150'/'151'/'151.1' 3 tầng) VÀ An
+    KS ('BCQT', mã text 'I'/'1'/'1.1' — gọi lại HÀM NÀY, xem _derive_kqkd_ankhachsan). `groups` =
+    {mã_Mục: (nhãn, giá_trị)} — 5 Mục cấu thành 1047 (giá vốn/biến đổi/cố định/tài chính/khác).
+
+    dim2 'Yếu tố chi phí' (2026-08-08): mã '130' (Giá vốn) LUÔN dim2='CP Giá vốn' nguyên khối (dù
+    có mục con '132.4 Chi phí khấu hao TSCĐ (xe ô tô)' bên trong — nguyên tắc #1 kế hoạch). '150'/
+    '170' có KHOẢN CON mã 2 CHỮ SỐ CHUNG TIỀN TỐ (vd 150 -> 151/152/153; 170 -> 171/172 — verify
+    thực tế file T05: 151+152+153==150, 171+172==170 KHỚP TUYỆT ĐỐI) -> bóc con lấy dim2=_yeuto_cp
+    (nhãn khoản), dim1 GIỮ NGUYÊN nhãn Mục cha; guard Σcon≈lump như các đơn vị khác (phòng file lạ
+    lệch công thức). '182'/'192' là lá đơn (không có khoản con cùng cấp) -> dim2=_yeuto_cp(nhãn)."""
+    import re as _re
+    from extract_chiphi import _yeuto_cp
+
+    def _name(cd, default):
+        r = next((x for x in rows if code(x) == cd), None)
+        s = str(r[0]).strip() if r is not None and r[0] not in (None, "") else ""
+        s = _re.sub(r"^[IVX]+\.\s*|^\d+(\.\d+)*\.\s*", "", s)   # bỏ tiền tố số La Mã/số thứ tự
+        return s or default
+
+    recs = []
+    for cd, (label, val) in groups.items():
+        if not val:
+            continue
+        if cd == "130":
+            recs.append({"Kỳ (yyyy-mm)": period, "Nhóm CP (chuẩn mực KT)": label,
+                         "Khoản mục chi tiết": label, "Yếu tố chi phí": "CP Giá vốn",
+                         "Thực hiện (tỷ)": val})
+            continue
+        children = []
+        if cd in ("150", "170"):
+            pref = cd[:2]
+            pat = _re.compile(pref + r"[1-9]$")
+            for r in rows:
+                ccd = code(r)
+                if ccd == cd or not pat.fullmatch(ccd):
+                    continue
+                cval = r[val_j] if val_j < len(r) else None
+                if not isinstance(cval, (int, float)) or not cval:
+                    continue
+                cval = round(cval * 1e-9, 9)
+                cnm = _name(ccd, ccd)
+                children.append((cnm, cval))
+            if children:
+                _csum = round(sum(v for _, v in children), 9)
+                if abs(_csum - val) > abs(val) * 0.01:
+                    children = []
+        if children:
+            for cnm, cval in children:
+                recs.append({"Kỳ (yyyy-mm)": period, "Nhóm CP (chuẩn mực KT)": label,
+                             "Khoản mục chi tiết": cnm, "Yếu tố chi phí": _yeuto_cp(cnm),
+                             "Thực hiện (tỷ)": cval})
+        else:
+            recs.append({"Kỳ (yyyy-mm)": period, "Nhóm CP (chuẩn mực KT)": label,
+                         "Khoản mục chi tiết": label, "Yếu tố chi phí": _yeuto_cp(label),
+                         "Thực hiện (tỷ)": val})
+    return recs
 
 
 def _antaxi_daily4_block(ws):
@@ -1461,12 +1716,63 @@ def _derive_kqkd_antaxi_daily4(file_path: str, period: str, cong_ty: str):
     out = os.path.join(tf.FILLED_DIR, f"KQKD_{period}_{cong_ty or 'NA'}_01_HQKD.xlsx")
     tf.fill("01_HQKD", records, out)
     imp = tf.import_filled(out, cong_ty=cong_ty, khoi=_khoi_of(file_path), source_file=_source_id(file_path))
-    cp_groups = [("Giá vốn hàng bán", b(ma130)), ("Chi phí biến đổi", b(ma150)),
-                 ("Chi phí cố định", b(ma170)), ("Chi phí tài chính", b(ma182)),
-                 ("Chi phí khác", b(ma192))]
-    cp_recs = [{"Kỳ (yyyy-mm)": period, "Nhóm CP (chuẩn mực KT)": n, "Khoản mục chi tiết": n,
-                "Thực hiện (tỷ)": val} for n, val in cp_groups if val]
-    cpr = _fill_import_chiphi(cp_recs, period, cong_ty, file_path) if cp_recs else None
+    # dim2 'Yếu tố chi phí' (2026-08-08): sheet 'cp biến đổi' đã có SẴN cột lá (lương bán hàng/quản
+    # lý, bảo hiểm, hoa hồng, phụ cấp, đồ dùng VP, điện thoại/internet, phân bổ HO, vận hành khác —
+    # verify thực tế T07) trong `bd_blk` bên cạnh 'tong cong' -> dùng làm dòng con (dim1='Chi phí
+    # biến đổi', guard Σcon≈lump). 'Chi phí cố định' = 2 cột riêng của `kh_blk` (mặt bằng/khấu hao)
+    # -> đã tách sẵn theo cột, không cần guard. 'Giá vốn' luôn 'CP Giá vốn' nguyên khối.
+    from extract_chiphi import _yeuto_cp
+    _cp_recs = []
+    if ma130:
+        _cp_recs.append({"Kỳ (yyyy-mm)": period, "Nhóm CP (chuẩn mực KT)": "Giá vốn hàng bán",
+                         "Khoản mục chi tiết": "Giá vốn hàng bán", "Yếu tố chi phí": "CP Giá vốn",
+                         "Thực hiện (tỷ)": b(ma130)})
+    _bd_children = [(k, v) for k, v in (bd_blk or {}).items()
+                    if k != "tong cong" and isinstance(v, (int, float)) and v]
+    # Nhãn con lấy NGUYÊN VĂN từ header sheet (không chuẩn hoá lại) -> tra lại tên gốc theo cột.
+    _bd_orig = {}
+    if bd_blk:
+        wb2 = bb.fast_load_workbook(file_path, read_only=True, data_only=True)
+        ws2 = wb2[by_name["cp bien doi"]]
+        rows2 = [list(r) for r in ws2.iter_rows(values_only=True)]
+        wb2.close()
+        branch_i = next((i for i, r in enumerate(rows2[:8])
+                         if any(_norm(c) == "tong xe cong ty" for c in r if c is not None)), None)
+        if branch_i is not None:
+            j0 = next(j for j, c in enumerate(rows2[branch_i]) if _norm(c) == "tong xe cong ty")
+            field_row = rows2[branch_i + 1]
+            for j in range(j0, len(field_row)):
+                nm2 = _norm(field_row[j]) if field_row[j] is not None else None
+                if nm2 and nm2 not in _bd_orig:
+                    _bd_orig[nm2] = str(field_row[j]).strip()
+    if ma150 and _bd_children:
+        _csum = round(sum(v for _, v in _bd_children), 9)
+        if abs(_csum - ma150) > abs(ma150) * 0.01:
+            _bd_children = []
+    if _bd_children:
+        for k, v in _bd_children:
+            _cp_recs.append({"Kỳ (yyyy-mm)": period, "Nhóm CP (chuẩn mực KT)": "Chi phí biến đổi",
+                             "Khoản mục chi tiết": _bd_orig.get(k, k), "Yếu tố chi phí": _yeuto_cp(k),
+                             "Thực hiện (tỷ)": b(v)})
+    elif ma150:
+        _cp_recs.append({"Kỳ (yyyy-mm)": period, "Nhóm CP (chuẩn mực KT)": "Chi phí biến đổi",
+                         "Khoản mục chi tiết": "Chi phí biến đổi",
+                         "Yếu tố chi phí": _yeuto_cp("Chi phí biến đổi"), "Thực hiện (tỷ)": b(ma150)})
+    _cd_items = [("Chi phí thuê mặt bằng (Thuê VP)", g(kh_blk, "chi phi thue mat bang (thue vp)", "chi phi thue mat bang")),
+                 ("Chi phí khấu hao và phân bổ", g(kh_blk, "chi phi khau hao va phan bo"))]
+    for nm3, v3 in _cd_items:
+        if v3:
+            _cp_recs.append({"Kỳ (yyyy-mm)": period, "Nhóm CP (chuẩn mực KT)": "Chi phí cố định",
+                             "Khoản mục chi tiết": nm3, "Yếu tố chi phí": _yeuto_cp(nm3), "Thực hiện (tỷ)": b(v3)})
+    if ma182:
+        _cp_recs.append({"Kỳ (yyyy-mm)": period, "Nhóm CP (chuẩn mực KT)": "Chi phí tài chính",
+                         "Khoản mục chi tiết": "Chi phí tài chính", "Yếu tố chi phí": _yeuto_cp("Chi phí tài chính"),
+                         "Thực hiện (tỷ)": b(ma182)})
+    if ma192:
+        _cp_recs.append({"Kỳ (yyyy-mm)": period, "Nhóm CP (chuẩn mực KT)": "Chi phí khác",
+                         "Khoản mục chi tiết": "Chi phí khác", "Yếu tố chi phí": _yeuto_cp("Chi phí khác"),
+                         "Thực hiện (tỷ)": b(ma192)})
+    cpr = _fill_import_chiphi(_cp_recs, period, cong_ty, file_path) if _cp_recs else None
     return {"ok": bool(imp.get("rows_imported")), "rows": imp.get("rows_imported"),
             "target": "01_HQKD", "via": "An Taxi 4-sheet ngày (Doanh thu/Giá vốn/cp biến đổi/CP khác)",
             "chiphi": cpr}
@@ -1561,13 +1867,66 @@ def _derive_kqkd_ankhachsan(file_path: str, period: str, cong_ty: str):
     out = os.path.join(tf.FILLED_DIR, f"KQKD_{period}_{cong_ty or 'NA'}_01_HQKD.xlsx")
     tf.fill("01_HQKD", records, out)
     imp = tf.import_filled(out, cong_ty=cong_ty, khoi=_khoi_of(file_path), source_file=_source_id(file_path))
-    cp_groups = [("Giá vốn hàng bán", gia_von), ("Chi phí chung", cp_chung),
-                 ("Chi phí lương + CP khác cho CNV", cp_luong)]
-    cp_recs = [{"Kỳ (yyyy-mm)": period, "Nhóm CP (chuẩn mực KT)": n, "Khoản mục chi tiết": n,
-                "Thực hiện (tỷ)": val} for n, val in cp_groups if val]
+    cp_recs = _ankhachsan_cp_recs(rows, name_j, val_j, period, gia_von, cp_chung, cp_luong)
     cpr = _fill_import_chiphi(cp_recs, period, cong_ty, file_path) if cp_recs else None
     return {"ok": bool(imp.get("rows_imported")), "rows": imp.get("rows_imported"),
             "target": "01_HQKD", "value_col_header": f"Tháng {period.split('-')[1]}", "chiphi": cpr}
+
+
+def _ankhachsan_cp_recs(rows, name_j, val_j, period, gia_von, cp_chung, cp_luong):
+    """Dòng 02_CHIPHI cho An KS (sheet 'BCQT', KHÔNG có cột mã — nhãn dòng con đánh dấu '-' ở cột TT,
+    xen giữa 2 Mục số '2'/'3'). dim2 'Yếu tố chi phí' (2026-08-08): 'Chi phí giá vốn' (Mục II.1) LUÔN
+    dim2='CP Giá vốn' nguyên khối. 'Chi phí chung' (II.2) có ~15 dòng con TÊN THẬT (khấu hao/điện
+    nước/điện thoại internet/marketing/sửa chữa/phí NH...) NẰM GIỮA nó và 'Chi phí lương' (II.3) ->
+    bóc con lấy dim2=_yeuto_cp(nhãn con), dim1 giữ 'Chi phí chung'; 'Chi phí lương + CP khác cho CNV'
+    (II.3) tương tự, nằm giữa nó và 'Lợi nhuận'. Guard Σcon≈lump như các đơn vị khác; không khớp ->
+    dùng lump (dim2=_yeuto_cp(nhãn Mục) — 'Chi phí lương...' tự rơi đúng 'CP nhân sự' nhờ từ khoá
+    'lương' ngay trong tên Mục, không mất thông tin dù guard chặn)."""
+    from servers.common import be_bridge as bb
+    from extract_chiphi import _yeuto_cp
+    _norm = lambda v: bb.remove_diacritics("" if v is None else str(v)).strip().lower()  # noqa: E731
+    labs = [(_norm(r[name_j]) if name_j < len(r) and r[name_j] not in (None, "") else "") for r in rows]
+
+    def _block(start_kw, end_kws):
+        si = next((i for i, k in enumerate(labs) if k.startswith(start_kw)), None)
+        if si is None:
+            return []
+        ei = next((i for i in range(si + 1, len(labs))
+                   if any(labs[i].startswith(e) for e in end_kws)), len(labs))
+        out = []
+        for i in range(si + 1, ei):
+            r = rows[i]
+            ten = str(r[name_j]).strip() if name_j < len(r) and r[name_j] not in (None, "") else ""
+            v = r[val_j] if val_j < len(r) else None
+            if ten and isinstance(v, (int, float)) and v:
+                out.append((ten, round(v * 1e-9, 9)))
+        return out
+
+    def _group(label, val, children):
+        if children:
+            _csum = round(sum(v for _, v in children), 9)
+            if val and abs(_csum - val) > abs(val) * 0.01:
+                children = []
+        out = []
+        if children:
+            for ten, v in children:
+                out.append({"Kỳ (yyyy-mm)": period, "Nhóm CP (chuẩn mực KT)": label,
+                            "Khoản mục chi tiết": ten, "Yếu tố chi phí": _yeuto_cp(ten),
+                            "Thực hiện (tỷ)": v})
+        elif val:
+            out.append({"Kỳ (yyyy-mm)": period, "Nhóm CP (chuẩn mực KT)": label,
+                        "Khoản mục chi tiết": label, "Yếu tố chi phí": _yeuto_cp(label),
+                        "Thực hiện (tỷ)": val})
+        return out
+
+    recs = []
+    if gia_von:
+        recs.append({"Kỳ (yyyy-mm)": period, "Nhóm CP (chuẩn mực KT)": "Giá vốn hàng bán",
+                     "Khoản mục chi tiết": "Giá vốn hàng bán", "Yếu tố chi phí": "CP Giá vốn",
+                     "Thực hiện (tỷ)": gia_von})
+    recs += _group("Chi phí chung", cp_chung, _block("chi phi chung", ["chi phi luong"]))
+    recs += _group("Chi phí lương + CP khác cho CNV", cp_luong, _block("chi phi luong", ["loi nhuan"]))
+    return recs
 
 
 # MÃ SỐ LCTT (BCTC TT200) phân loại Thu/Chi cho HT theo spec "50 chỉ tiêu quản trị" dòng 18-19
@@ -1652,7 +2011,14 @@ def _xvp_kqkd_totals(file_path: str):
     (khớp máy tính kế toán + BCHN: T01 35,678 / T02 40,639). HQKD quản trị (tách depot) lệch ~0.2%
     do phân loại chi phí khác (CP HO vs CP bán hàng/QLDN) -> dùng KQKD làm tổng chuẩn, HQKD chỉ để
     chia tỷ lệ depot. Khớp dòng theo NHÃN cột 'Chỉ tiêu', giá trị cột 'Kỳ này'. Trả dict {tên chỉ
-    tiêu (khớp add() trong _derive_kqkd_xvp): tổng tỷ}; None nếu không thấy sheet/header."""
+    tiêu (khớp add() trong _derive_kqkd_xvp): tổng tỷ}; None nếu không thấy sheet/header.
+
+    dim2 'Yếu tố chi phí' (2026-08-08): sheet 'KQKD' CÓ dòng con NGAY SAU 'Chi phí bán hàng'(24)/
+    'Chi phí quản lý doanh nghiệp'(25) — mã (cột 'MÃ SỐ') để TRỐNG, chỉ nhãn+giá trị (vd '25' có con
+    'Chi phí nhân viên quản lý'/'Chi phí quản lý khác' — verify thực tế T07). Gom qua `children_after`
+    (guard Σcon≈lump); trả thêm trong '__chiphi_children__' để `_derive_kqkd_xvp` scale CÙNG hệ số
+    _f với nhóm cha rồi gắn dim2. 'Giá vốn hàng bán'(11) CŨNG có con (lương tài xế/khấu hao...) —
+    CỐ Ý KHÔNG gom (nguyên tắc #1: Giá vốn luôn 1 khối 'CP Giá vốn')."""
     from openpyxl import load_workbook
     from servers.common import be_bridge as bb
     _n = lambda v: bb.remove_diacritics("" if v is None else str(v)).strip().lower()  # noqa: E731
@@ -1670,21 +2036,62 @@ def _xvp_kqkd_totals(file_path: str):
     hdr = rows[hi]
     kn = next(j for j, c in enumerate(hdr) if "ky nay" in _n(c))
     ct = next(j for j, c in enumerate(hdr) if "chi tieu" in _n(c))
+    ma_col = next((j for j, c in enumerate(hdr) if _n(c) in ("ma so", "ma")), None)
+
+    def _lbl(r):
+        return str(r[ct]).strip() if ct < len(r) and r[ct] not in (None, "") else ""
+
+    def _val(r):
+        v = r[kn] if kn < len(r) else None
+        return round(v * 1e-9, 9) if isinstance(v, (int, float)) else None
+
+    def _code(r):
+        return (str(r[ma_col]).strip() if ma_col is not None and ma_col < len(r)
+                and r[ma_col] not in (None, "") else "")
+
+    def find_idx(pred):
+        for i in range(hi + 1, len(rows)):
+            lab = _n(_lbl(rows[i]))
+            if lab and pred(lab):
+                return i
+        return None
 
     def find(pred):
-        for r in rows[hi + 1:]:
-            lab = _n(r[ct]) if ct < len(r) and r[ct] not in (None, "") else ""
-            if lab and pred(lab):
-                v = r[kn] if kn < len(r) else None
-                return round(v * 1e-9, 9) if isinstance(v, (int, float)) else None
-        return None
+        i = find_idx(pred)
+        return _val(rows[i]) if i is not None else None
+
+    def children_after(i):
+        out = []
+        j = i + 1
+        while j < len(rows):
+            r = rows[j]
+            if _code(r):
+                break   # gặp mã KHÁC (dòng Mục kế tiếp) -> dừng gom con
+            lab, v = _lbl(r), _val(r)
+            if lab and isinstance(v, (int, float)) and v:
+                out.append((lab, v))
+            j += 1
+        return out
+
+    i_bh, i_ql = find_idx(lambda l: "chi phi ban hang" in l), find_idx(lambda l: "chi phi quan ly" in l)
     gv = find(lambda l: "gia von hang ban" in l)
     tc = find(lambda l: "chi phi tai chinh" in l)
-    bh = find(lambda l: "chi phi ban hang" in l)
-    ql = find(lambda l: "chi phi quan ly" in l)
+    bh = _val(rows[i_bh]) if i_bh is not None else None
+    ql = _val(rows[i_ql]) if i_ql is not None else None
     ck = find(lambda l: "chi phi khac" in l)               # Mã 32 'Chi phí khác' — Mapping #8 có gồm
     cost = round(sum(x for x in (gv, tc, bh, ql, ck) if x is not None), 9) if any(
         x is not None for x in (gv, tc, bh, ql, ck)) else None
+    children = {}
+    for label, i, val in (("Chi phí bán hàng", i_bh, bh), ("Chi phí QLDN", i_ql, ql)):
+        if i is None:
+            continue
+        kids = children_after(i)
+        if kids:
+            _csum = round(sum(v for _, v in kids), 9)
+            if val and abs(_csum - val) > abs(val) * 0.01:
+                kids = []
+        if kids:
+            children[label] = kids
     return {
         "Doanh thu thuần": find(lambda l: "doanh thu thuan" in l),
         "Tổng chi phí": cost,                                             # giá vốn + CP tài chính + CP bán hàng + CP QLDN + CP khác(Mã32)
@@ -1697,6 +2104,7 @@ def _xvp_kqkd_totals(file_path: str):
         # để KHÔNG lọt vào vòng scale theo tên chỉ tiêu ở _derive_kqkd_xvp.
         "__chiphi_nhom__": {"Giá vốn hàng bán": gv, "Chi phí tài chính": tc,
                             "Chi phí bán hàng": bh, "Chi phí QLDN": ql, "Chi phí khác": ck},
+        "__chiphi_children__": children,
     }
 
 
@@ -1804,14 +2212,35 @@ def _derive_kqkd_xvp(file_path: str, period: str, cong_ty: str):
     # ---- 02_CHIPHI: cơ cấu 4 nhóm CP (giá vốn/tài chính/bán hàng/QLDN/khác). Lấy TỶ LỆ nhóm từ KQKD
     # (sheet KQKD tách nhóm rõ) nhưng SCALE về Tổng CP HQKD (nay tổng công ty = HQKD) để Σ nhóm == 1047
     # HQKD, khớp màn Chi phí. (Cơ cấu theo nhóm HQKD #10 biến đổi/cố định là follow-up riêng nếu cần.)
+    from extract_chiphi import _yeuto_cp
     _cp_nhom = dict((_kq or {}).get("__chiphi_nhom__") or {})
+    _cp_children = dict((_kq or {}).get("__chiphi_children__") or {})
     _hqkd_cp = round(sum(r["Thực hiện (tỷ)"] for r in records if r["Chỉ tiêu KQKD"] == "Tổng chi phí"), 9)
     _kq_cp = round(sum(v for v in _cp_nhom.values() if v), 9)
+    _f = (_hqkd_cp / _kq_cp) if (_cp_nhom and _kq_cp) else 1.0
     if _cp_nhom and _kq_cp:
-        _f = _hqkd_cp / _kq_cp
         _cp_nhom = {n: (round(v * _f, 9) if v else v) for n, v in _cp_nhom.items()}
-    _cp_recs = [{"Kỳ (yyyy-mm)": period, "Nhóm CP (chuẩn mực KT)": n, "Khoản mục chi tiết": n,
-                 "Thực hiện (tỷ)": v} for n, v in _cp_nhom.items() if v]
+    # dim2 'Yếu tố chi phí' (2026-08-08): 'Giá vốn hàng bán' LUÔN 'CP Giá vốn' nguyên khối (nguyên
+    # tắc #1). 'Chi phí bán hàng'/'Chi phí QLDN' dùng dòng con từ _xvp_kqkd_totals nếu có (đã qua
+    # guard Σcon≈lump), SCALE cùng hệ số _f với nhóm cha để vẫn khớp Σ nhóm == 1047 HQKD; không có
+    # con -> dim2 = _yeuto_cp(tên nhóm) trên chính dòng lump.
+    _cp_recs = []
+    for n, v in _cp_nhom.items():
+        if not v:
+            continue
+        if n == "Giá vốn hàng bán":
+            _cp_recs.append({"Kỳ (yyyy-mm)": period, "Nhóm CP (chuẩn mực KT)": n,
+                             "Khoản mục chi tiết": n, "Yếu tố chi phí": "CP Giá vốn", "Thực hiện (tỷ)": v})
+            continue
+        kids = _cp_children.get(n)
+        if kids:
+            for kn2, kv in kids:
+                _cp_recs.append({"Kỳ (yyyy-mm)": period, "Nhóm CP (chuẩn mực KT)": n,
+                                 "Khoản mục chi tiết": kn2, "Yếu tố chi phí": _yeuto_cp(kn2),
+                                 "Thực hiện (tỷ)": round(kv * _f, 9)})
+        else:
+            _cp_recs.append({"Kỳ (yyyy-mm)": period, "Nhóm CP (chuẩn mực KT)": n,
+                             "Khoản mục chi tiết": n, "Yếu tố chi phí": _yeuto_cp(n), "Thực hiện (tỷ)": v})
     _cpr = _fill_import_chiphi(_cp_recs, period, "XVP", file_path) if _cp_recs else None
     return {"ok": bool(imp.get("rows_imported")), "rows": imp.get("rows_imported"),
             "target": "01_HQKD", "value_col_header": "HQKD depot G/I/K",
@@ -1891,10 +2320,68 @@ def _derive_kqkd_htx(file_path: str, period: str, cong_ty: str):
     imp = tf.import_filled(out, cong_ty=cong_ty, khoi=_khoi_of(file_path), source_file=_source_id(file_path))
     # 02_CHIPHI (cơ cấu, Mapping #10 HTX = sheet HQKD): IV giá vốn + VI CP biến đổi + VIII CP cố định +
     # CP tài chính (Σ == Tổng CP). Bỏ dòng 0 (giá vốn HTX thường = 0).
-    _cp = {"Giá vốn hàng bán": gia_von, "Chi phí biến đổi": _lbl("vi. chi phi bien doi"),
-           "Chi phí cố định": _lbl("viii. chi phi co dinh"), "Chi phí tài chính": _lbl("2. chi phi tai chinh")}
-    _cp_recs = [{"Kỳ (yyyy-mm)": period, "Nhóm CP (chuẩn mực KT)": n, "Khoản mục chi tiết": n,
-                 "Thực hiện (tỷ)": v} for n, v in _cp.items() if v]
+    #
+    # dim2 'Yếu tố chi phí' (2026-08-08): 'VI. CHI PHÍ BIẾN ĐỔI'/'VIII. CHI PHÍ CỐ ĐỊNH' có KHOẢN
+    # CON đánh số '1./2./3./4.' ngay dưới (vd VI -> 1.Chi phí nhân sự/2.Chi phí bán hàng và
+    # marketing/3.Chi phí năng lượng/4.Chi phí hoạt động khác — verify thực tế: Σ 4 khoản KHỚP
+    # TUYỆT ĐỐI giá trị Mục VI dù 1 số khoản CHỈ có %DT mà cột giá trị để trống — coi = 0, không vỡ
+    # guard). Bóc khoản (KHÔNG xuống tới lá dưới khoản — đủ để phân loại dim2) lấy dim2=_yeuto_cp
+    # (nhãn khoản), dim1 GIỮ nhãn Mục cha. 'Giá vốn' LUÔN 'CP Giá vốn' nguyên khối; 'Chi phí tài
+    # chính' là lá đơn -> dim2=_yeuto_cp(nhãn)."""
+    from extract_chiphi import _yeuto_cp
+
+    def _htx_khoan(start_kw, end_kws):
+        _n2 = _norm
+        si = next((i for i, r in enumerate(rows) if lab_j < len(r) and r[lab_j] not in (None, "")
+                   and _n2(r[lab_j]).startswith(start_kw)), None)
+        if si is None:
+            return []
+        khoan_pat = _re.compile(r"^\d+\.\s*(.+)$")
+        out = []
+        for i in range(si + 1, len(rows)):
+            r = rows[i]
+            lab = str(r[lab_j]).strip() if lab_j < len(r) and r[lab_j] not in (None, "") else ""
+            if not lab:
+                continue
+            if any(_n2(lab).startswith(e) for e in end_kws):
+                break
+            m = khoan_pat.match(lab)
+            if not m:
+                continue
+            v = r[val_j] if val_j < len(r) else None
+            if isinstance(v, (int, float)) and v:
+                out.append((m.group(1).strip(), round(v * 1e-9, 9)))
+        return out
+
+    def _htx_group(label, val, children):
+        if children:
+            _csum = round(sum(v for _, v in children), 9)
+            if val and abs(_csum - val) > abs(val) * 0.01:
+                children = []
+        out = []
+        if children:
+            for ten, v in children:
+                out.append({"Kỳ (yyyy-mm)": period, "Nhóm CP (chuẩn mực KT)": label,
+                            "Khoản mục chi tiết": ten, "Yếu tố chi phí": _yeuto_cp(ten),
+                            "Thực hiện (tỷ)": v})
+        elif val:
+            out.append({"Kỳ (yyyy-mm)": period, "Nhóm CP (chuẩn mực KT)": label,
+                        "Khoản mục chi tiết": label, "Yếu tố chi phí": _yeuto_cp(label),
+                        "Thực hiện (tỷ)": val})
+        return out
+
+    cp_bd, cp_cd, cp_tc = _lbl("vi. chi phi bien doi"), _lbl("viii. chi phi co dinh"), _lbl("2. chi phi tai chinh")
+    _cp_recs = []
+    if gia_von:
+        _cp_recs.append({"Kỳ (yyyy-mm)": period, "Nhóm CP (chuẩn mực KT)": "Giá vốn hàng bán",
+                         "Khoản mục chi tiết": "Giá vốn hàng bán", "Yếu tố chi phí": "CP Giá vốn",
+                         "Thực hiện (tỷ)": gia_von})
+    _cp_recs += _htx_group("Chi phí biến đổi", cp_bd, _htx_khoan("vi. chi phi bien doi", ["vii."]))
+    _cp_recs += _htx_group("Chi phí cố định", cp_cd, _htx_khoan("viii. chi phi co dinh", ["ix."]))
+    if cp_tc:
+        _cp_recs.append({"Kỳ (yyyy-mm)": period, "Nhóm CP (chuẩn mực KT)": "Chi phí tài chính",
+                         "Khoản mục chi tiết": "Chi phí tài chính", "Yếu tố chi phí": _yeuto_cp("Chi phí tài chính"),
+                         "Thực hiện (tỷ)": cp_tc})
     _cpr = _fill_import_chiphi(_cp_recs, period, cong_ty, file_path) if _cp_recs else None
     return {"ok": bool(imp.get("rows_imported")), "rows": imp.get("rows_imported"),
             "target": "01_HQKD", "value_col_header": f"HQKD T{_mi}", "chiphi": _cpr}
@@ -4563,7 +5050,15 @@ def _cmd_autofill_impl(args):
                 # theo period (only_period) để KHÔNG tách lại kỳ khác đã split (mangle). Hết bẫy mất-patch
                 # khi re-ingest báo cáo tiền tập đoàn. Chỉ khi có VAY + KHÔNG dry-run. Thứ tự bắt buộc:
                 # den_han -> lãi -> tách kỳ hạn (kyhan đọc dòng đã có den_han/lãi rồi redistribute).
-                if rt.get("vay") and not args.dry_run:
+                # CHẠY CHAIN NGAY CẢ KHI LƯỢT NÀY KHÔNG RA DÒNG VAY. Ba script dưới đây chỉ
+                # PATCH dòng VAY đã có trong DB (nợ đến hạn / lãi / tách kỳ hạn) — chúng không cần
+                # `rt["vay"]` của lượt này. Gate theo `rt.get("vay")` làm hỏng đúng ca T07/2026:
+                # sheet 'TC01_SD TIỀN' của file tháng 7 có 16.381 cột phantom nên bị guard
+                # `_MAX_SHEET_COLS` bỏ qua -> extract_tien không ra vay -> chain im luôn, trong khi
+                # dòng VAY tháng 7 VẪN nằm trong DB từ lần nạp trước và cứ thế đứng yên: nợ đến hạn
+                # XVP hiện 18,9 tỷ trong khi báo cáo ngân hàng nói 42,4 tỷ (phát hiện 12/08/2026).
+                # Không tốn gì khi thừa: kỳ nào không có dòng VAY thì cả ba script tự no-op.
+                if not args.dry_run:
                     for _mod, _lbl in (("extract_no_den_han", "nợ đến hạn"),
                                        ("extract_lai_vay", "lãi vay"),
                                        ("extract_vay_kyhan", "tách kỳ hạn")):
@@ -4629,6 +5124,38 @@ def cmd_reset_learning(args):
     _out({"ok": True, "removed": removed})
 
 
+def cmd_spec_superseded(args):
+    """Liệt kê file BỊ THAY THẾ: bản cũ của một kỳ mà nghiệp vụ đã gửi lại bản mới TÊN KHÁC.
+
+    Chỉ đọc TÊN FILE + mtime (không mở workbook nào) nên gọi được mỗi lần dựng danh sách nguồn.
+
+    Vì sao không để giao diện tự suy "cùng kỳ = trùng nhau": luật đó SAI với nhiều nguồn —
+    `baocaokqkd` có Xuathoadon_B2B/B2C/GF cùng một tháng nhưng là ba kênh, phải nạp cả ba. Ở đây
+    hỏi thẳng `loc_file_moi_nhat` — đúng hàm engine dùng để quyết định lúc nạp — nên nhãn trên
+    màn hình luôn khớp hành vi thật, và spec nào bật cờ sau này thì tự đúng theo.
+    """
+    import glob as _glob
+    from spec_extract import SPEC_DIR, load_spec, loc_file_moi_nhat, quet_nguon
+    ra = []
+    for f in sorted(_glob.glob(os.path.join(SPEC_DIR, "*.json"))):
+        try:
+            sp = load_spec(f)
+        except Exception:                       # noqa: BLE001  spec hỏng không chặn cả mẻ
+            continue
+        if not sp.get("moi_ky_lay_file_moi_nhat"):
+            continue                            # spec chưa bật cờ -> KHÔNG đoán, để giao diện ghi '-'
+        try:
+            ds, _w = quet_nguon(sp)
+            giu, _bo = loc_file_moi_nhat(sp, ds)
+        except Exception:                       # noqa: BLE001
+            continue
+        con_lai = [x for x in ds if x not in set(giu)]
+        for x in con_lai:
+            ra.append({"spec": sp.get("id"), "path": os.path.abspath(x),
+                       "file": os.path.basename(x)})
+    _out({"ok": True, "superseded": ra})
+
+
 def cmd_forget_file(args):
     """QUÊN dấu vết import của các file (theo content_hash = sha1 bytes file) khỏi imports_ledger,
     để cho phép PHÂN TÍCH LẠI đường generic/GEN_* (dedup chặn theo content_hash). Dùng khi XOÁ HẲN
@@ -4652,6 +5179,7 @@ def main():
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest="cmd", required=True)
     p = sub.add_parser("reset-learning"); p.set_defaults(fn=cmd_reset_learning)
+    p = sub.add_parser("spec-superseded"); p.set_defaults(fn=cmd_spec_superseded)
     p = sub.add_parser("forget-file"); p.add_argument("--path", nargs="+", required=True); p.set_defaults(fn=cmd_forget_file)
 
     p = sub.add_parser("profile"); p.add_argument("file"); p.set_defaults(fn=cmd_profile)

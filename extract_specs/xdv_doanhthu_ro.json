@@ -5,36 +5,114 @@
     "Cột A RỖNG ở mọi dòng dữ liệu — mã chỉ tiêu không có, nên dim1 phải lấy từ cột B 'Chỉ tiêu' (khác sheet 'Doanh thu vụ việc' vốn có mã B110..B150 ở cột A).",
     "3 khối trạng thái RO nằm ở dòng 7 / 85 / 163; dong_bat_dau phải là 7 để khối I có ngữ cảnh.",
     "LỆCH CÓ THẬT TRONG FILE (verify 09/08, đọc thẳng file không qua engine): Σ 14 xưởng KHÁC dòng TỔNG hệ thống — doanh thu RO đã XHĐ lệch -65.944.732 đ, số lượng RO đã XHĐ lệch +310 RO; riêng khối đang sửa chữa thì khớp. => Builder PHẢI lấy dòng TỔNG (cost_center rỗng) cho KPI, chỉ dùng dòng xưởng để xếp hạng, TUYỆT ĐỐI không cộng xưởng thành tổng. Cùng bài học với srvf-khoi-vs-costcenter-total.",
-    "Dòng tiêu đề xưởng: cột A có chữ (loại xưởng) và cột B là tên xưởng; dòng dữ liệu thì A rỗng -> phân biệt bằng 'A khác rỗng VÀ không phải mã B\\d+' — một số dòng 'Lệnh bảo hành (W)' VẪN có mã B120/B130 ở cột A, bỏ điều kiện mã là chúng bị nhận nhầm thành tên xưởng."
+    "Dòng tiêu đề xưởng: cột A có chữ (loại xưởng) và cột B là tên xưởng; dòng dữ liệu thì A rỗng -> phân biệt bằng 'A khác rỗng VÀ không phải mã B\\d+' — một số dòng 'Lệnh bảo hành (W)' VẪN có mã B120/B130 ở cột A, bỏ điều kiện mã là chúng bị nhận nhầm thành tên xưởng.",
+    "LỌC BỎ dim1='Chỉ tiêu': dòng TIÊU ĐỀ của mỗi khối trạng thái lọt vào dữ liệu (ô cột 'Chỉ tiêu' mang chính chữ 'Chỉ tiêu' nên qua được bộ lọc khac_rong) và có mặt ở ĐỦ 31 ngày — 93 dòng/kỳ. Cùng bẫy đã vá cho xdv_doanhthu_ngay 10/08/2026 nhưng 2 spec này bỏ sót. Tiền ~0 nên KPI không sai, NHƯNG xdv_soluong_ro mang amount = SỐ LỆNH: cộng tổng mà quên lọc là dôi 1.488 RO, và mọi phép đếm 'ngày có phát sinh' đều ra 31."
   ],
   "report_type": "XDV_DTHU_RO",
   "row_index_base": 7100000,
   "khoi": "Khối KD Vinfast - XDV",
-  "nguon": { "folder": "XDV/baocaodoanhthungay", "file_glob": "*.xlsx", "sheet": { "chua": "Doanh thu RO" } },
-  "kiem_tra_o": [ { "o": "A8", "bang": "Mã số" }, { "o": "C8", "bang": "Kế hoạch tháng" } ],
-  "header": { "dong": 8 },
+  "nguon": {
+    "folder": "XDV/baocaodoanhthungay",
+    "file_glob": "*.xlsx",
+    "sheet": {
+      "chua": "Doanh thu RO"
+    }
+  },
+  "kiem_tra_o": [
+    {
+      "o": "A8",
+      "bang": "Mã số"
+    },
+    {
+      "o": "C8",
+      "bang": "Kế hoạch tháng"
+    }
+  ],
+  "header": {
+    "dong": 8
+  },
   "dong_bat_dau": 7,
   "ngu_canh_dong": [
     {
-      "khi": [ { "cot": "A", "dieu_kien": "regex", "gia_tri": "^(I|II|III)/" } ],
-      "xoa": [ "cost_center", "cong_ty" ],
-      "gan": { "dim2": { "cot": "A",
-        "anh_xa": { "CHƯA XUẤT HÓA ĐƠN": "Nghiệm thu chưa XHĐ", "ĐANG SỬA CHỮA": "Đang sửa chữa", "ĐÃ XUẤT HÓA ĐƠN": "Nghiệm thu đã XHĐ" },
-        "mac_dinh": "Khác" } }
+      "khi": [
+        {
+          "cot": "A",
+          "dieu_kien": "regex",
+          "gia_tri": "^(I|II|III)/"
+        }
+      ],
+      "xoa": [
+        "cost_center",
+        "cong_ty"
+      ],
+      "gan": {
+        "dim2": {
+          "cot": "A",
+          "anh_xa": {
+            "CHƯA XUẤT HÓA ĐƠN": "Nghiệm thu chưa XHĐ",
+            "ĐANG SỬA CHỮA": "Đang sửa chữa",
+            "ĐÃ XUẤT HÓA ĐƠN": "Nghiệm thu đã XHĐ"
+          },
+          "mac_dinh": "Khác"
+        }
+      }
     },
     {
-      "khi": [ { "cot": "A", "dieu_kien": "khac_rong" },
-               { "cot": "A", "dieu_kien": "khong_regex", "gia_tri": "^(B\\d+|Mã số)$" },
-               { "cot": "B", "dieu_kien": "khac_rong" } ],
-      "gan": { "cost_center": { "cot": "B", "chuan_hoa": "xdv" }, "payload.loai_xuong": { "cot": "A" } }
+      "khi": [
+        {
+          "cot": "A",
+          "dieu_kien": "khac_rong"
+        },
+        {
+          "cot": "A",
+          "dieu_kien": "khong_regex",
+          "gia_tri": "^(B\\d+|Mã số)$"
+        },
+        {
+          "cot": "B",
+          "dieu_kien": "khac_rong"
+        }
+      ],
+      "gan": {
+        "cost_center": {
+          "cot": "B",
+          "chuan_hoa": "xdv"
+        },
+        "payload.loai_xuong": {
+          "cot": "A"
+        }
+      }
     }
   ],
   "cot": {
-    "dim1": { "header": "Chỉ tiêu", "chuan_hoa": "cat" },
-    "amount2": { "header": "Kế hoạch tháng", "kieu": "so", "he_so": 1e-9 }
+    "dim1": {
+      "header": "Chỉ tiêu",
+      "chuan_hoa": "cat"
+    },
+    "amount2": {
+      "header": "Kế hoạch tháng",
+      "kieu": "so",
+      "he_so": 1e-09
+    }
   },
   "ban_ghi": "moi_cot_ngay",
-  "cot_ngay": { "tu": "G", "den": "AK", "he_so": 1e-9 },
-  "loc": [ { "cot": "dim1", "dieu_kien": "khac_rong" } ],
-  "payload_them": { "unit": "ty" }
+  "cot_ngay": {
+    "tu": "G",
+    "den": "AK",
+    "he_so": 1e-09
+  },
+  "loc": [
+    {
+      "cot": "dim1",
+      "dieu_kien": "khac_rong"
+    },
+    {
+      "cot": "dim1",
+      "dieu_kien": "khac",
+      "gia_tri": "Chỉ tiêu"
+    }
+  ],
+  "payload_them": {
+    "unit": "ty"
+  }
 }

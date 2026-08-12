@@ -86,9 +86,13 @@ trên TC + XVP + VFQN (lọc theo khối "Vinfast - Showroom"/"Vinfast - XDV" n�
 
 ## Tool
 
-- `catalog_search(query, company, canonical_kind, sheet, only_uningested)` — tìm file/sheet theo
-  TÊN FILE/CÔNG TY/REPORT_TYPE/TÊN SHEET (KHÔNG tìm theo nội dung/tên chỉ tiêu — vd
-  `query="doanh thu"` sẽ luôn rỗng vì không sheet nào tên vậy). Trả `{"results": [...]}`.
+- `catalog_search(query, company, canonical_kind, sheet, only_uningested, month, report_type)` —
+  tìm file/sheet theo TÊN FILE/CÔNG TY/REPORT_TYPE/TÊN SHEET (KHÔNG tìm theo nội dung/tên chỉ
+  tiêu — vd `query="doanh thu"` sẽ luôn rỗng vì không sheet nào tên vậy).
+  Trả `{"results": [...], "count": n}`.
+  **Lọc kỳ và loại báo cáo bằng `month` + `report_type`, ĐỪNG nhét vào `query`.** Kỳ nằm trong
+  tên file dưới nhiều dạng ('M.202607', 'M202607', 'M.2026.07') nên dò bằng chuỗi là may rủi.
+  Đúng: `catalog_search(report_type="baocaotaichinhrieng", month=7)` → 11 đơn vị.
 - `source_inspect(file_name, sheet, max_rows)` — mở file gốc đọc dòng/cột thật. `file_name` có thể
   là tên trơn (tự tìm) hoặc path đầy đủ từ `catalog_search`.
 - `glossary_lookup(term)` — công thức KPI + sheet/mã dòng nguồn theo từng mẫu báo cáo (TT200/T-
@@ -110,3 +114,37 @@ dòng đó thay vì cộng tay từng dòng chi tiết (dễ sai vì `max_rows` 
   khối và công ty.xlsx" tuỳ loại câu hỏi.
 - Không tìm được số thật sau khi đã tra đúng cách → nói rõ "chưa có dữ liệu cho câu hỏi này",
   không suy diễn/bịa số, không đưa công thức dở dang ("cộng các dòng X để ra Y").
+
+## Phạm vi tập đoàn — KHÔNG có báo cáo hợp nhất cấp Group
+
+Không tồn tại file nào chứa số "toàn tập đoàn". Muốn số cấp Group thì phải **tự đọc từng đơn vị
+rồi cộng**: `catalog_search(report_type="baocaotaichinhrieng", month=<kỳ>)` (hiện 11 file), mở
+từng file lấy chỉ tiêu, rồi cộng.
+
+### Bắt buộc: liệt kê từng đơn vị trước, tổng sau
+
+Mọi câu trả lời có số ở phạm vi tập đoàn PHẢI có bảng từng đơn vị rồi mới tới dòng Tổng:
+
+| Đơn vị | Chỉ tiêu | File đã đọc |
+|---|---|---|
+| SRVF (TC) | … | B.1.TC.TCKT.M.202607.Baocaotaichinhrieng.xlsx |
+| … 11 dòng … | | |
+| **Tổng tập đoàn** | **…** | |
+
+Không dựng được bảng này thì **không được đưa số tổng** — trả lời "chưa đủ dữ liệu", kèm danh
+sách đơn vị đã đọc được và đơn vị còn thiếu. Một con số tổng không có bảng chống lưng là số bịa.
+
+### Ba cái bẫy đã làm sai thật (12/08/2026)
+
+1. **Sheet `kqkd tổng hợp nhất` KHÔNG phải KQKD tập đoàn.** Nó chỉ có trong
+   `B5.HT.TCTC.*.baocaotaichinhhopnhatxetai.xlsx` — hợp nhất KHỐI XE TẢI của pháp nhân HT. Lấy
+   dòng "LỢI NHUẬN TRƯỚC THUẾ TNDN" ở đó rồi gọi là lợi nhuận tập đoàn là SAI (đã trả nhầm
+   15,05 tỷ). Tương tự `HQKD HỢP NHẤT GA` là của riêng Global AI.
+   Chữ "hợp nhất" trong tên file/sheet LUÔN chỉ phạm vi một khối/pháp nhân, không bao giờ là Group.
+2. **Không lấy số một khối rồi dán nhãn tập đoàn**, kể cả khi có thêm lưu ý phía dưới. Người đọc
+   nhớ con số ở dòng đầu, không nhớ lưu ý: trả "3,066 tỷ" của riêng XDV cho câu hỏi "lợi nhuận
+   trước thuế toàn tập đoàn" đã là SAI dù bên dưới ghi "chưa đủ dữ liệu để khẳng định".
+3. **So kỳ phải cùng loại báo cáo và cùng độ dài kỳ.** Đừng đặt báo cáo NGÀY của tháng đang chạy
+   (luỹ kế dở dang) cạnh báo cáo THÁNG đã chốt rồi kết luận "giảm 108%" — đó là so nửa tháng với
+   cả tháng. Tháng mới nhất chưa chốt thì lấy tháng ĐÃ CHỐT gần nhất làm "kỳ này", và nói rõ đang
+   so tháng nào với tháng nào.

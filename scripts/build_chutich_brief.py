@@ -108,6 +108,26 @@ def _ts(dt=None):
     return (dt or _now()).strftime("%Y-%m-%d %H:%M:%S")
 
 
+def _hien_thi_thoi_diem(dt, moc=None):
+    """'2026-08-09 15:55:45' -> 'lúc 15:55 hôm nay' / '16:40 hôm qua' / '15:55 ngày 07/08'.
+
+    Tính SẴN ở đây thay vì để agent tự suy: agent không có mốc 'hôm nay' đáng tin nên nó bê
+    nguyên chuỗi thô `2026-08-09 15:55:45` ra cho Chủ tịch đọc (đã dính thật 09/08). Python thì
+    biết chắc hôm nay là ngày nào.
+
+    Chuỗi này đóng băng tại thời điểm dựng brief. Daemon dựng lại mỗi giờ nên sai lệch tối đa ~1
+    giờ, và cờ STALE bắt các khoảng dài hơn — chấp nhận được. Chỉ lệch thật khi brief dựng sát
+    nửa đêm rồi được đọc sau 00:00, và vòng dựng kế tiếp tự sửa.
+    """
+    moc = moc or _now()
+    songay = (moc.date() - dt.date()).days
+    if songay == 0:
+        return f"lúc {dt.strftime('%H:%M')} hôm nay"
+    if songay == 1:
+        return f"{dt.strftime('%H:%M')} hôm qua"
+    return f"{dt.strftime('%H:%M')} ngày {dt.strftime('%d/%m')}"
+
+
 def _norm(s):
     return bb.remove_diacritics(str(s or "")).strip().lower()
 
@@ -191,13 +211,25 @@ def _collect_aging(errors):
     return out
 
 
+# Số dư kỳ mới phải đạt ít nhất tỷ lệ này so với kỳ liền trước mới coi là ĐÃ ĐIỀN ĐỦ.
+# Số dư tiền/vay của tập đoàn 5 pháp nhân không sụt kiểu đó trong một tháng — sụt sâu nghĩa là
+# file chưa điền xong, không phải doanh nghiệp mất tiền.
+_SODU_MIN_TY_LE = 0.25
+
+
 def _collect_sodu_tien(errors, notes):
     """Số dư tiền/vay theo pháp nhân từ Báo cáo Tiền tập đoàn (1 file, nhiều pháp nhân).
 
-    KHÔNG lấy thẳng file kỳ mới nhất: đầu tháng, file kỳ mới đã có mặt nhưng cột 'ĐẾN NGÀY
-    HIỆN TẠI' còn để trống/ghi 0, extract ra số dư = 0 cho TOÀN BỘ pháp nhân. Trả 0 cho câu
-    'tiền đang nằm ở đâu' là sai nguy hiểm hơn nhiều so với trả số của kỳ liền trước. Vì vậy
-    duyệt từ kỳ mới nhất lùi dần, lấy kỳ ĐẦU TIÊN có số khác 0, và ghi rõ đã dùng kỳ nào.
+    KHÔNG lấy thẳng file kỳ mới nhất. Đầu tháng, file kỳ mới đã có mặt nhưng cột 'ĐẾN NGÀY
+    HIỆN TẠI' chưa điền xong. Bản đầu chỉ bỏ qua kỳ khi tổng ĐÚNG BẰNG 0, và đã lọt thật
+    (10/08/2026): file T08 có lác đác vài số nên tổng khác 0 -> brief báo tiền toàn tập đoàn
+    1,157 tỷ và vay 35,799 tỷ, trong khi T07 là 267,681 và 1.499,549. Tức 0,4% và 2,4%.
+    Chủ tịch hỏi "tiền đang nằm ở đâu" sẽ nhận số sai gần một trăm lần.
+
+    Nay so với KỲ LIỀN TRƯỚC: sụt dưới `_SODU_MIN_TY_LE` thì coi là chưa điền đủ và lùi tiếp.
+    Đây là số DƯ (tồn tại tích luỹ), không phải phát sinh trong kỳ — nên sụt sâu đột ngột gần
+    như luôn là dữ liệu thiếu, không phải biến động thật. Kỳ nào bị bỏ đều ghi vào `notes` kèm
+    con số để người đọc tự phán, không âm thầm đổi kỳ.
     """
     from scripts import extract_sodu_tien as m
     cands = sorted((e for e in CS.discover(report_type="baocaothuchi") if e["period"]),
@@ -205,7 +237,13 @@ def _collect_sodu_tien(errors, notes):
     if not cands:
         errors.append("sodu_tien: không thấy file baocaothuchi")
         return [], {}
-    skipped_periods = []
+
+    def _tong(recs):
+        return sum(abs(v) for r in recs for k, v in r.items()
+                   if isinstance(v, (int, float)) and k != "Kỳ")
+
+    # Bóc trước tối đa 4 kỳ gần nhất để so được kỳ này với kỳ trước.
+    doc = []
     for e in cands[:4]:
         try:
             _res, tpl = CS.capture(m.extract, e["path"], e["period"])
@@ -213,17 +251,24 @@ def _collect_sodu_tien(errors, notes):
         except Exception as ex:
             errors.append(f"sodu_tien/{e['period']}: {type(ex).__name__}: {ex}")
             continue
-        tong = sum(abs(v) for r in recs for k, v in r.items()
-                   if isinstance(v, (int, float)) and k != "Kỳ")
-        if recs and tong > 0:
-            if skipped_periods:
-                notes.append(
-                    f"Số dư tiền: kỳ {', '.join(skipped_periods)} có file nhưng toàn số 0 "
-                    f"(chưa điền cột 'đến ngày hiện tại') — brief dùng kỳ {e['period']}")
-            return recs, {"file": e["file"], "period": e["period"]}
-        skipped_periods.append(e["period"])
-    notes.append(f"Số dư tiền: cả {len(skipped_periods)} kỳ gần nhất "
-                 f"({', '.join(skipped_periods)}) đều ra 0 — KHÔNG có số dư tiền để báo cáo")
+        doc.append((e, recs, _tong(recs)))
+
+    bo_qua = []
+    for i, (e, recs, tong) in enumerate(doc):
+        if not recs or tong <= 0:
+            bo_qua.append(f"{e['period']} (toàn số 0)")
+            continue
+        truoc = doc[i + 1][2] if i + 1 < len(doc) else None
+        if truoc and truoc > 0 and tong < truoc * _SODU_MIN_TY_LE:
+            bo_qua.append(f"{e['period']} (chỉ {tong / truoc * 100:.1f}% kỳ trước — "
+                          f"{_ty(tong)} vs {_ty(truoc)}, file chưa điền xong)")
+            continue
+        if bo_qua:
+            notes.append(f"Số dư tiền: bỏ qua kỳ {', '.join(bo_qua)} — brief dùng kỳ {e['period']}")
+        return recs, {"file": e["file"], "period": e["period"]}
+
+    notes.append(f"Số dư tiền: không kỳ nào trong {len(doc)} kỳ gần nhất đủ tin cậy "
+                 f"({', '.join(bo_qua)}) — KHÔNG có số dư tiền để báo cáo")
     return [], {}
 
 
@@ -757,8 +802,14 @@ def _write(sheets_built, prev_meta, errors, notes, out_path):
         except Exception:
             pass
     meta.append(["Trường", "Giá trị"])
-    meta.append(["as_of", _ts(now)])
+    # ĐẶT ĐẦU TIÊN và là trường thời gian DUY NHẤT trông giống thứ để hiển thị. Bản trước để
+    # `as_of` (chuỗi thô `2026-08-09 16:49:42`) đứng trên, và agent vớ đúng nó đem ra khoe với
+    # Chủ tịch — 2/6 câu dính. Dặn kỹ hơn không ăn thua bằng việc bỏ hẳn chỗ nhầm lẫn đi.
+    meta.append(["cap_nhat_hien_thi", _hien_thi_thoi_diem(now, now)])
     meta.append(["trang_thai", stale or "OK"])
+    # Mốc kỹ thuật, giữ lại để tính STALE và để người soi lỗi đối chiếu. Tên có hậu tố
+    # `_khong_hien_thi` để agent không nhặt nhầm.
+    meta.append(["as_of_khong_hien_thi", _ts(now)])
     meta.append(["last_event_at", ev_at or "—"])
     meta.append(["last_file_received", ev_file or "—"])
     meta.append(["so_sheet", len(built_at)])

@@ -296,6 +296,22 @@ def run_for_path(path, write=False):
     """
     ket_qua = []
     for sp in specs_for_path(path):
+        # BỎ QUA BẢN ĐÃ BỊ THAY THẾ. Hàm này nạp ĐÚNG file được đưa vào, không nhìn sang các file
+        # khác cùng kỳ — nên "Nạp lại tất cả" (sync_orchestrator reprocess) sẽ ghi lại dòng của
+        # bản CŨ mà lượt quét cả thư mục đã cố tình loại, và kỳ đó lập tức đếm đôi trở lại. Đúng
+        # 3.029 dòng claim T3-T6 vừa phải xoá tay ngày 12/08/2026 sẽ sống dậy chỉ bằng một cú bấm.
+        if sp.get("moi_ky_lay_file_moi_nhat"):
+            try:
+                giu, _w = quet_nguon(sp)
+                giu, _bo = loc_file_moi_nhat(sp, giu)
+                if os.path.abspath(path) not in {os.path.abspath(x) for x in giu}:
+                    ket_qua.append({"file": os.path.basename(path), "dong": 0,
+                                    "spec": sp.get("id"), "report_type": sp.get("report_type"),
+                                    "canh_bao": ["BỎ QUA — đã có bản MỚI HƠN của cùng kỳ; nạp bản "
+                                                 "này vào là đếm đôi. Xoá tài liệu của nó thay vì nạp."]})
+                    continue
+            except Exception:                                      # noqa: BLE001
+                pass          # không kiểm được thì cứ chạy như cũ, đừng chặn đường nạp
         try:
             r = run(sp, path, write=write)
         except Exception as e:                                     # noqa: BLE001
