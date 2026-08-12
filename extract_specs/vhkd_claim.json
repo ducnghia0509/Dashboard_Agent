@@ -8,7 +8,8 @@
     "Trạng thái thực tế: SAP phê duyệt / SAP từ chối / HO Từ chối / Chưa đẩy hồ sơ / Waiting SAP / Waiting HO / Open. KHÔNG có nhãn 'VF từ chối' như thiết kế — gộp ở tầng builder, không sửa dữ liệu thô.",
     "Chỉ có kênh B2C (T1-T6). Chưa có file B2B/GF.",
     "T1/T2 có CỘT MỒI ở dòng 1 cũng tên 'Trạng thái' nhưng chứa ĐỊA CHỈ khách -> mọi cột trạng thái/SR/số tiền đều khai `dong_header: 2`. Bỏ ràng buộc này là trạng thái claim biến thành tên thôn/xã mà không có lỗi nào.",
-    "Lọc theo cost_center (KHÔNG lọc theo amount): claim trạng thái 'Chưa đẩy hồ sơ' có số tiền = 0 nhưng vẫn phải đếm được SỐ LƯỢNG hồ sơ."
+    "Lọc theo cost_center (KHÔNG lọc theo amount): claim trạng thái 'Chưa đẩy hồ sơ' có số tiền = 0 nhưng vẫn phải đếm được SỐ LƯỢNG hồ sơ.",
+    "Nghiệp vụ gửi lại BẢN SỬA của cùng một kỳ với TÊN KHÁC ('…7.24. BaocaoClaim_B2C_T3' rồi '…8.11. BaocaoClaim_B2C_T3'), và số tiền T5/T6 LỆCH giữa hai bản. Kỳ suy từ hậu tố _T nên hai file trỏ về cùng một tháng -> nạp cả hai là ĐẾM ĐÔI (đã dính 12/08/2026, phải xoá tay 3.029 dòng). `moi_ky_lay_file_moi_nhat` giữ đúng bản về SAU; hoà ngày chốt thì loc_file_moi_nhat phá hoà bằng mtime."
   ],
   "report_type": "VHKD_CLAIM",
   "row_index_base": 6700000,
@@ -17,6 +18,7 @@
   "header": { "dong": [2, 1] },
   "dong_bat_dau": 4,
   "ky_tu_ten_file": { "regex_nam": "M\\.(\\d{4})", "regex_thang": "_T(\\d{1,2})" },
+  "moi_ky_lay_file_moi_nhat": true,
   "chieu_tu_ten_file": { "dim2": { "regex": "BaocaoClaim_(B2C|B2B|GF)", "hoa": true } },
   "cot": {
     "cost_center": { "header": "SR", "dong_header": 2, "chuan_hoa": "sr_showroom" },
