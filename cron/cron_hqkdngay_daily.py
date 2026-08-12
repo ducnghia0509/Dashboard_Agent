@@ -333,6 +333,12 @@ def main():
     cfg = ENVIRONMENTS[args.env]
     LOG_FILE, DISABLED_FLAG, DATABASE_URL, VERIFY_API_DIR = (
         cfg["log_file"], cfg["disabled_flag"], cfg["database_url"], cfg["verify_api_dir"])
+    # DRY-RUN ghi log SANG FILE RIÊNG: log chính là nguồn duy nhất cho panel "Chạy tự động theo lịch"
+    # (source_bridge._job_last_run đọc khối cuối; không thấy dòng XONG là kết luận "chạy dở / lỗi
+    # không rõ"). Một lượt dry-run vào log chính làm job hiện ĐỎ OAN cho tới lần chạy thật kế tiếp —
+    # gặp thật 2026-08-12, panel prod đỏ cả 2 job trong khi dữ liệu hoàn toàn bình thường.
+    if args.dry_run:
+        LOG_FILE = LOG_FILE[:-4] + "_dryrun.log" if LOG_FILE.endswith(".log") else LOG_FILE
 
     log("=" * 70)
     log(f"MOI TRUONG: {args.env} (DB {DATABASE_URL.rsplit('@', 1)[-1]})")

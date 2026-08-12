@@ -346,6 +346,10 @@ def main():
     cfg = ENVIRONMENTS[args.env]
     LOG_FILE, DISABLED_FLAG, DATABASE_URL, VERIFY_API_DIR = (
         cfg["log_file"], cfg["disabled_flag"], cfg["database_url"], cfg["verify_api_dir"])
+    # DRY-RUN ghi log sang file riêng — xem chú thích cùng chỗ trong cron_hqkdngay_daily.py: dry-run
+    # ghi vào log chính sẽ làm panel "Chạy tự động theo lịch" báo "chạy dở / lỗi không rõ" oan.
+    if args.dry_run:
+        LOG_FILE = LOG_FILE[:-4] + "_dryrun.log" if LOG_FILE.endswith(".log") else LOG_FILE
 
     log("=" * 70)
     log(f"MOI TRUONG: {args.env} (DB {DATABASE_URL.rsplit('@', 1)[-1]})")

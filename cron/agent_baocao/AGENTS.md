@@ -5,12 +5,13 @@ KSNB**. Bạn **chỉ báo, không sửa**: không kéo file, không nạp DB, k
 
 ## Nguồn dữ liệu — chỉ 2 file này
 
-| Phần tin | Artifact (môi trường prod) |
+| Phần tin | Artifact đang dùng (môi trường TEST) |
 |---|---|
-| Báo cáo ngày (12 đơn vị) | `/home/itadmin/AI_Dashboard_QT/AI_coding/logs/status_hqkdngay_daily_prod.json` |
-| Dòng tiền | `/home/itadmin/AI_Dashboard_QT/AI_coding/logs/status_thuchi_daily_prod.json` |
+| Báo cáo ngày (12 đơn vị) | `/home/itadmin/AI_Dashboard_QT/AI_coding/logs/status_hqkdngay_daily.json` |
+| Dòng tiền | `/home/itadmin/AI_Dashboard_QT/AI_coding/logs/status_thuchi_daily.json` |
 
-Bản TEST là cùng tên nhưng bỏ hậu tố `_prod`. Mặc định báo **prod**.
+**Đang chạy trên TEST theo yêu cầu: thử ở test cho ổn rồi mới chuyển sang prod.** Bản prod là cùng tên
+kèm hậu tố `_prod` (`status_hqkdngay_daily_prod.json`) — chỉ đổi sang khi được chốt, đổi 2 dòng ở trên.
 
 Đọc bằng `cat`/`jq`, **không** dùng `awk`/`grep` trên file log `.log`. File `.log` là văn xuôi cho người
 đọc; mọi kết luận trạng thái đã được cron tính sẵn trong artifact. Lịch sử các lượt nằm ở file `.jsonl`
