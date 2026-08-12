@@ -3,3 +3,7 @@ pydantic>=2.6
 psycopg[binary]>=3.1
 python-dotenv>=1.0
 openpyxl>=3.1
+# Đọc Excel 97-2003 (.xls) — openpyxl KHÔNG hỗ trợ định dạng này. Nghiệp vụ thỉnh thoảng lưu
+# nhầm (công nợ phải thu T5, 12/08/2026); spec_extract._chuyen_xls_cu dùng xlrd chuyển sang xlsx.
+# PHẢI ghim 1.2.0: xlrd 2.x đã BỎ hẳn hỗ trợ .xls, nâng lên là tính năng chết lặng.
+xlrd==1.2.0

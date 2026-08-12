@@ -64,6 +64,7 @@ HOOK (khi spec không tả nổi): thêm hàm vào `_CHUAN_HOA` bên dưới r�
 import argparse
 import calendar
 import datetime as dt
+import fnmatch
 import glob
 import json
 import os
@@ -579,6 +580,90 @@ def _ky_thang(spec, path):
     return (int(m.group(1)), int(m.group(2))), []
 
 
+def _chuyen_xls_cu(duong_dan):
+    """`.xls` đời cũ (BIFF) -> sinh bản `.xlsx` cạnh nó, trả đường dẫn mới (None nếu hỏng).
+
+    openpyxl KHÔNG đọc được định dạng Excel 97-2003; nghiệp vụ thỉnh thoảng lưu nhầm (công nợ
+    phải thu T5 gửi 12/08/2026). Không có bước này thì file nằm im, không dòng nào vào DB và
+    KHÔNG có cảnh báo nào — đúng kiểu thiếu số mà không ai biết.
+
+    Bản chuyển đổi lưu CẠNH file gốc (cùng thư mục -> `source_file` trong DB vẫn là
+    "<FOLDER>::<tên>.xlsx" đúng quy ước) và dùng lại ở lần quét sau, chỉ chuyển khi thiếu hoặc
+    cũ hơn bản .xls.
+
+    Dùng xlrd + openpyxl chứ KHÔNG gọi `soffice`: máy này chỉ cài libreoffice-core/common, thiếu
+    hẳn gói `libreoffice-calc` nên soffice trả "source file could not be loaded" với MỌI bảng
+    tính, kể cả .xlsx hợp lệ (đã thử 12/08/2026). Đường thuần Python còn khỏi cần sudo để cài gói
+    và khỏi đẻ tiến trình con giữa lượt nạp.
+
+    Chỉ bê GIÁ TRỊ ô sang, không giữ định dạng — engine chỉ đọc giá trị (`data_only=True`).
+    """
+    dich = os.path.splitext(duong_dan)[0] + ".xlsx"
+    if os.path.exists(dich) and os.path.getmtime(dich) >= os.path.getmtime(duong_dan):
+        return dich
+    try:
+        import xlrd
+    except ImportError:
+        return None
+    try:
+        nguon = xlrd.open_workbook(duong_dan)
+        wb = openpyxl.Workbook()
+        wb.remove(wb.active)
+        for sh in nguon.sheets():
+            # Tên sheet: Excel giới hạn 31 ký tự và cấm : \ / ? * [ ]
+            ws = wb.create_sheet(title=re.sub(r"[:\\/?*\[\]]", "-", sh.name)[:31] or "Sheet")
+            for r in range(sh.nrows):
+                for c in range(sh.ncols):
+                    o = sh.cell(r, c)
+                    if o.ctype in (xlrd.XL_CELL_EMPTY, xlrd.XL_CELL_BLANK, xlrd.XL_CELL_ERROR):
+                        continue
+                    v = o.value
+                    if o.ctype == xlrd.XL_CELL_DATE:
+                        try:
+                            v = dt.datetime(*xlrd.xldate_as_tuple(v, nguon.datemode))
+                        except Exception:                              # noqa: BLE001
+                            pass                                       # số ngày hỏng -> để nguyên
+                    elif o.ctype == xlrd.XL_CELL_BOOLEAN:
+                        v = bool(v)
+                    ws.cell(row=r + 1, column=c + 1, value=v)
+        wb.save(dich)
+    except Exception:                                                  # noqa: BLE001
+        return None
+    return dich
+
+
+def quet_nguon(spec):
+    """Danh sách file của nguồn -> [đường dẫn], [cảnh báo].
+
+    KHỚP ĐUÔI KHÔNG PHÂN BIỆT HOA/THƯỜNG. `glob` phân biệt hoa thường trên Linux, nên
+    `"*.xlsx"` bỏ qua sạch `.Xlsx` — nghiệp vụ đặt tên lẫn lộn cả hai kiểu. Đã mất 4/7 kỳ công
+    nợ phải thu SRVF (T2/T3/T4/T6 đều `.Xlsx`) suốt từ lúc dựng nguồn tới 12/08/2026, không một
+    dòng cảnh báo: file có trên đĩa, spec chạy "thành công", màn hình chỉ trống mấy tháng giữa.
+    """
+    warn = []
+    thu_muc = os.path.join(REPORTS_DIR, (spec.get("nguon") or {}).get("folder", ""))
+    if not os.path.isdir(thu_muc):
+        return [], [f"không có thư mục nguồn: {thu_muc}"]
+    mau = ((spec.get("nguon") or {}).get("file_glob") or "*.xlsx").lower()
+    ten = sorted(os.listdir(thu_muc))
+    # File tạm Excel sinh ra khi ai đó đang MỞ file trên máy chia sẻ. Khớp "*.xlsx" nhưng không
+    # phải workbook thật -> đọc vào là ném lỗi khó hiểu giữa lượt nạp.
+    ten = [n for n in ten if not n.startswith("~$")]
+    out = [os.path.join(thu_muc, n) for n in ten if fnmatch.fnmatch(n.lower(), mau)]
+    if mau.endswith(".xlsx"):
+        da_co = {os.path.splitext(p)[0].lower() for p in out}
+        for n in ten:
+            g = os.path.join(thu_muc, n)
+            if n.lower().endswith(".xls") and os.path.splitext(g)[0].lower() not in da_co:
+                moi = _chuyen_xls_cu(g)
+                if moi:
+                    warn.append(f"{n}: Excel 97-2003, đã chuyển sang {os.path.basename(moi)}")
+                    out.append(moi)
+                else:
+                    warn.append(f"{n}: Excel 97-2003 và CHUYỂN ĐỔI HỎNG — file này chưa vào DB")
+    return sorted(out), warn
+
+
 def loc_file_moi_nhat(spec, files):
     """Mỗi KỲ chỉ giữ file có ngày chốt MỚI NHẤT.
 
@@ -602,7 +687,16 @@ def loc_file_moi_nhat(spec, files):
             continue
         ky = ngay if che_do == "ngay" else ngay[:7]
         cu = giu.get(ky)
-        if cu is None or ngay > ngay_tu_ten_file(spec, cu)[0]:
+        # HOÀ ngày chốt -> lấy file VỀ SAU (mtime). Nghiệp vụ gửi lại bản SỬA của cùng một kỳ với
+        # tên khác (claim T3-T6: "…7.24. BaocaoClaim_B2C_T3" rồi "…8.11. BaocaoClaim_B2C_T3"),
+        # hai tên cùng suy ra một kỳ nên so ngày là hoà. Không phá hoà thì thứ tự sorted() quyết
+        # định, mà "7.24" đứng trước "8.11" -> giữ đúng bản CŨ và vứt bản đã sửa.
+        if cu is None:
+            moi_hon = True
+        else:
+            ngay_cu = ngay_tu_ten_file(spec, cu)[0]
+            moi_hon = (ngay, os.path.getmtime(f)) > (ngay_cu, os.path.getmtime(cu))
+        if moi_hon:
             if cu is not None:
                 bo.append(os.path.basename(cu))
             giu[ky] = f
@@ -960,9 +1054,9 @@ if __name__ == "__main__":
     if a.file:
         files, bo = [a.file], []
     else:
-        ng = sp["nguon"]
-        files = sorted(glob.glob(os.path.join(REPORTS_DIR, ng["folder"],
-                                              ng.get("file_glob", "*.xlsx"))))
+        files, w = quet_nguon(sp)
+        for x in w:
+            print(f"[!] {x}", file=sys.stderr)
         files, bo = loc_file_moi_nhat(sp, files)
     ket_qua = [run(sp, f, write=a.write) for f in files]
     if bo:
