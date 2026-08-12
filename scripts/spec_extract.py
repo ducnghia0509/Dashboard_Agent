@@ -212,7 +212,11 @@ def _cc_theo_khoi(ten, khoi, alias):
 
 
 def _bo_tien_to(n):
-    for p in ("showroom", "vinfast", "xuongdichvu", "xdv"):
+    # "thinhcuong": bản công nợ tuần 10/08/2026 đổi cách ghi tên xưởng, từ "Ocean Park" sang
+    # "Vinfast Thịnh Cường Ocean Park" -> bỏ "vinfast" xong vẫn còn "thinhcuong" nên KHÔNG khớp
+    # danh mục, cả 14 xưởng rơi hết và file nạp ra 0 dòng. Không cost center nào của master bắt
+    # đầu bằng "Thịnh Cường" (mấy dòng Xe tải để ở ĐUÔI) nên bỏ tiền tố này là an toàn.
+    for p in ("showroom", "vinfast", "thinhcuong", "xuongdichvu", "xdv"):
         if n.startswith(p):
             n = n[len(p):]
     return n
@@ -475,6 +479,41 @@ def _dan_xuat(rec, cong_thuc):
             rec.setdefault("_loi", []).append(f"{dich}: {ex}")
 
 
+def _tuan_truoc(bc):
+    """Ngày phát hành báo cáo -> (thứ Hai, Chủ nhật) của TUẦN LIỀN TRƯỚC.
+
+    Không suy từ số tuần trong tên file (8.1 / 8.2 — "tuần thứ mấy của tháng" mỗi nơi đếm một
+    kiểu) mà suy từ chính ngày phát hành: lùi về thứ Hai của tuần chứa nó rồi lùi tiếp 7 ngày.
+    Báo cáo ra đúng thứ Hai 03/08 -> tuần 27/07..02/08; ra muộn tới thứ Tư 05/08 vẫn ra đúng
+    tuần đó, nên file về trễ không nhảy kỳ.
+    """
+    thu_hai = bc - dt.timedelta(days=bc.weekday())
+    return thu_hai - dt.timedelta(days=7), thu_hai - dt.timedelta(days=1)
+
+
+def chu_ky_tuan(spec, path):
+    """-> {'ngay_bao_cao','tuan_tu','tuan_den'} để nhét vào payload, hoặc {} nếu spec không khai.
+
+    Số trong file là DƯ NỢ TẠI THỜI ĐIỂM chốt tuần, không phải phát sinh trong tuần. Giao diện
+    phải nói được "ảnh chụp tuần nào, phát hành ngày nào" — thiếu ba mốc này thì người xem không
+    phân biệt được số của tuần trước với số mới nhất.
+    """
+    c = spec.get("ky_tu_ten_file") or {}
+    if not (c.get("regex_ngay") and c.get("tuan_truoc_ngay_bao_cao")):
+        return {}
+    ten = os.path.basename(path)
+    mn, mt = re.search(c["regex_nam"], ten), re.search(c["regex_thang"], ten)
+    md = re.search(c["regex_ngay"], ten)
+    if not (mn and mt and md):
+        return {}
+    try:
+        bc = dt.date(int(mn.group(1)), int(mt.group(1)), int(md.group(1)))
+    except ValueError:
+        return {}
+    tu, den = _tuan_truoc(bc)
+    return {"ngay_bao_cao": bc.isoformat(), "tuan_tu": tu.isoformat(), "tuan_den": den.isoformat()}
+
+
 def ngay_tu_ten_file(spec, path):
     """-> ('YYYY-MM-DD' | None, [cảnh báo]). Dùng cho bảng ẢNH CHỤP (không có cột ngày từng dòng).
 
@@ -482,12 +521,38 @@ def ngay_tu_ten_file(spec, path):
     "…M.2026.07.22_Baocaocongnophaithu_T1.xlsx": cụm 2026.07.22 là NGÀY LẬP báo cáo (giống hệt
     nhau ở mọi kỳ), kỳ thật nằm ở hậu tố _T1/_T7. Lấy nhầm cụm đầu là dồn cả 12 tháng vào tháng 7.
     `ngay_tu_ten_file` dùng khi tên file có ngày chốt thật (kho xe B2B: "…2026.7.31.KHO XE.xlsx").
+
+    `regex_ngay` (tuỳ chọn, thêm 12/08/2026): tên file báo cáo TUẦN của KSCL ghi đủ
+    "W.<năm>.<tháng>.<tuần>.<ngày báo cáo>" — vd "W.2026.8.2.10" = tuần 2 tháng 8, phát hành
+    ngày 10/08. Trước đây chỉ đọc năm+tháng rồi gán CUỐI THÁNG, nên mọi bản tuần của một tháng
+    đổ chung vào 31/08: lọc theo tuần không ra gì, và nhiều tuần thì phải vứt bớt file. Có
+    `regex_ngay` thì kỳ lấy đúng theo ngày (xem thêm `tuan_truoc_ngay_bao_cao`).
     """
     ten = os.path.basename(path)
     warn = []
     if spec.get("ky_tu_ten_file"):
         c = spec["ky_tu_ten_file"]
         mn, mt = re.search(c["regex_nam"], ten), re.search(c["regex_thang"], ten)
+        md = re.search(c["regex_ngay"], ten) if c.get("regex_ngay") else None
+        if mn and mt and c.get("regex_ngay") and not md:
+            warn.append(f"không dò được NGÀY báo cáo từ tên file: {ten} — tạm lấy cuối tháng")
+        if mn and mt and md:
+            try:
+                bc = dt.date(int(mn.group(1)), int(mt.group(1)), int(md.group(1)))
+            except ValueError:
+                warn.append(f"ngày báo cáo trong tên file không hợp lệ: {md.group(0)}")
+            else:
+                if not c.get("tuan_truoc_ngay_bao_cao"):
+                    return bc.isoformat(), warn
+                tu, den = _tuan_truoc(bc)
+                if bc.weekday() != 0:
+                    # Quy ước: báo cáo phát hành THỨ HAI, chốt số của tuần liền trước. File ra
+                    # muộn 1-2 hôm vẫn quy về đúng tuần đó (lùi về thứ Hai của tuần chứa nó), còn
+                    # ra vào cuối tuần thì rất có thể là chốt CHÍNH tuần đang chạy -> phải kêu,
+                    # đừng lặng lẽ gán nhầm một tuần.
+                    warn.append(f"ngày báo cáo {bc.isoformat()} KHÔNG phải thứ Hai "
+                                f"({bc.strftime('%A')}) — vẫn quy về tuần {tu}..{den}, kiểm tra lại")
+                return den.isoformat(), warn
         if mn and mt:
             y, mo = int(mn.group(1)), int(mt.group(1))
             return dt.date(y, mo, calendar.monthrange(y, mo)[1]).isoformat(), warn
@@ -520,8 +585,14 @@ def loc_file_moi_nhat(spec, files):
     Kho xe B2B có 2 ảnh chụp cùng tháng 7 ("…7.24.KHO XE" và "…7.31.KHO XE"). Nạp cả hai là
     ĐẾM ĐÔI tồn kho tháng 7 (mỗi VIN xuất hiện 2 lần) — số tồn phình gần gấp đôi mà không có
     cảnh báo nào. Bật `"moi_ky_lay_file_moi_nhat": true` trong spec cho mọi nguồn ảnh chụp.
+
+    `"moi_ky_lay_file_moi_nhat": "ngay"` — gộp theo NGÀY CHỐT thay vì theo tháng, cho nguồn báo
+    cáo TUẦN (KSCL): các bản tuần trong cùng một tháng là những ảnh chụp KHÁC NHAU, phải giữ đủ
+    để lọc theo tuần ra được số của đúng tuần đó. Gộp theo tháng ở đây là vứt mất tuần cũ. Việc
+    không cộng đôi khi xem cả tháng do tầng đọc lo (`_SNAP_RT` -> chỉ lấy ngày chốt mới nhất).
     """
-    if not spec.get("moi_ky_lay_file_moi_nhat"):
+    che_do = spec.get("moi_ky_lay_file_moi_nhat")
+    if not che_do:
         return files, []
     giu, bo = {}, []
     for f in files:
@@ -529,7 +600,7 @@ def loc_file_moi_nhat(spec, files):
         if not ngay:
             giu[f] = f            # không suy được kỳ -> giữ nguyên, đừng im lặng loại
             continue
-        ky = ngay[:7]
+        ky = ngay if che_do == "ngay" else ngay[:7]
         cu = giu.get(ky)
         if cu is None or ngay > ngay_tu_ten_file(spec, cu)[0]:
             if cu is not None:
@@ -580,6 +651,9 @@ def extract_file(spec, path):
 
         ngay_file, w2 = ngay_tu_ten_file(spec, path)
         warn.extend(w2)
+        # Nguồn báo cáo TUẦN: kèm mốc tuần vào payload từng dòng để giao diện nói rõ đang xem
+        # ảnh chụp tuần nào (`ngay` chỉ mang ngày CHỐT — Chủ nhật cuối tuần được phủ).
+        payload_tuan = chu_ky_tuan(spec, path)
 
         bat_dau = spec.get("dong_bat_dau") or (max_hdr + 1)
         gia_tri_cols = spec.get("cot_gia_tri") or []
@@ -703,7 +777,7 @@ def extract_file(spec, path):
                 break
             if hit:
                 continue          # dòng tiêu đề KHÔNG tự sinh bản ghi
-            base = {"payload": dict(spec.get("payload_them") or {})}
+            base = {"payload": {**(spec.get("payload_them") or {}), **payload_tuan}}
             if spec.get("khoi"):
                 base["khoi"] = spec["khoi"]
             base.update(spec.get("chieu_co_dinh") or {})   # vd {"dim2": "B2B"} cho file 1 kênh
