@@ -166,7 +166,7 @@ def run(commit, only_period=None):
     db = bb.db.get_db()
     # gom file báo cáo NH theo (unit, month)
     files = {}
-    for f in glob.glob(os.path.join(ext.DATA_DIR, "*.xlsx")):
+    for f in ext.files_can_doc():   # quét đệ quy + mỗi (đơn vị,tháng) lấy bản mới nhất
         u, m = ext.unit_of(os.path.basename(f)), ext.month_of(os.path.basename(f))
         if u in MASTER and m:
             files[(u, m)] = f

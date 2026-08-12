@@ -11,6 +11,7 @@ import glob
 import hashlib
 import json
 import os
+import re
 from datetime import datetime, timezone
 
 
@@ -209,25 +210,87 @@ def mark_ingested(path: str, ingested: bool = True):
             _save(cat)
 
 
+_DAU_PHAN_CACH = re.compile(r"[^a-z0-9]+")
+
+
+def _dac(s) -> str:
+    """Bỏ SẠCH mọi ký tự không phải chữ/số: 'B.9.TC.TCKT.M.202607' -> 'b9tctcktm202607'.
+
+    Tên file nguồn KHÔNG nhất quán dấu chấm — 10/11 bản báo cáo tài chính riêng tháng 7 ghi
+    'M.202607' còn XDV ghi 'M202607'. So chuỗi con nguyên văn thì hỏi 'M202607' chỉ ra ĐÚNG 1
+    file XDV, 10 file kia tàng hình, và agent QA đã kết luận "toàn tập đoàn chỉ có 1 báo cáo"
+    rồi lấy luôn lợi nhuận riêng XDV làm lợi nhuận tập đoàn (12/08/2026). Ép cả hai vế về dạng
+    đặc rồi mới so thì dấu phân cách không còn quyết định tìm thấy hay không.
+    """
+    return _DAU_PHAN_CACH.sub("", _norm(s))
+
+
+# Nguồn TỔNG HỢP nhưng chỉ ở phạm vi MỘT khối/pháp nhân. Model đọc file thấy chữ "hợp nhất" là
+# tưởng số cấp tập đoàn — đã trả nhầm lợi nhuận khối Xe tải (15,05 tỷ / 2,43 tỷ) thành lợi nhuận
+# toàn tập đoàn ba lần liên tiếp, kể cả sau khi SKILL nêu đích danh cái bẫy này. Nhắc trong prompt
+# không ăn thua vì prompt dài và cảnh báo ở xa dữ liệu; gắn thẳng vào KẾT QUẢ TOOL thì model đọc
+# cùng lúc với con số. Khớp theo report_type nên file mới cùng loại tự có cảnh báo.
+_PHAM_VI_HEP = {
+    "baocaotaichinhhopnhatxetai":
+        "CHỈ hợp nhất KHỐI XE TẢI của pháp nhân HT — KHÔNG phải số toàn tập đoàn. "
+        "Sheet 'kqkd tổng hợp nhất' / 'BCĐKT hợp nhất' ở đây đều là phạm vi khối xe tải.",
+}
+# Sheet mang chữ "hợp nhất" nhưng nằm trong báo cáo RIÊNG của một pháp nhân (vd 'HQKD HỢP NHẤT GA').
+_SHEET_HEP = "hop nhat"
+
+
+def _canh_bao_pham_vi(e: dict):
+    """Câu cảnh báo phạm vi cho một mục catalog, hoặc None nếu không có gì phải cảnh báo."""
+    rt = _norm(e.get("report_type"))
+    if rt in _PHAM_VI_HEP:
+        return _PHAM_VI_HEP[rt]
+    ten = [s["name"] for s in e.get("sheets", []) if _SHEET_HEP in _norm(s["name"])]
+    if ten:
+        return (f"Sheet {ten} có chữ 'hợp nhất' nhưng đây là báo cáo RIÊNG của "
+                f"{e.get('company') or 'một pháp nhân'} — phạm vi một pháp nhân, KHÔNG phải tập đoàn.")
+    return None
+
+
 def search(query: str = None, company: str = None, canonical_kind: str = None,
-           sheet: str = None, only_uningested: bool = False) -> list:
-    """Tìm trong catalog (không mở file). Lọc theo tên/công ty/canonical_kind/sheet."""
-    q, cmp_ = _norm(query), _norm(company)
+           sheet: str = None, only_uningested: bool = False,
+           month=None, report_type: str = None) -> list:
+    """Tìm trong catalog (không mở file). Lọc theo tên/công ty/kỳ/loại báo cáo/sheet.
+
+    `query` tách thành TỪ KHOÁ theo khoảng trắng và phải khớp HẾT (AND), mỗi từ khoá khớp khi
+    xuất hiện trong tên-file-đã-bỏ-dấu-phân-cách (xem `_dac`). Trước đây là một phép `in` nguyên
+    văn: câu hỏi 2 từ trở lên gần như luôn rỗng, mà 1 từ thì lệch một dấu chấm là trượt.
+
+    `month` / `report_type` là đường TẤT ĐỊNH, nên dùng thay vì nhét kỳ vào `query`: kỳ nằm
+    trong tên file dưới nhiều dạng ('M.202607', 'M202607', 'M.2026.07'), dò bằng chuỗi là may rủi.
+    """
+    cmp_ = _norm(company)
     ck, sh = _norm(canonical_kind), _norm(sheet)
+    rt = _norm(report_type)
+    tu_khoa = [_dac(t) for t in (query or "").split() if _dac(t)]
+    try:
+        thang = int(month) if month not in (None, "") else None
+    except (TypeError, ValueError):
+        thang = None
     out = []
     for e in _load().values():
         if only_uningested and e.get("ingested"):
             continue
         if cmp_ and cmp_ not in _norm(e.get("company")):
             continue
-        hay = _norm(e.get("file")) + " " + _norm(e.get("company")) + " " + _norm(e.get("report_type"))
+        if thang is not None and e.get("month") != thang:
+            continue
+        if rt and rt not in _norm(e.get("report_type")):
+            continue
+        hay = _dac(e.get("file")) + " " + _dac(e.get("company")) + " " + _dac(e.get("report_type"))
         sheets_norm = " ".join(_norm(s["name"]) for s in e.get("sheets", []))
+        sheets_dac = " ".join(_dac(s["name"]) for s in e.get("sheets", []))
         cks = " ".join(_norm(s.get("canonical_kind")) for s in e.get("sheets", []) if s.get("canonical_kind"))
-        if q and q not in hay and q not in sheets_norm:
+        if tu_khoa and not all(t in hay or t in sheets_dac for t in tu_khoa):
             continue
         if ck and ck not in cks:
             continue
         if sh and sh not in sheets_norm:
             continue
-        out.append(e)
+        cb = _canh_bao_pham_vi(e)
+        out.append({**e, "canh_bao_pham_vi": cb} if cb else e)
     return out

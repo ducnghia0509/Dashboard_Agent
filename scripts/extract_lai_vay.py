@@ -81,7 +81,7 @@ def lai_by_bank(wb, month, year=2026):
 def compute(only_period=None):
     """{(cong_ty, period, bank): lãi(VND)}. only_period='2026-MM' -> chỉ kỳ đó (autofill scope 1 kỳ)."""
     plan, warns = {}, []
-    for f in sorted(glob.glob(os.path.join(ext.DATA_DIR, "*.xlsx"))):
+    for f in ext.files_can_doc():   # quét đệ quy + mỗi (đơn vị,tháng) lấy bản mới nhất
         unit = ext.unit_of(os.path.basename(f))
         month = ext.month_of(os.path.basename(f))
         if unit in SKIP_UNITS or unit not in MASTER or not month:

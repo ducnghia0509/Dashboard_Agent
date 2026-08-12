@@ -203,11 +203,24 @@ def source_inspect(file_name: str, sheet: str = None, max_rows: int = 200) -> di
             if i >= max_rows:
                 break
             rows.append([("" if c is None else c) for c in row])
-        return {
+        # Cảnh báo PHẠM VI đi kèm chính dữ liệu: model mở thẳng file theo tên (không qua
+        # catalog_search) thì vẫn phải thấy "đây là số của một khối, không phải tập đoàn".
+        # Xem source_catalog._canh_bao_pham_vi — đã trả nhầm lợi nhuận khối Xe tải thành lợi
+        # nhuận tập đoàn 3 lần dù SKILL nêu đích danh file này (12/08/2026).
+        from .common import source_catalog
+        cb = None
+        for e in source_catalog.search():
+            if os.path.abspath(e.get("path") or "") == os.path.abspath(target):
+                cb = e.get("canh_bao_pham_vi")
+                break
+        out = {
             "file_name": file_name, "sheet_used": ws.title, "all_sheets": sheet_names,
             "row_count_returned": len(rows), "truncated": len(rows) >= max_rows,
             "rows": rows,
         }
+        if cb:
+            out["canh_bao_pham_vi"] = cb
+        return out
     finally:
         wb.close()
 
@@ -237,18 +250,30 @@ def pipeline_state() -> dict:
 
 @mcp.tool()
 def catalog_search(query: str = None, company: str = None, canonical_kind: str = None,
-                   sheet: str = None, only_uningested: bool = False) -> dict:
+                   sheet: str = None, only_uningested: bool = False,
+                   month: int = None, report_type: str = None) -> dict:
     """Tra CATALOG toàn bộ file đã kéo về (Connect_VPS/received_reports) — con trỏ lossless,
     trả lời 'có file/sheet/cột nào' tức thì (kể cả file CHƯA import). Không mở file.
 
-    Trả {"results": [...]} — mỗi mục: file, path, company, report_type, month, ingested,
-    sheets:[{name,columns,nrows,canonical_kind}]. Định vị được file rồi dùng source_inspect
-    đọc chi tiết ô gốc.
+    LỌC KỲ VÀ LOẠI BÁO CÁO BẰNG `month` + `report_type`, ĐỪNG nhét chúng vào `query`. Kỳ nằm
+    trong tên file dưới nhiều dạng khác nhau ('M.202607', 'M202607', 'M.2026.07') nên dò bằng
+    chuỗi là may rủi: hỏi query='M202607' từng chỉ ra 1/11 file tháng 7 vì 10 file kia viết
+    'M.202607' — đủ để kết luận sai rằng cả tập đoàn chỉ có một báo cáo (12/08/2026).
+    Đúng cách: catalog_search(report_type="baocaotaichinhrieng", month=7) -> đủ 11 đơn vị.
+
+    `query` chỉ dành cho phần TÊN không đoán trước được; nhiều từ khoá thì phải khớp hết.
+
+    Trả {"results": [...], "count": n} — mỗi mục: file, path, company, report_type, month,
+    ingested, sheets:[{name,columns,nrows,canonical_kind}]. Định vị được file rồi dùng
+    source_inspect đọc chi tiết ô gốc.
     """
     from .common import source_catalog
-    return {"results": source_catalog.search(query=query, company=company,
-                                              canonical_kind=canonical_kind, sheet=sheet,
-                                              only_uningested=only_uningested)}
+    kq = source_catalog.search(query=query, company=company, canonical_kind=canonical_kind,
+                               sheet=sheet, only_uningested=only_uningested,
+                               month=month, report_type=report_type)
+    # `count` để model tự đối chiếu với kỳ vọng nghiệp vụ ("tập đoàn có 11 đơn vị") thay vì
+    # đếm tay danh sách rồi kết luận thiếu/đủ.
+    return {"results": kq, "count": len(kq)}
 
 
 if __name__ == "__main__":

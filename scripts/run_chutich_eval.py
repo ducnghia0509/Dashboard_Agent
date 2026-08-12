@@ -49,7 +49,15 @@ LATENCY_GATE = int(os.environ.get("CHUTICH_LATENCY_GATE", "60"))
 # Dấu hiệu có SỐ thật: chuỗi chữ số có thể kèm phân tách nghìn/thập phân. Loại các số chỉ là
 # mã câu (L5-02) hay ngày tháng đứng một mình bằng cách đòi độ dài >= 1 và có ngữ cảnh tiền/%.
 _RE_NUMBER = re.compile(r"\d[\d.,]*")
-_RE_NGUON = re.compile(r"ngu[oồ]n\s*:", re.IGNORECASE)
+# Dòng cập nhật cuối câu trả lời. Đổi format 09/08/2026: bỏ `Nguồn: BRIEF_CHUTICH.xlsx · sheet
+# L5_CONGNO` vì Chủ tịch không đọc được tên file/mã sheet. Giữ lại mảng nghiệp vụ + mốc thời
+# gian — đó mới là phần neo chống bịa số và cho biết số tươi tới đâu.
+# Ba mảnh phải có đủ: chữ "cập nhật", giờ:phút, và mốc ngày nói theo kiểu người đọc.
+_RE_CAPNHAT = re.compile(r"c[aậ]p\s*nh[aậ]t", re.IGNORECASE)
+_RE_GIO = re.compile(r"\b\d{1,2}:\d{2}\b")
+_RE_MOC_NGAY = re.compile(r"h[oô]m\s*nay|h[oô]m\s*qua|ng[aà]y\s*\d{1,2}[/-]\d{1,2}", re.IGNORECASE)
+# Rò rỉ tên kỹ thuật ra mặt Chủ tịch — chính thứ vừa yêu cầu bỏ.
+_RE_RO_KYTHUAT = re.compile(r"BRIEF_CHUTICH|\bL\d{1,2}_[A-Z_]+\b|\.xlsx", re.IGNORECASE)
 # Mốc thời gian: chấp nhận CẢ ISO (2026-08-07, đúng như _META ghi) LẪN kiểu Việt (07/08/2026).
 # Bản đầu chỉ khớp ISO và đã chấm TRƯỢT oan 2 câu trả lời hoàn hảo chỉ vì agent viết ngày theo
 # kiểu người Việt đọc. Cổng chất lượng phải đo CÓ mốc thời gian hay không, không đo định dạng.
@@ -73,10 +81,21 @@ def _strip_diacritics_lower(s):
     return "".join(c for c in s if unicodedata.category(c) != "Mn").lower()
 
 
-def ask(question: str, session_key: str) -> tuple[str, float, str]:
-    """-> (answer, seconds, error). Không ném — lỗi 1 câu không được làm hỏng cả lượt chấm."""
+def ask(question: str, session_key: str, model: str = None) -> tuple[str, float, str]:
+    """-> (answer, seconds, error). Không ném — lỗi 1 câu không được làm hỏng cả lượt chấm.
+
+    `model` ép model cho lượt chạy này. Mặc định (None) là dùng `9router/my1` — combo round-robin
+    14 model, nên MỖI CÂU do một model khác trả lời. Muốn so sánh model thì phải ép, không thì
+    đang đo trung bình của cả combo chứ không đo model nào cả.
+    """
+    # Dựng tường minh theo thứ tự, KHÔNG chèn theo chỉ số: bản trước chèn `--model` vào index 6
+    # tức lọt vào giữa `--agent` và tên agent -> `--agent --model`, openclaw báo "Too many
+    # arguments" cho cả 36 lượt đo. `-m` phải ở CUỐI vì câu hỏi là chuỗi dài.
     cmd = ["docker", "exec", OPENCLAW_CT, "openclaw", "agent", "--agent", AGENT_ID,
-           "--session-key", session_key, "-m", question]
+           "--session-key", session_key]
+    if model:
+        cmd += ["--model", model]
+    cmd += ["-m", question]
     t0 = time.time()
     try:
         p = subprocess.run(cmd, capture_output=True, text=True, timeout=TIMEOUT)
@@ -88,6 +107,26 @@ def ask(question: str, session_key: str) -> tuple[str, float, str]:
     if not ans:
         return "", time.time() - t0, f"không có stdout. stderr: {(p.stderr or '')[-200:]}"
     return ans, time.time() - t0, ""
+
+
+def _check_dong_capnhat(a: str) -> list:
+    """Kiểm dòng 'Số liệu <nghiệp vụ>, cập nhật <thời điểm>.' ở cuối câu trả lời.
+
+    Đo ĐỦ 3 mảnh chứ không chỉ đo có chữ 'cập nhật': thiếu giờ thì Chủ tịch không biết số tươi
+    tới đâu, thiếu mốc ngày thì '15:55' là vô nghĩa (hôm nay hay tuần trước?).
+    Đồng thời bắt lỗi ngược: rò tên file/mã sheet ra — chính thứ vừa yêu cầu bỏ đi.
+    """
+    fails = []
+    if not _RE_CAPNHAT.search(a):
+        fails.append("thiếu dòng cập nhật ở cuối")
+    if not _RE_GIO.search(a):
+        fails.append("dòng cập nhật thiếu giờ:phút")
+    if not _RE_MOC_NGAY.search(a):
+        fails.append("dòng cập nhật thiếu mốc ngày (hôm nay/hôm qua/ngày DD/MM)")
+    m = _RE_RO_KYTHUAT.search(a)
+    if m:
+        fails.append(f"lộ tên kỹ thuật cho Chủ tịch: '{m.group(0)}'")
+    return fails
 
 
 def grade(q: dict, answer: str) -> tuple[bool, list]:
@@ -136,17 +175,13 @@ def grade(q: dict, answer: str) -> tuple[bool, list]:
             if m:
                 fails.append(f"dùng từ khẳng định '{m.group(0).strip()}' — nhóm kiểm toán chỉ "
                              f"được nói 'dấu hiệu ... cần xác minh'")
-        if not _RE_NGUON.search(a):
-            fails.append("thiếu dòng 'Nguồn:'")
+        fails += _check_dong_capnhat(a)
         return not fails, fails
 
     # green
     if not _RE_NUMBER.search(a):
         fails.append("không có con số nào")
-    if not _RE_NGUON.search(a):
-        fails.append("thiếu dòng 'Nguồn:'")
-    if not _RE_ASOF.search(a):
-        fails.append("thiếu mốc thời gian as_of (YYYY-MM-DD)")
+    fails += _check_dong_capnhat(a)
     return not fails, fails
 
 
@@ -198,6 +233,8 @@ def main():
     ap.add_argument("--light", choices=["green", "yellow", "red"], help="chỉ chạy 1 nhóm")
     ap.add_argument("--level", type=int, help="chỉ chạy 1 level")
     ap.add_argument("--score-only", metavar="FILE", help="chấm lại từ file kết quả đã lưu")
+    ap.add_argument("--model", help="ép model cho cả lượt chạy, vd 9router/cx/gpt-5.6-terra")
+    ap.add_argument("--ids", nargs="+", metavar="ID", help="chỉ chạy các mã câu chỉ định")
     a = ap.parse_args()
 
     if a.score_only:
@@ -210,11 +247,14 @@ def main():
         qs = [q for q in qs if q["traffic_light"] == a.light]
     if a.level:
         qs = [q for q in qs if q["level"] == a.level]
+    if a.ids:
+        qs = [q for q in qs if q["id"] in set(a.ids)]
     if a.limit:
         qs = qs[:a.limit]
 
     run_id = datetime.now(TZ).strftime("%m%d%H%M%S")
-    print(f"Chạy {len(qs)} câu qua agent '{AGENT_ID}' (docker exec {OPENCLAW_CT}) · run {run_id}")
+    print(f"Chạy {len(qs)} câu qua agent '{AGENT_ID}' · model {a.model or '9router/my1 (combo)'} "
+          f"· run {run_id}")
     results = []
     for i, q in enumerate(qs, 1):
         # Session key phải riêng theo CÂU và theo LƯỢT CHẠY.
@@ -223,7 +263,7 @@ def main():
         # - Riêng theo lượt chạy: đã dính thật 07/08 — sửa SKILL rồi chạy lại, agent vẫn trả y
         #   nguyên câu sai vì nó NHỚ lượt trước trong cùng session, không hề đọc lại luật mới.
         #   Thiếu run_id thì mọi lần đo sau lần đầu đều là đo trí nhớ, không phải đo hành vi.
-        ans, secs, err = ask(q["question"], f"eval-{run_id}-{q['id']}")
+        ans, secs, err = ask(q["question"], f"eval-{run_id}-{q['id']}", model=a.model)
         ok, fails = (False, [f"lỗi gọi agent: {err}"]) if err else grade(q, ans)
         results.append({**{k: q[k] for k in ("id", "level", "question", "traffic_light")},
                         "answer": ans, "seconds": round(secs, 2), "error": err,
@@ -235,7 +275,8 @@ def main():
     stamp = datetime.now(TZ).strftime("%Y%m%d-%H%M%S")
     out = os.path.join(OUT_DIR, f"ketqua-{stamp}.json")
     with open(out, "w", encoding="utf-8") as fh:
-        json.dump({"agent": AGENT_ID, "at": stamp, "results": results}, fh,
+        json.dump({"agent": AGENT_ID, "model": a.model or "9router/my1 (combo)",
+                   "at": stamp, "results": results}, fh,
                   ensure_ascii=False, indent=2)
     print(f"\nĐã lưu {out}")
     return 0 if report(results) else 1

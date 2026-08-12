@@ -51,6 +51,33 @@ def _nhom_cp(name: str, ma: str = "") -> str:
     return "Chi phí khác"
 
 
+# Phân loại theo YẾU TỐ (bản chất chi phí: nhân sự/khấu hao/DV mua ngoài/khác) — dùng cho dim2
+# "Yếu tố chi phí" (chart "Chi phí theo yếu tố", KHÁC _nhom_cp ở trên: đó là phân loại theo CHUẨN
+# KẾ TOÁN TT200 bằng MÃ, đây theo TỪ KHOÁ trên TÊN dòng — vì mã khác nhau hoàn toàn giữa 12 đơn vị
+# còn tên tiếng Việt tái diễn từ khoá giống nhau dù đổi qua tháng/đơn vị, vd Dự án đổi "Khấu hao
+# phân bổ" (T01-05) -> "Chi phí khấu hao HO" (T06), cả 2 đều chứa "khấu hao"). "Giá vốn" trả thẳng
+# "CP Giá vốn" (không bóc con — nguyên tắc #1 kế hoạch "Chi phí theo yếu tố", spec user chỉ nói lấy
+# nguyên Mục Giá vốn); các khoản OPEX còn lại phân theo từ khoá, phần KHÔNG khớp rơi vào "Hoạt động
+# khác" (đúng tinh thần spec: 5 nhóm phủ hết OPEX — "khác" bắt phần dư: lãi vay/phí NH/phân bổ
+# HO/khoản lạ).
+def _yeuto_cp(name: str) -> str:
+    n = _nm(name)
+    if "gia von" in n:
+        return "CP Giá vốn"
+    if any(k in n for k in ("nhan su", "nhan vien", "luong", "bhxh", "bhyt", "phuc loi", "tuyen dung",
+                             "dao tao", "phu cap", "cong doan", "thuong")):
+        return "CP nhân sự"
+    if any(k in n for k in ("khau hao", "hao mon", "phan bo ccdc")):
+        return "CP khấu hao TSCĐ"
+    if ("dien" in n and "nuoc" in n) or any(  # "điện - nước"/"điện, nước"/"điện nước" đều khớp
+            k in n for k in ("marketing", "quang cao", "truyen thong", "khuyen mai",
+                              "mat bang", "thue vp", "thue bai", "thue mat bang",
+                              "dien thoai", "internet", "itn", "cpn",
+                              "sua chua", "bao duong", "bao hanh")):
+        return "CP DV mua ngoài"
+    return "Hoạt động khác"
+
+
 def _find_kqkd_sheet(wb):
     """Sheet KQKD = sheet có mã TỔNG CHI PHÍ 'A300' (SRVF) HOẶC mã TT200 '10'/'50' (chuẩn/HT)."""
     for ws in wb.worksheets:
@@ -93,18 +120,51 @@ def extract(path, sheet, period, cong_ty=None):
     recs = []
     a_pat = re.compile(r"^A3[1-9]0$")   # SRVF: nhóm chi phí cấp cao A310..A390 (bỏ A300 tổng/A3x1 con)
     tt200 = {"11", "12", "22", "25", "26", "32"}   # TT200: giá vốn/CP tài chính/bán hàng/QLDN/khác; 12=CP QLKD (B02-HTX/TT133)
-    for r in rows[hi + 1:]:
+
+    def _row_name_val(r):
+        nm_ = str(r[cct]).strip() if cct < len(r) and r[cct] not in (None, "") else ""
+        vl_ = r[cval] if cval < len(r) else None
+        return nm_, vl_
+
+    n_rows = len(rows)
+    i = hi + 1
+    while i < n_rows:
+        r = rows[i]
         ma = str(r[cma]).strip() if cma < len(r) and r[cma] not in (None, "") else ""
         if not (a_pat.match(ma) or ma in tt200):   # nhận CẢ A-series LẪN TT200
+            i += 1
             continue
-        name = str(r[cct]).strip() if cct < len(r) and r[cct] not in (None, "") else ""
-        val = r[cval] if cval < len(r) else None
-        if not name or not isinstance(val, (int, float)) or val == 0:
-            continue
-        recs.append({"Kỳ (yyyy-mm)": period,
-                     "Nhóm CP (chuẩn mực KT)": _nhom_cp(name, ma),
-                     "Khoản mục chi tiết": name,
-                     "Thực hiện (tỷ)": round(val / 1e9, 9)})
+        name, val = _row_name_val(r)
+        nhom = _nhom_cp(name, ma)
+        # Gom DÒNG CON ngay sau (mã rỗng) tới khi gặp mã tiếp -> tách yếu tố chi tiết hơn (vd
+        # GlobalAI 'Chi phí lương bộ phận bán hàng' nằm dưới mã '25' nhưng cột mã của DÒNG CON để
+        # trống). Bỏ qua bóc con cho Giá vốn (dim2 luôn 'CP Giá vốn' nguyên khối — xem _yeuto_cp).
+        j = i + 1
+        children = []
+        while j < n_rows:
+            rj = rows[j]
+            maj = str(rj[cma]).strip() if cma < len(rj) and rj[cma] not in (None, "") else ""
+            if maj:
+                break
+            nj, vj = _row_name_val(rj)
+            if nj and isinstance(vj, (int, float)) and vj:
+                children.append((nj, vj))
+            j += 1
+        if nhom == "Giá vốn hàng bán":
+            if name and isinstance(val, (int, float)) and val:
+                recs.append({"Kỳ (yyyy-mm)": period, "Nhóm CP (chuẩn mực KT)": nhom,
+                             "Khoản mục chi tiết": name, "Yếu tố chi phí": "CP Giá vốn",
+                             "Thực hiện (tỷ)": round(val / 1e9, 9)})
+        elif children:
+            for nj, vj in children:
+                recs.append({"Kỳ (yyyy-mm)": period, "Nhóm CP (chuẩn mực KT)": nhom,
+                             "Khoản mục chi tiết": nj, "Yếu tố chi phí": _yeuto_cp(nj),
+                             "Thực hiện (tỷ)": round(vj / 1e9, 9)})
+        elif name and isinstance(val, (int, float)) and val:
+            recs.append({"Kỳ (yyyy-mm)": period, "Nhóm CP (chuẩn mực KT)": nhom,
+                         "Khoản mục chi tiết": name, "Yếu tố chi phí": _yeuto_cp(name),
+                         "Thực hiện (tỷ)": round(val / 1e9, 9)})
+        i = j
     if not recs:
         return {"ok": False, "error": "Không bóc được dòng chi phí (A3x0 / TT200 11/22/25/26)"}
     out = os.path.join(tf.FILLED_DIR, f"{cong_ty or 'X'}_{period}_02_CHIPHI.xlsx")

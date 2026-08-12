@@ -3,7 +3,8 @@
   "_mo_ta": "KẾ HOẠCH doanh thu XDV theo NGÀY, theo xưởng (mapping XDV cập nhật 10/08/2026, chỉ tiêu #1 'Doanh thu kế hoạch' + #8 'đường nét đứt' trên biểu đồ doanh thu theo ngày). Nguồn: 2.VINFAST_XDV/BAOCAOQUANTRIVANHANH/Baocaodoanhthukehoachngay, sheet 'KHDT theo ngày'.",
   "_bay": [
     "KHÁC bản THỰC HIỆN (xdv_doanhthu_ngay): file này MỖI NGÀY CHIẾM 2 CỘT — (Số lượng RO, Doanh thu). Mốc ngày nằm ở DÒNG 9 dưới dạng NGÀY THẬT (2026-08-01), còn dòng 10 mới là tiêu đề con 'Số lượng'/'Doanh thu'. Vì thế phải dùng cot_ngay.dong=9 + lech_amount=1; đọc mốc ở dòng tiêu đề như spec cũ sẽ ra 0 cột và BỎ QUA cả file.",
-    "CHỈ lấy dòng TỔNG của từng xưởng (HTTT = 'Tổng'), KHÔNG lấy dòng 'Cộng' (d81) và KHÔNG lấy 4 dòng chi tiết N/W/I/C bên dưới mỗi xưởng. Đã kiểm 10/08: tổng 14 xưởng ngày 01/08 = 1.243.698.762 khớp TUYỆT ĐỐI dòng 81 -> để dashboard tự cộng, nạp thêm dòng 'Cộng' là đếm đôi.",
+    "GIỮ CẢ dòng 'Tổng' LẪN 4 dòng hình thức thanh toán N/W/I/C (mapping #10 bản 10/08 cần cột kế hoạch theo HTTT). Hệ quả BẮT BUỘC nhớ: dim1='Tổng' và 4 dòng kia CỘNG LẠI LÀ ĐẾM ĐÔI — mọi phép tổng phải lọc dim1. Tên xưởng chỉ nằm trên dòng 'Tổng' nên 4 dòng HTTT có cost_center NULL: đó là dòng chi tiết của xưởng ngay trên nó, cộng hết lại ra tổng hệ thống theo từng HTTT (Σ4 = 46,237 tỷ so với dòng 'Tổng' 46,195 tỷ — chính file lệch 0,042 tỷ, không phải lỗi đọc).",
+    "KHÔNG lấy dòng 'Cộng' (d81): đã kiểm 10/08 Σ 14 dòng 'Tổng' của các xưởng ngày 01/08 = 1.243.698.762 khớp TUYỆT ĐỐI dòng 81, nạp thêm là đếm đôi. Tổng theo ngày vì thế phải CỘNG các dòng 'Tổng' của xưởng — ngoại lệ có chủ ý của quy tắc 'không cộng dòng xưởng', xem app/metrics/xdv.py::_ke_hoach_theo_ngay.",
     "TUYỆT ĐỐI KHÔNG dùng ngu_canh_dong để bắt tên xưởng ở đây: engine coi dòng khớp ngữ cảnh là DÒNG TIÊU ĐỀ và KHÔNG sinh bản ghi từ nó ('Dòng tiêu đề KHÔNG tự sinh bản ghi'). Ở file này tên xưởng nằm NGAY TRÊN dòng Tổng — dùng ngu_canh_dong là ăn mất đúng 14 dòng cần lấy, kết quả 0 bản ghi mà chỉ báo 'bỏ N dòng không qua bộ lọc' (đã dính 10/08). Đọc thẳng cột 'XDV' rồi lọc cost_center khác rỗng: chỉ dòng Tổng có tên xưởng, 4 dòng N/W/I/C và dòng 'Cộng' đều để trống nên tự bị loại.",
     "Xưởng HCM có BA tên: master 'Vinfast Hồ Chí Minh', bản thực hiện 'HCM', bản kế hoạch 'Quận 12' -> đã thêm alias 'quan 12' vào _cc_xdv trong spec_extract.py. Thiếu alias thì xưởng đó lặng lẽ rơi khỏi báo cáo (chỉ hiện 1 dòng cảnh báo 'KHÔNG MAP ĐƯỢC đơn vị').",
     "amount2 = KH SỐ LƯỢNG RO (đơn vị lệnh, he_so_amount2=1) — KHÔNG dùng chung he_so 1e-9 của tiền, nếu không ra 0,00000005 lệnh. Giữ cùng bản ghi để tính 'doanh thu bình quân/RO mục tiêu' (mapping #11) mà không phải nạp nguồn hai lần.",
@@ -16,18 +17,37 @@
   "nguon": {
     "folder": "XDV/baocaodoanhthukehoachngay",
     "file_glob": "*.xlsx",
-    "sheet": { "chua": "KHDT theo ngày" }
+    "sheet": {
+      "chua": "KHDT theo ngày"
+    }
   },
   "kiem_tra_o": [
-    { "o": "A10", "bang": "STT" },
-    { "o": "B10", "bang": "XDV" },
-    { "o": "C10", "bang": "HTTT" }
+    {
+      "o": "A10",
+      "bang": "STT"
+    },
+    {
+      "o": "B10",
+      "bang": "XDV"
+    },
+    {
+      "o": "C10",
+      "bang": "HTTT"
+    }
   ],
-  "header": { "dong": 10 },
+  "header": {
+    "dong": 10
+  },
   "dong_bat_dau": 11,
   "cot": {
-    "cost_center": { "header": "XDV", "chuan_hoa": "xdv" },
-    "dim1": { "header": "HTTT", "chuan_hoa": "cat" }
+    "cost_center": {
+      "header": "XDV",
+      "chuan_hoa": "xdv"
+    },
+    "dim1": {
+      "header": "HTTT",
+      "chuan_hoa": "cat"
+    }
   },
   "ban_ghi": "moi_cot_ngay",
   "cot_ngay": {
@@ -36,9 +56,24 @@
     "den": "BP",
     "lech_amount": 1,
     "lech_amount2": 0,
-    "he_so": 1e-9,
+    "he_so": 1e-09,
     "he_so_amount2": 1
   },
-  "loc": [ { "cot": "dim1", "dieu_kien": "bang", "gia_tri": "Tổng" } ],
-  "payload_them": { "unit": "ty", "loai": "ke_hoach" }
+  "loc": [
+    {
+      "cot": "dim1",
+      "dieu_kien": "thuoc",
+      "gia_tri": [
+        "Tổng",
+        "N",
+        "W",
+        "I",
+        "C"
+      ]
+    }
+  ],
+  "payload_them": {
+    "unit": "ty",
+    "loai": "ke_hoach"
+  }
 }
