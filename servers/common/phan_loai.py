@@ -213,6 +213,22 @@ def phan_loai(cau_hoi: str, gioi_han_loai: int = 2) -> dict:
                     ky = dict(truoc["tham_so"]["ky_doc_duoc"])
                     ky["ke_thua_tu_y_truoc"] = True
                     break
+        if ky.get("thieu_ky") or ky.get("thieu_nam"):
+            # ĐƯA GIÁ TRỊ CỤ THỂ, không đưa luật. Agent bỏ qua luật ("dùng kỳ đã chốt gần nhất")
+            # nhưng dùng được ngay một chuỗi '2026-07' nằm sẵn trong payload. Đã chứng kiến agent
+            # đi HỎI LẠI người dùng thay vì áp mặc định, dù SKILL ghi rõ (13/08/2026).
+            try:
+                from . import source_catalog as _sc
+                mc = _sc.ky_da_chot()
+                ky["ky_mac_dinh_phai_dung"] = mc.get("ky_da_chot")
+                ky["ky_moi_nhat_co_the_chua_chot"] = mc.get("ky_moi_nhat")
+                ky["bat_buoc"] = (
+                    f"Người dùng KHÔNG nêu kỳ. DÙNG NGAY `{mc.get('ky_da_chot')}` (kỳ đã chốt gần "
+                    f"nhất) và trả lời luôn — TUYỆT ĐỐI KHÔNG hỏi lại kỳ. Chỉ cần ghi ở đầu câu "
+                    f"trả lời là đang dùng kỳ nào. {mc.get('ly_do')}")
+            except Exception:                                    # noqa: BLE001
+                pass
+
         muc = {
             "y_id": f"y{i}",
             "noi_dung": y,
@@ -236,4 +252,10 @@ def phan_loai(cau_hoi: str, gioi_han_loai: int = 2) -> dict:
             "Ý nào không trả lời được thì nói rõ ý đó và vì sao — cấm lặng lẽ chỉ trả lời phần làm được."
         ) if len(ds) > 1 else None,
         "bay_chung": st.get("_bay_chung", []),
+        "cam": [
+            "KHÔNG dùng form chọn / ask_user — người dùng web sẽ không thấy gì, chỉ nhận câu trả lời trống.",
+            "KHÔNG nhắc tên tool (tim_chi_tieu/source_inspect…) hay tường thuật các bước tra cứu "
+            "trong câu trả lời — chỉ hiển thị BÁO CÁO KẾT QUẢ.",
+            "KHÔNG hỏi lại kỳ: đã có `ky_mac_dinh_phai_dung` trong payload thì dùng luôn.",
+        ],
     }

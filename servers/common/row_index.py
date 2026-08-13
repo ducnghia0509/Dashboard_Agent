@@ -20,6 +20,7 @@ Chạy: python -m servers.common.row_index [--rebuild]
 """
 import os
 import sqlite3
+import time
 import sys
 import unicodedata
 
@@ -114,6 +115,37 @@ def dung_lai(rebuild: bool = False, log=print) -> dict:
     for e in entries:
         e["file_key"] = sc._file_key(e["path"])
 
+    # KHOÁ: mỗi lượt dựng copy cả DB (144 MB) sang .tmp rồi os.replace. Hai lượt chồng nhau (cron
+    # hằng đêm + chạy tay) sẽ tranh cùng file .tmp — đã thấy một lượt trả về "quét mới 0 / bỏ qua 0"
+    # rồi test hồi quy trượt oan (13/08/2026). Thà bỏ lượt sau còn hơn để hai lượt phá nhau.
+    khoa = DB_PATH + ".lock"
+    try:
+        fd = os.open(khoa, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+        os.write(fd, str(os.getpid()).encode())
+        os.close(fd)
+    except FileExistsError:
+        cu = 0.0
+        try:
+            cu = time.time() - os.path.getmtime(khoa)
+        except OSError:
+            pass
+        if cu < 3600:                       # khoá còn tươi -> có lượt khác đang chạy thật
+            return {"file_quet_moi": 0, "file_bo_qua": 0, "tong_nhan": 0, "loi": [],
+                    "bo_qua_vi_dang_chay": True,
+                    "ghi_chu": f"Một lượt dựng khác đang chạy ({int(cu)}s trước) — bỏ lượt này."}
+        os.remove(khoa)                     # khoá mồ côi (tiến trình chết giữa đường)
+        open(khoa, "w").close()
+
+    try:
+        return _dung_lai_co_khoa(rebuild=rebuild, log=log, entries=entries)
+    finally:
+        try:
+            os.remove(khoa)
+        except OSError:
+            pass
+
+
+def _dung_lai_co_khoa(rebuild: bool, log, entries: list) -> dict:
     tmp = DB_PATH + ".tmp"
     if os.path.exists(tmp):
         os.remove(tmp)

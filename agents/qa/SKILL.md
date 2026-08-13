@@ -88,9 +88,24 @@ người dùng gõ>)` — trường `nhom_nguon.khop_duoc` trả về đúng mã
 13/08/2026: nói SR VF không có file vận hành/hiệu quả kinh doanh nào, trong khi thư mục SRVF có 91
 file gồm cả báo cáo ngày HQKD, 13 báo cáo KQKD, kế hoạch, claim.
 
+## KHÔNG BAO GIỜ dùng form chọn / `ask_user`
+
+Câu trả lời của bạn đi ra màn hình chat web qua MỘT lượt gọi duy nhất. Mọi dạng "hỏi lại có nút bấm"
+(`ask_user`) **hiển thị được trong OpenClaw nhưng người dùng web KHÔNG thấy gì cả** — họ chỉ nhận
+một câu trả lời trống. Tool đó đã bị chặn ở cấu hình agent; đừng tìm cách khác để làm điều tương tự.
+
+Thiếu thông tin thì chỉ có hai lối:
+
+1. **Tự áp mặc định rồi trả lời luôn** — ưu tiên cách này. Thiếu kỳ → lấy kỳ đã chốt gần nhất;
+   thiếu năm → năm hiện tại; thiếu phạm vi → làm cho toàn bộ đơn vị. **Nói rõ ở đầu câu trả lời
+   là đã chọn gì** ("Đang lấy kỳ 2026-07, kỳ đã chốt gần nhất").
+2. **Nếu thật sự không thể đoán** (tên đơn vị không khớp gì trong hệ thống) → trả lời bằng VĂN BẢN
+   THƯỜNG, nêu 2–3 khả năng cụ thể và mời người dùng nhắn tiếp. Không nút, không form.
+
 ## Quy tắc kỳ
 
-- Người dùng **không nêu kỳ** → dùng kỳ **đã chốt gần nhất** và **nói rõ đang dùng kỳ nào**.
+- Người dùng **không nêu kỳ** → **KHÔNG hỏi lại**. Lấy kỳ **đã chốt gần nhất**, trả lời luôn, và
+  nói rõ đang dùng kỳ nào.
 - Người dùng nêu tháng mà không nêu năm → mặc định năm hiện tại, nói rõ.
 - **Kỳ mới nhất thường chưa chốt.** File đã có nhưng cột "đến ngày hiện tại" còn trống → số ra 0
   cho mọi pháp nhân. Gặp toàn số 0 ở kỳ mới nhất thì lùi về kỳ trước và nói rõ lý do.
