@@ -1,0 +1,229 @@
+{
+  "_mo_ta": "Bản đồ chỉ tiêu chuẩn cho doc_chi_tieu(). Mã dòng lấy từ chỉ mục nhãn dòng trên FILE THẬT (13/08/2026), không chép từ tài liệu.",
+  "_cach_them": "Thêm chỉ tiêu = thêm một mục trong `chi_tieu`. Thêm bố cục mới = thêm một mục trong `he`. Không sửa code.",
+  "he": {
+    "TT200": {
+      "_mo_ta": "Mẫu B02-DN (và B02-HTX dùng chung dải mã). CHỈ TIÊU | Mã số | Thuyết minh | Năm nay | Năm trước.",
+      "khop_sheet": [
+        "bckqkd",
+        "bc kqkd",
+        "kqkd",
+        "bcqt pt",
+        "bcqt"
+      ],
+      "cot_gia_tri": [
+        "nam nay",
+        "ky nay",
+        "thang nay",
+        "so nam nay",
+        "thuc hien"
+      ],
+      "cot_cam": [
+        "nam truoc",
+        "ki truoc",
+        "ky truoc",
+        "cung ky"
+      ]
+    },
+    "A_SRVF": {
+      "_mo_ta": "Showroom Vinfast (B.1.TC). File có MỘT SHEET CHO MỖI THÁNG: T01..T12 — phải chọn sheet theo kỳ, không lấy sheet đầu.",
+      "sheet_theo_thang": "T{mm}",
+      "cot_gia_tri": [
+        "ky nay",
+        "luy ke"
+      ],
+      "cot_cam": [
+        "ky truoc",
+        "thang truoc"
+      ]
+    },
+    "HO": {
+      "_mo_ta": "Hỗ trợ tập đoàn (B.9.TC), sheet HO_KQKD. KHÔNG có mã dòng — chỉ khớp được bằng nhãn.",
+      "khop_sheet": [
+        "ho_kqkd"
+      ],
+      "cot_gia_tri": [
+        "ky nay",
+        "thang nay",
+        "nam nay",
+        "thuc hien"
+      ],
+      "cot_cam": [
+        "ky truoc",
+        "thang truoc",
+        "nam truoc",
+        "cung ky"
+      ],
+      "_bay": "Không có dòng lợi nhuận sau thuế — hỏi LNST của HO phải trả 'bố cục này không có chỉ tiêu đó'."
+    },
+    "B_XDV": {
+      "_mo_ta": "Xưởng dịch vụ Vinfast (B.2.TC), file chỉ có MỘT sheet tên 'Sheet', mã dòng hệ B-series.",
+      "khop_sheet": [
+        "sheet"
+      ],
+      "cot_gia_tri": [
+        "ky nay",
+        "luy ke",
+        "thuc hien"
+      ],
+      "cot_cam": [
+        "ky truoc",
+        "thang truoc"
+      ],
+      "_bay": "Không có dòng lợi nhuận sau thuế."
+    }
+  },
+  "chi_tieu": {
+    "doanh_thu": {
+      "ten": "Doanh thu thuần",
+      "ma": {
+        "TT200": [
+          "10"
+        ],
+        "A_SRVF": [
+          "A100"
+        ],
+        "B_XDV": [
+          "B210"
+        ]
+      },
+      "nhan": [
+        "doanh thu thuan",
+        "tong doanh thu",
+        "doanh thu thuan ve ban hang"
+      ],
+      "ghi_chu": "Mã 10 là doanh thu THUẦN (đã trừ giảm trừ). Mã 01 là doanh thu gộp — đừng lẫn."
+    },
+    "doanh_thu_gop": {
+      "ten": "Doanh thu bán hàng và cung cấp dịch vụ (gộp)",
+      "ma": {
+        "TT200": [
+          "01",
+          "1"
+        ]
+      },
+      "nhan": [
+        "doanh thu ban hang",
+        "doanh thu hoat dong"
+      ]
+    },
+    "giam_tru": {
+      "ten": "Các khoản giảm trừ doanh thu",
+      "ma": {
+        "TT200": [
+          "02",
+          "2"
+        ]
+      },
+      "nhan": [
+        "cac khoan giam tru"
+      ]
+    },
+    "gia_von": {
+      "ten": "Giá vốn hàng bán",
+      "ma": {
+        "TT200": [
+          "11"
+        ],
+        "B_XDV": [
+          "B300"
+        ]
+      },
+      "nhan": [
+        "gia von hang ban",
+        "gia von xdv"
+      ]
+    },
+    "lai_gop": {
+      "ten": "Lợi nhuận gộp",
+      "ma": {
+        "TT200": [
+          "20"
+        ]
+      },
+      "nhan": [
+        "loi nhuan gop"
+      ]
+    },
+    "chi_phi_ban_hang": {
+      "ten": "Chi phí bán hàng",
+      "ma": {
+        "TT200": [
+          "25"
+        ]
+      },
+      "nhan": [
+        "chi phi ban hang"
+      ]
+    },
+    "chi_phi_qldn": {
+      "ten": "Chi phí quản lý doanh nghiệp",
+      "ma": {
+        "TT200": [
+          "26"
+        ]
+      },
+      "nhan": [
+        "chi phi quan ly doanh nghiep"
+      ]
+    },
+    "tong_chi_phi": {
+      "ten": "Tổng chi phí",
+      "ma": {
+        "A_SRVF": [
+          "A300"
+        ],
+        "B_XDV": [
+          "B500"
+        ]
+      },
+      "nhan": [
+        "tong chi phi",
+        "tong chi phi xuong dich vu",
+        "tong chi phi show room"
+      ],
+      "ghi_chu": "Chỉ có ở A_SRVF / B_XDV / HO. Bố cục TT200 KHÔNG có dòng 'tổng chi phí' — phải cộng 11+25+26, đừng bịa một dòng gần giống."
+    },
+    "ln_thuan": {
+      "ten": "Lợi nhuận thuần từ hoạt động kinh doanh",
+      "ma": {
+        "TT200": [
+          "30"
+        ]
+      },
+      "nhan": [
+        "loi nhuan thuan"
+      ]
+    },
+    "lntt": {
+      "ten": "Lợi nhuận trước thuế",
+      "ma": {
+        "TT200": [
+          "50"
+        ]
+      },
+      "nhan": [
+        "loi nhuan ke toan truoc thue",
+        "tong loi nhuan ke toan truoc thue",
+        "tong loi nhuan truoc thue"
+      ]
+    },
+    "lnst": {
+      "ten": "Lợi nhuận sau thuế",
+      "ma": {
+        "TT200": [
+          "60"
+        ],
+        "A_SRVF": [
+          "A600"
+        ]
+      },
+      "nhan": [
+        "loi nhuan sau thue thu nhap doanh nghiep",
+        "loi nhuan show room",
+        "loi nhuan sau thue"
+      ],
+      "ghi_chu": "A600 của SRVF là 'LỢI NHUẬN SHOW ROOM' — cùng vị trí nghiệp vụ nhưng KHÁC định nghĩa kế toán với mã 60 TT200. Nói rõ khi trộn hai bố cục."
+    }
+  }
+}

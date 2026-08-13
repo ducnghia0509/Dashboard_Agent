@@ -51,6 +51,99 @@ def _file_key(path: str) -> str:
     return hashlib.sha1(os.path.abspath(path).encode("utf-8")).hexdigest()[:16]
 
 
+# --- Kỳ báo cáo suy từ TÊN FILE -------------------------------------------------------------
+# CHỈ dùng làm PHAO khi sidecar không có `month`, và để suy `year` (sidecar KHÔNG ghi năm).
+#
+# ĐỪNG đảo thứ tự ưu tiên sang "tên file thắng" như đã làm với `company`: đã đo trên cả 370 file
+# (13/08/2026) — 35 file có ngày trong tên là NGÀY XUẤT FILE, không phải kỳ báo cáo. Ví dụ
+# 'B.1.TC.OO.M.2026.7.24. BaocaoClaim_B2C_T3.xlsx' là claim kỳ T3 xuất ngày 24/7; sidecar ghi
+# month=3 mới đúng, tên file cho ra 7. Kỳ thật nằm ở hậu tố '_T3'.
+#
+# Cứu được 2 file mà sidecar bỏ trống (đều đang bị catalog_search bỏ sót):
+#   B.4.TC.TCKT.M.20267.Baocaotuoinophaithu.xlsx  -> 2026-07  (thiếu zero-pad)
+#   B.4.TC.TCKT.D.20268.BaocaoHQKD.xlsx           -> 2026-08
+_RE_KY_CHAM = re.compile(r"(?<![A-Za-z0-9])([MDYW])\.(\d{4})\.(\d{1,2})(?![0-9])")
+# `\d{1,2}` chứ KHÔNG phải `0[1-9]|1[0-2]`: chính file cần cứu ghi thiếu zero-pad ('M.20267').
+# Ràng 1..12 làm ở dưới, không làm bằng regex.
+_RE_KY_LIEN = re.compile(r"(?<![A-Za-z0-9])([MDYW])\.?(\d{4})(\d{1,2})(?:00)?(?![0-9])")
+_RE_KY_TRAN = re.compile(r"(?<!\d)(20\d{2})(0[1-9]|1[0-2])(?:00)?(?!\d)")   # '.202608.' không có chữ cái
+_RE_KY_NAM_CHU = re.compile(r"(?<![A-Za-z0-9])([MDYW])\.?(\d{4})(?![0-9])")
+_RE_NAM = re.compile(r"(?<!\d)(20\d{2})(?!\d)")
+_RE_HAU_TO_KY = re.compile(r"_T(\d{1,2})(?![0-9])", re.IGNORECASE)          # '..._T3.xlsx'
+
+_LOAI_KY = {"M": "từng tháng", "D": "từng ngày", "Y": "từng năm", "W": "từng tuần"}
+
+
+def ky_tu_ten_file(name) -> dict:
+    """Suy {year, month, period_type} từ tên file. Trả None cho phần không chắc chắn.
+
+    Hậu tố '_T<n>' (vd '_T3') được ưu tiên hơn ngày trong tên vì đó là cách nghiệp vụ ghi KỲ
+    của các báo cáo claim/tồn kho xe — phần ngày phía trước chỉ là ngày xuất file.
+    """
+    base = os.path.basename(str(name or ""))
+    nam = thang = loai = None
+
+    m = _RE_HAU_TO_KY.search(base)
+    if m and 1 <= int(m.group(1)) <= 12:
+        thang = int(m.group(1))
+
+    for rx in (_RE_KY_CHAM, _RE_KY_LIEN):
+        m = rx.search(base)
+        if m:
+            y, mm = int(m.group(2)), int(m.group(3))
+            if 2000 <= y <= 2099 and 1 <= mm <= 12:
+                nam, loai = y, _LOAI_KY.get(m.group(1))
+                if thang is None and m.group(1) != "Y":
+                    thang = mm
+            break
+
+    if nam is None:
+        m = _RE_KY_TRAN.search(base)
+        if m:
+            nam = int(m.group(1))
+            if thang is None:
+                thang = int(m.group(2))
+    if nam is None:
+        m = _RE_KY_NAM_CHU.search(base)          # 'Y.2026' — kế hoạch năm, không có tháng
+        if m and 2000 <= int(m.group(2)) <= 2099:
+            nam, loai = int(m.group(2)), _LOAI_KY.get(m.group(1))
+    if nam is None:
+        m = _RE_NAM.search(base)
+        if m:
+            nam = int(m.group(1))
+    return {"year": nam, "month": thang, "period_type": loai}
+
+
+def _gan_ky(file_name: str, side: dict) -> dict:
+    """Gộp kỳ từ sidecar (ưu tiên) + tên file (phao) -> {year, month, ky, period_type, ky_khong_ro}.
+
+    `ky` = 'YYYY-MM' là khoá kỳ DUY NHẤT nên dùng. `month` giữ lại cho tương thích ngược nhưng
+    KHÔNG đủ để định danh kỳ: catalog đang có 1 file 12/2025 nằm cạnh 369 file 2026, sang năm sau
+    thì month=1 gom cả hai năm.
+
+    `ky_khong_ro=True` khi không suy được tháng — file đó phải hiện trong cảnh báo, KHÔNG được
+    lặng lẽ rơi khỏi mọi kết quả lọc theo kỳ như trước đây.
+    """
+    tu_ten = ky_tu_ten_file(file_name)
+    thang = side.get("month")
+    if thang in (None, ""):
+        thang = tu_ten["month"]
+    try:
+        thang = int(thang) if thang not in (None, "") else None
+    except (TypeError, ValueError):
+        thang = None
+    if thang is not None and not 1 <= thang <= 12:
+        thang = None
+    nam = tu_ten["year"]
+    return {
+        "year": nam,
+        "month": thang,
+        "ky": f"{nam:04d}-{thang:02d}" if (nam and thang) else None,
+        "period_type": side.get("period_type") or tu_ten["period_type"],
+        "ky_khong_ro": thang is None,
+    }
+
+
 def _sidecar(path: str) -> dict:
     """File .json cùng tên (do receiver ghi) chứa company/month/report_type."""
     j = os.path.splitext(path)[0] + ".json"
@@ -129,13 +222,12 @@ def index_file(path: str) -> dict:
         "path": os.path.abspath(path),
         "company": side_company or meta.get("company"),
         "report_type": side.get("report_type") or meta.get("report_type"),
-        "month": side.get("month"),
-        "period_type": side.get("period_type"),
         "sheets": [],
         "mtime": os.path.getmtime(path),
         "indexed_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "ingested": False,
     }
+    entry.update(_gan_ky(entry["file"], side))
     wb = bb.fast_load_workbook(path, read_only=True, data_only=True)
     try:
         for ws in wb.worksheets:
@@ -251,9 +343,37 @@ def _canh_bao_pham_vi(e: dict):
     return None
 
 
+def backfill_ky() -> dict:
+    """Tính lại year/ky/period_type/ky_khong_ro cho MỌI entry sẵn có, KHÔNG mở lại file xlsx.
+
+    Dùng sau khi sửa logic bắt kỳ: quét lại 370 file mất ~10 phút và không cần thiết vì kỳ chỉ
+    suy từ tên file + sidecar. Trả thống kê để đối chiếu trước/sau."""
+    thay_doi, van_khong_ro = [], []
+    with locked_json(CATALOG):
+        cat = _load()
+        for key, e in cat.items():
+            side = _sidecar(e.get("path") or "")
+            truoc = e.get("month")
+            e.update(_gan_ky(e.get("file") or "", side))
+            if e.get("month") != truoc:
+                thay_doi.append({"file": e.get("file"), "truoc": truoc, "sau": e.get("ky")})
+            if e.get("ky_khong_ro"):
+                van_khong_ro.append(e.get("file"))
+        _save(cat)
+    return {"tong": len(cat), "da_sua": thay_doi, "van_khong_ro": van_khong_ro}
+
+
+def ky_khong_ro_list() -> list:
+    """File không suy được kỳ — phải hiện ra để người ta đi sửa tên file/sidecar, thay vì để nó
+    lặng lẽ vắng mặt trong mọi kết quả lọc theo kỳ."""
+    return [{"file": e.get("file"), "report_type": e.get("report_type"), "company": e.get("company"),
+             "year": e.get("year"), "period_type": e.get("period_type")}
+            for e in _load().values() if e.get("ky_khong_ro")]
+
+
 def search(query: str = None, company: str = None, canonical_kind: str = None,
            sheet: str = None, only_uningested: bool = False,
-           month=None, report_type: str = None) -> list:
+           month=None, report_type: str = None, year=None, ky: str = None) -> list:
     """Tìm trong catalog (không mở file). Lọc theo tên/công ty/kỳ/loại báo cáo/sheet.
 
     `query` tách thành TỪ KHOÁ theo khoảng trắng và phải khớp HẾT (AND), mỗi từ khoá khớp khi
@@ -271,6 +391,15 @@ def search(query: str = None, company: str = None, canonical_kind: str = None,
         thang = int(month) if month not in (None, "") else None
     except (TypeError, ValueError):
         thang = None
+    try:
+        nam = int(year) if year not in (None, "") else None
+    except (TypeError, ValueError):
+        nam = None
+    ky_loc = (ky or "").strip() or None
+    if ky_loc and nam is None and thang is None:      # 'YYYY-MM' -> tách sẵn để lọc file cũ chưa có `ky`
+        m = re.fullmatch(r"(\d{4})[-/.](\d{1,2})", ky_loc)
+        if m:
+            nam, thang = int(m.group(1)), int(m.group(2))
     out = []
     for e in _load().values():
         if only_uningested and e.get("ingested"):
@@ -278,6 +407,8 @@ def search(query: str = None, company: str = None, canonical_kind: str = None,
         if cmp_ and cmp_ not in _norm(e.get("company")):
             continue
         if thang is not None and e.get("month") != thang:
+            continue
+        if nam is not None and e.get("year") != nam:
             continue
         if rt and rt not in _norm(e.get("report_type")):
             continue
