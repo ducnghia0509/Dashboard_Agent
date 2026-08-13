@@ -71,6 +71,23 @@ có chỉ tiêu này** trước khi cộng — đừng đếm tay danh sách đ�
 - `chi_muc_trang_thai()` — chỉ mục đã dựng chưa + file nào không rõ kỳ.
 - `discovery_search` / `report_spec_search` — mapping đã học cho sheet lạ (`GEN_*`).
 
+## Đơn vị: `nhom=` chứ không phải `company=`
+
+`company` là **pháp nhân** — 176/370 file đều ra `TC`, nên `company="SRVF"` trả **rỗng**. Chiều mà
+người dùng thật sự hỏi ("bên SR VF thế nào", "xưởng dịch vụ tháng này") là **thư mục nguồn**, lọc
+bằng `nhom=`:
+
+`SRVF` (showroom Vinfast, 91 file) · `XDV` (xưởng dịch vụ) · `DUAN` · `TRAMSAC` · `HO` ·
+`ANTAXI` · `ANKHACHSAN` · `GLOBALAI` · `XANHVINHPHUC` · `HTXXANHTUYENQUANG` ·
+`HTXXANHVINHPHUC` · `HUNGTHINH` · `THUCHI` · `KEHOACH`
+
+`nhom=` nhận cả cách gõ tự nhiên ("SR VF", "xưởng dịch vụ"). Không chắc thì gọi `so_do_to_chuc(<tên
+người dùng gõ>)` — trường `nhom_nguon.khop_duoc` trả về đúng mã.
+
+**Trước khi kết luận "không có dữ liệu" cho một đơn vị, BẮT BUỘC thử `nhom=`.** Đã trả lời sai
+13/08/2026: nói SR VF không có file vận hành/hiệu quả kinh doanh nào, trong khi thư mục SRVF có 91
+file gồm cả báo cáo ngày HQKD, 13 báo cáo KQKD, kế hoạch, claim.
+
 ## Quy tắc kỳ
 
 - Người dùng **không nêu kỳ** → dùng kỳ **đã chốt gần nhất** và **nói rõ đang dùng kỳ nào**.

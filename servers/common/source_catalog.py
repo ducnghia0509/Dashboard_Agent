@@ -62,6 +62,10 @@ def _file_key(path: str) -> str:
 # Cứu được 2 file mà sidecar bỏ trống (đều đang bị catalog_search bỏ sót):
 #   B.4.TC.TCKT.M.20267.Baocaotuoinophaithu.xlsx  -> 2026-07  (thiếu zero-pad)
 #   B.4.TC.TCKT.D.20268.BaocaoHQKD.xlsx           -> 2026-08
+# Ngày dính liền: 'D.20260801' = 2026-08-01. Phải đặt TRƯỚC các mẫu khác, nếu không '(\d{4})(\d{1,2})'
+# sẽ ăn '2026'+'08' rồi vướng '01' còn lại và trượt cả cụm -> ky=None (đã xảy ra với 3 file báo cáo
+# ngày của Trạm sạc / HO / Global AI, 13/08/2026).
+_RE_KY_NGAY_LIEN = re.compile(r"(?<![A-Za-z0-9])([MDYW])\.?(\d{4})(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])(?![0-9])")
 _RE_KY_CHAM = re.compile(r"(?<![A-Za-z0-9])([MDYW])\.(\d{4})\.(\d{1,2})(?![0-9])")
 # `\d{1,2}` chứ KHÔNG phải `0[1-9]|1[0-2]`: chính file cần cứu ghi thiếu zero-pad ('M.20267').
 # Ràng 1..12 làm ở dưới, không làm bằng regex.
@@ -86,6 +90,11 @@ def ky_tu_ten_file(name) -> dict:
     m = _RE_HAU_TO_KY.search(base)
     if m and 1 <= int(m.group(1)) <= 12:
         thang = int(m.group(1))
+
+    m = _RE_KY_NGAY_LIEN.search(base)
+    if m and 2000 <= int(m.group(2)) <= 2099:
+        return {"year": int(m.group(2)), "month": int(m.group(3)),
+                "period_type": _LOAI_KY.get(m.group(1))}
 
     for rx in (_RE_KY_CHAM, _RE_KY_LIEN):
         m = rx.search(base)
@@ -112,6 +121,41 @@ def ky_tu_ten_file(name) -> dict:
         if m:
             nam = int(m.group(1))
     return {"year": nam, "month": thang, "period_type": loai}
+
+
+# Thư mục nguồn (SRVF/DUAN/TRAMSAC/HO/XDV/ANTAXI/GLOBALAI…) là chiều mà người dùng THẬT SỰ hỏi
+# ("bên SR VF thế nào"), nhưng `company` lại resolve mọi thứ về pháp nhân — 176/370 file đều ra 'TC'.
+# Không có chiều này thì `catalog_search(company="SRVF")` rỗng và agent kết luận "không có dữ liệu"
+# trong khi thư mục SRVF/ có 91 file (đã xảy ra thật 13/08/2026).
+_ALIAS_NHOM = {
+    "SRVF": ["sr vf", "srvf", "showroom vinfast", "showroom", "sr"],
+    "XDV": ["xdv", "xuong dich vu", "xuong"],
+    "DUAN": ["duan", "du an", "khoi du an"],
+    "TRAMSAC": ["tramsac", "tram sac", "vgreen", "v-green"],
+    "HO": ["ho", "ho tro tap doan", "hoi so"],
+    "ANTAXI": ["antaxi", "an taxi"],
+    "ANKHACHSAN": ["ankhachsan", "an khach san", "an ks", "khach san"],
+    "GLOBALAI": ["globalai", "global ai"],
+    "XANHVINHPHUC": ["xanhvinhphuc", "xanh vinh phuc"],
+    "HTXXANHTUYENQUANG": ["htxxanhtuyenquang", "htx tuyen quang", "xanh tuyen quang"],
+    "HTXXANHVINHPHUC": ["htxxanhvinhphuc", "htx vinh phuc", "xanh vinh phuc"],
+    "HUNGTHINH": ["hungthinh", "hung thinh"],
+    "THUCHI": ["thuchi", "thu chi"],
+    "KEHOACH": ["kehoach", "ke hoach"],
+}
+
+
+def nhom_tu_alias(text) -> list:
+    """Suy mã nhóm nguồn từ cách người dùng gõ ('SR VF' -> SRVF)."""
+    t = _norm(text)
+    if not t:
+        return []
+    ra = [ma for ma, alias in _ALIAS_NHOM.items()
+          if _norm(ma) == t or any(_norm(a) == t for a in alias)]
+    if ra:
+        return ra
+    return [ma for ma, alias in _ALIAS_NHOM.items()
+            if any(_norm(a) in t for a in alias if len(a) > 3)]
 
 
 def _gan_ky(file_name: str, side: dict) -> dict:
@@ -228,6 +272,7 @@ def index_file(path: str) -> dict:
         "ingested": False,
     }
     entry.update(_gan_ky(entry["file"], side))
+    entry["nhom_nguon"] = raw_company_from_path(path)
     wb = bb.fast_load_workbook(path, read_only=True, data_only=True)
     try:
         for ws in wb.worksheets:
@@ -355,6 +400,7 @@ def backfill_ky() -> dict:
             side = _sidecar(e.get("path") or "")
             truoc = e.get("month")
             e.update(_gan_ky(e.get("file") or "", side))
+            e["nhom_nguon"] = raw_company_from_path(e.get("path") or "")
             if e.get("month") != truoc:
                 thay_doi.append({"file": e.get("file"), "truoc": truoc, "sau": e.get("ky")})
             if e.get("ky_khong_ro"):
@@ -373,7 +419,8 @@ def ky_khong_ro_list() -> list:
 
 def search(query: str = None, company: str = None, canonical_kind: str = None,
            sheet: str = None, only_uningested: bool = False,
-           month=None, report_type: str = None, year=None, ky: str = None) -> list:
+           month=None, report_type: str = None, year=None, ky: str = None,
+           nhom: str = None) -> list:
     """Tìm trong catalog (không mở file). Lọc theo tên/công ty/kỳ/loại báo cáo/sheet.
 
     `query` tách thành TỪ KHOÁ theo khoảng trắng và phải khớp HẾT (AND), mỗi từ khoá khớp khi
@@ -395,6 +442,9 @@ def search(query: str = None, company: str = None, canonical_kind: str = None,
         nam = int(year) if year not in (None, "") else None
     except (TypeError, ValueError):
         nam = None
+    nhom_loc = set(nhom_tu_alias(nhom)) if nhom else None
+    if nhom and not nhom_loc:                       # gõ thẳng mã thư mục
+        nhom_loc = {str(nhom).strip().upper()}
     ky_loc = (ky or "").strip() or None
     if ky_loc and nam is None and thang is None:      # 'YYYY-MM' -> tách sẵn để lọc file cũ chưa có `ky`
         m = re.fullmatch(r"(\d{4})[-/.](\d{1,2})", ky_loc)
@@ -409,6 +459,8 @@ def search(query: str = None, company: str = None, canonical_kind: str = None,
         if thang is not None and e.get("month") != thang:
             continue
         if nam is not None and e.get("year") != nam:
+            continue
+        if nhom_loc and (e.get("nhom_nguon") or "").upper() not in nhom_loc:
             continue
         if rt and rt not in _norm(e.get("report_type")):
             continue
