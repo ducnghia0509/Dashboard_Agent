@@ -409,6 +409,36 @@ def backfill_ky() -> dict:
     return {"tong": len(cat), "da_sua": thay_doi, "van_khong_ro": van_khong_ro}
 
 
+def ky_da_chot(report_type: str = None) -> dict:
+    """Kỳ ĐÃ CHỐT gần nhất + kỳ mới nhất (có thể chưa chốt), suy từ SỐ FILE mỗi kỳ.
+
+    Vì sao cần: người dùng thường không nêu kỳ. Nếu để agent tự quyết, nó sẽ đi HỎI LẠI — mà câu
+    hỏi lại không giúp gì cho người xem dashboard, họ chỉ muốn số. Trả sẵn giá trị cụ thể ở đây thì
+    agent có cái để dùng ngay, thay vì có một luật để bỏ qua.
+
+    Kỳ mới nhất thường chưa chốt (file đang về dần): T08 có 28 file trong khi trung vị ~47. Coi là
+    ĐÃ CHỐT khi số file đạt >= 70% trung vị các kỳ trước.
+    """
+    from collections import Counter
+    ds = search(report_type=report_type) if report_type else search()
+    dem = Counter(e["ky"] for e in ds if e.get("ky"))
+    if not dem:
+        return {"ky_da_chot": None, "ky_moi_nhat": None, "ly_do": "catalog chưa có kỳ nào"}
+    cac_ky = sorted(dem)
+    so = sorted(dem.values())
+    trung_vi = so[len(so) // 2]
+    nguong = max(1, int(trung_vi * 0.7))
+    da_chot = [k for k in cac_ky if dem[k] >= nguong]
+    return {
+        "ky_da_chot": da_chot[-1] if da_chot else cac_ky[-1],
+        "ky_moi_nhat": cac_ky[-1],
+        "so_file_moi_ky": dict(dem),
+        "nguong_coi_la_chot": nguong,
+        "ly_do": (f"kỳ mới nhất {cac_ky[-1]} có {dem[cac_ky[-1]]} file, "
+                  f"ngưỡng coi là đã chốt là {nguong} (70% trung vị {trung_vi})"),
+    }
+
+
 def ky_khong_ro_list() -> list:
     """File không suy được kỳ — phải hiện ra để người ta đi sửa tên file/sidecar, thay vì để nó
     lặng lẽ vắng mặt trong mọi kết quả lọc theo kỳ."""
