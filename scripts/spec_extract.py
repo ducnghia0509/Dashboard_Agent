@@ -243,10 +243,79 @@ def _kh_dong(nhan):
     return {"dim1": got[0], "dim2": got[1]} if got else {}
 
 
+# Dòng CHỈ TIÊU TỔNG của bản kế hoạch XDV (sheet "KHDT XHD" mục IV, V): nhãn nằm NGAY ở cột B của
+# chính dòng có số, không có dòng tiêu đề riêng như mục I.1/I.2/II/III — nên không dùng
+# `ngu_canh_dong` được (dòng tiêu đề không tự sinh bản ghi).
+# THỨ TỰ QUAN TRỌNG: "kehoachtongchiphi" là TIỀN TỐ của "kehoachtongchiphivanhanh…", so kiểu
+# "chứa" mà xét CP_TONG trước là mục V bị gán nhầm thành CP_TONG rồi hai dòng đè nhau.
+_XDV_KH_CHI_TIEU = (
+    ("kehoachtongchiphivanhanh", "CP_VH"),
+    ("kehoachtongchiphi", "CP_TONG"),
+)
+
+
+def _xdv_kh_dong(nhan):
+    """Cột B bản kế hoạch XDV -> chỉ tiêu tổng (mục IV/V) HOẶC xưởng.
+
+    `dim2` là cờ phân tầng, BẮT BUỘC có để `loc` giữ được đúng dòng thật:
+      · "Tổng"  — dòng cấp khối (mục IV/V, và dòng "Cộng" bắt ở cột A bởi `_xdv_kh_cong`)
+      · "Xưởng" — dòng chi tiết theo cost center
+    Không có cờ này thì mấy ô rác lạc giữa sheet (vd ô "1" ở H45 sheet "KHDT RO") vẫn mang dim1
+    thừa hưởng từ ngữ cảnh mục đang mở và lọt vào DB thành một dòng kế hoạch vô nghĩa.
+    """
+    n = _nd(nhan)
+    for key, ma in _XDV_KH_CHI_TIEU:
+        if key in n:
+            return {"dim1": ma, "dim2": "Tổng"}
+    res = _cc_xdv(nhan)
+    if res.get("cost_center"):
+        res["dim2"] = "Xưởng"
+    return res
+
+
+# Sheet "CT Vận hành" của bản kế hoạch XDV — NGƯỠNG MỤC TIÊU vận hành T7..T12, nhãn ở cột B.
+# CHỈ khai 5 chỉ tiêu KHÔNG trùng nguồn khác. 6 dòng đầu sheet (doanh thu, sản lượng, lợi nhuận
+# gộp, LNST, doanh số & sản lượng lệnh nghiệm thu) lặp lại y hệt số của "KHDT XHD"/"KHDT RO" đã
+# nạp thành XDV_KH*/XDV_KH_RO* — nạp thêm là tạo hai nguồn cho cùng một con số, sớm muộn lệch nhau.
+# Khớp kiểu "chứa" sau `_nd`, nên chịu được cả lỗi gõ "Gía trị" lẫn đuôi giải thích dài trong ngoặc.
+_XDV_CT_DONG = (
+    ("giatrilenhnghiemthuchuaxuathoadon", "RO_CHUA_XHD"),
+    ("lenhnghiemthuchuaxuathoadon30ngay", "RO_CHUA_XHD_30"),
+    ("lenhsuachua10ngaychuanghiemthu", "LSC_10N"),
+    ("giatribinhquandonhang", "BQ_DON"),
+    ("nangsuatld", "NSLD"),
+)
+
+
+def _xdv_ct_dong(nhan):
+    """Cột B sheet "CT Vận hành" -> mã ngưỡng. Dòng không khai -> {} (giữ nguyên, `loc` sẽ loại).
+
+    Trả `{}` chứ KHÔNG trả None: hook trả dict thì engine gộp khoá rồi bỏ qua, nên dòng lạ không
+    bị ghi đè dim1 thành None và cũng không sinh cảnh báo "không map được" vô nghĩa.
+    """
+    n = _nd(nhan)
+    for key, ma in _XDV_CT_DONG:
+        if key in n:
+            return {"dim1": ma, "dim2": "Tổng"}
+    return {}
+
+
+def _xdv_kh_cong(v):
+    """Cột A -> đánh dấu dòng "Cộng" (tổng khối) của từng mục.
+
+    Dòng tổng của bản kế hoạch XDV ghi chữ "Cộng" ở cột A và BỎ TRỐNG cột B (khác hẳn các dòng
+    xưởng). Mục III (lợi nhuận sau thuế) CHỈ có đúng dòng này — bỏ qua là mất trắng cả mục.
+    """
+    return {"dim2": "Tổng"} if _nd(v) in ("cong", "tong", "tongcong") else {}
+
+
 _CHUAN_HOA = {
     "sr_showroom": _cc_showroom,
     "xdv": _cc_xdv,
     "kh_dong": _kh_dong,
+    "xdv_kh_dong": _xdv_kh_dong,
+    "xdv_kh_cong": _xdv_kh_cong,
+    "xdv_ct_dong": _xdv_ct_dong,
     "hoa": lambda v: str(v or "").strip().upper() or None,
     "cat": lambda v: str(v or "").strip() or None,
 }
@@ -835,8 +904,15 @@ def extract_file(spec, path):
                 j1 = column_index_from_string(nc_thang.get("tu", "G")) - 1
                 j2 = column_index_from_string(nc_thang.get("den", "R")) - 1
                 hdr_row = head_rows[(hdr_dong[-1] if isinstance(hdr_dong, list) else hdr_dong) - 1]
+                # `regex` (tuỳ chọn, 13/08/2026): bản kế hoạch XDV không ghi tiêu đề cột trần là
+                # "Tháng 1" mà kèm tên chỉ tiêu — "Sản lượng Tháng 1", "Doanh thu Tháng 1", "Lợi
+                # nhuận gộp\nTháng 1" (mỗi mục trong sheet một kiểu). Mặc định giữ nguyên khớp
+                # CHẶT `^thang\d+$` để các spec đang chạy không đổi hành vi; spec nào cần thì nới
+                # thành `thang(\d{1,2})$`. Vẫn chỉ dò trong dải cột `tu`..`den`, nên "Tổng 6 tháng
+                # đầu năm" (không kết thúc bằng số) và các cột tổng khác không lọt vào.
+                re_thang = re.compile(nc_thang.get("regex") or r"^thang(\d{1,2})$")
                 for j in range(j1, j2 + 1):
-                    m = re.match(r"^thang(\d{1,2})$", _nd(hdr_row[j] if j < len(hdr_row) else None))
+                    m = re_thang.search(_nd(hdr_row[j] if j < len(hdr_row) else None))
                     if not m or not 1 <= int(m.group(1)) <= 12:
                         continue
                     mo = int(m.group(1))

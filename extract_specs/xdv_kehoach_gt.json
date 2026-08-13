@@ -1,0 +1,65 @@
+{
+  "id": "xdv_kehoach_gt",
+  "_mo_ta": "KẾ HOẠCH GIÁ TRỊ khối Vinfast - XDV theo tháng × xưởng (sheet 'KHDT XHD'): doanh thu xuất hoá đơn (I.2), lợi nhuận gộp (II), lợi nhuận sau thuế (III), tổng chi phí (IV), chi phí vận hành trừ giá vốn (V). Nguồn Nextcloud: 0.BANLANHDAO/Kehoachnam2026/2.XDV.OO.M.<yyyymm>.Kehoachthang.xlsx.",
+  "_bay": [
+    "BẢN FILE 10/08/2026 LÀ BẢN SAO CỦA SHOWROOM — đừng lấy nhầm. Bản đúng của khối xưởng về 12/08/2026 15:37, nhận biết bằng SHEET: bản sai có sheet 'KHDT'/'KHngày' y hệt file SR, bản đúng có 'KHDT RO'/'KHDT XHD'/'KHT8ngày'. `kiem_tra_o` bên dưới chốt đúng bản này; gặp lại bản cũ thì spec BỎ QUA kèm cảnh báo chứ không nạp số Showroom vào khối XDV.",
+    "GLOB PHẢI GHIM '2.XDV.' — cùng thư mục còn có '1.SR.*.Kehoachthang.xlsx' của Showroom (spec vhkd_kehoach_gt/_sl). Dùng '*.Kehoachthang.xlsx' là hai khối nạp chéo nhau.",
+    "MỘT file cấp kế hoạch cho CẢ 12 THÁNG — kỳ KHÔNG lấy theo tên file, chỉ lấy NĂM. '202608' chỉ là kỳ phát hành.",
+    "TIÊU ĐỀ CỘT THÁNG KHÔNG TRẦN: mỗi mục ghi một kiểu ('Doanh thu Tháng 1', 'Lợi nhuận gộp\\nTháng 1'). Phải nới `cot_thang.regex` thành 'thang(\\\\d{1,2})$'; khớp chặt '^thang\\\\d+$' như mặc định là dựng được 0 cột và spec bỏ qua cả file.",
+    "MỘT SHEET CHỨA 5 MỤC dùng CHUNG một dòng tiêu đề (dòng 8). Mục I.1/I.2/II/III mở bằng dòng tiêu đề riêng (cột A = số mục, cột C RỖNG) -> bắt bằng `ngu_canh_dong`. Mục IV/V thì nhãn nằm NGAY TRÊN DÒNG CÓ SỐ (cột C có số) -> bắt bằng hook `xdv_kh_dong` ở cột B. Điều kiện 'cột C rỗng' là thứ tách hai loại; bỏ nó là mục IV/V bị coi là dòng tiêu đề và mất sạch.",
+    "MỤC I.1 (sản lượng, đơn vị LỆNH) nằm cùng sheet nhưng KHÔNG thuộc spec này — he_so tiền 1e-9 sẽ biến 14.480 lệnh thành 0,00001447. Đã chặn bằng `loc` liệt kê đúng 5 mã chỉ tiêu tiền; sản lượng do spec `xdv_kehoach_sl` (report_type riêng) lo.",
+    "DÒNG TỔNG ghi 'Cộng' ở CỘT A và BỎ TRỐNG cột B (khác mọi dòng xưởng) -> phải đọc thêm cột A bằng hook `xdv_kh_cong`. Mục III (lợi nhuận sau thuế) CHỈ có đúng dòng này, không có chi tiết theo xưởng.",
+    "Dòng khối (dim2='Tổng') và dòng xưởng (dim2='Xưởng') CÙNG nằm trong một report_type -> khi đọc phải chọn một tầng, cộng cả hai là đếm đôi. Chỉ tiêu tổng luôn lấy dòng 'Cộng', đừng cộng 14 xưởng (quy tắc chung, xem app/metrics/xdv.py).",
+    "Mục 'I.2 KẾ HOẠCH DOANH SỐ LỆNH NGHIỆM THU' ở CUỐI sheet (dòng 70) là khung RỖNG — anh_xa cố ý không khai nên dim1 = None và mọi dòng dưới nó bị loại. Số thật của chỉ tiêu đó nằm ở sheet 'KHDT RO' (spec xdv_kehoach_ro_gt)."
+  ],
+  "_kiem_chung": [
+    "T8/2026 — LNG (lợi nhuận gộp) dòng Cộng = 16,5 tỷ; DT_XHD = 46,194525456 tỷ (khớp đúng kế hoạch tổng B100 của XDV_DTHU, xem vhkd-kehoach-thang-2026-08-10).",
+    "6 tháng cuối năm: Σ LNG T7..T12 = 101,24 tỷ, khớp ô 'Mục tiêu 6 tháng cuối năm' của sheet 'Chỉ tiêu theo YC BĐH' trong Mapping_Dashboard_XDV.xlsx.",
+    "Σ 14 xưởng T8 = dòng Cộng T8 ở cả I.2 và II (file tự nhất quán ở hai mục này)."
+  ],
+  "report_type": "XDV_KH",
+  "row_index_base": 7700000,
+  "khoi": "Khối KD Vinfast - XDV",
+  "nguon": {
+    "folder": "KEHOACH/baocaokehoachthang",
+    "file_glob": "2.XDV.*.Kehoachthang.xlsx",
+    "sheet": { "ten": "KHDT XHD" }
+  },
+  "header": { "dong": 8 },
+  "dong_bat_dau": 9,
+  "kiem_tra_o": [
+    { "o": "A6", "bang": "ĐĂNG KÝ KẾ HOẠCH DOANH THU" },
+    { "o": "B43", "bang": "KẾ HOẠCH LỢI NHUẬN GỘP" }
+  ],
+  "ngu_canh_dong": [
+    {
+      "khi": [
+        { "cot": "A", "dieu_kien": "regex", "gia_tri": "^\\s*(I\\.1|I\\.2|II|III)\\s*$" },
+        { "cot": "C", "dieu_kien": "rong" }
+      ],
+      "xoa": ["dim1", "dim2", "cost_center", "cong_ty"],
+      "gan": {
+        "dim1": {
+          "cot": "B",
+          "anh_xa": {
+            "KẾ HOẠCH DOANH THU XUẤT HÓA ĐƠN": "DT_XHD",
+            "KẾ HOẠCH LỢI NHUẬN GỘP": "LNG",
+            "KẾ HOẠCH LỢI NHUẬN SAU THUẾ": "LNST"
+          }
+        }
+      }
+    }
+  ],
+  "cot": {
+    "cost_center": { "header": "XDV", "chuan_hoa": "xdv_kh_dong" },
+    "dim2": { "header": "STT", "chuan_hoa": "xdv_kh_cong" }
+  },
+  "ban_ghi": "moi_cot_thang",
+  "cot_thang": { "tu": "F", "den": "Q", "he_so": 1e-9, "regex": "thang(\\d{1,2})$" },
+  "loc": [
+    { "cot": "dim1", "dieu_kien": "thuoc",
+      "gia_tri": ["DT_XHD", "LNG", "LNST", "CP_TONG", "CP_VH"] },
+    { "cot": "dim2", "dieu_kien": "khac_rong" }
+  ],
+  "payload_them": { "unit": "ty", "loai": "kehoach" }
+}

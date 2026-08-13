@@ -1,0 +1,48 @@
+{
+  "id": "xdv_kehoach_ro_sl",
+  "_mo_ta": "KẾ HOẠCH SẢN LƯỢNG LỆNH NGHIỆM THU (số RO) khối Vinfast - XDV — sheet 'KHDT RO' mục I.1. Mẫu số của chỉ tiêu 'doanh thu bình quân/RO mục tiêu' (mapping XDV #12).",
+  "_bay": [
+    "Lệch có chủ đích ~1% so với `XDV_KH_SL` (sản lượng theo xuất hoá đơn): file ghi rõ 'nhân theo tỷ lệ 101%' ở sheet 'CT Vận hành'. Dùng đúng vế: so với RO nghiệm thu thì lấy bản này, so với lượt xuất hoá đơn thì lấy XDV_KH_SL.",
+    "he_so = 1 (số lệnh RO). Xem đủ bẫy chung ở `xdv_kehoach_gt.json`."
+  ],
+  "_kiem_chung": [
+    "T8 dim2='Tổng' = 14.641 RO; Σ T7..T12 = 94.039 — khớp ô 'Cộng' cột 'Tổng 6 tháng cuối năm' của mục I.1."
+  ],
+  "report_type": "XDV_KH_RO_SL",
+  "row_index_base": 7730000,
+  "khoi": "Khối KD Vinfast - XDV",
+  "nguon": {
+    "folder": "KEHOACH/baocaokehoachthang",
+    "file_glob": "2.XDV.*.Kehoachthang.xlsx",
+    "sheet": { "ten": "KHDT RO" }
+  },
+  "header": { "dong": 8 },
+  "dong_bat_dau": 7,
+  "kiem_tra_o": [
+    { "o": "A6", "bang": "ĐĂNG KÝ KẾ HOẠCH DOANH THU" },
+    { "o": "B7", "bang": "KẾ HOẠCH SẢN LƯỢNG RO" }
+  ],
+  "ngu_canh_dong": [
+    {
+      "khi": [
+        { "cot": "A", "dieu_kien": "regex", "gia_tri": "^\\s*(I\\.1|I\\.2|II|III)\\s*$" },
+        { "cot": "C", "dieu_kien": "rong" }
+      ],
+      "xoa": ["dim1", "dim2", "cost_center", "cong_ty"],
+      "gan": {
+        "dim1": { "cot": "B", "anh_xa": { "KẾ HOẠCH SẢN LƯỢNG RO": "SL_RO" } }
+      }
+    }
+  ],
+  "cot": {
+    "cost_center": { "header": "XDV", "chuan_hoa": "xdv_kh_dong" },
+    "dim2": { "header": "STT", "chuan_hoa": "xdv_kh_cong" }
+  },
+  "ban_ghi": "moi_cot_thang",
+  "cot_thang": { "tu": "F", "den": "Q", "he_so": 1.0, "regex": "thang(\\d{1,2})$" },
+  "loc": [
+    { "cot": "dim1", "dieu_kien": "bang", "gia_tri": "SL_RO" },
+    { "cot": "dim2", "dieu_kien": "khac_rong" }
+  ],
+  "payload_them": { "unit": "ro", "loai": "kehoach" }
+}

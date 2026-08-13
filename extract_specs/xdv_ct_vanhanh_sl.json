@@ -1,0 +1,35 @@
+{
+  "id": "xdv_ct_vanhanh_sl",
+  "_mo_ta": "NGƯỠNG MỤC TIÊU VẬN HÀNH tính bằng SỐ LỆNH — sheet 'CT Vận hành', dòng 'Lệnh sửa chữa >10 ngày chưa nghiệm thu'. Vế mục tiêu cho khối lệnh tồn của màn xdv4.",
+  "_bay": [
+    "Tách khỏi `xdv_ct_vanhanh_gt` CHỈ vì đơn vị: `cot_thang.he_so` mỗi spec một giá trị, mà dòng này đếm LỆNH còn 4 dòng kia là tiền. Để chung là 289 lệnh biến thành 0,000000289 tỷ.",
+    "Cùng report_type với spec kia cũng không được: `_ghi` xoá theo (report_type, source_file), hai spec cùng report_type trên cùng file thì cái chạy sau xoá sạch dữ liệu cái chạy trước.",
+    "Xem đủ bẫy chung ở `xdv_ct_vanhanh_gt.json`."
+  ],
+  "_kiem_chung": [
+    "T7..T12 đều = 288,9 lệnh — file để số LẺ (trung bình 6 tháng đầu năm 412,7 giảm 30%), sheet chỉ hiển thị làm tròn 289. Giữ nguyên số lẻ, làm tròn là việc của giao diện."
+  ],
+  "report_type": "XDV_KH_CT_SL",
+  "row_index_base": 7750000,
+  "khoi": "Khối KD Vinfast - XDV",
+  "nguon": {
+    "folder": "KEHOACH/baocaokehoachthang",
+    "file_glob": "2.XDV.*.Kehoachthang.xlsx",
+    "sheet": { "ten": "CT Vận hành" }
+  },
+  "header": { "dong": 4 },
+  "dong_bat_dau": 5,
+  "kiem_tra_o": [
+    { "o": "C1", "bang": "ĐĂNG KÝ CHỈ TIÊU VẬN HÀNH" },
+    { "o": "B15", "bang": "Lệnh sửa chữa >10 ngày chưa nghiệm thu" }
+  ],
+  "cot": {
+    "dim1": { "header": "Kế hoạch/Mục tiêu cần đạt", "chuan_hoa": "xdv_ct_dong" }
+  },
+  "ban_ghi": "moi_cot_thang",
+  "cot_thang": { "tu": "F", "den": "K", "he_so": 1.0 },
+  "loc": [
+    { "cot": "dim1", "dieu_kien": "bang", "gia_tri": "LSC_10N" }
+  ],
+  "payload_them": { "unit": "lenh", "loai": "muc_tieu" }
+}
