@@ -199,6 +199,55 @@ def _nhay_cam(report_type) -> bool:
     return (report_type or "") in _REPORT_NHAY_CAM
 
 
+def _goi_y_khi_rong(query=None, company=None, nhom=None, report_type=None,
+                    ky=None, month=None, year=None) -> dict:
+    """Khi kết quả RỖNG, trả gợi ý cụ thể NGAY TRONG PAYLOAD — đừng để model tự suy ra là
+    "không có dữ liệu".
+
+    Vì sao ở đây chứ không phải trong SKILL: đã đo hai lần (12/08 và 13/08/2026) rằng luật viết
+    trong SKILL.md không được thi hành. 13/08 agent trả lời "SR VF không có file vận hành/hiệu quả
+    kinh doanh nào" trong khi thư mục SRVF có 91 file — nó gọi `company="SRVF"` (pháp nhân, luôn
+    rỗng) thay vì `nhom="SRVF"`, dù SKILL đã ghi rõ. Gợi ý phải nằm cạnh chính kết quả rỗng.
+    """
+    from .common import source_catalog as sc
+
+    g = {"vi_sao_rong": "Không file nào khớp TẤT CẢ điều kiện đã lọc."}
+    # Người dùng gõ tên nhóm nhưng lọc nhầm chiều -> chỉ đúng chiều cần dùng.
+    for nhan, gia_tri in (("company", company), ("query", query)):
+        ma = sc.nhom_tu_alias(gia_tri) if gia_tri else []
+        if ma:
+            n = len(sc.search(nhom=ma[0]))
+            g["thu_lai_voi"] = (f"`{nhan}={gia_tri!r}` là chiều SAI. '{gia_tri}' là NHÓM NGUỒN "
+                                f"(thư mục), không phải pháp nhân — gọi lại với `nhom='{ma[0]}'` "
+                                f"({n} file).")
+            break
+    if (report_type and "kehoach" in str(report_type).lower()) or \
+            (query and "ke hoach" in _norm(query)):
+        n = len(sc.search(nhom="KEHOACH"))
+        g["ke_hoach_o_nhom_khac"] = (
+            f"File KẾ HOẠCH nằm ở `nhom='KEHOACH'` ({n} file), KHÔNG nằm trong nhóm của đơn vị. "
+            f"Kế hoạch tháng showroom = `1.SR.OO.M.<YYYYMM>.Kehoachthang.xlsx`, "
+            f"xưởng dịch vụ = `2.XDV.OO.M.<YYYYMM>.Kehoachthang.xlsx`.")
+    if not nhom and not company:
+        g["chieu_hay_bi_bo_quen"] = ("`nhom=` (thư mục nguồn: SRVF/XDV/DUAN/TRAMSAC/HO/ANTAXI/"
+                                     "ANKHACHSAN/GLOBALAI/HUNGTHINH/…) — đây là chiều người dùng "
+                                     "hay hỏi nhất và KHÔNG suy ra được từ `company`.")
+    # Nới từng điều kiện để chỉ ra cái nào đang chặn.
+    thu = {}
+    if report_type:
+        thu["bo_ky"] = len(sc.search(report_type=report_type, nhom=nhom, company=company))
+    if ky or month or year:
+        thu["bo_report_type"] = len(sc.search(ky=ky, month=month, year=year,
+                                              nhom=nhom, company=company))
+    if nhom:
+        thu["chi_loc_nhom"] = len(sc.search(nhom=nhom))
+    if thu:
+        g["neu_noi_dieu_kien"] = thu
+    g["nhac"] = ("Chỉ được kết luận 'chưa có dữ liệu' SAU KHI đã thử `nhom=` và nới kỳ. "
+                 "Kết luận sai kiểu này đã xảy ra thật.")
+    return g
+
+
 def _hop_le_so(v):
     """Phân biệt 0 THẬT / ô rỗng / lỗi công thức. Quy tất cả về 0 là cách hỏng âm thầm đã gặp
     nhiều lần: '-' và '#REF!' bị coi là 0 rồi báo 'đơn vị không phát sinh'."""
@@ -311,7 +360,8 @@ def pipeline_state() -> dict:
 def catalog_search(query: str = None, company: str = None, canonical_kind: str = None,
                    sheet: str = None, only_uningested: bool = False,
                    month: int = None, report_type: str = None,
-                   year: int = None, ky: str = None) -> dict:
+                   year: int = None, ky: str = None, nhom: str = None,
+                   gioi_han: int = 25, chi_tiet_sheet: bool = False) -> dict:
     """Tra CATALOG toàn bộ file đã kéo về (Connect_VPS/received_reports) — con trỏ lossless,
     trả lời 'có file/sheet/cột nào' tức thì (kể cả file CHƯA import). Không mở file.
 
@@ -321,30 +371,64 @@ def catalog_search(query: str = None, company: str = None, canonical_kind: str =
     'M.202607' — đủ để kết luận sai rằng cả tập đoàn chỉ có một báo cáo (12/08/2026).
     Đúng cách: catalog_search(report_type="baocaotaichinhrieng", month=7) -> đủ 11 đơn vị.
 
+    **`nhom=` LÀ CHIỀU HAY ĐƯỢC HỎI NHẤT** — thư mục nguồn: SRVF (showroom Vinfast) · XDV (xưởng
+    dịch vụ) · DUAN · TRAMSAC · HO · ANTAXI · ANKHACHSAN · GLOBALAI · XANHVINHPHUC ·
+    HTXXANHTUYENQUANG · HTXXANHVINHPHUC · HUNGTHINH · THUCHI · KEHOACH. Nhận cả cách gõ tự nhiên
+    ("SR VF", "xưởng dịch vụ").
+    ĐỪNG dùng `company=` cho các nhóm này: `company` là PHÁP NHÂN nên 176/370 file đều ra 'TC' —
+    `company="SRVF"` trả RỖNG trong khi thư mục SRVF có 91 file.
+
     DÙNG `ky='YYYY-MM'` khi có thể: `month` một mình KHÔNG định danh được kỳ — catalog đang có
     file 12/2025 nằm cạnh file 2026, nên `month=12` gom cả hai năm.
 
     `query` chỉ dành cho phần TÊN không đoán trước được; nhiều từ khoá thì phải khớp hết.
 
-    Trả {"results": [...], "count": n} — mỗi mục: file, path, company, report_type, month,
-    ingested, sheets:[{name,columns,nrows,canonical_kind}]. Định vị được file rồi dùng
-    source_inspect đọc chi tiết ô gốc.
+    Trả {"results": [...], "count": n, "tom_tat": {...}} — `count` là TỔNG số file khớp, `results`
+    chỉ chứa `gioi_han` file đầu (mặc định 25). `tom_tat` gom theo report_type / kỳ / nhóm nguồn
+    trên TOÀN BỘ kết quả: dùng nó để đếm và để biết nên thu hẹp bằng chiều nào.
+
+    Mặc định `sheets` chỉ là TÊN sheet. Cần tên cột thì `chi_tiet_sheet=True` (nặng — chỉ bật khi
+    đã thu hẹp còn vài file).
+
+    Định vị được file rồi dùng `tim_chi_tieu` để biết dòng, rồi `source_inspect` đọc ô gốc.
     """
     from .common import source_catalog
     kq = source_catalog.search(query=query, company=company, canonical_kind=canonical_kind,
                                sheet=sheet, only_uningested=only_uningested,
-                               month=month, report_type=report_type, year=year, ky=ky)
+                               month=month, report_type=report_type, year=year, ky=ky, nhom=nhom)
     # `count` để model tự đối chiếu với kỳ vọng nghiệp vụ ("tập đoàn có 11 đơn vị") thay vì
     # đếm tay danh sách rồi kết luận thiếu/đủ.
-    ra = {"results": kq, "count": len(kq)}
+    # RÚT GỌN. Trả nguyên 91 file kèm sheet+cột là 246 KB — vượt sức chứa một lượt tool và bị cắt,
+    # nên agent thấy `count: 91` mà không có danh sách dùng được, rồi kết luận "không truy được"
+    # (đã xảy ra thật 13/08/2026). Mặc định chỉ trả TÊN sheet; cần tên cột thì bật chi_tiet_sheet.
+    from collections import Counter as _C
+    tom_tat = {
+        "theo_report_type": dict(_C(e.get("report_type") or "(không rõ)" for e in kq)),
+        "theo_ky": dict(_C(e.get("ky") or "(không rõ kỳ)" for e in kq)),
+        "theo_nhom_nguon": dict(_C(e.get("nhom_nguon") or "(không rõ)" for e in kq)),
+    }
+    goc = kq
+    if not chi_tiet_sheet:
+        kq = [{**e, "sheets": [s.get("name") for s in (e.get("sheets") or [])][:12]} for e in kq]
+    bi_cat = len(kq) > gioi_han
+    ra = {"results": kq[:gioi_han], "count": len(goc), "so_tra_ve": min(len(kq), gioi_han),
+          "tom_tat": tom_tat}
+    if bi_cat:
+        ra["canh_bao_cat"] = (
+            f"Khớp {len(goc)} file, chỉ trả {gioi_han} file đầu. `count` và `tom_tat` phản ánh TOÀN "
+            f"BỘ — dùng chúng để đếm/kiểm đủ, đừng đếm theo `results`. Thu hẹp bằng `report_type=` "
+            f"hoặc `ky=` (xem `tom_tat`) rồi gọi lại.")
     if any(_nhay_cam(e.get("report_type")) for e in kq):
         ra["canh_bao_nhay_cam"] = _CANH_BAO_NHAY_CAM
+    if not kq:
+        ra["goi_y"] = _goi_y_khi_rong(query=query, company=company, nhom=nhom,
+                                      report_type=report_type, ky=ky, month=month, year=year)
     return ra
 
 
 @mcp.tool()
 def tim_chi_tieu(ten: str, ky: str = None, year=None, month=None, company: str = None,
-                 report_type: str = None, gioi_han: int = 40) -> dict:
+                 report_type: str = None, gioi_han: int = 40, nhom: str = None) -> dict:
     """TRA VỊ TRÍ một chỉ tiêu trong 370 file / 4.838 sheet — GỌI TRƯỚC `source_inspect`.
 
     `catalog_search` chỉ biết TÊN file/sheet/cột, KHÔNG biết trong sheet có dòng gì, nên
@@ -358,9 +442,12 @@ def tim_chi_tieu(ten: str, ky: str = None, year=None, month=None, company: str =
     ngay, không cần ai khai báo trước."""
     from .common import row_index
     kq = row_index.tim(ten=ten, ky=ky, year=year, month=month, company=company,
-                       report_type=report_type, gioi_han=gioi_han)
+                       report_type=report_type, gioi_han=gioi_han, nhom=nhom)
     if any(_nhay_cam(x.get("report_type")) for x in kq.get("ket_qua", [])):
         kq["canh_bao_nhay_cam"] = _CANH_BAO_NHAY_CAM
+    if not kq.get("count"):
+        kq["goi_y"] = _goi_y_khi_rong(query=ten, company=company, nhom=nhom,
+                                      report_type=report_type, ky=ky, month=month, year=year)
     return kq
 
 
@@ -456,6 +543,14 @@ def so_do_to_chuc(don_vi: str = None) -> dict:
         "khoi": [k for k in md.get("khoi", []) if _khop(k.get("ma"), k.get("ten"))],
         "cost_center": cc,
         "nguon": "master_data (companies/khoi/costCenters)",
+    }
+    from .common import source_catalog as _sc
+    ra["nhom_nguon"] = {
+        "_mo_ta": ("Thư mục nguồn — CHIỀU NGƯỜI DÙNG HAY HỎI NHẤT ('bên SR VF thế nào'). "
+                   "Lọc bằng tham số `nhom=` của catalog_search/tim_chi_tieu. "
+                   "ĐỪNG dùng `company=`: company là PHÁP NHÂN nên 176/370 file đều ra 'TC'."),
+        "danh_sach": sorted(_sc._ALIAS_NHOM.keys()),
+        "khop_duoc": _sc.nhom_tu_alias(don_vi) if don_vi else [],
     }
     ra["ghi_chu"] = [
         "TC gồm 5 nhóm nội bộ, MỖI nhóm 1 file riêng: SRVF · DUAN · TRAMSAC · HO · XDV. "

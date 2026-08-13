@@ -12,7 +12,8 @@
     "Kỳ mới nhất thường CHƯA CHỐT (file có nhưng cột 'đến ngày hiện tại' trống -> ra 0 cho mọi pháp nhân). Lấy kỳ ĐÃ CHỐT gần nhất và nói rõ đang dùng kỳ nào.",
     "So kỳ phải cùng loại báo cáo và cùng độ dài kỳ — đừng đặt báo cáo NGÀY luỹ kế dở dang cạnh báo cáo THÁNG đã chốt.",
     "Ô rỗng / '-' / '#REF!' KHÁC số 0. Không quy tất cả về 0.",
-    "Giữ full precision khi tính, chỉ làm tròn lúc hiển thị. Không làm tròn từng dòng rồi cộng."
+    "Giữ full precision khi tính, chỉ làm tròn lúc hiển thị. Không làm tròn từng dòng rồi cộng.",
+    "Kế hoạch (Kehoachthang / Kehoachdoanhthu) nằm ở nhom='KEHOACH', tách khỏi nhóm đơn vị. Muốn tính % hoàn thành phải lấy THỰC HIỆN ở nhóm đơn vị + KẾ HOẠCH ở nhóm KEHOACH."
   ],
   "loai": [
     {
@@ -52,7 +53,8 @@
         "Sheet 'kqkd tổng hợp nhất' chỉ là hợp nhất KHỐI XE TẢI của HT — không phải KQKD tập đoàn.",
         "'HQKD HỢP NHẤT GA' là của riêng Global AI.",
         "TC gồm 5 nhóm nội bộ (SRVF/DUAN/TRAMSAC/HO/XDV), mỗi nhóm 1 file — hỏi 'TC' phải gộp đủ 5.",
-        "HO: doanh thu = tổng mọi dòng mã 511xxx, không lấy nguyên văn dòng tổng (dòng đó lẫn 515/7111)."
+        "HO: doanh thu = tổng mọi dòng mã 511xxx, không lấy nguyên văn dòng tổng (dòng đó lẫn 515/7111).",
+        "FILE KẾ HOẠCH NẰM Ở NHÓM NGUỒN `KEHOACH`, KHÔNG nằm trong nhóm của đơn vị. Kế hoạch tháng của showroom là `1.SR.OO.M.<YYYYMM>.Kehoachthang.xlsx`, của xưởng dịch vụ là `2.XDV.OO.M.<YYYYMM>.Kehoachthang.xlsx` — cả hai đều ở nhom='KEHOACH'. Lọc nhom='SRVF' rồi kết luận 'không có kế hoạch' là SAI (đã xảy ra 13/08/2026). Thực hiện lấy ở nhóm đơn vị, kế hoạch lấy ở nhóm KEHOACH, rồi mới chia."
       ]
     },
     {
@@ -95,7 +97,8 @@
       "bay": [
         "Dữ liệu hiện chỉ có 2026 (T01–T08) + đúng 1 file 12/2025 -> 'cùng kỳ năm trước' gần như KHÔNG có dữ liệu, phải nói thẳng.",
         "T01/2026 là kỳ đầu dải — 'so với tháng trước' phải trả lời không có dữ liệu T12/2025, KHÔNG trả 0.",
-        "Kỳ mới nhất chưa chốt: T08 hiện chỉ có 28 file trong khi các tháng khác 44–53."
+        "Kỳ mới nhất chưa chốt: T08 hiện chỉ có 28 file trong khi các tháng khác 44–53.",
+        "FILE KẾ HOẠCH NẰM Ở NHÓM NGUỒN `KEHOACH`, KHÔNG nằm trong nhóm của đơn vị. Kế hoạch tháng của showroom là `1.SR.OO.M.<YYYYMM>.Kehoachthang.xlsx`, của xưởng dịch vụ là `2.XDV.OO.M.<YYYYMM>.Kehoachthang.xlsx` — cả hai đều ở nhom='KEHOACH'. Lọc nhom='SRVF' rồi kết luận 'không có kế hoạch' là SAI (đã xảy ra 13/08/2026). Thực hiện lấy ở nhóm đơn vị, kế hoạch lấy ở nhóm KEHOACH, rồi mới chia."
       ]
     },
     {
@@ -128,7 +131,8 @@
       "cach_lay": "Lấy đủ TẤT CẢ đơn vị rồi mới sắp xếp",
       "bat_buoc": "CẤM cắt danh sách ngầm. Buộc cắt thì ghi nhãn rõ ('hiển thị 10/47'). Thiếu đơn vị nào phải nêu tên đơn vị đó.",
       "bay": [
-        "Xếp hạng trên tập dữ liệu thiếu đơn vị là sai lệch nặng — hạng 1 có thể chính là đơn vị chưa đọc được."
+        "Xếp hạng trên tập dữ liệu thiếu đơn vị là sai lệch nặng — hạng 1 có thể chính là đơn vị chưa đọc được.",
+        "FILE KẾ HOẠCH NẰM Ở NHÓM NGUỒN `KEHOACH`, KHÔNG nằm trong nhóm của đơn vị. Kế hoạch tháng của showroom là `1.SR.OO.M.<YYYYMM>.Kehoachthang.xlsx`, của xưởng dịch vụ là `2.XDV.OO.M.<YYYYMM>.Kehoachthang.xlsx` — cả hai đều ở nhom='KEHOACH'. Lọc nhom='SRVF' rồi kết luận 'không có kế hoạch' là SAI (đã xảy ra 13/08/2026). Thực hiện lấy ở nhóm đơn vị, kế hoạch lấy ở nhóm KEHOACH, rồi mới chia."
       ]
     },
     {
@@ -371,7 +375,8 @@
       "bat_buoc": "% hoàn thành phải căn ĐÚNG kỳ × kênh trước khi chia. Kế hoạch = 0 thì không tính %, nói rõ.",
       "bay": [
         "Kỳ báo cáo của claim/tồn kho nằm ở HẬU TỐ tên file ('_T3'), phần ngày phía trước là ngày xuất file.",
-        "Lãi gộp kênh B2C ÂM là ĐÚNG (khớp cột 'Lãi lỗ xe' của chính file) — phần lỗ thu lại qua claim. Đừng đảo dấu."
+        "Lãi gộp kênh B2C ÂM là ĐÚNG (khớp cột 'Lãi lỗ xe' của chính file) — phần lỗ thu lại qua claim. Đừng đảo dấu.",
+        "FILE KẾ HOẠCH NẰM Ở NHÓM NGUỒN `KEHOACH`, KHÔNG nằm trong nhóm của đơn vị. Kế hoạch tháng của showroom là `1.SR.OO.M.<YYYYMM>.Kehoachthang.xlsx`, của xưởng dịch vụ là `2.XDV.OO.M.<YYYYMM>.Kehoachthang.xlsx` — cả hai đều ở nhom='KEHOACH'. Lọc nhom='SRVF' rồi kết luận 'không có kế hoạch' là SAI (đã xảy ra 13/08/2026). Thực hiện lấy ở nhóm đơn vị, kế hoạch lấy ở nhóm KEHOACH, rồi mới chia."
       ]
     },
     {

@@ -52,8 +52,16 @@ _RE_TU_CHOI = re.compile(
     r"ch[uư]a\s+c[oó]\s+d[uữ]\s+li[eệ]u|kh[oô]ng\s+c[oó]\s+d[uữ]\s+li[eệ]u|"
     r"kh[oô]ng\s+thu[oộ]c\s+ph[aạ]m\s+vi|c[aầ]n\s+x[aá]c\s+minh|"
     r"kh[oô]ng\s+(th[eể]\s+)?cung\s+c[aấ]p|t[uừ]\s+ch[oố]i|kh[oô]ng\s+[dđ][uư][oơ]?[cợ]\s+ph[eé]p|"
-    r"nh[aạ]y\s+c[aả]m|kh[oô]ng\s+n[eê]n\s+tr[aả]\s+l[oờ]i|ngo[aà]i\s+ph[aạ]m\s+vi",
+    r"nh[aạ]y\s+c[aả]m|kh[oô]ng\s+n[eê]n\s+tr[aả]\s+l[oờ]i|ngo[aà]i\s+ph[aạ]m\s+vi|"
+    r"kh[oô]ng\s+th[eể]\s+k[eế]t\s+lu[aậ]n|kh[oô]ng\s+k[eế]t\s+lu[aậ]n|ch[uư]a\s+[dđ][uủ]\s+c[aă]n\s+c[uứ]|"
+    r"kh[oô]ng\s+[dđ][uư]a\s+ra|c[aầ]n\s+ki[eể]m\s+tra\s+th[eê]m|kh[oô]ng\s+[dđ][uủ]\s+d[uữ]\s+li[eệ]u",
     re.IGNORECASE)
+
+# Lỗi HẠ TẦNG (gateway restart / mất kết nối) KHÁC lỗi agent. Đếm chúng là 0 điểm làm hỏng chỉ số:
+# lần chạy 13/08 có 3 câu dính đúng lúc restart container, kéo điểm xuống mà agent không hề sai.
+_RE_LOI_HA_TANG = re.compile(
+    r"^\[LỖI\]|^\[TIMEOUT|Gateway not yet ready|became unreachable|openclaw doctor",
+    re.IGNORECASE | re.MULTILINE)
 
 
 def _dac(s):
@@ -79,6 +87,12 @@ def cham_mot(item: dict, tra_loi: str, giay: float) -> dict:
     kv = item.get("ky_vong") or {}
     d = _dac(tra_loi)
     loi = []
+
+    if _RE_LOI_HA_TANG.search(tra_loi or ""):
+        return {"id": item["id"], "q": item["q"], "loai": item.get("loai"),
+                "tang": item.get("tang"), "tra_loi": tra_loi, "giay": round(giay, 1),
+                "diem": None, "loi": ["LỖI HẠ TẦNG — không tính điểm"],
+                "cham_theo_y": False, "ha_tang_loi": True}
 
     co_so = bool(_RE_SO.search(tra_loi))
     tu_choi = bool(_RE_TU_CHOI.search(tra_loi))
@@ -133,8 +147,13 @@ def main():
         ds = ds[:args.limit]
 
     if args.score_only:
+        # CHẤM LẠI từ câu trả lời đã lưu, không đọc lại điểm cũ — cả mục đích của cờ này là thử
+        # luật chấm mới trên cùng bộ câu trả lời mà không phải chạy lại agent (35 phút).
         with open(args.score_only, encoding="utf-8") as fh:
-            ket = json.load(fh)["ket_qua"]
+            cu = json.load(fh)["ket_qua"]
+        theo_id = {x["id"]: x for x in ds}
+        ket = [cham_mot(theo_id.get(r["id"], {"id": r["id"], "q": r.get("q", "")}),
+                        r.get("tra_loi", ""), r.get("giay", 0)) for r in cu]
     else:
         ket = []
         for i, item in enumerate(ds, 1):
@@ -144,19 +163,24 @@ def main():
             print(f"[{i}/{len(ds)}] {item['id']:3s} điểm={r['diem']:.2f} {giay:5.1f}s "
                   f"{'· ' + '; '.join(r['loi']) if r['loi'] else ''}")
 
-    tong = sum(r["diem"] for r in ket)
-    cham = [r for r in ket if r["giay"] > LATENCY_GATE]
+    hong = [r for r in ket if r.get("ha_tang_loi")]
+    hop_le = [r for r in ket if not r.get("ha_tang_loi")]
+    tong = sum(r["diem"] for r in hop_le)
+    cham = [r for r in hop_le if r["giay"] > LATENCY_GATE]
     print(f"\n{'=' * 66}")
-    print(f"ĐIỂM: {tong:.1f}/{len(ket)} ({100 * tong / max(1, len(ket)):.0f}%)")
+    print(f"ĐIỂM: {tong:.1f}/{len(hop_le)} ({100 * tong / max(1, len(hop_le)):.0f}%)")
+    if hong:
+        print(f"BỎ QUA {len(hong)} câu do LỖI HẠ TẦNG (không tính vào mẫu số): "
+              f"{[r['id'] for r in hong]}")
     print(f"Chậm hơn {LATENCY_GATE}s: {len(cham)} câu")
     theo_tang = {}
-    for r in ket:
+    for r in hop_le:
         t = theo_tang.setdefault(r["tang"], [0, 0])
         t[0] += r["diem"]
         t[1] += 1
     for t, (d, n) in sorted(theo_tang.items(), key=lambda x: str(x[0])):
         print(f"  tầng {t}: {d:.1f}/{n}")
-    nhieu_y = [r for r in ket if r["cham_theo_y"]]
+    nhieu_y = [r for r in hop_le if r["cham_theo_y"]]
     if nhieu_y:
         print(f"  nhiều ý: {sum(r['diem'] for r in nhieu_y):.1f}/{len(nhieu_y)} "
               f"(chấm theo TỪNG Ý)")

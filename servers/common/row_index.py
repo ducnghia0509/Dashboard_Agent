@@ -174,7 +174,7 @@ def san_sang() -> dict:
 
 
 def tim(ten: str, ky: str = None, year=None, month=None, company: str = None,
-        report_type: str = None, gioi_han: int = 40) -> dict:
+        report_type: str = None, gioi_han: int = 40, nhom: str = None) -> dict:
     """Tra vị trí một chỉ tiêu: trả [{file, sheet, dong, ma_dong, nhan}] — KHÔNG mở file, KHÔNG
     trả giá trị. Bước tiếp theo là `source_inspect` đọc đúng vùng đó."""
     tt = san_sang()
@@ -205,6 +205,16 @@ def tim(ten: str, ky: str = None, year=None, month=None, company: str = None,
         if report_type:
             sql.append("AND report_type=?")
             args.append(report_type)
+        if nhom:
+            # Lọc theo THƯ MỤC NGUỒN (SRVF/XDV/DUAN…) — chiều người dùng thật sự hỏi. Lấy danh
+            # sách file từ catalog thay vì thêm cột vào chỉ mục: khỏi phải quét lại 370 file.
+            from . import source_catalog as sc
+            ten_file = [e["file"] for e in sc.search(nhom=nhom)]
+            if not ten_file:
+                return {"ket_qua": [], "count": 0,
+                        "canh_bao": f"Không có file nào thuộc nhóm nguồn '{nhom}'."}
+            sql.append("AND file IN (" + ",".join("?" * len(ten_file)) + ")")
+            args += ten_file
         sql.append("ORDER BY report_type, company, sheet, dong LIMIT 4000")
         rows = [dict(r) for r in con.execute(" ".join(sql), args)]
     finally:
