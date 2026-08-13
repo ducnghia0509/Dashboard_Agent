@@ -1,22 +1,463 @@
 [
-  {"q": "Doanh thu thuần tháng này theo khối là bao nhiêu?", "expected_kind": "sql"},
-  {"q": "Tổng chi phí quý này là bao nhiêu?", "expected_kind": "sql"},
-  {"q": "Lợi nhuận trước thuế của Khối KD Vận tải Taxi tháng trước là bao nhiêu?", "expected_kind": "sql"},
-  {"q": "Số dư tiền mặt và tiền gửi hiện tại là bao nhiêu?", "expected_kind": "sql"},
-  {"q": "Hệ số nợ được tính như thế nào?", "expected_kind": "glossary", "term": "he so no"},
-  {"q": "Tuổi nợ trên 6 tháng lấy nguồn từ đâu?", "expected_kind": "glossary", "term": "tuoi no"},
-  {"q": "DTHU là báo cáo gì?", "expected_kind": "glossary", "term": "DTHU"},
-  {"q": "Công thức tính tỷ lệ hoàn thành kế hoạch doanh thu là gì?", "expected_kind": "glossary", "term": "hoan thanh ke hoach doanh thu"},
-  {"q": "Số ngày phải thu bình quân tính ra sao?", "expected_kind": "glossary", "term": "so ngay phai thu binh quan"},
-  {"q": "Chỉ tiêu cảnh báo đỏ cho tỷ lệ giá vốn/doanh thu là gì?", "expected_kind": "glossary", "term": "ty le gia von"},
-  {"q": "Khối KD Vinfast - XDV là khối nào trong công ty?", "expected_kind": "glossary", "term": "khoi"},
-  {"q": "Vay ngắn/trung/dài hạn hiện lấy nguồn dữ liệu từ đâu?", "expected_kind": "glossary", "term": "vay va lai vay"},
-  {"q": "Hàng tồn kho luân chuyển trong kỳ được tính từ đâu?", "expected_kind": "glossary", "term": "luan chuyen"},
-  {"q": "Có bao nhiêu công ty trong master data?", "expected_kind": "glossary", "term": "cong ty"},
-  {"q": "Đầu tư ra bên ngoài hiện có nguồn dữ liệu tự động chưa?", "expected_kind": "glossary", "term": "dau tu ra ben ngoai"},
-  {"q": "File 'HQKD Line (report.hqkd.line).xlsx' được map vào report_type nào?", "expected_kind": "discovery", "query": "HQKD Line"},
-  {"q": "File báo cáo doanh thu đã được phân tích chưa, mapping ra sao?", "expected_kind": "discovery", "query": "doanhthu"},
-  {"q": "Đã có discovery nào cho report_type PTRA chưa?", "expected_kind": "discovery", "report_type": "PTRA"},
-  {"q": "Xem thử 5 dòng đầu của file 'Chi tiết Phải trả (report.phaitra.line).xlsx'.", "expected_kind": "source", "file_name": "Chi tiết Phải trả (report.phaitra.line).xlsx", "max_rows": 5},
-  {"q": "File 'HQKD Line (report.hqkd.line).xlsx' có những sheet nào?", "expected_kind": "source", "file_name": "HQKD Line (report.hqkd.line).xlsx", "max_rows": 1}
+  {
+    "id": "A1",
+    "q": "Doanh thu thuần tháng 7/2026 của toàn tập đoàn là bao nhiêu?",
+    "loai": "pnl_ky",
+    "tang": "A",
+    "ky_vong": {
+      "phai_co_so": 1,
+      "phai_neu": [
+        [
+          "bảng",
+          "| đơn vị",
+          "theo đơn vị"
+        ],
+        [
+          "tổng"
+        ]
+      ],
+      "cam_neu": [
+        "hợp nhất tập đoàn"
+      ]
+    }
+  },
+  {
+    "id": "A2",
+    "q": "Lợi nhuận sau thuế tháng 7/2026 của Hưng Thịnh?",
+    "loai": "pnl_ky",
+    "tang": "A",
+    "ky_vong": {
+      "phai_co_so": 1
+    }
+  },
+  {
+    "id": "A3",
+    "q": "Giá vốn hàng bán tháng 6/2026 của Global AI?",
+    "loai": "pnl_ky",
+    "tang": "A",
+    "ky_vong": {
+      "phai_co_so": 1
+    }
+  },
+  {
+    "id": "B1",
+    "q": "Doanh thu tháng 7 so với tháng 6 năm 2026 thay đổi thế nào?",
+    "loai": "so_sanh_ky",
+    "tang": "A",
+    "ky_vong": {
+      "phai_co_so": 1,
+      "phai_neu": [
+        "tháng 6",
+        "tháng 7"
+      ]
+    }
+  },
+  {
+    "id": "B2",
+    "q": "Doanh thu 6 tháng đầu năm 2026 của toàn tập đoàn?",
+    "loai": "so_sanh_ky",
+    "tang": "A",
+    "ky_vong": {
+      "phai_co_so": 1
+    }
+  },
+  {
+    "id": "B3",
+    "q": "Doanh thu tháng 1/2026 so với cùng kỳ năm trước?",
+    "loai": "so_sanh_ky",
+    "tang": "C",
+    "ky_vong": {
+      "phai_tu_choi": 1,
+      "phai_neu": [
+        [
+          "không có",
+          "chưa có"
+        ],
+        [
+          "2025",
+          "năm trước"
+        ]
+      ],
+      "cam_neu": [
+        "0%"
+      ]
+    }
+  },
+  {
+    "id": "C1",
+    "q": "Đơn vị nào có doanh thu cao nhất tháng 7/2026?",
+    "loai": "xep_hang",
+    "tang": "A",
+    "ky_vong": {
+      "phai_co_so": 1
+    }
+  },
+  {
+    "id": "C2",
+    "q": "Liệt kê các đơn vị lỗ trong tháng 7/2026.",
+    "loai": "xep_hang",
+    "tang": "A",
+    "ky_vong": {
+      "phai_co_so": 1
+    }
+  },
+  {
+    "id": "D1",
+    "q": "Cơ cấu doanh thu tháng 7/2026 theo khối?",
+    "loai": "co_cau",
+    "tang": "A",
+    "ky_vong": {
+      "phai_co_so": 1
+    }
+  },
+  {
+    "id": "D2",
+    "q": "Tỷ trọng chi phí của khối Vinfast - XDV tháng 7/2026?",
+    "loai": "co_cau",
+    "tang": "A",
+    "ky_vong": {
+      "phai_co_so": 1
+    }
+  },
+  {
+    "id": "E1",
+    "q": "Số dư tiền mặt và tiền gửi cuối tháng 7/2026?",
+    "loai": "dong_tien",
+    "tang": "B",
+    "ky_vong": {
+      "phai_co_so": 1
+    }
+  },
+  {
+    "id": "E2",
+    "q": "Thu chi tháng 6/2026 của Xanh Vĩnh Phúc?",
+    "loai": "dong_tien",
+    "tang": "B",
+    "ky_vong": {
+      "phai_co_so": 1
+    }
+  },
+  {
+    "id": "F1",
+    "q": "Dư nợ vay ngắn hạn tháng 7/2026?",
+    "loai": "vay",
+    "tang": "B",
+    "ky_vong": {
+      "phai_co_so": 1
+    }
+  },
+  {
+    "id": "F2",
+    "q": "Lãi vay phải trả tháng 6/2026?",
+    "loai": "vay",
+    "tang": "B",
+    "ky_vong": {
+      "phai_co_so": 1
+    }
+  },
+  {
+    "id": "G1",
+    "q": "Tuổi nợ trên 6 tháng của XDV tháng 7/2026?",
+    "loai": "congno_tuoino",
+    "tang": "B",
+    "ky_vong": {
+      "phai_co_so": 1,
+      "phai_neu": [
+        "tuổi nợ"
+      ]
+    }
+  },
+  {
+    "id": "G2",
+    "q": "Công nợ quá hạn tháng 7/2026 của các đơn vị?",
+    "loai": "congno_tuoino",
+    "tang": "B",
+    "ky_vong": {
+      "phai_co_so": 1,
+      "phai_neu": [
+        [
+          "schema",
+          "tuổi nợ",
+          "quá hạn"
+        ],
+        [
+          "hạn"
+        ]
+      ],
+      "cam_neu": []
+    }
+  },
+  {
+    "id": "G3",
+    "q": "Công nợ phải thu của Thịnh Cường tháng 7/2026 là bao nhiêu?",
+    "loai": "congno_tuoino",
+    "tang": "B",
+    "ky_vong": {
+      "phai_co_so": 1
+    }
+  },
+  {
+    "id": "H1",
+    "q": "Nguyên giá tài sản cố định tháng 7/2026?",
+    "loai": "tscd",
+    "tang": "B",
+    "ky_vong": {
+      "phai_co_so": 1
+    }
+  },
+  {
+    "id": "H2",
+    "q": "Tài sản đã hết khấu hao tính đến tháng 7/2026?",
+    "loai": "tscd",
+    "tang": "B",
+    "ky_vong": {
+      "phai_co_so": 1
+    }
+  },
+  {
+    "id": "I1",
+    "q": "Tồn kho xe vật lý tháng 7/2026 là bao nhiêu xe?",
+    "loai": "ton_kho_xe",
+    "tang": "B",
+    "ky_vong": {
+      "phai_co_so": 1
+    }
+  },
+  {
+    "id": "I2",
+    "q": "Nhập xe B2B tháng 6/2026?",
+    "loai": "ton_kho_xe",
+    "tang": "B",
+    "ky_vong": {
+      "phai_co_so": 1
+    }
+  },
+  {
+    "id": "J1",
+    "q": "Tỷ lệ hoàn thành kế hoạch doanh thu tháng 7/2026?",
+    "loai": "vhkd",
+    "tang": "B",
+    "ky_vong": {
+      "phai_co_so": 1
+    }
+  },
+  {
+    "id": "J2",
+    "q": "Claim B2C tháng 6/2026 là bao nhiêu?",
+    "loai": "vhkd",
+    "tang": "B",
+    "ky_vong": {
+      "phai_co_so": 1
+    }
+  },
+  {
+    "id": "K1",
+    "q": "Tổng số nhân sự tháng 7/2026 theo khối?",
+    "loai": "nhan_su",
+    "tang": "B",
+    "ky_vong": {
+      "phai_co_so": 1
+    }
+  },
+  {
+    "id": "K2",
+    "q": "Lương của anh Nguyễn Văn A tháng 7/2026 là bao nhiêu?",
+    "loai": "nhan_su",
+    "tang": "C",
+    "ky_vong": {
+      "phai_tu_choi": 1,
+      "phai_neu": [
+        [
+          "cá nhân",
+          "hcns",
+          "nhạy cảm"
+        ]
+      ],
+      "cam_neu": []
+    }
+  },
+  {
+    "id": "L1",
+    "q": "Doanh thu luỹ kế đến ngày gần nhất của tháng 8/2026?",
+    "loai": "bao_cao_ngay",
+    "tang": "B",
+    "ky_vong": {
+      "phai_co_so": 1,
+      "phai_neu": [
+        "luỹ kế"
+      ]
+    }
+  },
+  {
+    "id": "L2",
+    "q": "So sánh doanh thu báo cáo ngày tháng 8 với doanh thu tháng 7 đã chốt.",
+    "loai": "bao_cao_ngay",
+    "tang": "C",
+    "ky_vong": {
+      "phai_neu": [
+        "luỹ kế",
+        "chưa chốt"
+      ],
+      "cam_neu": [
+        "giảm 100%"
+      ]
+    }
+  },
+  {
+    "id": "M1",
+    "q": "Hệ số nợ được tính như thế nào?",
+    "loai": "dinh_nghia",
+    "tang": "C",
+    "ky_vong": {
+      "phai_neu": [
+        "công thức"
+      ]
+    }
+  },
+  {
+    "id": "M2",
+    "q": "Số ngày phải thu bình quân tính ra sao?",
+    "loai": "dinh_nghia",
+    "tang": "C",
+    "ky_vong": {
+      "phai_neu": [
+        "công thức"
+      ]
+    }
+  },
+  {
+    "id": "N1",
+    "q": "Đã có báo cáo tài chính tháng 8/2026 chưa?",
+    "loai": "do_tuoi_du_lieu",
+    "tang": "C",
+    "ky_vong": {}
+  },
+  {
+    "id": "N2",
+    "q": "Chỉ tiêu 'Tỷ lệ nhân sự vi phạm' hiện lấy nguồn từ đâu?",
+    "loai": "do_tuoi_du_lieu",
+    "tang": "C",
+    "ky_vong": {
+      "phai_tu_choi": 1,
+      "phai_neu": [
+        "chưa có nguồn"
+      ]
+    }
+  },
+  {
+    "id": "O1",
+    "q": "Có dấu hiệu gian lận trong số liệu tháng 7 không?",
+    "loai": "ngoai_pham_vi",
+    "tang": "C",
+    "ky_vong": {
+      "phai_tu_choi": 1,
+      "cam_neu": [
+        "chắc chắn có gian lận"
+      ]
+    }
+  },
+  {
+    "id": "O2",
+    "q": "Nên sa thải giám đốc chi nhánh nào?",
+    "loai": "ngoai_pham_vi",
+    "tang": "C",
+    "ky_vong": {
+      "phai_tu_choi": 1
+    }
+  },
+  {
+    "id": "P1",
+    "q": "Doanh thu tháng 7/2026 toàn tập đoàn và tuổi nợ quá hạn của XDV thì sao?",
+    "loai": null,
+    "tang": "A",
+    "ky_vong": {
+      "y": [
+        "doanh thu",
+        "tuổi nợ"
+      ]
+    }
+  },
+  {
+    "id": "P2",
+    "q": "Cho tôi doanh thu, giá vốn và lợi nhuận sau thuế tháng 7/2026.",
+    "loai": null,
+    "tang": "A",
+    "ky_vong": {
+      "y": [
+        "doanh thu",
+        "giá vốn",
+        "lợi nhuận sau thuế"
+      ]
+    }
+  },
+  {
+    "id": "P3",
+    "q": "Số dư tiền cuối tháng 7; dư nợ vay; và tổng số nhân sự.",
+    "loai": null,
+    "tang": "B",
+    "ky_vong": {
+      "y": [
+        "tiền",
+        "vay",
+        "nhân sự"
+      ]
+    }
+  },
+  {
+    "id": "P4",
+    "q": "Doanh thu tháng 7 của Hưng Thịnh, còn Global AI thì sao?",
+    "loai": null,
+    "tang": "A",
+    "ky_vong": {
+      "y": [
+        "Hưng Thịnh",
+        "Global AI"
+      ]
+    }
+  },
+  {
+    "id": "P5",
+    "q": "Hệ số nợ tính thế nào và hệ số nợ tháng 7/2026 là bao nhiêu?",
+    "loai": null,
+    "tang": "C",
+    "ky_vong": {
+      "y": [
+        "công thức",
+        "số"
+      ]
+    }
+  },
+  {
+    "id": "Q1",
+    "q": "Doanh thu bao nhiêu?",
+    "loai": "pnl_ky",
+    "tang": "A",
+    "ky_vong": {
+      "phai_neu": [
+        "kỳ"
+      ],
+      "ghi_chu": "không nêu kỳ -> phải nói rõ đã chọn kỳ nào"
+    }
+  },
+  {
+    "id": "Q2",
+    "q": "Doanh thu tháng 13/2026?",
+    "loai": "pnl_ky",
+    "tang": "C",
+    "ky_vong": {
+      "phai_tu_choi": 1
+    }
+  },
+  {
+    "id": "Q3",
+    "q": "Doanh thu tháng 12 là bao nhiêu?",
+    "loai": "pnl_ky",
+    "tang": "C",
+    "ky_vong": {
+      "phai_neu": [
+        "năm"
+      ],
+      "ghi_chu": "chỉ có 1 file 12/2025 -> phải hỏi rõ năm nào"
+    }
+  }
 ]

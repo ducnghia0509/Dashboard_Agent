@@ -1,0 +1,532 @@
+{
+  "_mo_ta": "SỔ TAY LOẠI CÂU HỎI của agent qa. Mỗi loại là một CÔNG THỨC LÀM VIỆC hoàn chỉnh, không phải cái nhãn.",
+  "_vi_sao": [
+    "Viết luật vào SKILL.md KHÔNG ăn — đã đo 12/08/2026: nêu đích danh tên file bẫy vẫn sai 3/3 lần liên tiếp.",
+    "Chỉ khi cảnh báo nằm trong PAYLOAD TOOL, cạnh chính con số/chỉ dẫn, thì model mới thi hành.",
+    "Vì vậy file này được trả về qua phan_loai_cau_hoi(), KHÔNG chép vào SKILL.md."
+  ],
+  "_cach_them": "Thêm nguồn báo cáo mới: ưu tiên MỞ RỘNG nhan_dien của loại có sẵn. Chỉ tách loại mới khi CÁCH LẤY dữ liệu khác hẳn, không phải khi tên nghiệp vụ khác.",
+  "_bay_chung": [
+    "Chữ 'hợp nhất' trong tên file/sheet LUÔN chỉ phạm vi một khối/pháp nhân, KHÔNG BAO GIỜ là toàn Group.",
+    "Không tồn tại báo cáo hợp nhất cấp Group — muốn số tập đoàn thì phải đọc từng đơn vị rồi cộng.",
+    "Kỳ mới nhất thường CHƯA CHỐT (file có nhưng cột 'đến ngày hiện tại' trống -> ra 0 cho mọi pháp nhân). Lấy kỳ ĐÃ CHỐT gần nhất và nói rõ đang dùng kỳ nào.",
+    "So kỳ phải cùng loại báo cáo và cùng độ dài kỳ — đừng đặt báo cáo NGÀY luỹ kế dở dang cạnh báo cáo THÁNG đã chốt.",
+    "Ô rỗng / '-' / '#REF!' KHÁC số 0. Không quy tất cả về 0.",
+    "Giữ full precision khi tính, chỉ làm tròn lúc hiển thị. Không làm tròn từng dòng rồi cộng."
+  ],
+  "loai": [
+    {
+      "id": "pnl_ky",
+      "ten": "Chỉ tiêu kết quả kinh doanh theo kỳ",
+      "vi_du": [
+        "Doanh thu tháng 7 toàn tập đoàn",
+        "Lợi nhuận sau thuế của Hưng Thịnh T6",
+        "Giá vốn khối Xe tải"
+      ],
+      "nhan_dien": [
+        "doanh thu",
+        "doanh so",
+        "gia von",
+        "lai gop",
+        "loi nhuan",
+        "lnst",
+        "lntt",
+        "chi phi",
+        "kqkd",
+        "hqkd",
+        "ket qua kinh doanh"
+      ],
+      "report_type": [
+        "baocaotaichinhrieng",
+        "baocaokqkd",
+        "baocaotaichinhhopnhatxetai"
+      ],
+      "tham_so_can": [
+        "ky",
+        "pham_vi"
+      ],
+      "cach_lay": "tim_chi_tieu(ten, ky) -> source_inspect(file, sheet, chua=<nhãn>, quanh=1) cho TỪNG đơn vị",
+      "bat_buoc": "Phạm vi tập đoàn PHẢI có bảng từng đơn vị trước rồi mới tới dòng Tổng. Không dựng được bảng thì không được đưa số tổng.",
+      "bay": [
+        "11 file baocaotaichinhrieng có 11 BỐ CỤC khác nhau (KQKD / BCKQKD / BC KQKD / CDKT / CĐKT); B.2.TC chỉ có 1 sheet tên 'Sheet'.",
+        "Sheet 'kqkd tổng hợp nhất' chỉ là hợp nhất KHỐI XE TẢI của HT — không phải KQKD tập đoàn.",
+        "'HQKD HỢP NHẤT GA' là của riêng Global AI.",
+        "TC gồm 5 nhóm nội bộ (SRVF/DUAN/TRAMSAC/HO/XDV), mỗi nhóm 1 file — hỏi 'TC' phải gộp đủ 5.",
+        "HO: doanh thu = tổng mọi dòng mã 511xxx, không lấy nguyên văn dòng tổng (dòng đó lẫn 515/7111)."
+      ]
+    },
+    {
+      "id": "so_sanh_ky",
+      "ten": "So sánh kỳ, xu hướng, luỹ kế",
+      "vi_du": [
+        "Doanh thu 6 tháng đầu năm",
+        "Tháng này so tháng trước",
+        "Xu hướng lợi nhuận 3 tháng gần nhất"
+      ],
+      "nhan_dien": [
+        "so voi",
+        "so sanh",
+        "thang truoc",
+        "cung ky",
+        "xu huong",
+        "luy ke",
+        "tang truong",
+        "ytd",
+        "thang dau nam",
+        "quy 1",
+        "quy 2",
+        "quy 3",
+        "quy 4",
+        "ca nam",
+        "dau nam den nay"
+      ],
+      "report_type": [
+        "baocaotaichinhrieng",
+        "baocaokqkd",
+        "baocaohqkdngay"
+      ],
+      "tham_so_can": [
+        "ky_tu",
+        "ky_den",
+        "chi_tieu"
+      ],
+      "cach_lay": "Lặp tim_chi_tieu cho từng kỳ trong dải, rồi so sánh",
+      "bat_buoc": "Nói rõ đang so kỳ nào với kỳ nào. Phân biệt số THÁNG ĐƠN và số LUỸ KẾ.",
+      "bay": [
+        "Dữ liệu hiện chỉ có 2026 (T01–T08) + đúng 1 file 12/2025 -> 'cùng kỳ năm trước' gần như KHÔNG có dữ liệu, phải nói thẳng.",
+        "T01/2026 là kỳ đầu dải — 'so với tháng trước' phải trả lời không có dữ liệu T12/2025, KHÔNG trả 0.",
+        "Kỳ mới nhất chưa chốt: T08 hiện chỉ có 28 file trong khi các tháng khác 44–53."
+      ]
+    },
+    {
+      "id": "xep_hang",
+      "ten": "Xếp hạng, đơn vị cao nhất / thấp nhất",
+      "vi_du": [
+        "Showroom nào lỗ tháng 7",
+        "Đơn vị nào doanh thu cao nhất",
+        "Top 5 chi nhánh"
+      ],
+      "nhan_dien": [
+        "cao nhat",
+        "thap nhat",
+        "top",
+        "xep hang",
+        "don vi nao",
+        "lo nhat",
+        "lai nhat",
+        "kem nhat",
+        "tot nhat"
+      ],
+      "report_type": [
+        "baocaotaichinhrieng",
+        "baocaokqkd"
+      ],
+      "tham_so_can": [
+        "chi_tieu",
+        "ky"
+      ],
+      "cach_lay": "Lấy đủ TẤT CẢ đơn vị rồi mới sắp xếp",
+      "bat_buoc": "CẤM cắt danh sách ngầm. Buộc cắt thì ghi nhãn rõ ('hiển thị 10/47'). Thiếu đơn vị nào phải nêu tên đơn vị đó.",
+      "bay": [
+        "Xếp hạng trên tập dữ liệu thiếu đơn vị là sai lệch nặng — hạng 1 có thể chính là đơn vị chưa đọc được."
+      ]
+    },
+    {
+      "id": "co_cau",
+      "ten": "Cơ cấu, tỷ trọng theo khối / cost center",
+      "vi_du": [
+        "Cơ cấu doanh thu theo khối",
+        "Tỷ trọng chi phí của XDV",
+        "Chi tiết theo cost center"
+      ],
+      "nhan_dien": [
+        "co cau",
+        "ty trong",
+        "phan bo",
+        "theo khoi",
+        "theo cost center",
+        "chia theo",
+        "ty le"
+      ],
+      "report_type": [
+        "baocaotaichinhrieng",
+        "baocaokqkd"
+      ],
+      "tham_so_can": [
+        "chi_tieu",
+        "ky"
+      ],
+      "cach_lay": "so_do_to_chuc() để biết cost center thuộc khối nào -> gom theo khối",
+      "bat_buoc": "Nêu rõ mẫu số của tỷ trọng. Tổng các phần phải khớp tổng chung, lệch thì nói ra.",
+      "bay": [
+        "Khối-tổng KHÁC tổng các cost center ở SRVF (sheet nguồn có lúc chưa refresh) — đừng im lặng lấy một trong hai.",
+        "Doanh thu có cấu trúc Gross/Giảm trừ — gom sai tầng là đếm đôi ở view 'tất cả khối'."
+      ]
+    },
+    {
+      "id": "dong_tien",
+      "ten": "Dòng tiền, số dư tiền, thu chi",
+      "vi_du": [
+        "Số dư tiền mặt cuối tháng 7",
+        "Thu chi tháng 6",
+        "Tiền gửi ngân hàng"
+      ],
+      "nhan_dien": [
+        "tien mat",
+        "tien gui",
+        "so du tien",
+        "dong tien",
+        "thu chi",
+        "luu chuyen tien",
+        "lctt",
+        "ton quy"
+      ],
+      "report_type": [
+        "baocaothuchi",
+        "baocaonganhang",
+        "baocaotaichinhrieng"
+      ],
+      "tham_so_can": [
+        "ky",
+        "pham_vi"
+      ],
+      "cach_lay": "tim_chi_tieu('số dư', ky) trong baocaothuchi/baocaonganhang",
+      "bat_buoc": "Nêu rõ mốc thời điểm của số dư (cuối kỳ nào).",
+      "bay": [
+        "Đầu tháng, kỳ mới đã có file nhưng cột 'ĐẾN NGÀY HIỆN TẠI' còn trống -> số dư ra 0 cho MỌI pháp nhân. Phải lùi về kỳ trước và nói rõ.",
+        "File ngân hàng XVP có tới 80 sheet — phải định vị bằng chỉ mục, đừng duyệt tay."
+      ]
+    },
+    {
+      "id": "vay",
+      "ten": "Vay và lãi vay",
+      "vi_du": [
+        "Dư nợ vay ngắn hạn",
+        "Lãi vay phải trả tháng 7",
+        "Vay đến hạn"
+      ],
+      "nhan_dien": [
+        "vay",
+        "du no vay",
+        "lai vay",
+        "no vay",
+        "ngan han",
+        "dai han",
+        "khe uoc"
+      ],
+      "report_type": [
+        "baocaonganhang",
+        "baocaotaichinhrieng"
+      ],
+      "tham_so_can": [
+        "ky",
+        "pham_vi"
+      ],
+      "cach_lay": "tim_chi_tieu('vay', ky, report_type='baocaonganhang')",
+      "bat_buoc": "Phân biệt DƯ NỢ (số dư thời điểm) và LÃI VAY (phát sinh trong kỳ).",
+      "bay": [
+        "Vay ngắn/trung/dài hạn tách theo kỳ hạn khế ước, không theo thời điểm còn lại."
+      ]
+    },
+    {
+      "id": "congno_tuoino",
+      "ten": "Công nợ phải thu, tuổi nợ",
+      "vi_du": [
+        "Tuổi nợ trên 6 tháng của XDV",
+        "Công nợ quá hạn tháng 7",
+        "Phải thu khách hàng"
+      ],
+      "nhan_dien": [
+        "cong no",
+        "phai thu",
+        "tuoi no",
+        "qua han",
+        "den han",
+        "131",
+        "no xau",
+        "thu hoi no"
+      ],
+      "report_type": [
+        "baocaotuoino",
+        "baocaocongnophaithu",
+        "baocaocongnoxhd"
+      ],
+      "tham_so_can": [
+        "ky",
+        "don_vi"
+      ],
+      "cach_lay": "tim_chi_tieu(ten, ky, report_type='baocaotuoino') -> source_inspect có lọc",
+      "bat_buoc": "Nêu rõ đang dùng schema nào: 'hạn nợ' (có ngày đến hạn) hay 'tuổi nợ' (theo tuổi).",
+      "bay": [
+        "Hai schema khác nhau: 6 đơn vị có ngày đến hạn trả qua_han/qh_1_30/.../qh_180p; 6 đơn vị còn lại chỉ có bucket theo TUỔI (b1/b13/b36/b6p) và KHÔNG suy ra được 'quá hạn' — đừng điền 0.",
+        "Dải >180 ngày thì qh_180p và b6p tương đương.",
+        "XDV có 7 kỳ = 7 bố cục khác nhau."
+      ]
+    },
+    {
+      "id": "tscd",
+      "ten": "Tài sản cố định, khấu hao",
+      "vi_du": [
+        "Nguyên giá TSCĐ tháng 7",
+        "Tài sản hết khấu hao",
+        "Cơ cấu TSCĐ theo loại"
+      ],
+      "nhan_dien": [
+        "tai san co dinh",
+        "tscd",
+        "khau hao",
+        "nguyen gia",
+        "hao mon",
+        "gia tri con lai",
+        "gtcl",
+        "ccdc",
+        "het khau hao"
+      ],
+      "report_type": [
+        "baocaotaisancodinhcongcudungcu"
+      ],
+      "tham_so_can": [
+        "ky",
+        "don_vi"
+      ],
+      "cach_lay": "tim_chi_tieu(ten, ky, report_type='baocaotaisancodinhcongcudungcu')",
+      "bat_buoc": "Phân biệt Nguyên giá / Hao mòn luỹ kế / Giá trị còn lại — không trộn.",
+      "bay": [
+        "Ô GTCL/GTSL rỗng hoặc '-' KHÔNG có nghĩa là thiếu dữ liệu.",
+        "Tăng NG và KH trong kỳ tính bằng CHÊNH LỆCH SNAPSHOT (kỳ này trừ kỳ trước), không lấy phát sinh Nợ/Có trên CĐPS.",
+        "Số trên sổ tài sản có thể lệch CĐKT (đã gặp ở nhóm Xe tải) — nói rõ đang đọc nguồn nào."
+      ]
+    },
+    {
+      "id": "ton_kho_xe",
+      "ten": "Tồn kho xe, nhập xe",
+      "vi_du": [
+        "Tồn kho xe vật lý tháng 7",
+        "Nhập xe B2B",
+        "Xe tồn trên 45 ngày"
+      ],
+      "nhan_dien": [
+        "ton kho",
+        "ton xe",
+        "nhap xe",
+        "kho xe",
+        "b2b",
+        "b2c",
+        "vin",
+        "so ngay ton"
+      ],
+      "report_type": [
+        "baocaotonkhoxevatly",
+        "baocaokhoxeb2b",
+        "baocaokhoxeb2c",
+        "baocaonhapxeb2b",
+        "baocaonhapxeb2c"
+      ],
+      "tham_so_can": [
+        "ky"
+      ],
+      "cach_lay": "tim_chi_tieu(ten, ky, report_type=...)",
+      "bat_buoc": "Nêu rõ đang đếm theo SỐ XE hay theo giá trị.",
+      "bay": [
+        "Bảng xuất tồn B2B chỉ dựng được theo SỐ XE, không theo giá trị."
+      ]
+    },
+    {
+      "id": "vhkd",
+      "ten": "Vận hành kinh doanh: kế hoạch, claim, hoá đơn",
+      "vi_du": [
+        "Tỷ lệ hoàn thành kế hoạch tháng 7",
+        "Claim B2C tháng 6",
+        "Xuất hoá đơn theo kênh"
+      ],
+      "nhan_dien": [
+        "ke hoach",
+        "hoan thanh",
+        "claim",
+        "xuat hoa don",
+        "xhd",
+        "ctv",
+        "coc",
+        "hoan tien",
+        "kenh"
+      ],
+      "report_type": [
+        "baocaokehoachthang",
+        "baocaokehoachdoanhthu",
+        "baocaoclaim",
+        "baocaochictv",
+        "baocaohoancoc",
+        "baocaogiaichapcoc",
+        "baocaohoantienthua",
+        "baocaolsctreodxbh",
+        "baocaolscchuaxhd",
+        "baocaolsccyber",
+        "baocaolscdms"
+      ],
+      "tham_so_can": [
+        "ky",
+        "kenh"
+      ],
+      "cach_lay": "tim_chi_tieu(ten, ky, report_type=...)",
+      "bat_buoc": "% hoàn thành phải căn ĐÚNG kỳ × kênh trước khi chia. Kế hoạch = 0 thì không tính %, nói rõ.",
+      "bay": [
+        "Kỳ báo cáo của claim/tồn kho nằm ở HẬU TỐ tên file ('_T3'), phần ngày phía trước là ngày xuất file.",
+        "Lãi gộp kênh B2C ÂM là ĐÚNG (khớp cột 'Lãi lỗ xe' của chính file) — phần lỗ thu lại qua claim. Đừng đảo dấu."
+      ]
+    },
+    {
+      "id": "nhan_su",
+      "ten": "Nhân sự, tiền lương, vi phạm",
+      "vi_du": [
+        "Tổng số nhân sự tháng 7",
+        "Quỹ lương theo khối",
+        "Số vụ vi phạm"
+      ],
+      "nhan_dien": [
+        "nhan su",
+        "lao dong",
+        "nhan vien",
+        "tien luong",
+        "quy luong",
+        "thu nhap",
+        "vi pham",
+        "ky luat",
+        "bien che",
+        "luong",
+        "thuong",
+        "phu cap",
+        "bhxh",
+        "cham cong",
+        "nghi viec",
+        "tuyen dung"
+      ],
+      "report_type": [
+        "baocaotongsonhansu",
+        "baocaotienluong",
+        "baocaovipham"
+      ],
+      "tham_so_can": [
+        "ky",
+        "pham_vi"
+      ],
+      "cach_lay": "tim_chi_tieu(ten, ky, report_type=...)",
+      "bat_buoc": "CHỈ trả số TỔNG HỢP theo khối/đơn vị. TUYỆT ĐỐI không trả lương của một cá nhân cụ thể.",
+      "bay": [
+        "Đây là nhóm dữ liệu nhạy cảm. Câu hỏi nhắm vào một người cụ thể phải từ chối và chỉ sang phòng HCNS."
+      ]
+    },
+    {
+      "id": "bao_cao_ngay",
+      "ten": "Báo cáo ngày",
+      "vi_du": [
+        "Doanh thu ngày hôm qua",
+        "Luỹ kế đến hôm nay",
+        "HQKD ngày 12/8"
+      ],
+      "nhan_dien": [
+        "hom nay",
+        "hom qua",
+        "theo ngay",
+        "hang ngay",
+        "den ngay",
+        "bao cao ngay"
+      ],
+      "report_type": [
+        "baocaohqkdngay",
+        "baocaodoanhthungay",
+        "baocaodoanhthukehoachngay"
+      ],
+      "tham_so_can": [
+        "ngay"
+      ],
+      "cach_lay": "catalog_search(report_type='baocaohqkdngay', ky=...) -> source_inspect",
+      "bat_buoc": "Số báo cáo ngày là LUỸ KẾ DỞ DANG của tháng đang chạy — cấm đặt cạnh số tháng đã chốt để kết luận tăng/giảm.",
+      "bay": [
+        "Đã gặp file báo cáo ngày ghi cứng số 0 (Trạm sạc/GA/HO) — không lên số là lỗi FILE, không phải lỗi đọc.",
+        "Mỗi đơn vị một bố cục mã dòng riêng (T-series GA, B-series XDV, layout dự án/HT)."
+      ]
+    },
+    {
+      "id": "dinh_nghia",
+      "ten": "Định nghĩa, công thức, cách tính",
+      "vi_du": [
+        "Hệ số nợ tính thế nào",
+        "Công thức số ngày phải thu",
+        "DTHU là báo cáo gì"
+      ],
+      "nhan_dien": [
+        "la gi",
+        "tinh nhu the nao",
+        "cong thuc",
+        "dinh nghia",
+        "cach tinh",
+        "y nghia",
+        "nguong canh bao",
+        "the nao",
+        "tinh sao",
+        "ra sao",
+        "nghia la",
+        "khac nhau the nao",
+        "gom nhung gi"
+      ],
+      "report_type": [],
+      "tham_so_can": [],
+      "cach_lay": "glossary_lookup(term) — KHÔNG mở file Excel",
+      "bat_buoc": "Trả đúng công thức trong glossary, không tự chế lại. Nêu nguồn là kpi_glossary.",
+      "bay": [
+        "Công thức có thể đổi theo thời gian — nếu glossary ghi mốc hiệu lực thì phải nói rõ đang dùng bản nào."
+      ]
+    },
+    {
+      "id": "do_tuoi_du_lieu",
+      "ten": "Có số này chưa, dữ liệu tươi tới đâu",
+      "vi_du": [
+        "Đã có báo cáo tháng 8 chưa",
+        "Số cập nhật đến ngày nào",
+        "Chỉ tiêu này lấy từ đâu"
+      ],
+      "nhan_dien": [
+        "da co chua",
+        "cap nhat den",
+        "moi nhat",
+        "lay tu dau",
+        "nguon nao",
+        "co du lieu khong",
+        "den ngay nao"
+      ],
+      "report_type": [],
+      "tham_so_can": [],
+      "cach_lay": "catalog_search(report_type=..., ky=...) đếm file + glossary_lookup xem chỉ tiêu có nguồn chưa",
+      "bat_buoc": "Được phép nói dữ liệu tươi tới đâu và thiếu kỳ nào. KHÔNG kể trạng thái ingest/pipeline nội bộ.",
+      "bay": [
+        "24/53 chỉ tiêu trong glossary CHƯA có nguồn tự động — hỏi trúng thì nói thẳng chưa có, đừng đi tìm số gần giống.",
+        "Nhiều field trên màn hình FE là số hard-code chưa nối nguồn — số trên màn không đảm bảo tra ngược được."
+      ]
+    },
+    {
+      "id": "ngoai_pham_vi",
+      "ten": "Ngoài phạm vi",
+      "vi_du": [
+        "Có gian lận không",
+        "Nên sa thải ai",
+        "Dự báo doanh thu năm sau"
+      ],
+      "nhan_dien": [
+        "gian lan",
+        "sa thai",
+        "du bao",
+        "nen lam gi",
+        "tu van",
+        "phap ly",
+        "kien"
+      ],
+      "report_type": [],
+      "tham_so_can": [],
+      "cach_lay": "Không gọi tool lấy số",
+      "bat_buoc": "Từ chối rõ ràng, nêu đúng phòng phụ trách. Không suy diễn, không đưa số để 'gợi ý'.",
+      "bay": [
+        "Câu hỏi mang tính kết luận (gian lận/vi phạm) chỉ được nói 'cần xác minh', không được khẳng định."
+      ]
+    }
+  ]
+}
