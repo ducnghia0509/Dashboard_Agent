@@ -42,4 +42,4 @@ uploads/
 
 # Ket qua chay eval Chu tich: chua so lieu tai chinh THAT (doanh thu/chi phi/cong no) trong
 # phan 'answer' - cung ly do voi *.xlsx o tren. Chi commit bo cau hoi questions.json.
-eval/chutich/ketqua-*.json
+eval/
