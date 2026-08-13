@@ -1,0 +1,49 @@
+{
+  "id": "xdv_kehoach_sl",
+  "_mo_ta": "KẾ HOẠCH SẢN LƯỢNG (lượt xe vào xưởng, theo doanh thu XUẤT HOÁ ĐƠN) khối Vinfast - XDV — sheet 'KHDT XHD' mục I.1. Tách khỏi `xdv_kehoach_gt` vì ĐƠN VỊ khác (lượt, he_so=1) và vì `_ghi` xoá theo (report_type, source_file): hai spec cùng report_type trên cùng file thì cái chạy sau xoá mất dữ liệu cái chạy trước.",
+  "_bay": [
+    "Xem đủ bẫy ở `xdv_kehoach_gt.json` — cùng sheet, cùng cách bắt mục/dòng tổng.",
+    "he_so = 1 (LƯỢT, không phải tiền). Đừng gộp vào spec giá trị.",
+    "'Sản lượng' của mục I.1 (sheet KHDT XHD) là lượt theo DOANH THU XUẤT HOÁ ĐƠN; 'Sản lượng RO' của sheet 'KHDT RO' là lượt theo LỆNH NGHIỆM THU (spec `xdv_kehoach_ro_sl`, report_type khác). Hai con số LỆCH nhau ~1% theo chủ đích của file ('nhân theo tỷ lệ 101%', ghi ở sheet 'CT Vận hành') — đừng dùng lẫn."
+  ],
+  "_kiem_chung": [
+    "T8 dim2='Tổng' = 14.480 lượt; 6 tháng cuối năm Σ T7..T12 = 93.004 — khớp ô 'Cộng' cột 'Tổng 6 tháng cuối năm' của mục I.1."
+  ],
+  "report_type": "XDV_KH_SL",
+  "row_index_base": 7710000,
+  "khoi": "Khối KD Vinfast - XDV",
+  "nguon": {
+    "folder": "KEHOACH/baocaokehoachthang",
+    "file_glob": "2.XDV.*.Kehoachthang.xlsx",
+    "sheet": { "ten": "KHDT XHD" }
+  },
+  "header": { "dong": 8 },
+  "dong_bat_dau": 7,
+  "kiem_tra_o": [
+    { "o": "A6", "bang": "ĐĂNG KÝ KẾ HOẠCH DOANH THU" },
+    { "o": "B7", "bang": "KẾ HOẠCH SẢN LƯỢNG" }
+  ],
+  "ngu_canh_dong": [
+    {
+      "khi": [
+        { "cot": "A", "dieu_kien": "regex", "gia_tri": "^\\s*(I\\.1|I\\.2|II|III)\\s*$" },
+        { "cot": "C", "dieu_kien": "rong" }
+      ],
+      "xoa": ["dim1", "dim2", "cost_center", "cong_ty"],
+      "gan": {
+        "dim1": { "cot": "B", "anh_xa": { "KẾ HOẠCH SẢN LƯỢNG": "SL_XHD" } }
+      }
+    }
+  ],
+  "cot": {
+    "cost_center": { "header": "XDV", "chuan_hoa": "xdv_kh_dong" },
+    "dim2": { "header": "STT", "chuan_hoa": "xdv_kh_cong" }
+  },
+  "ban_ghi": "moi_cot_thang",
+  "cot_thang": { "tu": "F", "den": "Q", "he_so": 1.0, "regex": "thang(\\d{1,2})$" },
+  "loc": [
+    { "cot": "dim1", "dieu_kien": "bang", "gia_tri": "SL_XHD" },
+    { "cot": "dim2", "dieu_kien": "khac_rong" }
+  ],
+  "payload_them": { "unit": "luot", "loai": "kehoach" }
+}

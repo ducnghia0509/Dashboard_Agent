@@ -1,0 +1,49 @@
+{
+  "id": "xdv_kehoach_ro_gt",
+  "_mo_ta": "KẾ HOẠCH DOANH THU THEO LỆNH NGHIỆM THU (RO thực làm) khối Vinfast - XDV — sheet 'KHDT RO' mục I.2. Đây là vế kế hoạch của chỉ tiêu BĐH 'Doanh số lệnh nghiệm thu trong tháng (RO)'.",
+  "_bay": [
+    "ĐỪNG LẪN VỚI KẾ HOẠCH DOANH THU XUẤT HOÁ ĐƠN (`XDV_KH` / dim1='DT_XHD', sheet 'KHDT XHD'). Hai mục là hai định nghĩa doanh thu khác nhau và LỆCH nhau thật: cả năm 570,567 tỷ (RO) vs 567,266 tỷ (XHĐ); 6 tháng cuối năm 300 tỷ vs 296,699 tỷ. Chính chỗ lẫn này làm báo cáo BĐH lệch 32,5 tỷ với báo cáo xưởng (xem sheet 'Chỉ tiêu theo YC BĐH', dòng 8).",
+    "Sheet có ô rác: 'KHDT RO' để một số 1 lạc ở H45 (dưới mục I.2, không thuộc dòng nào). `loc` đòi dim2 khác rỗng nên nó bị loại — bỏ chốt đó là đẻ ra một dòng kế hoạch 0,000000001 tỷ ở tháng 3.",
+    "Xem đủ bẫy chung ở `xdv_kehoach_gt.json` (tiêu đề cột tháng không trần, dòng 'Cộng' nằm ở cột A, dim2 là cờ phân tầng)."
+  ],
+  "_kiem_chung": [
+    "T8 dim2='Tổng' = 46,708533724 tỷ; Σ T7..T12 = 300 tỷ chẵn — khớp ô 'Cộng' cột 'Tổng 6 tháng cuối năm' của mục I.2."
+  ],
+  "report_type": "XDV_KH_RO",
+  "row_index_base": 7720000,
+  "khoi": "Khối KD Vinfast - XDV",
+  "nguon": {
+    "folder": "KEHOACH/baocaokehoachthang",
+    "file_glob": "2.XDV.*.Kehoachthang.xlsx",
+    "sheet": { "ten": "KHDT RO" }
+  },
+  "header": { "dong": 8 },
+  "dong_bat_dau": 7,
+  "kiem_tra_o": [
+    { "o": "A6", "bang": "ĐĂNG KÝ KẾ HOẠCH DOANH THU" },
+    { "o": "B7", "bang": "KẾ HOẠCH SẢN LƯỢNG RO" }
+  ],
+  "ngu_canh_dong": [
+    {
+      "khi": [
+        { "cot": "A", "dieu_kien": "regex", "gia_tri": "^\\s*(I\\.1|I\\.2|II|III)\\s*$" },
+        { "cot": "C", "dieu_kien": "rong" }
+      ],
+      "xoa": ["dim1", "dim2", "cost_center", "cong_ty"],
+      "gan": {
+        "dim1": { "cot": "B", "anh_xa": { "KẾ HOẠCH DOANH THU THEO LỆNH NGHIỆM THU": "DT_RO" } }
+      }
+    }
+  ],
+  "cot": {
+    "cost_center": { "header": "XDV", "chuan_hoa": "xdv_kh_dong" },
+    "dim2": { "header": "STT", "chuan_hoa": "xdv_kh_cong" }
+  },
+  "ban_ghi": "moi_cot_thang",
+  "cot_thang": { "tu": "F", "den": "Q", "he_so": 1e-9, "regex": "thang(\\d{1,2})$" },
+  "loc": [
+    { "cot": "dim1", "dieu_kien": "bang", "gia_tri": "DT_RO" },
+    { "cot": "dim2", "dieu_kien": "khac_rong" }
+  ],
+  "payload_them": { "unit": "ty", "loai": "kehoach" }
+}

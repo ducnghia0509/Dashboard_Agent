@@ -1,0 +1,39 @@
+{
+  "id": "xdv_ct_vanhanh_gt",
+  "_mo_ta": "NGƯỠNG MỤC TIÊU VẬN HÀNH tính bằng TIỀN, khối Vinfast - XDV — sheet 'CT Vận hành' của bản kế hoạch, cột 'Tháng 7'..'Tháng 12'. Đây là vế MỤC TIÊU cho các khối số của màn xdv1/xdv4 (lệnh nghiệm thu chưa xuất hoá đơn, lệnh quá 30 ngày) vốn trước nay chỉ có vế thực hiện.",
+  "_bay": [
+    "CHỈ NẠP 5 CHỈ TIÊU KHÔNG TRÙNG (4 ở đây + LSC_10N ở spec sản lượng). Sáu dòng đầu sheet — doanh thu xuất hoá đơn, sản lượng, lợi nhuận gộp, lợi nhuận sau thuế, doanh số & sản lượng lệnh nghiệm thu — lặp lại ĐÚNG số của 'KHDT XHD'/'KHDT RO' đã nạp thành XDV_KH / XDV_KH_SL / XDV_KH_RO / XDV_KH_RO_SL. Nạp thêm là hai nguồn cho cùng một con số; đến lúc nghiệp vụ sửa một sheet mà quên sheet kia thì không ai biết bên nào đúng.",
+    "Ô C2 sheet này ghi khối là 'KINH DOANH XE VINFAST' — vết còn sót của biểu mẫu Showroom, ĐỪNG dùng làm chốt layout và cũng đừng vì thế mà kết luận file lại là bản sao SR: nội dung dòng (lệnh nghiệm thu, lệnh sửa chữa chưa nghiệm thu) và mọi con số đều của XDV. Chốt bằng C1 + nhãn dòng 15.",
+    "Sheet chỉ có T7..T12 (F..K), KHÔNG có T1..T6 — kế hoạch 6 tháng cuối năm. Cột E là 'Tổng 6 tháng cuối năm', nằm NGOÀI dải nên không lọt vào.",
+    "Hai dòng cuối (tỷ lệ công nợ quá hạn > 45 ngày, tỷ lệ hài lòng khách hàng) ghi ngưỡng BẰNG LỜI ('<10% tổng công nợ tại thời điểm, quá 1% trừ % KPI'). `_so` đọc ra 0 nên `moi_cot_thang` bỏ luôn — CHỦ Ý, chưa có chỗ chứa chuỗi. Muốn đưa lên màn thì phải chốt thành ngưỡng SỐ với nghiệp vụ trước.",
+    "`NSLD` (năng suất lao động, 93,5 tr/người/tháng) nạp để dành: CHƯA hiển thị được vì không có danh sách nhân sự theo xưởng — thiếu mẫu số. Cùng cảnh với CT35/CT38 của màn vhkd0."
+  ],
+  "_kiem_chung": [
+    "T8: RO_CHUA_XHD = 18,68341349 tỷ · RO_CHUA_XHD_30 = 5,783636168 tỷ · BQ_DON = 0,003190191 tỷ (3.190.191 đ/đơn) · NSLD = 0,0935 tỷ (93,5 tr).",
+    "RO_CHUA_XHD_30 giữ NGUYÊN 5,783636168 tỷ suốt T7..T12 — đúng như file (ô ghi chú: 'Hướng đến giá trị tối thiểu nhất ko có tồn đọng - cần bàn lại mục tiêu'), không phải lỗi đọc lặp cột."
+  ],
+  "report_type": "XDV_KH_CT",
+  "row_index_base": 7740000,
+  "khoi": "Khối KD Vinfast - XDV",
+  "nguon": {
+    "folder": "KEHOACH/baocaokehoachthang",
+    "file_glob": "2.XDV.*.Kehoachthang.xlsx",
+    "sheet": { "ten": "CT Vận hành" }
+  },
+  "header": { "dong": 4 },
+  "dong_bat_dau": 5,
+  "kiem_tra_o": [
+    { "o": "C1", "bang": "ĐĂNG KÝ CHỈ TIÊU VẬN HÀNH" },
+    { "o": "B15", "bang": "Lệnh sửa chữa >10 ngày chưa nghiệm thu" }
+  ],
+  "cot": {
+    "dim1": { "header": "Kế hoạch/Mục tiêu cần đạt", "chuan_hoa": "xdv_ct_dong" }
+  },
+  "ban_ghi": "moi_cot_thang",
+  "cot_thang": { "tu": "F", "den": "K", "he_so": 1e-9 },
+  "loc": [
+    { "cot": "dim1", "dieu_kien": "thuoc",
+      "gia_tri": ["RO_CHUA_XHD", "RO_CHUA_XHD_30", "BQ_DON", "NSLD"] }
+  ],
+  "payload_them": { "unit": "ty", "loai": "muc_tieu" }
+}
