@@ -1,0 +1,66 @@
+{
+  "id": "srvf_dthu_nhom",
+  "_mo_ta": "THỰC HIỆN doanh thu SRVF theo NHÓM: A200 bán xe · A230 khác · A250 claim. Bổ khuyết cho màn vhkd1 'Cơ cấu Thực hiện doanh thu theo nhóm' — trước đây chỉ có KẾ HOẠCH (VHKD_KH), thiếu hẳn cột thực hiện nên bảng khuyết một nửa.",
+  "_bay": [
+    "MÃ THEO ĐÚNG FILE, KHÔNG theo thiết kế: file ghi A230 = 'DOANH THU KHÁC SHOW ROOM', A250 = 'DOANH THU CLAIM'. Dashboard.dc.html (biến NHOM) ghi NGƯỢC hai mã này — làm theo thiết kế nguyên văn là gán tráo hai nhóm. Cùng bẫy với app/metrics/vhkd.py::_KH_NHOM.",
+    "File BCTC SRVF chứa MỘT SHEET MỖI THÁNG (T01..T12) trong CÙNG một file kỳ. Phải neo sheet theo tháng của kỳ (`theo_thang`), không lấy sheet đầu và không khớp theo tiền tố 'T' — 'T01.' / 'T01' / 'T01BC' / 'TSCD' đều bắt đầu bằng T, và 'T01.' với 'T01' chuẩn hoá về cùng chuỗi.",
+    "Sheet T0xBC là bố cục KHÁC (chia theo KÊNH B2C/B2B/GF, cột 6 là cột TỔNG tháng, xen kẽ cột '% DT'). Nhóm A200/A230/A250 nằm ở sheet T0x, KHÔNG ở T0xBC.",
+    "Kiểm chứng bắt buộc: A200 + A230 + A250 phải bằng ĐÚNG A100 (tổng doanh thu showroom). T01/2026: 478.748.152.020 + 2.541.682.750 + 8.890.763.260 = 490.180.598.030. Lệch là đọc sai cột hoặc sai sheet.",
+    "Dòng header KHÁC NHAU giữa các sheet: T01 ở dòng 1, T07 ở dòng 8 (T07 có thêm tiêu đề đơn vị/địa chỉ phía trên). Vì vậy dùng header.tim_o thay vì header.dong cứng."
+  ],
+  "report_type": "DTHU_NHOM",
+  "row_index_base": 6600000,
+  "khoi": "Khối KD Vinfast - Showroom",
+  "nguon": {
+    "folder": "SRVF/baocaotaichinhrieng",
+    "file_glob": "*.xlsx",
+    "sheet": {
+      "theo_thang": "T{mm}"
+    }
+  },
+  "ky_thang_tu_ten_file": {
+    "regex": "M\\.(\\d{4})(\\d{2})\\."
+  },
+  "header": {
+    "tim_o": "Mã số",
+    "toi_da": 30
+  },
+  "cot": {
+    "dim1": {
+      "header": "Mã số"
+    },
+    "dim2": {
+      "header": "Chỉ tiêu"
+    },
+    "amount": {
+      "header": "Kỳ này",
+      "kieu": "so",
+      "he_so": 1e-09
+    },
+    "amount2": {
+      "header": "Lũy kế",
+      "kieu": "so",
+      "he_so": 1e-09
+    }
+  },
+  "ban_ghi": "moi_dong",
+  "loc": [
+    {
+      "cot": "dim1",
+      "dieu_kien": "thuoc",
+      "gia_tri": [
+        "A200",
+        "A230",
+        "A250"
+      ]
+    }
+  ],
+  "payload_them": {
+    "unit": "ty",
+    "nguon_sheet": "T{mm}"
+  },
+  "ky_tu_ten_file": {
+    "regex_nam": "M\\.(\\d{4})\\d{2}\\.",
+    "regex_thang": "M\\.\\d{4}(\\d{2})\\."
+  }
+}

@@ -26,8 +26,11 @@ CẤU TRÚC SPEC (khoá tiếng Việt cho kế toán/BA đọc được):
     "folder": "SRVF/baocaokqkd",         // dưới received_reports/
     "file_glob": "*.xlsx",
     "sheet": {"batdau": "CHI TIẾT XHĐ"}  // | {"ten": "..."} | {"chua": "..."} | {"so": 0}
+                                        // | {"theo_thang": "T{mm}"} — file 1 sheet/tháng (BCTC SRVF)
   },
   "header": {"dong": 1},                 // | {"dong": [1,2]} gộp 2 dòng header (lấy ô đầu khác rỗng)
+                                         // | {"tim_o": "Mã số"} tự dò dòng header theo nhãn mốc
+                                         //   (dùng khi vị trí header khác nhau giữa các sheet)
   "dong_bat_dau": 3,                     // tuỳ chọn — mặc định = dòng header cuối + 1
   "chieu_tu_ten_file": {"dim2": {"regex": "Xuathoadon_(B2B|B2C|GF)", "hoa": true}},
   "ngay_tu_ten_file": {"regex": "M\\.(\\d{4})\\.(\\d{1,2})\\.(\\d{1,2})", "thu_tu": "ymd"},
@@ -392,10 +395,28 @@ def run_for_path(path, write=False):
     return ket_qua
 
 
-def _chon_sheet(wb, cfg):
+def _chon_sheet(wb, cfg, thang=None):
+    """Chọn sheet theo cfg. `theo_thang` (vd "T{mm}") dành cho file có MỘT SHEET MỖI THÁNG.
+
+    BCTC của SRVF là ca đó: cùng một file tháng 7 chứa cả T01..T07, mỗi sheet là một tháng. Lấy
+    sheet đầu hay khớp theo tiền tố "T" đều sai — "T01." và "T01" chuẩn hoá về cùng chuỗi, còn
+    "T01BC"/"TSCD" cũng bắt đầu bằng T. Phải neo theo ĐÚNG tháng của kỳ đang nạp và khớp CHÍNH XÁC.
+    """
     cfg = cfg or {}
     if "so" in cfg:
         return wb.sheetnames[int(cfg["so"])]
+    if "theo_thang" in cfg:
+        if not thang:
+            return None
+        muon = _nd(str(cfg["theo_thang"]).replace("{mm}", f"{int(thang):02d}"))
+        # ƯU TIÊN khớp tuyệt đối tên gốc trước, vì "T01." và "T01" cùng _nd() -> "t01".
+        for name in wb.sheetnames:
+            if str(name).strip() == str(cfg["theo_thang"]).replace("{mm}", f"{int(thang):02d}"):
+                return name
+        for name in wb.sheetnames:
+            if _nd(name) == muon:
+                return name
+        return None
     for name in wb.sheetnames:
         n = _nd(name)
         if "ten" in cfg and n == _nd(cfg["ten"]):
@@ -795,7 +816,13 @@ def extract_file(spec, path):
     warn, recs = [], []
     wb = openpyxl.load_workbook(path, data_only=True, read_only=True)
     try:
-        sheet = _chon_sheet(wb, (spec.get("nguon") or {}).get("sheet"))
+        _sh_cfg = (spec.get("nguon") or {}).get("sheet") or {}
+        _thang = None
+        if "theo_thang" in _sh_cfg:
+            _ky, _w = _ky_thang(spec, path)
+            warn += _w
+            _thang = _ky[1] if _ky else None
+        sheet = _chon_sheet(wb, _sh_cfg, thang=_thang)
         if not sheet:
             return [], [f"không chọn được sheet (có: {wb.sheetnames})"]
         ws = wb[sheet]
@@ -804,6 +831,24 @@ def extract_file(spec, path):
             # Sheet KHÔNG có dòng tiêu đề (vd "Tồn kho xe vật lý": dữ liệu chạy thẳng từ dòng 2,
             # 3 cột không tên). Khi đó mọi khai báo cột PHẢI dùng `"cot": "<chữ cột>"`.
             max_hdr, hmap = 0, ({}, {})
+        elif hdr_cfg.get("tim_o"):
+            # TỰ DÒ dòng header theo một nhãn mốc. Cần khi cùng một spec phải đọc nhiều sheet mà
+            # dòng header nằm ở vị trí KHÁC NHAU: BCTC SRVF để header ở dòng 1 tại sheet T01 nhưng
+            # dòng 8 tại T07 (T07 có thêm 7 dòng tiêu đề đơn vị/địa chỉ phía trên). Khai `dong`
+            # cứng thì một trong hai sheet chắc chắn trượt; gộp `dong: [1,8]` cũng sai vì ô đầu
+            # dòng 1 của T07 là tên chi nhánh, không phải "Mã số".
+            moc = _nd(hdr_cfg["tim_o"])
+            toi_da = int(hdr_cfg.get("toi_da", 30))
+            quet = [list(r) for r in ws.iter_rows(min_row=1, max_row=toi_da, values_only=True)]
+            max_hdr = 0
+            for i, r in enumerate(quet, start=1):
+                if any(_nd(c) == moc for c in r if c not in (None, "")):
+                    max_hdr = i
+                    break
+            if not max_hdr:
+                return [], [f"không tìm được dòng header chứa '{hdr_cfg['tim_o']}' "
+                            f"trong {toi_da} dòng đầu sheet '{sheet}'"]
+            hmap = _map_header(quet[:max_hdr], max_hdr)
         else:
             hdr_dong = hdr_cfg.get("dong", 1)
             max_hdr = max(hdr_dong) if isinstance(hdr_dong, list) else hdr_dong
