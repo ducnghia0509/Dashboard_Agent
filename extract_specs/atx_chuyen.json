@@ -1,0 +1,49 @@
+{
+  "id": "atx_chuyen",
+  "_mo_ta": "SẢN LƯỢNG CHUYẾN khối An Taxi theo tháng × depot — phần C 'TỶ LỆ HOÀN THÀNH CHUYẾN'. dim1: Tổng chuyến · Chuyến hoàn thành. Mapping 'Mapping Antaxi 13.08 - BS KPI' CT36 (Phần C/mục III/P125-P136) · dòng 45 (Q125-Q136) · dòng 46 tỷ lệ hoàn thành (KPI >85%) · dòng 47 số cuốc hủy = P − Q (KPI <15%) · CT50 tỷ lệ hủy cuốc.",
+  "_bay": [
+    "CUỐC HỦY KHÔNG CÓ CỘT RIÊNG — mapping dòng 47 định nghĩa = (P125-P136) − (Q125-Q136). Nạp 2 số đếm, backend trừ; nạp sẵn hiệu số thì mất khả năng đối chiếu với file.",
+    "4 KÊNH (App An C/D · Be-Vnpay F/G · App Xanh I/J · Đồng hồ L/M) có TÊN CỘT TRÙNG NHAU HOÀN TOÀN ('Tổng số chuyến', 'Số chuyến hoàn thành' lặp 4 lần ở dòng 93). Cố ý CHỈ đọc cột tổng P/Q ở DÒNG TIÊU ĐỀ 92 (tên 'Tổng chuyến'/'Số chuyến hoàn thành' là duy nhất ở dòng đó) — mapping và thiết kế đều không đòi sản lượng theo kênh; cơ cấu theo kênh lấy từ báo cáo NGÀY (spec atx_ngay_doanhthu).",
+    "Dòng tiêu đề 92 CÒN có cặp T/U ('Tổng chuyến'/'Số chuyến hoàn thành') của bảng tổng hợp QUÝ bên phải — P/Q đứng trước nên `_map_header` (setdefault) luôn chọn đúng cặp theo tháng. Đừng đảo thứ tự dò.",
+    "Σ 2 depot = dòng tổng của file: T1 25.850+20.080 = 45.930 = P125; hoàn thành 19.419+17.915 = 37.334 = Q125.",
+    "Mục III ghi nhãn 'Tổng Depot' (B122) chứ không phải 'Tổng 2 depot' như phần A/B — `kiem_tra_o` phải khớp đúng nhãn này."
+  ],
+  "_kiem_chung": [
+    "T1/2026 Tổng: 45.930 chuyến · 37.334 hoàn thành -> tỷ lệ 81,28% (=R125), hủy 8.596 = 18,72%.",
+    "T7/2026 Tổng: 37.190 · 30.855 -> 82,97% (=R131).",
+    "6 tháng đầu năm: Σ hoàn thành T1-T6 = 183.649, khớp ô U129 và ô F7 sheet 'Chỉ tiêu theo YC BĐH' của mapping."
+  ],
+  "report_type": "ATX_CHUYEN",
+  "row_index_base": 7820000,
+  "khoi": "Khối KD Dịch vụ An Taxi",
+  "nguon": {
+    "folder": "ANTAXI/baocaoqtvhthang",
+    "file_glob": "B.7.AAG.PKDVH.M.*.Baocaotonghop.xlsx",
+    "sheet": { "chua": "BC Tổng Hợp PKDVH" }
+  },
+  "kiem_tra_o": [
+    { "o": "B90", "bang": "TỶ LỆ HOÀN THÀNH CHUYẾN" },
+    { "o": "B91", "bang": "Sơn Tây" },
+    { "o": "B107", "bang": "Thái Nguyên" },
+    { "o": "B122", "bang": "Tổng Depot" }
+  ],
+  "cot": { "ngay": { "cot": "B", "kieu": "thang_cuoi" } },
+  "chieu_co_dinh": { "cong_ty": "AAG" },
+  "ban_ghi": "moi_cot_gia_tri",
+  "cot_gia_tri": [
+    { "header": "Tổng chuyến", "dim1": "Tổng chuyến" },
+    { "header": "Số chuyến hoàn thành", "dim1": "Chuyến hoàn thành" }
+  ],
+  "vung": [
+    { "ten": "C/I Sơn Tây", "header": { "dong": 92 }, "dong_bat_dau": 94, "dong_ket_thuc": 105,
+      "chieu_co_dinh": { "cong_ty": "AAG", "cost_center": "ST_AT" } },
+    { "ten": "C/II Thái Nguyên", "header": { "dong": 108 }, "dong_bat_dau": 110, "dong_ket_thuc": 121,
+      "chieu_co_dinh": { "cong_ty": "AAG", "cost_center": "TN_AT" } },
+    { "ten": "C/III Tổng Depot", "header": { "dong": 123 }, "dong_bat_dau": 125, "dong_ket_thuc": 136 }
+  ],
+  "loc": [
+    { "cot": "ngay", "dieu_kien": "khac_rong" },
+    { "cot": "amount", "dieu_kien": "khac_rong" }
+  ],
+  "payload_them": { "unit": "chuyen" }
+}

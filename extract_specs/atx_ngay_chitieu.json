@@ -1,0 +1,44 @@
+{
+  "id": "atx_ngay_chitieu",
+  "_mo_ta": "CHỈ TIÊU BÌNH QUÂN THEO NGÀY do CHÍNH FILE tự tính — sheet 'BC Ngày PKDVH', cột AK/AL/AM. dim1: DT bình quân ngày (AK) · Số cuốc/xe/ngày (AL) · DT/xe/ngày (AM). Mapping 'Mapping Antaxi 13.08 - BS KPI' CT48 dòng 27 (AK) · dòng 49 & 54 (AL) · CT49 dòng 50 & 53 (AM).",
+  "_bay": [
+    "CỘT AK CỦA FILE ĐANG SAI — 'Doanh thu thực hiện/Số ngày phát sinh doanh thu' ghi HẰNG SỐ 109.238.148 ở CẢ 12 ngày (đúng bằng doanh thu ngày 01), trong khi bình quân thật của 12 ngày là 100.259.948. Là lỗi công thức trong file nguồn. Nạp vào để đối chiếu nhưng backend TỰ TÍNH từ ATX_DTHU_D và ghi cảnh báo — không lấy AK làm số hiển thị.",
+    "TIÊU ĐỀ AM GHI 'Doanh thu/TXTX' (doanh thu trên TÀI XẾ) nhưng SỐ THỰC là doanh thu / SỐ XE HOẠT ĐỘNG: ngày 01 = 109.238.148 / 137 = 797.359 = đúng AM11 (137 là cột I 'số xe hoạt động', không phải 155 tài xế). Mapping gọi đúng bản chất ('Doanh thu/ Xe/ Ngày', CT49) — tin mapping + số, đừng tin nhãn cột.",
+    "AL đơn vị là CHUYẾN/XE (he_so 1) còn AK/AM là TIỀN (he_so 1e-9). Dùng chung he_so là biến 8,44 cuốc thành 0,0000000084.",
+    "Đây là nguồn ĐỐI CHIẾU, không phải nguồn duy nhất: AL = ATX_DTHU_D(số cuốc) / ATX_XE_D(xe hoạt động) và AM = ATX_DTHU_D(doanh thu) / ATX_XE_D(xe hoạt động). Nếu lệch thì file nguồn có vấn đề — đúng cách phát hiện lỗi AK ở trên."
+  ],
+  "_kiem_chung": [
+    "01/08/2026: AL = 8,445 cuốc/xe (=1.157/137) · AM = 797.359 đ (=109.238.148/137). Cả hai khớp phép chia từ ATX_DTHU_D và ATX_XE_D.",
+    "11-12/08/2026 AL/AM VỌT LÊN (12,05 và 12,32 cuốc/xe) vì mẫu số xe hoạt động của file bị thiếu Thái Nguyên (87/88 thay vì ~137) — cùng lỗi nguồn đã ghi ở spec atx_ngay_doixe, không phải năng suất tăng.",
+    "AK bằng hằng số 109.238.148 suốt 12 ngày -> dấu hiệu công thức file bị ghim tuyệt đối."
+  ],
+  "report_type": "ATX_CT_D",
+  "row_index_base": 7870000,
+  "khoi": "Khối KD Dịch vụ An Taxi",
+  "nguon": {
+    "folder": "ANTAXI/baocaoqtvhngay",
+    "file_glob": "B.7.AAG.PKDVH.D.*.Baocaotonghop.xlsx",
+    "sheet": { "chua": "BC Ngày PKDVH" }
+  },
+  "header": { "dong": 7 },
+  "dong_bat_dau": 11,
+  "dong_ket_thuc": 41,
+  "kiem_tra_o": [
+    { "o": "AK7", "bang": "Doanh thu thực hiện/ Số ngày phát sinh doanh thu" },
+    { "o": "AL7", "bang": "Số cuốc/ số xe hoạt động" },
+    { "o": "AM7", "bang": "Doanh thu/TXTX" }
+  ],
+  "cot": { "ngay": { "cot": "A", "kieu": "ngay_trong_thang" } },
+  "chieu_co_dinh": { "cong_ty": "AAG" },
+  "ban_ghi": "moi_cot_gia_tri",
+  "cot_gia_tri": [
+    { "header": "Doanh thu thực hiện/ Số ngày phát sinh doanh thu", "dim1": "DT bình quân ngày (file)", "he_so": 1e-9 },
+    { "header": "Số cuốc/ số xe hoạt động", "dim1": "Số cuốc/xe/ngày (file)" },
+    { "header": "Doanh thu/TXTX", "dim1": "DT/xe/ngày (file)", "he_so": 1e-9 }
+  ],
+  "loc": [
+    { "cot": "ngay", "dieu_kien": "khac_rong" },
+    { "cot": "amount", "dieu_kien": "khac_rong" }
+  ],
+  "payload_them": { "unit": "hon_hop" }
+}

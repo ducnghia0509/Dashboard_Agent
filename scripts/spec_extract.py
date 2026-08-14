@@ -32,13 +32,22 @@ CẤU TRÚC SPEC (khoá tiếng Việt cho kế toán/BA đọc được):
                                          // | {"tim_o": "Mã số"} tự dò dòng header theo nhãn mốc
                                          //   (dùng khi vị trí header khác nhau giữa các sheet)
   "dong_bat_dau": 3,                     // tuỳ chọn — mặc định = dòng header cuối + 1
+  "dong_ket_thuc": 19,                   // tuỳ chọn — chặn trên của dải dòng (bắt buộc khi dùng `vung`)
+  "nam_tu_ten_file": {"regex": "\\.M\\.(\\d{4})\\."},   // cho `kieu: "thang_cuoi"`
+  "vung": [                              // NHIỀU KHỐI trong CÙNG 1 sheet (xem `extract_file`).
+    {"ten": "Sơn Tây", "header": {"dong": [6, 7]}, "dong_bat_dau": 8, "dong_ket_thuc": 19,
+     "chieu_co_dinh": {"cost_center": "ST_AT"}, "cot": {"amount": {"header": "TXTX"}}}
+  ],                                     // khoá trong vùng ghi đè spec; `cot`/`chieu_co_dinh` trộn
   "chieu_tu_ten_file": {"dim2": {"regex": "Xuathoadon_(B2B|B2C|GF)", "hoa": true}},
   "ngay_tu_ten_file": {"regex": "M\\.(\\d{4})\\.(\\d{1,2})\\.(\\d{1,2})", "thu_tu": "ymd"},
   "cot": {                               // đích -> cách lấy. Đích: ngay/cost_center/cong_ty/
     "cost_center": {"header": "Tên DVCS", "chuan_hoa": "sr_showroom"},   // amount/amount2/dim1..3/
     "ngay":   {"header": "Ngày hóa đơn", "kieu": "date"},                // payload.<khoá bất kỳ>
     "amount": {"header": "Giá bán", "kieu": "so", "he_so": 1e-9}
-  },
+  },                                     // `kieu` khác: "thang_cuoi" (ô là SỐ THÁNG 1..12, năm
+                                         // lấy từ tên file -> ngày cuối tháng) · "ngay_trong_thang"
+                                         // (ô là SỐ NGÀY, năm+tháng từ tên file). Hai kiểu này cho
+                                         // báo cáo xếp mỗi kỳ MỘT DÒNG thay vì một cột.
   "ban_ghi": "moi_dong",                 // | "moi_cot_gia_tri" | "moi_cot_ngay"
                                          // | "moi_cot_thang" (xem dưới)
   "cot_gia_tri": [                       // chỉ dùng khi ban_ghi = "moi_cot_gia_tri":
@@ -529,6 +538,41 @@ def _tim_cot(hmaps, cfg, nhan, warn):
     return None
 
 
+def _thang_cuoi(v, nam):
+    """Ô chứa SỐ THÁNG (1..12) -> 'YYYY-MM-DD' ngày cuối tháng đó, năm lấy từ tên file.
+
+    Dùng cho báo cáo xếp 12 DÒNG THÁNG (QTVH An Taxi: một file cấp số cho cả năm nên kỳ KHÔNG
+    suy được từ tên file). Neo CUỐI THÁNG để `period_month` rơi đúng tháng — cùng quy ước với
+    `moi_cot_thang` của bản kế hoạch. Ô là chữ ("Quý", "06 Tháng đầu năm") -> None, nhờ vậy các
+    dòng tổng quý/nửa năm ngay dưới dải 12 tháng tự bị bộ lọc `ngay khác_rong` loại đi thay vì
+    cộng đôi vào một kỳ nào đó.
+    """
+    if nam is None:
+        return None
+    m = re.match(r"^\s*(\d{1,2})(?:\.0)?\s*$", str(v if v is not None else "").strip())
+    if not m or not 1 <= int(m.group(1)) <= 12:
+        return None
+    mo = int(m.group(1))
+    return dt.date(nam, mo, calendar.monthrange(nam, mo)[1]).isoformat()
+
+
+def _ngay_trong_thang(v, ky):
+    """Ô chứa SỐ NGÀY (1..31) -> 'YYYY-MM-DD', (năm, tháng) lấy từ TÊN FILE (`_ky_thang`).
+
+    Bản THEO DÒNG của `moi_cot_ngay` (báo cáo ngày An Taxi xếp mỗi ngày MỘT DÒNG, cột A là số
+    ngày). Ngày 30/31 ở tháng ngắn -> None (dòng thừa của mẫu in sẵn), không phải lỗi.
+    """
+    if not ky:
+        return None
+    m = re.match(r"^\s*(\d{1,2})(?:\.0)?\s*$", str(v if v is not None else "").strip())
+    if not m:
+        return None
+    try:
+        return dt.date(ky[0], ky[1], int(m.group(1))).isoformat()
+    except ValueError:
+        return None
+
+
 def _lay_o(row, j, cfg, dem_loi=None):
     v = row[j] if j < len(row) else None
     if _o_loi(v):
@@ -541,6 +585,10 @@ def _lay_o(row, j, cfg, dem_loi=None):
         return _so(v, float(cfg.get("he_so", 1.0)))
     if kieu == "date":
         return _date(v)
+    if kieu == "thang_cuoi":
+        return _thang_cuoi(v, cfg.get("_nam"))
+    if kieu == "ngay_trong_thang":
+        return _ngay_trong_thang(v, cfg.get("_ky"))
     s = str(v).strip() if v is not None else None
     return s or None
 
@@ -855,7 +903,46 @@ def loc_file_moi_nhat(spec, files):
 
 
 # ─────────────────────────── trích 1 file ───────────────────────────
+def _tron_vung(spec, v):
+    """Trộn 1 khai báo `vung` lên spec gốc -> spec con chỉ đọc ĐÚNG khối đó.
+
+    Khoá trong `vung` GHI ĐÈ khoá cùng tên ở spec, riêng `cot` / `chieu_co_dinh` thì trộn theo
+    từng khoá con (vùng chỉ cần khai lại cột nào LỆCH, không phải chép cả bảng cột).
+    """
+    sp = {k: x for k, x in spec.items() if k != "vung"}
+    for k, x in v.items():
+        if k in ("cot", "chieu_co_dinh"):
+            sp[k] = {**(spec.get(k) or {}), **(x or {})}
+        elif k != "ten":
+            sp[k] = x
+    return sp
+
+
 def extract_file(spec, path):
+    """Trích 1 file. `vung` (nếu có) = NHIỀU KHỐI trong CÙNG một sheet, đọc lần lượt.
+
+    VÌ SAO CÓ `vung` (14/08/2026, báo cáo QTVH An Taxi): file `B.7.AAG.PKDVH.M.2026...` xếp 6 khối
+    nghiệp vụ (A nhân sự · B đội xe · C chuyến · D1 doanh thu · D2 thuê xe) NỐI TIẾP nhau trong
+    một sheet, mỗi khối có dòng tiêu đề riêng và 12 dòng tháng, lại chia tiếp theo depot
+    (I Sơn Tây · II Thái Nguyên · III Tổng 2 depot). Một spec = một dải dòng nên nếu không có
+    `vung` thì phải đẻ ~10 file spec gần trùng nhau cho CÙNG một file nguồn — mỗi lần mapping đổi
+    là sửa 10 chỗ. Nay 1 spec khai `cot` chung + liệt kê các vùng lệch.
+
+    Mỗi vùng vẫn tự dò cột THEO TÊN HEADER trong đúng dòng tiêu đề của nó (nguyên tắc số 1) và
+    vẫn kiểm được `kiem_tra_o` riêng, nên chèn/xoá cột trong một khối không lây sang khối khác.
+    """
+    vung = spec.get("vung")
+    if not vung:
+        return _extract_vung(spec, path)
+    recs, warn = [], []
+    for i, v in enumerate(vung, 1):
+        r, w = _extract_vung(_tron_vung(spec, v), path)
+        recs += r
+        warn += [f"[vùng {v.get('ten') or i}] {x}" for x in w]
+    return recs, warn
+
+
+def _extract_vung(spec, path):
     warn, recs = [], []
     wb = openpyxl.load_workbook(path, data_only=True, read_only=True)
     try:
@@ -900,6 +987,27 @@ def extract_file(spec, path):
             hmap = _map_header(head_rows, hdr_dong)
         cot = _resolve_cot(spec, hmap, warn)
 
+        # Kỳ nằm ở TÊN FILE nhưng số tháng/ngày nằm TRONG Ô -> ghép hai nửa lại ngay tại đây rồi
+        # nhét vào cfg của cột, để `_lay_o` (chỉ thấy 1 ô) dựng được ngày đầy đủ. Bản kế hoạch báo
+        # cáo QTVH An Taxi là MỘT file cho cả năm ("…M.2026.Baocaotonghop"), nên kỳ tuyệt đối
+        # không được suy từ tên file như các nguồn ảnh-chụp khác.
+        _nam, _ky_ngay = None, None
+        if any(c.get("kieu") == "thang_cuoi" for _, c in cot.values()):
+            cn = spec.get("nam_tu_ten_file") or {"regex": r"\.M\.(\d{4})\."}
+            mn = re.search(cn["regex"], os.path.basename(path))
+            if mn:
+                _nam = int(mn.group(1))
+            else:
+                warn.append(f"không dò được NĂM từ tên file: {os.path.basename(path)}")
+        if any(c.get("kieu") == "ngay_trong_thang" for _, c in cot.values()):
+            _ky_ngay, w5 = _ky_thang(spec, path)
+            warn.extend(w5)
+        for dich, (j, c) in list(cot.items()):
+            if c.get("kieu") == "thang_cuoi":
+                cot[dich] = (j, {**c, "_nam": _nam})
+            elif c.get("kieu") == "ngay_trong_thang":
+                cot[dich] = (j, {**c, "_ky": _ky_ngay})
+
         chieu = {}
         for dich, cfg in (spec.get("chieu_tu_ten_file") or {}).items():
             m = re.search(cfg["regex"], os.path.basename(path), re.I)
@@ -923,6 +1031,11 @@ def extract_file(spec, path):
         payload_tuan = chu_ky_tuan(spec, path)
 
         bat_dau = spec.get("dong_bat_dau") or (max_hdr + 1)
+        # `dong_ket_thuc` (14/08/2026): CHẶN TRÊN của dải dòng — bắt buộc khi nhiều khối nằm nối
+        # tiếp trong một sheet (xem `vung`). Không có nó thì khối A quét luôn xuống khối B: cột
+        # "Tổng" của bảng nhân sự và cột "Tổng số xe" của bảng đội xe cùng nằm ở E/C nên số của
+        # khối sau vẫn "đọc được" và cộng vào khối trước — sai mà không một dấu hiệu nào.
+        ket_thuc = spec.get("dong_ket_thuc")
         gia_tri_cols = spec.get("cot_gia_tri") or []
         gt_idx = [(_tim_cot(hmap, c, f"cột giá trị {c.get('dim1') or c.get('header')}", warn), c)
                   for c in gia_tri_cols]
@@ -1014,7 +1127,7 @@ def extract_file(spec, path):
         khong_map, bo_loc, o_loi = {}, 0, {}
         ngu_canh = {}          # ngữ cảnh mang từ dòng tiêu đề xuống, xem `ngu_canh_dong`
         nc_cfg = spec.get("ngu_canh_dong")
-        for row in ws.iter_rows(min_row=bat_dau, values_only=True):
+        for row in ws.iter_rows(min_row=bat_dau, max_row=ket_thuc, values_only=True):
             # BẢNG PHÂN CẤP: một số báo cáo không lặp lại tên đơn vị trên từng dòng mà đặt nó ở
             # DÒNG TIÊU ĐỀ riêng, các dòng bên dưới ngầm hiểu là của đơn vị đó (báo cáo doanh thu
             # XDV: dòng "3S có đồng sơn | Ocean Park" rồi 8 dòng mã B110..B150 bên dưới).

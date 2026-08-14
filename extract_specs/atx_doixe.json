@@ -1,0 +1,51 @@
+{
+  "id": "atx_doixe",
+  "_mo_ta": "ĐỘI XE khối An Taxi theo tháng × depot — phần B 'TỶ LỆ XE HOẠT ĐỘNG'. dim1: Tổng số xe · Xe vận doanh · Xe thiếu tài xế · Xe nằm lý do khác (VCTN/nằm XDV). Mapping 'Mapping Antaxi 13.08 - BS KPI' DASHBOARD 2 dòng 38-43 (Phần B/mục III/C70-C81 · D70-D81 · F70-F81 · G70-G81) và CT45 (tỷ lệ xe vận doanh, KPI >=95%).",
+  "_bay": [
+    "TỶ LỆ XE NẰM CỦA FILE ≠ CÔNG THỨC MAPPING. Cột 'Tỷ lệ' xe nằm (H70-H81) = CHỈ 'lý do khác' / tổng xe (T1: 4/146 = 2,74%), không gồm xe thiếu tài xế; còn mapping dòng 43 ghi '100% - xe hoạt động/tổng xe' (T1: 10/146 = 6,85%). Ngoài ra Tổng − Vận doanh = 10 nhưng thiếu-tài-xế + lý-do-khác = 9, tức file còn 1 xe không xếp vào nhóm nào. Vì vậy CHỈ nạp 4 SỐ ĐẾM, mọi tỷ lệ do backend tự tính; app/metrics/antaxi.py báo `lechDinhNghia` chỗ này.",
+    "Ba mục I/II/III có CÙNG tên cột nhưng LỆCH CỘT: Sơn Tây có thêm cột D 'Thương quyền' (16 xe, KHÔNG nằm trong 'Tổng số xe') nên vận doanh ở E; Thái Nguyên và Tổng thì vận doanh ở D. Dò theo TÊN HEADER nên tự đúng cả ba, đừng ghim chữ cột.",
+    "Σ 2 depot = dòng tổng của file ở CẢ 4 chỉ tiêu, verify T1 (146/136/5/4) và T7 (148/142/0/5). Vẫn nạp cả dòng tổng (cost_center rỗng); đọc phải chọn MỘT tầng.",
+    "T8-T12 để 0 kèm #DIV/0! ở cột tỷ lệ -> `loc` amount khác_rong loại hết, không đẻ 'đội xe = 0 xe'.",
+    "Cột J/K/L (xe đến hạn bảo dưỡng) và M/N/O (thủ tục xe mới) KHÔNG có trong mapping -> không nạp. Xe đến hạn bảo dưỡng có bản THEO NGÀY ở spec atx_ngay_chatluong."
+  ],
+  "_kiem_chung": [
+    "T1/2026 Tổng 2 depot: tổng 146 · vận doanh 136 · thiếu tài xế 5 · lý do khác 4 -> tỷ lệ vận doanh 93,15% (=E70).",
+    "T7/2026 Tổng: 148 · 142 · 0 · 5 -> vận doanh 95,95% (=E76), đạt KPI >=95%.",
+    "Sơn Tây T7: tổng 91 · vận doanh 88; Thái Nguyên T7: 57 · 54."
+  ],
+  "report_type": "ATX_XE",
+  "row_index_base": 7810000,
+  "khoi": "Khối KD Dịch vụ An Taxi",
+  "nguon": {
+    "folder": "ANTAXI/baocaoqtvhthang",
+    "file_glob": "B.7.AAG.PKDVH.M.*.Baocaotonghop.xlsx",
+    "sheet": { "chua": "BC Tổng Hợp PKDVH" }
+  },
+  "kiem_tra_o": [
+    { "o": "B35", "bang": "TỶ LỆ XE HOẠT ĐỘNG" },
+    { "o": "B36", "bang": "Sơn Tây" },
+    { "o": "B52", "bang": "Thái Nguyên" },
+    { "o": "B67", "bang": "Tổng 2 depot" }
+  ],
+  "cot": { "ngay": { "cot": "B", "kieu": "thang_cuoi" } },
+  "chieu_co_dinh": { "cong_ty": "AAG" },
+  "ban_ghi": "moi_cot_gia_tri",
+  "cot_gia_tri": [
+    { "header": "Tổng số xe", "dim1": "Tổng số xe" },
+    { "header": "Số xe vận doanh thực tế", "dim1": "Xe vận doanh" },
+    { "header": "Số xe nằm thực tế do thiếu tài xế", "dim1": "Xe thiếu tài xế" },
+    { "header": "Số xe nằm thực tế do các lý do khác (VCTN, xe nằm XDV..)", "dim1": "Xe nằm lý do khác" }
+  ],
+  "vung": [
+    { "ten": "B/I Sơn Tây", "header": { "dong": 38 }, "dong_bat_dau": 40, "dong_ket_thuc": 51,
+      "chieu_co_dinh": { "cong_ty": "AAG", "cost_center": "ST_AT" } },
+    { "ten": "B/II Thái Nguyên", "header": { "dong": 54 }, "dong_bat_dau": 55, "dong_ket_thuc": 66,
+      "chieu_co_dinh": { "cong_ty": "AAG", "cost_center": "TN_AT" } },
+    { "ten": "B/III Tổng 2 depot", "header": { "dong": 69 }, "dong_bat_dau": 70, "dong_ket_thuc": 81 }
+  ],
+  "loc": [
+    { "cot": "ngay", "dieu_kien": "khac_rong" },
+    { "cot": "amount", "dieu_kien": "khac_rong" }
+  ],
+  "payload_them": { "unit": "xe" }
+}

@@ -1,0 +1,86 @@
+{
+  "id": "atx_ngay_doanhthu",
+  "_mo_ta": "DOANH THU + SỐ CUỐC THEO NGÀY của An Taxi, tách theo 4 NGUỒN THU — sheet 'BC Ngày PKDVH' của B.7.AAG.PKDVH.D.<yyyymm>.Baocaotonghop.xlsx. amount = doanh thu (tỷ), amount2 = số cuốc. dim1: App An · App Xanh · Be-VnPay · Đồng hồ. Mapping 'Mapping Antaxi 13.08 - BS KPI' dòng 31-34 (P11-P41 · V11-V41 · AB11-AB41 · AH11-AH41 — đều là cột 'Tổng 2 depot' của từng nguồn).",
+  "_bay": [
+    "MỖI NGÀY MỘT DÒNG (cột A = số ngày), kỳ (năm+tháng) lấy từ TÊN FILE '...D.202608...' qua kieu 'ngay_trong_thang'. Đây là bản THEO DÒNG của ban_ghi 'moi_cot_ngay' (các nguồn XDV xếp mỗi ngày một CỘT).",
+    "TÊN CỘT KHÔNG DÙNG ĐƯỢC ĐỂ DÒ: 4 nguồn × 3 phạm vi (ST/TN/Tổng 2 depot) = 12 cặp cột, dòng 9 chỉ ghi 'Số cuốc'/'Doanh thu' lặp lại 12 lần, dòng 8 ghi 'ST'/'TN'/'Tổng 2 depot' lặp 4 lần. Vì vậy ĐÂY LÀ SPEC DUY NHẤT của An Taxi ghim CHỮ CỘT — bù lại mỗi vùng có `kiem_tra_o` khoá cả 3 dòng tiêu đề (nguồn ở dòng 7, phạm vi ở dòng 8, đo lường ở dòng 9). Cột xê dịch là spec BỎ QUA kèm cảnh báo, không đọc sai số.",
+    "CHỈ nạp phạm vi 'Tổng 2 depot' — mapping chỉ trỏ vào các cột đó, và thiết kế at1/at2 chỉ vẽ cơ cấu doanh thu ở mức tổng. Doanh thu theo depot đã có bản THEO THÁNG ở spec atx_doanhthu.",
+    "Σ 4 nguồn = cột AJ (doanh thu tổng 2 depot) và Σ số cuốc = cột AI, verify ngày 01 (33.011.944+72.305.556+3.397.222+523.426 = 109.238.148 = AJ11) và ngày 12 (=AJ22). Vì vậy KHÔNG nạp AI/AJ nữa — cộng 4 nguồn là ra, nạp thêm dòng tổng chỉ tạo cơ hội đếm đôi.",
+    "File tháng 08/2026 CHỈ CÓ SỐ ĐẾN NGÀY 12 (dòng 23-41 = ngày 13-31 để trống). Ô rỗng bị `loc` loại nên không đẻ ra 'ngày có doanh thu 0' giả — đúng bài học báo cáo ngày T08 của Trạm sạc/GA/HO.",
+    "'Be-VN Pay' viết liền chữ VN trong file (AC7 là 'Đồng hồ', W7 là 'Be-VN Pay'), còn báo cáo tháng ghi 'Be - Vnpay'/'Bee -Vnpay'. dim1 chuẩn hoá về 'Be-VnPay' cho khớp nhãn thiết kế."
+  ],
+  "_kiem_chung": [
+    "01/08/2026: App An 328 cuốc / 33.011.944 đ · App Xanh 779 / 72.305.556 · Be-VnPay 40 / 3.397.222 · Đồng hồ 10 / 523.426. Tổng 1.157 cuốc (=AI11) / 109.238.148 đ (=AJ11).",
+    "Lũy kế 01-12/08/2026: doanh thu 1.203.119.374 đ; số cuốc 13.087.",
+    "App Xanh là nguồn lớn nhất (~60% doanh thu), Đồng hồ nhỏ nhất (<1%)."
+  ],
+  "report_type": "ATX_DTHU_D",
+  "row_index_base": 7840000,
+  "khoi": "Khối KD Dịch vụ An Taxi",
+  "nguon": {
+    "folder": "ANTAXI/baocaoqtvhngay",
+    "file_glob": "B.7.AAG.PKDVH.D.*.Baocaotonghop.xlsx",
+    "sheet": { "chua": "BC Ngày PKDVH" }
+  },
+  "header": { "dong": 9 },
+  "dong_bat_dau": 11,
+  "dong_ket_thuc": 41,
+  "cot": { "ngay": { "cot": "A", "kieu": "ngay_trong_thang" } },
+  "chieu_co_dinh": { "cong_ty": "AAG" },
+  "vung": [
+    {
+      "ten": "App An",
+      "chieu_co_dinh": { "cong_ty": "AAG", "dim1": "App An" },
+      "kiem_tra_o": [
+        { "o": "K7", "bang": "App An" }, { "o": "O8", "bang": "Tổng 2 depot" },
+        { "o": "O9", "bang": "Số cuốc" }, { "o": "P9", "bang": "Doanh thu" }
+      ],
+      "cot": {
+        "amount": { "cot": "P", "kieu": "so", "he_so": 1e-9 },
+        "amount2": { "cot": "O", "kieu": "so" }
+      }
+    },
+    {
+      "ten": "App Xanh",
+      "chieu_co_dinh": { "cong_ty": "AAG", "dim1": "App Xanh" },
+      "kiem_tra_o": [
+        { "o": "Q7", "bang": "App Xanh" }, { "o": "U8", "bang": "Tổng 2 depot" },
+        { "o": "U9", "bang": "Số cuốc" }, { "o": "V9", "bang": "Doanh thu" }
+      ],
+      "cot": {
+        "amount": { "cot": "V", "kieu": "so", "he_so": 1e-9 },
+        "amount2": { "cot": "U", "kieu": "so" }
+      }
+    },
+    {
+      "ten": "Be-VnPay",
+      "chieu_co_dinh": { "cong_ty": "AAG", "dim1": "Be-VnPay" },
+      "kiem_tra_o": [
+        { "o": "W7", "bang": "Be-VN Pay" }, { "o": "AA8", "bang": "Tổng 2 depot" },
+        { "o": "AA9", "bang": "Số cuốc" }, { "o": "AB9", "bang": "Doanh thu" }
+      ],
+      "cot": {
+        "amount": { "cot": "AB", "kieu": "so", "he_so": 1e-9 },
+        "amount2": { "cot": "AA", "kieu": "so" }
+      }
+    },
+    {
+      "ten": "Đồng hồ",
+      "chieu_co_dinh": { "cong_ty": "AAG", "dim1": "Đồng hồ" },
+      "kiem_tra_o": [
+        { "o": "AC7", "bang": "Đồng hồ" }, { "o": "AG8", "bang": "Tổng 2 depot" },
+        { "o": "AG9", "bang": "Số cuốc" }, { "o": "AH9", "bang": "Doanh thu" }
+      ],
+      "cot": {
+        "amount": { "cot": "AH", "kieu": "so", "he_so": 1e-9 },
+        "amount2": { "cot": "AG", "kieu": "so" }
+      }
+    }
+  ],
+  "dan_xuat": { "payload.coSo": "amount + amount2" },
+  "loc": [
+    { "cot": "ngay", "dieu_kien": "khac_rong" },
+    { "cot": "payload.coSo", "dieu_kien": "khac_rong" }
+  ],
+  "payload_them": { "unit": "ty" }
+}

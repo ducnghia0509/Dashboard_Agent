@@ -1,0 +1,202 @@
+{
+  "id": "atx_ngay_chatluong",
+  "_mo_ta": "CHẤT LƯỢNG DỊCH VỤ & CẢNH BÁO RỦI RO theo ngày của An Taxi — sheet 'BC Ngày PKDVH'. Hai nhóm dim1: khiếu nại (Khiếu nại App An · Khiếu nại App xanh · Khiếu nại đã xử lý · Khiếu nại chưa xử lý theo depot, và Tổng khiếu nại ở mức tổng) và cảnh báo đội xe (Xe sắp hết hạn bảo hiểm · Xe sắp hết hạn đăng kiểm · Xe đến hạn bảo dưỡng). Mapping 'Mapping Antaxi 13.08 - BS KPI' DASHBOARD 4 dòng 61-62 (AV11-AV41 · AW11-AW41) và DASHBOARD 5 dòng 66-67 (AY11-AY41 đăng kiểm · AX11-AX41 bảo hiểm).",
+  "_bay": [
+    "TỶ LỆ KHIẾU NẠI CỦA FILE ≠ CÔNG THỨC MAPPING: cột AW = AV / TỔNG CUỐC (ngày 04/08: 6/974 = 0,616%), còn mapping dòng 62 ghi '/ Tổng số chuyến HOÀN THÀNH'. Báo cáo ngày KHÔNG có cột chuyến hoàn thành (chỉ báo cáo tháng mới có) nên cố ý KHÔNG nạp AW — backend tính lại theo mẫu số có thật và ghi rõ ở `lechDinhNghia`.",
+    "'Xe sắp hết hạn đăng kiểm' Ở CỘT AY, 'bảo hiểm' ở AX — mapping dòng 66/67 ghi ĐÚNG như file. Đừng đảo (tiêu đề dòng 7 là nguồn sự thật, đã khoá bằng `kiem_tra_o`).",
+    "SỐ ĐẾM TẠI THỜI ĐIỂM với nhóm cảnh báo (xe sắp hết hạn) nhưng LÀ PHÁT SINH với nhóm khiếu nại — cùng một report_type, hai ngữ nghĩa. Backend PHẢI cộng dồn khiếu nại theo kỳ và chỉ lấy NGÀY MỚI NHẤT cho cảnh báo. Vì thế ATX_CL_D không nằm trong `_SNAP_RT` (nếu vào đó thì khiếu nại cả tháng chỉ còn của 1 ngày).",
+    "Nhóm khiếu nại ST/TN có tên cột TRÙNG NHAU ở dòng 10 ('App An','App xanh','Đã xử lý','Chưa xử lý' lặp 2 lần) -> ghim chữ cột, khoá bằng dòng 8 ('ST' ở AN, 'TN' ở AR).",
+    "'Xe đến hạn bảo dưỡng' (AZ/BA/BB) KHÔNG có trong mapping An Taxi nhưng có nguồn sẵn và có bản theo tháng ở phần B (cột I/J/K) -> nạp để dùng sau, hiện KHÔNG hiện lên màn nào (quy ước: mapping/thiết kế không có thì ẩn, vẫn lưu dữ liệu).",
+    "Cột AQ/AU ('Chưa xử lý') RỖNG HOÀN TOÀN trong file tháng 08 — mọi khiếu nại đều đã xử lý. Ô rỗng bị `loc` loại nên chỉ tiêu này chưa có số, KHÔNG phải bằng 0."
+  ],
+  "_kiem_chung": [
+    "04/08/2026: ST App xanh 3 khiếu nại + TN App xanh 3 = tổng 6 (=AV14); cả 6 đã xử lý (AP14=3, AT14=3).",
+    "Lũy kế 01-12/08/2026: 12 khiếu nại (=Σ AV11:AV22), đều thuộc App An (1) và App xanh (11).",
+    "Xe sắp hết hạn bảo hiểm: chỉ ngày 08/08 có 1 xe (AX18). Đăng kiểm: 0 xe suốt kỳ.",
+    "Xe đến hạn bảo dưỡng lũy kế 12 ngày = 34 xe (Σ BB11:BB22)."
+  ],
+  "report_type": "ATX_CL_D",
+  "row_index_base": 7860000,
+  "khoi": "Khối KD Dịch vụ An Taxi",
+  "nguon": {
+    "folder": "ANTAXI/baocaoqtvhngay",
+    "file_glob": "B.7.AAG.PKDVH.D.*.Baocaotonghop.xlsx",
+    "sheet": {
+      "chua": "BC Ngày PKDVH"
+    }
+  },
+  "header": {
+    "dong": 9
+  },
+  "dong_bat_dau": 11,
+  "dong_ket_thuc": 41,
+  "cot": {
+    "ngay": {
+      "cot": "A",
+      "kieu": "ngay_trong_thang"
+    }
+  },
+  "chieu_co_dinh": {
+    "cong_ty": "AAG"
+  },
+  "ban_ghi": "moi_cot_gia_tri",
+  "vung": [
+    {
+      "ten": "Khiếu nại Sơn Tây",
+      "chieu_co_dinh": {
+        "cong_ty": "AAG",
+        "cost_center": "ST_AT"
+      },
+      "kiem_tra_o": [
+        {
+          "o": "AN7",
+          "bang": "Khiếu nại"
+        },
+        {
+          "o": "AN8",
+          "bang": "ST"
+        },
+        {
+          "o": "AN9",
+          "bang": "Phát sinh"
+        },
+        {
+          "o": "AP9",
+          "bang": "Tình trạng"
+        },
+        {
+          "o": "AN10",
+          "bang": "App An"
+        },
+        {
+          "o": "AP10",
+          "bang": "Đã xử lý"
+        }
+      ],
+      "cot_gia_tri": [
+        {
+          "cot": "AN",
+          "dim1": "Khiếu nại App An"
+        },
+        {
+          "cot": "AO",
+          "dim1": "Khiếu nại App xanh"
+        },
+        {
+          "cot": "AP",
+          "dim1": "Khiếu nại đã xử lý"
+        },
+        {
+          "cot": "AQ",
+          "dim1": "Khiếu nại chưa xử lý"
+        }
+      ]
+    },
+    {
+      "ten": "Khiếu nại Thái Nguyên",
+      "chieu_co_dinh": {
+        "cong_ty": "AAG",
+        "cost_center": "TN_AT"
+      },
+      "kiem_tra_o": [
+        {
+          "o": "AR8",
+          "bang": "TN"
+        },
+        {
+          "o": "AR9",
+          "bang": "Phát sinh"
+        },
+        {
+          "o": "AT9",
+          "bang": "Tình trạng"
+        },
+        {
+          "o": "AR10",
+          "bang": "App An"
+        },
+        {
+          "o": "AT10",
+          "bang": "Đã xử lý"
+        }
+      ],
+      "cot_gia_tri": [
+        {
+          "cot": "AR",
+          "dim1": "Khiếu nại App An"
+        },
+        {
+          "cot": "AS",
+          "dim1": "Khiếu nại App xanh"
+        },
+        {
+          "cot": "AT",
+          "dim1": "Khiếu nại đã xử lý"
+        },
+        {
+          "cot": "AU",
+          "dim1": "Khiếu nại chưa xử lý"
+        }
+      ]
+    },
+    {
+      "ten": "Khiếu nại + cảnh báo Tổng 2 depot",
+      "kiem_tra_o": [
+        {
+          "o": "AX7",
+          "bang": "Xe sắp hết hạn bảo hiểm"
+        },
+        {
+          "o": "AY7",
+          "bang": "Xe sắp hết hạn đăng kiểm"
+        },
+        {
+          "o": "AZ7",
+          "bang": "Xe đến hạn bảo dưỡng"
+        }
+      ],
+      "cot_gia_tri": [
+        {
+          "header": "Tổng số khiếu nại",
+          "dong_header": 9,
+          "dim1": "Tổng khiếu nại"
+        },
+        {
+          "header": "Xe sắp hết hạn bảo hiểm",
+          "dong_header": 7,
+          "dim1": "Xe sắp hết hạn bảo hiểm"
+        },
+        {
+          "header": "Xe sắp hết hạn đăng kiểm",
+          "dong_header": 7,
+          "dim1": "Xe sắp hết hạn đăng kiểm"
+        },
+        {
+          "header": "Tổng 2 depot",
+          "dong_header": 10,
+          "dim1": "Xe đến hạn bảo dưỡng"
+        }
+      ],
+      "header": {
+        "dong": [
+          9,
+          7,
+          10
+        ]
+      }
+    }
+  ],
+  "loc": [
+    {
+      "cot": "ngay",
+      "dieu_kien": "khac_rong"
+    },
+    {
+      "cot": "amount",
+      "dieu_kien": "khac_rong"
+    }
+  ],
+  "payload_them": {
+    "unit": "so"
+  }
+}

@@ -1,0 +1,86 @@
+{
+  "id": "atx_doanhthu",
+  "_mo_ta": "DOANH THU khối An Taxi theo tháng — phần D của 'BC Tổng Hợp PKDVH'. amount = thực đạt (tỷ), amount2 = KẾ HOẠCH (tỷ). dim1: Doanh thu Taxi (D1, theo depot + tổng 2 depot) · Doanh thu thương quyền (D1 mục 2, chỉ Sơn Tây) · Doanh thu cho thuê xe (D2). Mapping 'Mapping Antaxi 13.08 - BS KPI' CT33 (D1/mục III/C191-C202 thực hiện · E191-E202 %HT) · dòng 35 thương quyền (E159-E172) · dòng 36 thuê xe (F213-F224).",
+  "_bay": [
+    "KẾ HOẠCH LẤY NGAY TRONG FILE NÀY (cột 'Doanh thu Kế hoạch' D191-D202, đủ cả 12 tháng), KHÔNG phải từ '7.AnTX.OO.M.202608.Kehoachthang' như mapping ghi — file kế hoạch đó CHƯA về VPS (thư mục KEHOACH/baocaokehoachthang chỉ có 1.SR và 2.XDV). Khi nào có thì đối chiếu, đừng nạp hai lần.",
+    "THÁNG CHƯA CÓ THỰC HIỆN VẪN CÓ KẾ HOẠCH (T8-T12: amount=0, amount2>0) và những dòng đó PHẢI GIỮ để vẽ được cột kế hoạch. Vì vậy `loc` lọc theo `payload.coSo` = amount + amount2 chứ không lọc amount — lọc amount là mất sạch kế hoạch nửa cuối năm. Backend phải tự phân biệt 'chưa có thực hiện' với 'thực hiện = 0' (xem `_co_thuc_hien` trong app/metrics/antaxi.py).",
+    "MỤC III LẤY 2 DÒNG TIÊU ĐỀ [190, 189]: dòng 190 có 'Doanh thu thực đạt'/'Doanh thu Kế hoạch' (C/D), dòng 189 có 4 chỉ tiêu bình quân của file (G doanh thu bq/ngày · H bq/ngày/xe · I giá trị bq đơn hàng · J doanh thu/nhân viên) -> nhét vào payload để ĐỐI CHIẾU. Backend tự tính lại từ số gốc (quy ước full precision), payload chỉ để kiểm.",
+    "THƯƠNG QUYỀN ĐẢO CỘT so với Taxi: kế hoạch ở D, thực đạt ở E (Taxi thì thực đạt C, kế hoạch D). Dò theo tên nên tự đúng. Dữ liệu thực đạt chỉ có T1-T6; T7-T12 chỉ còn kế hoạch 63 tr/tháng.",
+    "THƯƠNG QUYỀN LÀ CỦA RIÊNG SƠN TÂY (nằm trong mục I) và 16 xe thương quyền KHÔNG nằm trong 'Tổng số xe' của spec atx_doixe -> đừng chia doanh thu này cho số xe vận doanh.",
+    "D3 'Doanh thu khách sạn' (dòng 232-253) là của khối An KS, KHÔNG phải An Taxi -> cố ý không nạp.",
+    "Σ 2 depot = dòng tổng: T1 1.892.549.534 + 1.238.129.326 = 3.130.678.860 ≠ C191 = 3.187.840.250. LỆCH 57.161.390 = ĐÚNG doanh thu thương quyền T1 (E161) -> dòng tổng mục III ĐÃ GỒM thương quyền, trong khi 2 dòng depot thì không. Vì vậy KHÔNG được cộng depot để ra tổng, và cũng KHÔNG được cộng 'Doanh thu Taxi tổng' + 'Doanh thu thương quyền' (đếm đôi). Backend đọc dòng tổng cho tổng doanh thu Taxi và chỉ cộng thêm DT cho thuê xe."
+  ],
+  "_kiem_chung": [
+    "T1/2026 Taxi tổng: TH 3,18784025 tỷ · KH 4,248 tỷ -> %HT 75,04% (=E191).",
+    "T7/2026 Taxi tổng: TH 3,137152332 · KH 3,22875 -> 97,16% (=E197).",
+    "T7 thương quyền: chưa có thực đạt, KH 0,063 tỷ. T6 thực đạt 0,04649695 tỷ.",
+    "T7 cho thuê xe: TH 0,3416 tỷ · KH 0,3 tỷ (hiệu suất 113,87% = G219).",
+    "payload T1 mục III: dtNgay 102.833.556 · dtXeNgay 704.339 · dtCuoc 85.387 · dtNhanVien 17.710.224."
+  ],
+  "report_type": "ATX_DTHU",
+  "row_index_base": 7830000,
+  "khoi": "Khối KD Dịch vụ An Taxi",
+  "nguon": {
+    "folder": "ANTAXI/baocaoqtvhthang",
+    "file_glob": "B.7.AAG.PKDVH.M.*.Baocaotonghop.xlsx",
+    "sheet": { "chua": "BC Tổng Hợp PKDVH" }
+  },
+  "kiem_tra_o": [
+    { "o": "B139", "bang": "Doanh Thu" },
+    { "o": "B140", "bang": "Doanh thu Antaxi" },
+    { "o": "B142", "bang": "Doanh thu Taxi" },
+    { "o": "B157", "bang": "Doanh thu xe Thương quyền" },
+    { "o": "B188", "bang": "Tổng Doanh thu Taxi 02 Depot" },
+    { "o": "B210", "bang": "Doanh thu thuê xe" }
+  ],
+  "cot": {
+    "ngay": { "cot": "B", "kieu": "thang_cuoi" },
+    "amount": { "header": "Doanh thu thực đạt", "kieu": "so", "he_so": 1e-9 },
+    "amount2": { "header": "Doanh thu Kế hoạch", "kieu": "so", "he_so": 1e-9 }
+  },
+  "chieu_co_dinh": { "cong_ty": "AAG" },
+  "vung": [
+    {
+      "ten": "D1/I Taxi Sơn Tây",
+      "header": { "dong": 144 }, "dong_bat_dau": 145, "dong_ket_thuc": 156,
+      "chieu_co_dinh": { "cong_ty": "AAG", "cost_center": "ST_AT", "dim1": "Doanh thu Taxi" }
+    },
+    {
+      "ten": "D1/II Taxi Thái Nguyên",
+      "header": { "dong": 175 }, "dong_bat_dau": 176, "dong_ket_thuc": 187,
+      "chieu_co_dinh": { "cong_ty": "AAG", "cost_center": "TN_AT", "dim1": "Doanh thu Taxi" }
+    },
+    {
+      "ten": "D1/III Taxi Tổng 2 depot",
+      "header": { "dong": [190, 189] }, "dong_bat_dau": 191, "dong_ket_thuc": 202,
+      "chieu_co_dinh": { "cong_ty": "AAG", "dim1": "Doanh thu Taxi" },
+      "cot": {
+        "payload.dtNgay": { "header": "Doanh thu bình quân/ngày", "kieu": "so", "bat_buoc": false },
+        "payload.dtXeNgay": { "header": "Doanh thu bình quân/ngày/xe", "kieu": "so", "bat_buoc": false },
+        "payload.dtCuoc": { "header": "Giá trị bình quân đơn hàng", "kieu": "so", "bat_buoc": false },
+        "payload.dtNhanVien": { "header": "Doanh thu/ nhân viên", "kieu": "so", "bat_buoc": false }
+      }
+    },
+    {
+      "ten": "D1/I.2 Thương quyền Sơn Tây",
+      "header": { "dong": 159 }, "dong_bat_dau": 161, "dong_ket_thuc": 172,
+      "chieu_co_dinh": { "cong_ty": "AAG", "cost_center": "ST_AT", "dim1": "Doanh thu thương quyền" },
+      "cot": { "payload.soXe": { "header": "Số xe", "kieu": "so", "bat_buoc": false } }
+    },
+    {
+      "ten": "D2 Cho thuê xe",
+      "header": { "dong": 212 }, "dong_bat_dau": 213, "dong_ket_thuc": 224,
+      "chieu_co_dinh": { "cong_ty": "AAG", "dim1": "Doanh thu cho thuê xe" },
+      "cot": {
+        "payload.tongXe": { "header": "Tổng xe", "kieu": "so", "bat_buoc": false },
+        "payload.soXeChoThue": { "header": "Số xe cho thuê", "kieu": "so", "bat_buoc": false }
+      }
+    }
+  ],
+  "dan_xuat": { "payload.coSo": "amount + amount2" },
+  "loc": [
+    { "cot": "ngay", "dieu_kien": "khac_rong" },
+    { "cot": "payload.coSo", "dieu_kien": "khac_rong" }
+  ],
+  "payload_them": { "unit": "ty" }
+}
