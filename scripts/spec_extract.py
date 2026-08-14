@@ -103,6 +103,25 @@ def _nd(s):
     return re.sub(r"[^a-z0-9]", "", s)
 
 
+# Giá trị LỖI của Excel: VLOOKUP chưa tra được, ô tham chiếu bị xoá, chia 0… File nguồn vẫn gửi
+# về nguyên trạng chuỗi này. Coi như Ô TRỐNG ở MỌI spec — nếu không, chuỗi "#N/A" đi thẳng vào
+# dim/cost_center và trở thành một "giá trị nghiệp vụ" giả: đã dính 14/08/2026 ở claim B2C T8
+# (cột Trạng thái 178 ô #N/A, cột Số tiền hỏng CẢ 605 ô) -> dashboard đếm 175 hồ sơ trạng thái
+# "#N/A" giá trị 0đ và đòi bổ sung "#N/A" vào bảng quy ước trạng thái claim.
+# Số ô lỗi được ĐẾM và báo ra `canh_bao` (xem cuối `extract_file`): ô lỗi là dấu hiệu file nguồn
+# chưa cập nhật xong, phải nhìn thấy chứ không nuốt im lặng.
+_LOI_EXCEL = {"#N/A", "#REF!", "#VALUE!", "#DIV/0!", "#NAME?", "#NULL!", "#NUM!", "#GETTING_DATA"}
+
+
+def _o_loi(v):
+    return isinstance(v, str) and v.strip().upper() in _LOI_EXCEL
+
+
+# Câu cảnh báo "đã đọc được file nhưng bộ lọc loại hết dòng" — `run()` dựa vào nó để phân biệt
+# "file hết số" với "file không đọc được" (xem chú thích ở `run`). Một chỗ khai, hai chỗ dùng.
+_W_BO_LOC = "dòng không qua bộ lọc"
+
+
 def _so(v, he_so=1.0):
     if isinstance(v, bool):
         return 0.0
@@ -491,8 +510,13 @@ def _tim_cot(hmaps, cfg, nhan, warn):
     return None
 
 
-def _lay_o(row, j, cfg):
+def _lay_o(row, j, cfg, dem_loi=None):
     v = row[j] if j < len(row) else None
+    if _o_loi(v):
+        if dem_loi is not None:
+            k = str(v).strip().upper()
+            dem_loi[k] = dem_loi.get(k, 0) + 1
+        v = None
     kieu = cfg.get("kieu", "text")
     if kieu == "so":
         return _so(v, float(cfg.get("he_so", 1.0)))
@@ -968,7 +992,7 @@ def extract_file(spec, path):
             if not thang_theo_cot:
                 return [], [*warn, "BỎ QUA — không dựng được dải cột theo tháng"]
 
-        khong_map, bo_loc = {}, 0
+        khong_map, bo_loc, o_loi = {}, 0, {}
         ngu_canh = {}          # ngữ cảnh mang từ dòng tiêu đề xuống, xem `ngu_canh_dong`
         nc_cfg = spec.get("ngu_canh_dong")
         for row in ws.iter_rows(min_row=bat_dau, values_only=True):
@@ -988,7 +1012,7 @@ def extract_file(spec, path):
                 for k in rule.get("xoa") or []:
                     ngu_canh.pop(k, None)
                 for dich, c in (rule.get("gan") or {}).items():
-                    v = _lay_o(row, column_index_from_string(c["cot"]) - 1, c)
+                    v = _lay_o(row, column_index_from_string(c["cot"]) - 1, c, o_loi)
                     if c.get("anh_xa"):
                         # Nhãn trong file dài dòng ("II/ DOANH THU LỆNH W (BẢO HÀNH)") -> quy về
                         # giá trị ngắn dùng cho dim. So theo kiểu "chứa", bỏ dấu.
@@ -1018,7 +1042,7 @@ def extract_file(spec, path):
             if ngay_file:
                 base["ngay"] = ngay_file
             for dich, (j, cfg) in cot.items():
-                val = _lay_o(row, j, cfg)
+                val = _lay_o(row, j, cfg, o_loi)
                 hook = cfg.get("chuan_hoa")
                 if hook and val is not None:
                     res = _CHUAN_HOA[hook](val)
@@ -1108,7 +1132,13 @@ def extract_file(spec, path):
                 else:
                     recs.append(r2)
         if bo_loc:
-            warn.append(f"bỏ {bo_loc} dòng không qua bộ lọc")
+            warn.append(f"bỏ {bo_loc} {_W_BO_LOC}")
+        if o_loi:
+            # Ô lỗi Excel đã bị coi là trống ở trên — báo ra để biết FILE NGUỒN chưa cập nhật
+            # xong, đừng đi tìm lỗi ở spec/deriver.
+            warn.append("Ô LỖI EXCEL trong file nguồn (đã coi như ô trống): "
+                        + ", ".join(f"{k} ({v} ô)"
+                                    for k, v in sorted(o_loi.items(), key=lambda x: -x[1])))
         if khong_map:
             warn.append("KHÔNG MAP ĐƯỢC đơn vị (đã qua bộ lọc, tức là dòng THẬT): "
                         + ", ".join(f"{k} ({v} dòng)"
@@ -1176,7 +1206,13 @@ def run(spec, path, write=False):
                   for k, v in sorted(by_ky.items())}}
     if warn:
         out["canh_bao"] = warn
-    if write and recs:
+    # KHÔNG có bản ghi vẫn phải ghi (tức là XOÁ phần cũ của chính file này) khi file ĐÃ ĐỌC ĐƯỢC
+    # mà bộ lọc loại hết dòng — đó là "file nguồn hết số", vd claim B2C T8 nhận 13/08/2026 có cột
+    # Trạng thái + Số tiền toàn #N/A. Không xoá thì DB giữ nguyên bản nạp trước đó và dashboard
+    # hiện số cũ như thể vẫn đúng.
+    # Ngược lại, file KHÔNG đọc được (sai sheet, thiếu cột bắt buộc) trả rỗng mà KHÔNG kèm dòng bị
+    # lọc -> giữ nguyên dữ liệu cũ: spec hỏng thì im lặng còn hơn xoá trắng dữ liệu đang đúng.
+    if write and (recs or any(_W_BO_LOC in w for w in warn)):
         out.update(_ghi(spec, path, recs))
     return out
 
