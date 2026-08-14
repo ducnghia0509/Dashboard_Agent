@@ -182,6 +182,29 @@ def _cc_showroom(ten):
     return _cc_theo_khoi(ten, "Khối KD Vinfast - Showroom", {"b2b": ("B2B_SR", "TC")})
 
 
+def _cc_hcns_xdv(ten):
+    """Phòng/Ban của báo cáo NHÂN SỰ -> cost center XDV, CHỈ khi tên đó THỰC SỰ là một XƯỞNG.
+
+    VÌ SAO KHÔNG DÙNG THẲNG `_cc_xdv` (bắt được 14/08/2026): `_bo_tien_to` bóc cả tiền tố
+    "showroom", nên "Showroom Vinfast Smart City" quy về cùng khoá "smartcity" với xưởng
+    "Vinfast Smart City" -> CẢ 9 SHOWROOM bị gán cost center XDV, cộng thêm 470 nhân sự BÁN HÀNG
+    vào mẫu số "nhân sự xưởng" (994 thay vì 524, phồng 90%). Các spec XDV khác không dính vì file
+    của chúng chỉ có xưởng; báo cáo nhân sự thì chứa MỌI khối trong một sheet.
+
+    Báo cáo nhân sự gọi xưởng bằng đúng hai dạng: "Xưởng dịch vụ ..." và "Trung tâm Sửa chữa Pin,
+    Động cơ ..." (xưởng HCM). Chốt bằng tiền tố đó là tách được Showroom khỏi xưởng.
+
+    CÒN MỘT CA KHÔNG CHỐT ĐƯỢC Ở ĐÂY: "Xưởng dịch vụ Hà Khánh" xuất hiện ở CẢ khối "Khối Dịch vụ
+    Hậu mãi" (33 người) và "Khối Kinh doanh Showroom Vinfast" (3 người) — hook chỉ thấy MỘT ô nên
+    không biết dòng đang thuộc khối nào. Bên đọc PHẢI lọc thêm `dim1 = "Khối Dịch vụ Hậu mãi"`
+    (xem `app/metrics/xdv.py::_nhan_su_xuong`), nếu không cộng đôi 3 người.
+    """
+    n = _nd(ten)
+    if not (n.startswith("xuongdichvu") or n.startswith("trungtamsuachua")):
+        return {"_khong_map": str(ten or "").strip()}
+    return _cc_xdv(ten)
+
+
 def _cc_xdv(ten):
     """Tên xưởng trong file -> cost center khối XDV. 13/14 xưởng khớp thẳng sau khi bỏ tiền tố
     ("Ocean Park" ↔ master "Vinfast Ocean Park"); riêng xưởng HCM có tới BA tên gọi nên phải
@@ -189,8 +212,13 @@ def _cc_xdv(ten):
     (Baocaodoanhthukehoachngay, 10/08/2026) ghi theo quận — "Quận 12"."""
     # Khoá alias phải viết theo dạng ĐÃ CHUẨN HOÁ của `_nd` — bỏ dấu, bỏ cả khoảng trắng:
     # "Quận 12" -> "quan12". Viết "quan 12" thì không bao giờ khớp và xưởng đó lặng lẽ mất.
+    # Alias thứ BA cho xưởng HCM (14/08/2026): báo cáo NHÂN SỰ (HCNS/baocaotongsonhansu, sheet
+    # "Chi tiết") gọi nó là "Trung tâm Sửa chữa Pin, Động cơ Thành phố Hồ Chí Minh". Không khai
+    # thì đúng 1 trong 14 xưởng rơi và mẫu số "nhân sự xưởng" hụt 35 người (~6,7%) — kiểu thiếu
+    # vừa đủ nhỏ để không ai thấy.
     return _cc_theo_khoi(ten, "Khối KD Vinfast - XDV",
-                         {"hcm": ("HCM_XDV", "TC"), "quan12": ("HCM_XDV", "TC")})
+                         {"hcm": ("HCM_XDV", "TC"), "quan12": ("HCM_XDV", "TC"),
+                          "trungtamsuachuapindongcothanhphohochiminh": ("HCM_XDV", "TC")})
 
 
 def _master_loader():
@@ -240,7 +268,13 @@ def _cc_theo_khoi(ten, khoi, alias):
         _CC_CACHE[khoi] = m
     key = _bo_tien_to(_nd(ten))
     ma, cty = _CC_CACHE[khoi].get(key) or alias.get(key) or (None, None)
-    return {"cost_center": ma, "cong_ty": cty} if ma else {"_khong_map": str(ten or "").strip()}
+    # TRẢ LUÔN `khoi` (14/08/2026). Trước đây chỉ trả cost_center + cong_ty, và mọi spec dùng hook
+    # này đều tự khai `"khoi"` ở cấp spec nên không ai thấy thiếu. Nhưng báo cáo NHÂN SỰ chứa NHIỀU
+    # khối trong một sheet -> không khai được `khoi` cố định, mà thiếu `khoi` thì `filter_scope`
+    # (màn xdv0 tự lọc khối) LỌC SẠCH các dòng đó và mẫu số "nhân sự xưởng" về None mà không có lỗi
+    # nào. Giá trị trả về TRÙNG KHỚP với `khoi` mà các spec cũ vẫn khai, nên chúng không đổi hành vi.
+    return ({"cost_center": ma, "cong_ty": cty, "khoi": khoi} if ma
+            else {"_khong_map": str(ten or "").strip()})
 
 
 def _bo_tien_to(n):
@@ -248,9 +282,17 @@ def _bo_tien_to(n):
     # "Vinfast Thịnh Cường Ocean Park" -> bỏ "vinfast" xong vẫn còn "thinhcuong" nên KHÔNG khớp
     # danh mục, cả 14 xưởng rơi hết và file nạp ra 0 dòng. Không cost center nào của master bắt
     # đầu bằng "Thịnh Cường" (mấy dòng Xe tải để ở ĐUÔI) nên bỏ tiền tố này là an toàn.
-    for p in ("showroom", "vinfast", "thinhcuong", "xuongdichvu", "xdv"):
-        if n.startswith(p):
-            n = n[len(p):]
+    # BÓC LẶP, không phải một lượt (sửa 14/08/2026). Vòng `for` một lượt xét tiền tố theo THỨ TỰ
+    # khai, nên "Xưởng dịch vụ Vinfast Cẩm Phả" bóc được "xuongdichvu" rồi DỪNG, còn lại
+    # "vinfastcampha" trong khi khoá master là "campha" -> 13/14 xưởng của báo cáo nhân sự HCNS
+    # rơi hết. Bóc lặp thì cả hai vế (tên trong file và tên master) cùng quy về một dạng, và vì
+    # danh mục cost center được chuẩn hoá bằng CHÍNH hàm này nên không sinh khoá lệch.
+    doi = True
+    while doi:
+        doi = False
+        for p in ("showroom", "vinfast", "thinhcuong", "xuongdichvu", "xdv"):
+            if n.startswith(p) and len(n) > len(p):    # giữ nguyên nếu bóc xong thành rỗng
+                n, doi = n[len(p):], True
     return n
 
 
@@ -343,6 +385,7 @@ def _xdv_kh_cong(v):
 _CHUAN_HOA = {
     "sr_showroom": _cc_showroom,
     "xdv": _cc_xdv,
+    "hcns_xdv": _cc_hcns_xdv,
     "kh_dong": _kh_dong,
     "xdv_kh_dong": _xdv_kh_dong,
     "xdv_kh_cong": _xdv_kh_cong,
@@ -872,6 +915,13 @@ def loc_file_moi_nhat(spec, files):
     cáo TUẦN (KSCL): các bản tuần trong cùng một tháng là những ảnh chụp KHÁC NHAU, phải giữ đủ
     để lọc theo tuần ra được số của đúng tuần đó. Gộp theo tháng ở đây là vứt mất tuần cũ. Việc
     không cộng đôi khi xem cả tháng do tầng đọc lo (`_SNAP_RT` -> chỉ lấy ngày chốt mới nhất).
+
+    `"moi_ky_lay_file_moi_nhat": "mot_file"` (14/08/2026) — giữ ĐÚNG MỘT file mới nhất trong CẢ
+    thư mục, bất kể kỳ. Cho nguồn mà MỖI FILE THÁNG ĐÃ CHỨA TOÀN BỘ CÁC KỲ TỪ ĐẦU NĂM: sheet
+    "Chi tiết" của báo cáo nhân sự HCNS có đủ 6 tháng trong file tháng 1 lẫn file tháng 6. Hai chế
+    độ trên không cứu được vì mỗi file suy ra một kỳ KHÁC NHAU nên đều được giữ -> nạp 6 file là
+    ghi cùng dữ liệu 6 lần dưới 6 `source_file`, và `_ghi` (xoá theo source_file) không chặn nổi:
+    tổng nhân sự phình 6 lần.
     """
     che_do = spec.get("moi_ky_lay_file_moi_nhat")
     if not che_do:
@@ -882,7 +932,7 @@ def loc_file_moi_nhat(spec, files):
         if not ngay:
             giu[f] = f            # không suy được kỳ -> giữ nguyên, đừng im lặng loại
             continue
-        ky = ngay if che_do == "ngay" else ngay[:7]
+        ky = "" if che_do == "mot_file" else (ngay if che_do == "ngay" else ngay[:7])
         cu = giu.get(ky)
         # HOÀ ngày chốt -> lấy file VỀ SAU (mtime). Nghiệp vụ gửi lại bản SỬA của cùng một kỳ với
         # tên khác (claim T3-T6: "…7.24. BaocaoClaim_B2C_T3" rồi "…8.11. BaocaoClaim_B2C_T3"),
