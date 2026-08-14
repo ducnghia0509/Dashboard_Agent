@@ -1,0 +1,57 @@
+{
+  "id": "xdv_lsc_cyber",
+  "_mo_ta": "Lệnh sửa chữa TỒN theo số ngày tồn — nguồn CYBER (mapping XDV #24, sheet 'CYBER-BC LSC'). Song song với `xdv_lsc_ton` (nguồn DMS): thiết kế màn xdv4 có bảng 'Nhóm lệnh tồn | Cyber·lệnh | Cyber·giá trị | DMS·lệnh | DMS·giá trị | Tổng lệnh' nên PHẢI có cả hai hệ, không thay thế nhau.",
+  "_bay": [
+    "CYBER VÀ DMS ĐẾM KHÁC NHAU, ĐỪNG CỘNG DỒN LÀM MỘT: cùng tuần 09/08/2026 Cyber báo 1.781 lệnh tồn còn DMS báo 372 — chênh 4,8 lần vì hai hệ định nghĩa 'tồn' khác nhau. Mapping #24 ghi rõ 'Theo số ngày tồn lệnh (Cyber, DMS)' = xem SONG SONG để soi lệch, không phải cộng vào nhau.",
+    "TIỀN CHỈ CÓ Ở 3 MỐC, SỐ LỆNH CÓ Ở 5 MỐC. Cột tiền: F (0->7), H (8->30), L (>30 gộp). Cột lệnh: E (0->7), G (8->30), I (31->60), J (61->90), K (>90). Muốn tiền theo 31-60/61-90/>90 riêng thì nguồn KHÔNG có — đừng chia đều ra, sẽ đẻ số không tồn tại. Nhóm '>30 ngày' của tiền tương ứng I+J+K của lệnh.",
+    "Nguồn DMS (`xdv_lsc_ton`) KHÔNG có cột tiền nào — sheet 'DMS-BC LSC' chỉ có D/E/F/G/H/I/J là ĐẾM LỆNH. Nên cột 'DMS · giá trị' của thiết kế hiện không có nguồn; để trống chứ đừng mượn tạm số của Cyber.",
+    "Kỳ lấy từ tên file W.<năm>.<tháng>.<tuần>.<NGÀY BÁO CÁO>, quy về CHỦ NHẬT của tuần liền trước (giống 3 spec KSCL còn lại). File ra thứ Hai là đúng; ra Chủ nhật bị lùi nguyên một tuần và engine có cảnh báo.",
+    "Tên xưởng ở cột B là tên thường ('Ocean Park'), KHÔNG phải mã — `chuan_hoa: xdv` lo việc quy về OCP_XDV. Dòng 'Tổng' cuối bảng tự rớt vì không map ra xưởng nào.",
+    "amount TRỘN đơn vị theo dim2: dim2='Số lệnh' là ĐẾM, dim2='Giá trị' là TỶ ĐỒNG. Cộng SUM(amount) toàn bộ report_type này ra số vô nghĩa — luôn lọc dim2 trước. (XDV_DXBH cũng theo lối này.)"
+  ],
+  "report_type": "XDV_LSC_CYBER",
+  "row_index_base": 7760000,
+  "khoi": "Khối KD Vinfast - XDV",
+  "nguon": {
+    "folder": "XDV/baocaolsccyber",
+    "file_glob": "*.xlsx",
+    "sheet": { "ten": "CYBER-BC LSC" }
+  },
+  "kiem_tra_o": [
+    { "o": "B2", "bang": "XDV" },
+    { "o": "C2", "bang": "Tổng lệnh sửa chữa" },
+    { "o": "D2", "bang": "Tổng tiền" }
+  ],
+  "header": { "khong_co": true },
+  "dong_bat_dau": 3,
+  "ky_tu_ten_file": {
+    "regex_nam": "W\\.(\\d{4})\\.",
+    "regex_thang": "W\\.\\d{4}\\.(\\d{1,2})\\.",
+    "regex_ngay": "W\\.\\d{4}\\.\\d{1,2}\\.\\d{1,2}\\.(\\d{1,2})\\.",
+    "tuan_truoc_ngay_bao_cao": true
+  },
+  "moi_ky_lay_file_moi_nhat": "ngay",
+  "cot": {
+    "cost_center": { "cot": "B", "chuan_hoa": "xdv" },
+    "payload.don_vi": { "cot": "B" }
+  },
+  "ban_ghi": "moi_cot_gia_tri",
+  "cot_gia_tri": [
+    { "cot": "C", "dim1": "Tổng",             "dim2": "Số lệnh", "he_so": 1 },
+    { "cot": "D", "dim1": "Tổng",             "dim2": "Giá trị", "he_so": 1e-9 },
+    { "cot": "E", "dim1": "Tồn 0-7 ngày",     "dim2": "Số lệnh", "he_so": 1 },
+    { "cot": "F", "dim1": "Tồn 0-7 ngày",     "dim2": "Giá trị", "he_so": 1e-9 },
+    { "cot": "G", "dim1": "Tồn 8-30 ngày",    "dim2": "Số lệnh", "he_so": 1 },
+    { "cot": "H", "dim1": "Tồn 8-30 ngày",    "dim2": "Giá trị", "he_so": 1e-9 },
+    { "cot": "I", "dim1": "Tồn 31-60 ngày",   "dim2": "Số lệnh", "he_so": 1 },
+    { "cot": "J", "dim1": "Tồn 61-90 ngày",   "dim2": "Số lệnh", "he_so": 1 },
+    { "cot": "K", "dim1": "Tồn > 90 ngày",    "dim2": "Số lệnh", "he_so": 1 },
+    { "cot": "L", "dim1": "Tồn > 30 ngày",    "dim2": "Giá trị", "he_so": 1e-9 },
+    { "cot": "M", "dim1": "Chưa có RO hãng",  "dim2": "Số lệnh", "he_so": 1 }
+  ],
+  "loc": [
+    { "cot": "cost_center", "dieu_kien": "khac_rong" },
+    { "cot": "amount", "dieu_kien": "khac_rong" }
+  ],
+  "payload_them": { "nguon_he": "Cyber" }
+}

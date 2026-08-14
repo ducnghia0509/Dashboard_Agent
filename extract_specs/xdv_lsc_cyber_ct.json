@@ -1,0 +1,93 @@
+{
+  "id": "xdv_lsc_cyber_ct",
+  "_mo_ta": "Chi tiết TỪNG lệnh sửa chữa còn tồn trên Cyber (sheet 'CYBER-DS LSC'). Dùng cho: (1) 'RO tạo mới trong ngày' phía Cyber — mapping XDV #20, thiết kế xdv4 có ô 'RO tạo mới · Cyber … · DMS …'; (2) drill-down lệnh tồn theo trạng thái/xưởng/khách hàng.",
+  "_bay": [
+    "SỐ 'RO TẠO MỚI' TỪ NGUỒN NÀY LÀ SỐ THIẾU, KHÔNG PHẢI SỐ ĐỦ. File là ẢNH CHỤP LỆNH CÒN TỒN tại ngày chốt, nên lệnh tạo xong ĐÓNG LUÔN trong ngày đã biến mất khỏi danh sách. Đếm ra được là 'lệnh tạo ngày X mà tới ngày chốt vẫn còn tồn' — luôn ≤ số tạo thật. Phải gắn nhãn rõ ở FE; user chốt 13/08/2026 là chấp nhận hiện số thiếu còn hơn để trống, NHƯNG không được ghi trơn là 'RO tạo mới'.",
+    "KỲ CỦA DÒNG LÀ TUẦN BÁO CÁO, ngày tạo lệnh nằm ở dim3. Bản đầu thử đặt `ngay` = ngày tạo lệnh thì hỏng hai đường: (1) dải ngày trải từ 1900-01 (rác) và 2025-05 tới 2026-08, kỳ nào chưa có dataset là dòng bị bỏ; (2) một lệnh tồn lâu xuất hiện ở MỌI ảnh chụp tuần nên đếm theo ngày tạo sẽ CỘNG ĐÔI qua các tuần. Giữ `ngay` = chủ nhật tuần báo cáo (như 4 spec KSCL còn lại) thì mỗi ảnh chụp một mốc, không chồng nhau.",
+    "Trạng thái lệnh thực tế: 'Xe đã sửa chữa xong', 'Lập lệnh sửa chữa', 'Đang xuất kho', 'Xe đang đưa vào khoang'. KHÔNG trùng bộ trạng thái RO của báo cáo DMS ('Nghiệm thu đã XHĐ' / 'Nghiệm thu chưa XHĐ' / 'Đang sửa chữa') — hai hệ khác vòng đời, đừng map cưỡng bức sang nhau.",
+    "Cột B là tên xưởng thường ('Ocean Park'), cột C là 'XDV Ocean Park'. Dùng B cho cost_center như bản tổng `xdv_lsc_cyber` để hai spec ra cùng một mã xưởng.",
+    "KHÔNG có cột tiền ở sheet chi tiết — giá trị lệnh tồn phải lấy từ bản tổng `xdv_lsc_cyber` (sheet 'CYBER-BC LSC')."
+  ],
+  "report_type": "XDV_LSC_CYBER_CT",
+  "row_index_base": 7770000,
+  "khoi": "Khối KD Vinfast - XDV",
+  "nguon": {
+    "folder": "XDV/baocaolsccyber",
+    "file_glob": "*.xlsx",
+    "sheet": {
+      "ten": "CYBER-DS LSC"
+    }
+  },
+  "kiem_tra_o": [
+    {
+      "o": "A2",
+      "bang": "Số ngày tồn"
+    },
+    {
+      "o": "E2",
+      "bang": "Trạng thái lệnh"
+    },
+    {
+      "o": "F2",
+      "bang": "Ngày tạo lệnh"
+    }
+  ],
+  "header": {
+    "dong": 2
+  },
+  "dong_bat_dau": 3,
+  "cot": {
+    "cost_center": {
+      "header": "XDV",
+      "chuan_hoa": "xdv"
+    },
+    "dim1": {
+      "header": "Trạng thái lệnh",
+      "chuan_hoa": "cat"
+    },
+    "dim2": {
+      "header": "Loại hình TT",
+      "chuan_hoa": "cat",
+      "bat_buoc": false
+    },
+    "dim3": {
+      "header": "Ngày tạo lệnh",
+      "kieu": "date"
+    },
+    "amount": {
+      "header": "Số ngày tồn",
+      "kieu": "so",
+      "he_so": 1
+    },
+    "payload.khach_hang": {
+      "header": "Khách hàng",
+      "bat_buoc": false
+    },
+    "payload.ngay_ro": {
+      "header": "Ngày R/O",
+      "bat_buoc": false
+    }
+  },
+  "ban_ghi": "moi_dong",
+  "loc": [
+    {
+      "cot": "cost_center",
+      "dieu_kien": "khac_rong"
+    },
+    {
+      "cot": "dim3",
+      "dieu_kien": "khac_rong"
+    }
+  ],
+  "payload_them": {
+    "nguon_he": "Cyber",
+    "unit": "ngay_ton"
+  },
+  "ky_tu_ten_file": {
+    "regex_nam": "W\\.(\\d{4})\\.",
+    "regex_thang": "W\\.\\d{4}\\.(\\d{1,2})\\.",
+    "regex_ngay": "W\\.\\d{4}\\.\\d{1,2}\\.\\d{1,2}\\.(\\d{1,2})\\.",
+    "tuan_truoc_ngay_bao_cao": true
+  },
+  "moi_ky_lay_file_moi_nhat": "ngay"
+}

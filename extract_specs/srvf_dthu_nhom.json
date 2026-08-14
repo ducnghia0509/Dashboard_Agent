@@ -9,6 +9,8 @@
     "Dòng header KHÁC NHAU giữa các sheet: T01 ở dòng 1, T07 ở dòng 8 (T07 có thêm tiêu đề đơn vị/địa chỉ phía trên). Vì vậy dùng header.tim_o thay vì header.dong cứng."
   ],
   "report_type": "DTHU_NHOM",
+  "doc_tron_file": false,
+  "_doc_tron_file_vi_sao": "Spec này chỉ bóc 3 dòng A200/A230/A250 ở sheet T{mm}. CHÍNH file BCTC SRVF còn cấp 13 report_type khác qua đường tất định (CĐKT -> TSNV/BS/TS · CĐPS -> THUE · T{mm}BC -> HQKD/CHIPHI/DTHU/PNLT · 152/156 -> HH · công nợ -> PTHU/PTRA/_ADV). Để true là autofill ra sớm sau khi chạy spec và nuốt mất 13 loại kia — đúng ca T05/T06 ngày 14/08/2026.",
   "row_index_base": 6600000,
   "khoi": "Khối KD Vinfast - Showroom",
   "nguon": {
