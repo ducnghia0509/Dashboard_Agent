@@ -1,20 +1,24 @@
 {
   "id": "vhkd_claim",
-  "_mo_ta": "Claim khối Showroom (DASHBOARD 3 chỉ tiêu 1-5, màn vhkd2). Nguồn: 1.VINFAST_SR/QUANTRINOIBO_VHKD/BaocaoClaim.",
+  "_mo_ta": "Claim khối Showroom KÊNH B2C (DASHBOARD 3 chỉ tiêu 1-5, màn vhkd2). Nguồn: 1.VINFAST_SR/QUANTRINOIBO_VHKD/BaocaoClaim/B2C -> về VPS thành SRVF/baocaoclaimb2c. Kênh B2B (SRVF/baocaoclaimb2b) có bố cục KHÁC HẲN -> spec riêng, xem _bay.",
   "_bay": [
     "Tên cột trạng thái ĐỔI giữa các kỳ: T1/T2 ghi 'Check', T3-T6 ghi 'Trạng thái' -> khai cả 2 ứng viên.",
     "Header nằm trên 2 dòng (nhóm XE/PIN ở dòng 1, tên cột thật ở dòng 2) và dòng 3 là dòng CHÚ THÍCH -> dong_bat_dau = 4.",
     "Tên sheet đổi theo kỳ ('HS Claim T1.2026 ' … có cả dấu cách thừa) -> chọn sheet bằng 'chua'.",
     "Trạng thái thực tế: SAP phê duyệt / SAP từ chối / HO Từ chối / Chưa đẩy hồ sơ / Waiting SAP / Waiting HO / Open. KHÔNG có nhãn 'VF từ chối' như thiết kế — gộp ở tầng builder, không sửa dữ liệu thô.",
-    "Chỉ có kênh B2C (T1-T6). Chưa có file B2B/GF.",
+    "MỘT KÊNH MỘT THƯ MỤC — `SRVF/baocaoclaimb2c` (đổi 13/08/2026, trước là `SRVF/baocaoclaim` chung cả 2 kênh). Vì sao phải tách: `loc_file_moi_nhat` gộp theo (năm,tháng) KHÔNG kèm kênh, nên B2B_T1 và B2C_T1 bị coi là hai bản của CÙNG một kỳ và đá nhau. Lô B2B về 13/08 mang ngày chốt mới hơn -> THẮNG kỳ 1/2/3, hất bản B2C ra: dashboard prod trống tháng 1-3, còn B2B_T4..T7 bị dán nhãn 'bản cũ' oan. Có lúc tưởng tự khỏi vì ai đó kéo lại file B2C (mtime mới hơn -> B2C thắng ngược) — ĐÓ LÀ MAY, kéo lại lô B2B là hỏng tiếp. Tách thư mục thì hai kênh không còn chung khoá kỳ. Theo đúng tiền lệ kho xe (`baocaokhoxeb2b`/`baocaokhoxeb2c`): mỗi kênh MỘT thư mục + MỘT spec, nhưng DÙNG CHUNG `report_type` và phân kênh bằng dim2/payload.",
+    "TUYỆT ĐỐI KHÔNG lồng thư mục kiểu `baocaoclaim/B2C`. `_source_id` lấy `parts[-3]` làm tên công ty, thêm một cấp là source_file đổi từ 'SRVF::<tên>' thành 'baocaoclaim::<tên>' -> mọi dòng đã nạp mất dấu (tab nguồn về 'chờ phân tích' hết) và DELETE-trước-INSERT hết khớp -> cộng đôi. Cả received_reports đang là 2 cấp <CÔNG_TY>/<loại báo cáo>, không có cấp 3 nào.",
+    "File B2B (đã có từ 13/08/2026) KHÔNG đọc được bằng spec này: sheet tên 'Tháng 1.2026' chứ không phải 'HS Claim', header 1 dòng, và không có cột 'SR' / 'Trạng thái' / 'Số tiền' nào. Claim B2B ghi THEO CỘT — mỗi chương trình một cột (MLTTVN, Tiên Phong (Cọc Limo), Quy đổi BH, Xăng sang điện, CABĐ) — chứ không theo dòng-trạng-thái như B2C. Dùng lại spec này cho B2B thì `loc` cost_center khac_rong lọc sạch 100% dòng mà KHÔNG một cảnh báo nào.",
+    "Hai file '…_T11.25' và '…_T12.25' là kỳ 11/2025 và 12/2025, nhưng `regex_nam` lấy cụm 'M.2026' ở đầu tên -> engine gán kỳ 2026-11 / 2026-12 (tháng TƯƠNG LAI). Tính đến 13/08/2026 chưa file nào trong hai file này được nạp vào DB nào, nên chưa gây sai số; nạp cả folder là sinh 2 kỳ ma. Muốn nạp phải cho `ky_tu_ten_file` hiểu năm 2 chữ số ở hậu tố _T<tháng>.<năm>.",
     "T1/T2 có CỘT MỒI ở dòng 1 cũng tên 'Trạng thái' nhưng chứa ĐỊA CHỈ khách -> mọi cột trạng thái/SR/số tiền đều khai `dong_header: 2`. Bỏ ràng buộc này là trạng thái claim biến thành tên thôn/xã mà không có lỗi nào.",
     "Lọc theo cost_center (KHÔNG lọc theo amount): claim trạng thái 'Chưa đẩy hồ sơ' có số tiền = 0 nhưng vẫn phải đếm được SỐ LƯỢNG hồ sơ.",
+    "Lọc thêm `dim1 khác rỗng` (14/08/2026): file T8 về ngày 13/08 có cột Trạng thái 178 ô #N/A và cột Số tiền hỏng CẢ 605 ô (VLOOKUP chưa tra được) -> nạp vào thành 175 hồ sơ trạng thái '#N/A' giá trị 0đ, màn Claim T8 hiện 'tổng phát sinh 0đ / 175 hồ sơ' và đòi thêm '#N/A' vào bảng quy ước ở app/metrics/vhkd.py. Engine nay coi ô lỗi Excel là ô TRỐNG (_LOI_EXCEL trong spec_extract.py) nên các dòng đó rơi vào bộ lọc này -> kỳ chưa có số hiện 'chưa có dữ liệu' thay vì số 0 giả. Dòng claim THẬT luôn có trạng thái, kiểm T1-T7 không dòng nào trống.",
     "Nghiệp vụ gửi lại BẢN SỬA của cùng một kỳ với TÊN KHÁC ('…7.24. BaocaoClaim_B2C_T3' rồi '…8.11. BaocaoClaim_B2C_T3'), và số tiền T5/T6 LỆCH giữa hai bản. Kỳ suy từ hậu tố _T nên hai file trỏ về cùng một tháng -> nạp cả hai là ĐẾM ĐÔI (đã dính 12/08/2026, phải xoá tay 3.029 dòng). `moi_ky_lay_file_moi_nhat` giữ đúng bản về SAU; hoà ngày chốt thì loc_file_moi_nhat phá hoà bằng mtime."
   ],
   "report_type": "VHKD_CLAIM",
   "row_index_base": 6700000,
   "khoi": "Khối KD Vinfast - Showroom",
-  "nguon": { "folder": "SRVF/baocaoclaim", "file_glob": "*.xlsx", "sheet": { "chua": "HS Claim" } },
+  "nguon": { "folder": "SRVF/baocaoclaimb2c", "file_glob": "*.xlsx", "sheet": { "chua": "HS Claim" } },
   "header": { "dong": [2, 1] },
   "dong_bat_dau": 4,
   "ky_tu_ten_file": { "regex_nam": "M\\.(\\d{4})", "regex_thang": "_T(\\d{1,2})" },
@@ -29,6 +33,9 @@
     "payload.ma_dms": { "header": "Mã đơn hàng trên DMS", "bat_buoc": false }
   },
   "ban_ghi": "moi_dong",
-  "loc": [ { "cot": "cost_center", "dieu_kien": "khac_rong" } ],
+  "loc": [
+    { "cot": "cost_center", "dieu_kien": "khac_rong" },
+    { "cot": "dim1", "dieu_kien": "khac_rong" }
+  ],
   "payload_them": { "unit": "ty" }
 }
