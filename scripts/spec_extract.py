@@ -379,6 +379,25 @@ def specs_for_path(path):
     return out
 
 
+def spec_doc_tron_file(path) -> bool:
+    """Các spec của file này có ĐỌC TRỌN file không, hay chỉ bóc một lát của nó?
+
+    True  -> caller được phép ra sớm: spec là nguồn DUY NHẤT của file (mọi nguồn VHKD/XDV, file
+             sinh ra chỉ để cấp đúng bộ chỉ tiêu mà spec tả).
+    False -> file còn cấp report_type khác qua đường tất định (deriver CĐKT/CĐPS/tồn kho/công nợ…),
+             caller PHẢI chạy tiếp sau khi spec xong, không được return.
+
+    Đánh dấu bằng `doc_tron_file: false` trong chính spec — mặc định True để 26 spec hiện có giữ
+    NGUYÊN hành vi cũ, chỉ spec nào tự khai "tôi chỉ bóc một lát" mới đổi. Suy đoán tự động (vd
+    "file có sheet CĐKT thì chắc là BCTC") nghe tiện nhưng sai ở cả hai chiều và không ai đọc code
+    ra được vì sao một file lại đi hai đường; khai tường minh trong spec thì đọc spec là biết.
+
+    Xem agent_cli._cmd_autofill_impl (ca SRVF T05/T06 mất 13 report_type, 14/08/2026).
+    """
+    specs = specs_for_path(path)
+    return all(sp.get("doc_tron_file", True) for sp in specs) if specs else True
+
+
 def run_for_path(path, write=False):
     """Chạy mọi spec phụ trách file này. Trả [] nếu KHÔNG spec nào phụ trách -> caller đi đường cũ.
 

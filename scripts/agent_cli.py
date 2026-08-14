@@ -4340,19 +4340,29 @@ def _cmd_autofill_impl(args):
     # cáo ngày. Thiếu nhánh này (trước 10/08/2026) thì bấm "Phân tích AI" cho file XDV sẽ đẩy cả
     # workbook sang LLM để "học layout" — vừa tốn, vừa vô nghĩa vì layout đã được tả bằng JSON, và
     # kết quả là 0 dòng vào DB mà không báo lỗi. Xem `spec_extract.specs_for_path`.
-    from spec_extract import run_for_path as _spec_run_for_path
+    #
+    # RA SỚM CHỈ KHI SPEC PHỦ TRỌN FILE (`spec_extract.spec_doc_tron_file`). Có spec chỉ bóc MỘT
+    # LÁT của một file mà phần còn lại vẫn thuộc đường tất định — `srvf_dthu_nhom` bóc đúng 3 dòng
+    # A200/A230/A250 từ sheet T{mm} của BCTC SRVF, trong khi CHÍNH file đó còn cấp 13 report_type
+    # khác (CĐKT -> TSNV/BS/TS, CĐPS -> THUE, T{mm}BC -> HQKD/CHIPHI/DTHU/PNLT, 152/156 -> HH,
+    # công nợ -> PTHU/PTRA/_ADV). Ra sớm ở đó là NUỐT MẤT 13 loại kia, im lặng, và chỉ lộ ra khi
+    # có người xoá rồi nạp lại — đúng ca SRVF T05/T06 ngày 14/08/2026: nạp lại xong chỉ còn
+    # DTHU_NHOM, mất sạch số tài chính của 2 kỳ (T01-T04/T07 thoát nạn chỉ vì được nạp TRƯỚC ngày
+    # spec này ra đời, 13/08). Spec không phủ trọn -> chạy spec XONG thì ĐI TIẾP đường tất định.
+    from spec_extract import run_for_path as _spec_run_for_path, spec_doc_tron_file as _spec_tron
     _spec_kq = _spec_run_for_path(args.file, write=not args.dry_run)
+    _spec_cb = [c for r in _spec_kq for c in (r.get("canh_bao") or [])]
     if _spec_kq:
-        _cb = [c for r in _spec_kq for c in (r.get("canh_bao") or [])]
         _thieu_ds = sorted({k for r in _spec_kq for k in (r.get("bo_qua_chua_co_dataset") or [])})
         if _thieu_ds:
-            _cb.append(f"CHƯA CÓ dataset cho kỳ {', '.join(_thieu_ds)} — số của (các) kỳ này KHÔNG "
-                       f"được nạp. Tạo dataset kỳ đó rồi nạp lại.")
+            _spec_cb.append(f"CHƯA CÓ dataset cho kỳ {', '.join(_thieu_ds)} — số của (các) kỳ này "
+                            f"KHÔNG được nạp. Tạo dataset kỳ đó rồi nạp lại.")
+    if _spec_kq and _spec_tron(args.file):
         _dong = sum(int(r.get("written") or 0) if not args.dry_run else int(r.get("dong") or 0)
                     for r in _spec_kq)
         _out({"ok": _dong > 0, "file": os.path.basename(args.file), "mode": "spec_json",
               "dry_run": bool(args.dry_run), "derived": _spec_kq,
-              "rows": _dong, "canh_bao": _cb})
+              "rows": _dong, "canh_bao": _spec_cb})
         return
 
     routes = ing.sheet_routes(args.file).get("routes", [])
@@ -5100,8 +5110,16 @@ def _cmd_autofill_impl(args):
     summary = {}
     for e in ledger:
         summary[e["bucket"]] = summary.get(e["bucket"], 0) + 1
-    _out({"ok": True, "file": fname, "period": period, "summary": summary, "ledger": ledger,
-          "derived": derived})
+    # Spec JSON đã chạy ở đầu hàm cho file KHÔNG được phủ trọn (doc_tron_file:false) -> gộp kết
+    # quả vào cùng một báo cáo. Không gộp thì phần spec chạy xong mà không xuất hiện ở đâu cả,
+    # nhìn output sẽ tưởng nó không chạy.
+    _kq = {"ok": True, "file": fname, "period": period, "summary": summary, "ledger": ledger,
+           "derived": derived}
+    if _spec_kq:
+        _kq["spec_json"] = _spec_kq
+        if _spec_cb:
+            _kq["canh_bao"] = _spec_cb
+    _out(_kq)
 
 
 def cmd_reset_learning(args):
