@@ -147,6 +147,31 @@ def _so(v, he_so=1.0):
         return 0.0
 
 
+def _so_co_rong(v, he_so=1.0):
+    """Như `_so` nhưng ô TRỐNG/không đọc được -> None, KHÔNG phải 0.0.
+
+    Dùng cho payload mà "0" là một giá trị có nghĩa thật, khác hẳn "chưa biết". Ca cụ thể (14/08/
+    2026): 'Số ngày tồn thực tế' của file tồn kho GF — 12/62 xe ghi 'Ngày xe về SR' = 'Chưa' nên ô
+    tuổi tồn là #VALUE!. Qua `_so` thì thành 0.0, tức 12 xe đó đọc thành "mới về hôm nay, tồn 0
+    ngày" và lọt vào nhóm dưới 30 ngày -> tỷ lệ quá hạn TỰ HẠ, không cảnh báo gì. Còn xe về đúng
+    ngày chốt thì 0 là số THẬT, nên không thể lấy `if not v` mà suy ra "chưa biết".
+    ĐỪNG dùng cho `amount`: tầng đọc số cộng tiền bằng `r["amount"] or 0`, None ở đó vô hại nhưng
+    cũng không thêm thông tin gì; giữ `so` cho amount để không đổi hành vi các spec đang chạy.
+    """
+    if v is None or (isinstance(v, str) and not v.strip()):
+        return None
+    if isinstance(v, bool):
+        return None
+    if isinstance(v, (int, float)):
+        return float(v) * he_so
+    s = str(v).strip().replace(" ", "")
+    s = s.replace(".", "").replace(",", ".") if re.search(r",\d{1,2}$", s) else s.replace(",", "")
+    try:
+        return float(s) * he_so
+    except ValueError:
+        return None
+
+
 def _date(v):
     """-> 'YYYY-MM-DD' hoặc None. File có cả datetime, 'dd/mm/yyyy' lẫn 'yyyy-mm-dd'."""
     if isinstance(v, dt.datetime):
@@ -373,6 +398,43 @@ def _xdv_ct_dong(nhan):
     return {}
 
 
+# Sheet "CT Vận hành" của bản kế hoạch SHOWROOM (`1.SR.*.Kehoachthang.xlsx`) — KHÁC HẲN sheet
+# cùng tên của bản XDV, đừng dùng lại `_xdv_ct_dong`: bản SR không có cột "Công thức tính" nên dải
+# tháng lùi một cột (E..J thay vì F..K), và 10 nhãn dòng hoàn toàn khác.
+# CHỈ khai 2 dòng NĂNG SUẤT. Tám dòng còn lại cố ý bỏ, mỗi dòng một lý do:
+#   - "Doanh thu" (CT33) và "Sản lượng" (CT34) là công thức `=KHDT!F16` / `=KHDT!F21` — trỏ thẳng
+#     vào sheet KHDT đã nạp thành VHKD_KH/VHKD_KH_SL. Đã đối chiếu T7: CT33 = 823.271.212.048 =
+#     đúng tổng A200 ba kênh, CT34 = 1.414 = đúng tổng sản lượng ba kênh. Nạp thêm là hai nguồn
+#     cho một con số.
+#   - "Gía trị bình quân đơn hàng" (CT36) là `=D5/D7`, `app/metrics/vhkd.py` đã tự suy ra.
+#   - "Lợi nhuận" bỏ trống toàn bộ trong file.
+#   - 4 dòng cuối (xe tồn > 30 ngày, claim chưa xác nhận, claim chưa làm hồ sơ, công nợ quá hạn
+#     đã có COC) ghi ngưỡng BẰNG LỜI ("Nhỏ hơn 30% tồn kho", "Bằng 0 - cứ có 1 khách hàng quá
+#     hạn, trừ 5% mức độ hoàn thành") -> `_so` ra 0 nên `moi_cot_thang` tự bỏ. CHỦ Ý: muốn chấm
+#     %HT cho 4 nhóm đó thì phải chốt ngưỡng thành SỐ với nghiệp vụ trước, không phải đoán ở đây.
+# MÃ Ở CỘT A CỦA FILE ĐỀ LỆCH MAPPING — bám nhãn dòng, không bám mã: mapping ghi năng suất sản
+# lượng = CT37 và giá trị BQ đơn hàng = CT38, còn file ghi CT38 và CT36. `app/metrics/vhkd.py`
+# đang theo mã của FILE, nên hook cũng gắn mã theo file.
+_SR_CT_DONG = (
+    ("nangsuatdoanhthu", "NS_DT"),
+    ("nangsuatsanluong", "NS_SL"),
+)
+
+
+def _sr_ct_dong(nhan):
+    """Cột B sheet "CT Vận hành" bản Showroom -> mã chỉ tiêu năng suất. Dòng khác -> {}.
+
+    Khớp kiểu "chứa" sau `_nd` để chịu được dấu cách thừa của file ("Năng suất Sản lượng /1NV").
+    Thứ tự trong `_SR_CT_DONG` không quan trọng ở đây vì hai khoá không lồng nhau, nhưng ĐỪNG
+    thêm khoá ngắn kiểu "sanluong": nó nằm trong "nangsuatsanluong1nvbanhang" và sẽ bắt sai dòng.
+    """
+    n = _nd(nhan)
+    for key, ma in _SR_CT_DONG:
+        if key in n:
+            return {"dim1": ma, "dim2": "Tổng"}
+    return {}
+
+
 def _xdv_kh_cong(v):
     """Cột A -> đánh dấu dòng "Cộng" (tổng khối) của từng mục.
 
@@ -390,6 +452,7 @@ _CHUAN_HOA = {
     "xdv_kh_dong": _xdv_kh_dong,
     "xdv_kh_cong": _xdv_kh_cong,
     "xdv_ct_dong": _xdv_ct_dong,
+    "sr_ct_dong": _sr_ct_dong,
     "hoa": lambda v: str(v or "").strip().upper() or None,
     "cat": lambda v: str(v or "").strip() or None,
 }
@@ -626,6 +689,8 @@ def _lay_o(row, j, cfg, dem_loi=None):
     kieu = cfg.get("kieu", "text")
     if kieu == "so":
         return _so(v, float(cfg.get("he_so", 1.0)))
+    if kieu == "so_co_rong":
+        return _so_co_rong(v, float(cfg.get("he_so", 1.0)))
     if kieu == "date":
         return _date(v)
     if kieu == "thang_cuoi":

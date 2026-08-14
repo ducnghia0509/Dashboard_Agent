@@ -1,0 +1,39 @@
+{
+  "id": "vhkd_ct_vanhanh_sl",
+  "_mo_ta": "NĂNG SUẤT KẾ HOẠCH tính bằng SỐ XE (CT38 — sản lượng/1 NV bán hàng/tháng), khối Vinfast - Showroom — sheet 'CT Vận hành', dòng 'Năng suất Sản lượng /1NV bán hàng'. Vế KẾ HOẠCH cho nhóm 'Năng suất theo sản lượng' của màn vhkd0.",
+  "_bay": [
+    "Tách khỏi `vhkd_ct_vanhanh_gt` CHỈ vì ĐƠN VỊ: dòng này đếm XE (he_so = 1), dòng CT35 là tiền (he_so = 1e-9). `cot_thang.he_so` mỗi spec một giá trị nên không gộp được — để chung là 3 xe thành 0,000000003 tỷ.",
+    "Cùng report_type với spec kia cũng KHÔNG được: `_ghi` xoá theo (report_type, source_file), hai spec cùng report_type trên cùng một file thì cái chạy sau xoá sạch dữ liệu cái chạy trước. Đúng lý do đã tách VHKD_KH / VHKD_KH_SL.",
+    "Đây là số GÕ TAY, không phải công thức: ô E9..J9 = 3/3/4/3/4/4, còn D9 = '=SUM(E9:J9)' = 21. Nghĩa là chỉ tiêu 'mỗi NV bán 3-4 xe/tháng', KHÔNG phải sản lượng chia số NV. Đừng 'sửa' thành số lẻ cho khớp CT35.",
+    "Xem đủ bẫy chung (dải tháng E..J khác bản XDV, glob phải ghim '1.SR.', vì sao 8 dòng kia bị bỏ) ở `vhkd_ct_vanhanh_gt.json`."
+  ],
+  "_kiem_chung": [
+    "NS_SL: T7 = 3 · T8 = 3 · T9 = 4 · T10 = 3 · T11 = 4 · T12 = 4 xe/NV/tháng (6 bản ghi). Tổng ô D9 = 21 — cộng đúng.",
+    "KHÔNG có bản ghi nào cho T1..T6.",
+    "Trích 6 bản ghi, ghi vào DB 2 (T7, T8) — T9..T12 chưa có dataset nên engine bỏ qua. Xem giải thích đầy đủ ở `vhkd_ct_vanhanh_gt.json`."
+  ],
+  "report_type": "VHKD_KH_CT_SL",
+  "row_index_base": 6840000,
+  "khoi": "Khối KD Vinfast - Showroom",
+  "nguon": {
+    "folder": "KEHOACH/baocaokehoachthang",
+    "file_glob": "1.SR.*.Kehoachthang.xlsx",
+    "sheet": { "ten": "CT Vận hành" }
+  },
+  "header": { "dong": 4 },
+  "dong_bat_dau": 5,
+  "kiem_tra_o": [
+    { "o": "C1", "bang": "ĐĂNG KÝ CHỈ TIÊU VẬN HÀNH" },
+    { "o": "E4", "bang": "Tháng 7" },
+    { "o": "B9", "bang": "Năng suất Sản lượng" }
+  ],
+  "cot": {
+    "dim1": { "header": "Kế hoạch/Mục tiêu cần đạt", "chuan_hoa": "sr_ct_dong" }
+  },
+  "ban_ghi": "moi_cot_thang",
+  "cot_thang": { "tu": "E", "den": "J", "he_so": 1.0 },
+  "loc": [
+    { "cot": "dim1", "dieu_kien": "bang", "gia_tri": "NS_SL" }
+  ],
+  "payload_them": { "unit": "xe", "loai": "kehoach" }
+}

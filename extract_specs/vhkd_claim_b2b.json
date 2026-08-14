@@ -1,0 +1,51 @@
+{
+  "id": "vhkd_claim_b2b",
+  "_mo_ta": "Claim khối Showroom KÊNH B2B (DASHBOARD 3, màn vhkd2). Nguồn: 1.VINFAST_SR/QUANTRINOIBO_VHKD/BaocaoClaim/B2B -> về VPS thành SRVF/baocaoclaimb2b, lô 7 file T1..T7 nhận 13/08/2026. Dùng CHUNG report_type VHKD_CLAIM với kênh B2C (spec `vhkd_claim`), phân kênh bằng dim2 — đúng tiền lệ kho xe B2B/B2C.",
+  "_bay": [
+    "GHI CHÚ CŨ TRONG `vhkd_claim.json` NÓI SAI VỀ FILE NÀY — sửa lại 14/08/2026. Câu 'Claim B2B ghi THEO CỘT ... chứ không theo dòng-trạng-thái' chỉ đúng một nửa: các CHƯƠNG TRÌNH ưu đãi (MLTTVN, Tiên Phong, Quy đổi BH, Xăng sang điện, CABĐ, VC, MHRR...) là các cột, nhưng MỖI DÒNG VẪN LÀ MỘT HỒ SƠ CLAIM theo số khung, có đủ SR ('Tên DVCS'), số tiền ('Số tiền Claim (Ưu đãi hoàn)') và trạng thái ('Tình trạng hồ sơ'). Vì vậy nạp được bằng `moi_dong` bình thường. Sai ở chỗ dò cột theo TÊN của B2C ('SR', 'Trạng thái', 'Số tiền') — B2B đặt tên khác hẳn.",
+    "TỪ VỰNG TRẠNG THÁI KHÁC HOÀN TOÀN B2C. B2B chỉ có 3 giá trị: 'Đã được cấn trừ' / 'Chưa được cấn trừ' / 'Chưa Claim'. B2C có 7 giá trị của luồng SAP ('SAP phê duyệt', 'Waiting SAP', 'Chưa đẩy hồ sơ'...). ĐỪNG gộp hai bộ từ vựng vào một bảng quy ước phẳng: bảng `_CLAIM_NHOM` trong `app/metrics/vhkd.py` phải tra theo (kênh, trạng thái), nếu không 3 nhãn B2B rơi hết vào nhóm 'Khác' và tổng claim theo trạng thái hụt đúng phần B2B.",
+    "SỐ CỘT ĐỔI THEO KỲ: T1-T4 có 25 cột, T5 26, T6 27, T7 28 — nghiệp vụ chèn thêm cột chương trình ưu đãi (T7 thêm 'VC', 'MHRR', tách 'Vin 2025' khỏi 'Quy đổi BH'). Nên cột 'Số tiền Claim' trượt từ chỉ số 19 sang 22. TÊN header thì ỔN ĐỊNH cả 7 kỳ -> dò theo tên, TUYỆT ĐỐI không khai chữ cột cho spec này.",
+    "Header 'Số tiền Claim' có DẤU XUỐNG DÒNG trong ô ('Số tiền Claim \\n(Ưu đãi hoàn)'). `_nd` bỏ hết ký tự không phải chữ/số nên viết liền 'Số tiền Claim (Ưu đãi hoàn)' trong spec là khớp — không cần nhét \\n vào JSON.",
+    "'Tên DVCS' có giá trị 'Vinfast B2B' KHÔNG phải một showroom (hồ sơ do phòng B2B giữ, chưa phân về SR). Hook `sr_showroom` quy về `B2B_SR` — cùng quy ước VHKD_PTHU đang dùng, đừng lọc bỏ: đó là hồ sơ THẬT, loại đi thì tổng claim B2B hụt.",
+    "Mỗi file CHỈ CÓ MỘT sheet và tên sheet đổi theo kỳ, có cả dấu cách thừa ('Tháng 3.2026 ') -> chọn sheet bằng `{\"so\": 0}` thay vì theo tên, rồi chốt layout bằng A1..D1.",
+    "Header ở ĐÚNG dòng 1 (khác B2C: 2 dòng header + 1 dòng chú thích, `dong_bat_dau` = 4) -> `dong_bat_dau` = 2. Cũng KHÔNG có cột mồi nên không cần `dong_header`.",
+    "File có nhiều dòng trống ở đuôi (T1: dữ liệu hết ở dòng 279 nhưng max_row = 560). Không có dòng 'Tổng'/'Cộng' nào — đã soát cả 7 file — nên `loc cost_center khác rỗng` là đủ, không cần `dung_khi`.",
+    "T7 có '#N/A' ở cột 'Bộ hồ sơ' và 'Check số tiền' (VLOOKUP chưa tra được) nhưng cột 'Số tiền Claim' và 'Tình trạng hồ sơ' thì SẠCH cả 7 kỳ. Engine coi ô lỗi Excel là ô trống, nên hai cột phụ đó vào payload thành null — không ảnh hưởng số. Vẫn giữ `loc dim1 khác rỗng` làm phao cho kỳ sau, đúng bài học claim B2C T8.",
+    "ĐỪNG lồng thư mục kiểu `baocaoclaim/B2B`: `_source_id` lấy `parts[-3]` làm tên công ty, thêm một cấp là source_file đổi từ 'SRVF::…' thành 'baocaoclaim::…' -> mất dấu nguồn và DELETE-trước-INSERT hết khớp."
+  ],
+  "_kiem_chung": [
+    "Số dòng nạp / tổng tiền claim theo kỳ (đã đối chiếu trực tiếp file gốc): T1 = 278 dòng / 10,0044 tỷ · T2 = 165 / 4,2935 · T3 = 746 / 15,4672 · T4 = 463 / 16,3096 · T5 = 304 / 18,3770 · T6 = 416 / 36,1978 · T7 = 426 / 27,1161. Tổng 2.798 dòng / 127,7657 tỷ (cộng 7 số đã làm tròn ở trên ra 127,7656 — chênh do làm tròn từng dòng, số đúng là bản cộng đầy đủ độ chính xác).",
+    "Trạng thái theo kỳ — T7 gần như toàn bộ còn treo: 422 'Chưa Claim' + 4 'Chưa được cấn trừ', KHÔNG có dòng 'Đã được cấn trừ' nào. Đây là số ĐÚNG theo file, không phải lỗi đọc.",
+    "10 SR: 9 showroom + 'Vinfast B2B' (B2B_SR), giống nhau ở cả 7 kỳ."
+  ],
+  "report_type": "VHKD_CLAIM",
+  "row_index_base": 6710000,
+  "khoi": "Khối KD Vinfast - Showroom",
+  "nguon": { "folder": "SRVF/baocaoclaimb2b", "file_glob": "*.xlsx", "sheet": { "so": 0 } },
+  "kiem_tra_o": [
+    { "o": "A1", "bang": "STT" },
+    { "o": "B1", "bang": "Tên khách hàng" },
+    { "o": "C1", "bang": "Số khung" },
+    { "o": "D1", "bang": "Loại xe" }
+  ],
+  "header": { "dong": 1 },
+  "dong_bat_dau": 2,
+  "ky_tu_ten_file": { "regex_nam": "M\\.(\\d{4})", "regex_thang": "_T(\\d{1,2})" },
+  "moi_ky_lay_file_moi_nhat": true,
+  "chieu_tu_ten_file": { "dim2": { "regex": "BaocaoClaim_(B2C|B2B|GF)", "hoa": true } },
+  "cot": {
+    "cost_center": { "header": "Tên DVCS", "chuan_hoa": "sr_showroom" },
+    "dim1": { "header": "Tình trạng hồ sơ", "chuan_hoa": "cat" },
+    "amount": { "header": "Số tiền Claim (Ưu đãi hoàn)", "kieu": "so", "he_so": 1e-9 },
+    "payload.loai_xe": { "header": "Loại xe" },
+    "payload.so_khung": { "header": "Số khung", "bat_buoc": false },
+    "payload.bo_ho_so": { "header": "Bộ hồ sơ", "bat_buoc": false },
+    "payload.ten_csbh": { "header": "Tên CSBH", "bat_buoc": false }
+  },
+  "ban_ghi": "moi_dong",
+  "loc": [
+    { "cot": "cost_center", "dieu_kien": "khac_rong" },
+    { "cot": "dim1", "dieu_kien": "khac_rong" }
+  ],
+  "payload_them": { "unit": "ty" }
+}
