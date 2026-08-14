@@ -1,0 +1,127 @@
+{
+  "id": "atx_nhansu",
+  "_mo_ta": "NHÂN SỰ khối An Taxi theo tháng × depot — phần A của 'BC Tổng Hợp PKDVH' (B.7.AAG.PKDVH.M.<yyyy>.Baocaotonghop.xlsx). dim1: NVVP (nhân viên văn phòng) · TXTX (tài xế taxi). Mapping 6.Antaxi.Mapping_Dashboard.xlsx sheet 'Mapping Antaxi 13.08 - BS KPI' dòng 52 (Tổng số lái xe = Phần A/mục I/N8-N19) và chỉ tiêu CT35 Doanh thu/Nhân viên.",
+  "_bay": [
+    "MỘT FILE CẤP SỐ CHO CẢ 12 THÁNG (tên file chỉ có NĂM: '...M.2026.Baocaotonghop'). Kỳ lấy từ CỘT B (số tháng) qua kieu 'thang_cuoi', KHÔNG suy từ tên file — suy từ tên file là dồn cả 12 tháng vào 31/12.",
+    "6 KHỐI NGHIỆP VỤ NỐI TIẾP TRONG 1 SHEET (A nhân sự · B đội xe · C chuyến · D1/D2/D3 doanh thu · E tỷ lệ nghỉ việc) nên BẮT BUỘC có `dong_ket_thuc`: cột 'Tổng' của bảng nhân sự và cột 'Tổng số xe' của bảng đội xe cùng nằm ở C/E, quét tràn là cộng số của khối khác vào.",
+    "Bảng 'Tổng 2 depot' (cột L-O) DÙNG CHUNG dòng 8-19 với bảng Sơn Tây (cột B-E) — cùng dải dòng, khác dải cột. Nhận biết bằng DÒNG TIÊU ĐỀ: NVVP/TXTX của Sơn Tây ở dòng 6, của Tổng 2 depot ở dòng 7.",
+    "Σ 2 depot ĐÚNG BẰNG dòng tổng của file (T1: 95+60 = 155 = N8) — đã verify cả 7 kỳ. Vẫn nạp cả dòng tổng (cost_center rỗng) theo quy tắc 'lấy dòng tổng của file, không cộng cost_center'; đọc phải chọn MỘT tầng, cộng cả hai là đếm đôi.",
+    "Phần E 'Tỷ lệ Tài xế nghỉ việc' (dòng 254-282) KHÔNG nằm trong mapping và ghi lẫn số với chữ ('27,7%') -> cố ý không nạp."
+  ],
+  "_kiem_chung": [
+    "T1/2026: ST NVVP=22 TXTX=95 · TN NVVP=3 TXTX=60 · Tổng NVVP=25 TXTX=155 (=M8/N8).",
+    "T7/2026: ST 21/104 · TN 3/60 · Tổng 24/164. Tổng NV T7 = 188 (=O14).",
+    "T8-T12 chưa có số (ô rỗng/0) -> bị `loc` amount khác_rong loại, KHÔNG đẻ ra 'nhân sự = 0'."
+  ],
+  "report_type": "ATX_NS",
+  "row_index_base": 7800000,
+  "khoi": "Khối KD Dịch vụ An Taxi",
+  "nguon": {
+    "folder": "ANTAXI/baocaoqtvhthang",
+    "file_glob": "B.7.AAG.PKDVH.M.*.Baocaotonghop.xlsx",
+    "sheet": {
+      "chua": "BC Tổng Hợp PKDVH"
+    }
+  },
+  "kiem_tra_o": [
+    {
+      "o": "B4",
+      "bang": "Số lượng nhân viên"
+    },
+    {
+      "o": "B5",
+      "bang": "Sơn Tây"
+    },
+    {
+      "o": "B20",
+      "bang": "Thái Nguyên"
+    }
+  ],
+  "cot": {
+    "ngay": {
+      "cot": "B",
+      "kieu": "thang_cuoi"
+    }
+  },
+  "chieu_co_dinh": {
+    "cong_ty": "AAG"
+  },
+  "ban_ghi": "moi_cot_gia_tri",
+  "vung": [
+    {
+      "ten": "A/I Sơn Tây",
+      "header": {
+        "dong": 6
+      },
+      "dong_bat_dau": 8,
+      "dong_ket_thuc": 19,
+      "chieu_co_dinh": {
+        "cong_ty": "AAG",
+        "cost_center": "ST_AT"
+      },
+      "cot_gia_tri": [
+        {
+          "header": "NVVP",
+          "dim1": "NVVP"
+        },
+        {
+          "header": "TXTX",
+          "dim1": "TXTX"
+        }
+      ]
+    },
+    {
+      "ten": "A/II Thái Nguyên",
+      "header": {
+        "dong": 21
+      },
+      "dong_bat_dau": 23,
+      "dong_ket_thuc": 34,
+      "chieu_co_dinh": {
+        "cong_ty": "AAG",
+        "cost_center": "TN_AT"
+      },
+      "cot_gia_tri": [
+        {
+          "header": "NVVP",
+          "dim1": "NVVP"
+        },
+        {
+          "header": "TXTX",
+          "dim1": "TXTX"
+        }
+      ]
+    },
+    {
+      "ten": "A/III Tổng 2 depot",
+      "header": {
+        "dong": 7
+      },
+      "dong_bat_dau": 8,
+      "dong_ket_thuc": 19,
+      "cot_gia_tri": [
+        {
+          "header": "NVVP",
+          "dim1": "NVVP"
+        },
+        {
+          "header": "TXTX",
+          "dim1": "TXTX"
+        }
+      ]
+    }
+  ],
+  "loc": [
+    {
+      "cot": "ngay",
+      "dieu_kien": "khac_rong"
+    },
+    {
+      "cot": "amount",
+      "dieu_kien": "khac_rong"
+    }
+  ],
+  "payload_them": {
+    "unit": "nguoi"
+  }
+}

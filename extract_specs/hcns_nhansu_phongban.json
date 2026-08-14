@@ -1,0 +1,115 @@
+{
+  "id": "hcns_nhansu_phongban",
+  "_mo_ta": "NHÂN SỰ theo KHỐI CHỨC NĂNG × PHÒNG/BAN từng tháng — sheet 'Chi tiết' của HCNS/baocaotongsonhansu/B.9.GR.HCNS.M.<yyyy>.<m>.Bctongsonhansu.xlsx. amount = NS đang làm việc CUỐI THÁNG, amount2 = định biên. dim1 = Khối chức năng (nguyên văn file), dim2 = Phòng/Ban (nguyên văn). Riêng 14 xưởng của 'Khối Dịch vụ Hậu mãi' được map sang cost_center XDV để màn xdv0 dùng làm mẫu số 'Năng suất LĐ = Doanh thu / Số lượng nhân sự xưởng'.",
+  "_bay": [
+    "TRƯỚC ĐÂY CHỈ NẠP TỔNG THEO PHÁP NHÂN. report_type `HCNS_TONGSO` đọc sheet 'Tong so nhan su' (7 công ty × 6 tháng = 42 dòng), KHÔNG có chiều khối/phòng ban — nên mọi chỉ tiêu 'doanh thu / nhân sự khối' đều phải để trống. Sheet 'Chi tiết' vốn đã có sẵn chiều đó từ đầu.",
+    "'Khối Dịch vụ Hậu mãi' CHÍNH LÀ khối XDV (master_data ghi 'Khối KD Vinfast - XDV'). Tên khối trong file HCNS KHÔNG trùng tên khối trong master_data — đừng map dim1 sang `khoi` một cách máy móc; `khoi` để hook `xdv` tự đặt khi khớp được xưởng, còn tên khối nguyên văn giữ ở dim1.",
+    "XƯỞNG 'Hà Khánh' XUẤT HIỆN Ở HAI KHỐI: 'Khối Dịch vụ Hậu mãi' (33 người, T6) và 'Khối Kinh doanh Showroom Vinfast' (3 người). Cộng theo TÊN XƯỞNG là đếm đôi 3 người. Vì vậy khi đọc phải lọc dim1 = 'Khối Dịch vụ Hậu mãi'; spec cố ý giữ dim1 để làm được việc đó.",
+    "14 XƯỞNG KHỚP 14/14 sau khi sửa `_bo_tien_to` thành BÓC LẶP (file ghi 'Xưởng dịch vụ Vinfast Cẩm Phả', master ghi 'Vinfast Cẩm Phả' — bóc một lượt chỉ ra 'vinfastcampha' nên 13/14 xưởng rơi) và thêm alias thứ ba cho xưởng HCM ('Trung tâm Sửa chữa Pin, Động cơ Thành phố Hồ Chí Minh').",
+    "3 PHÒNG/BAN KHÔNG PHẢI XƯỞNG trong cùng khối Hậu mãi: 'Văn phòng', 'Phòng đào tạo kỹ thuật', 'Phòng kiểm soát vận hành' (tổng 8 người T6). Chúng KHÔNG map được cost_center — ĐÚNG như vậy, và `giu_khi_khong_map` giữ lại để tổng khối vẫn đủ 532. Chỉ tiêu 'nhân sự xưởng' thì lọc `cost_center khác rỗng` (524 người).",
+    "TÊN KHỐI TRONG FILE KHÔNG NHẤT QUÁN: có cả 'Khối Hỗ trợ', 'Khối Hỗ trợ ' (thừa dấu cách), 'Khối hỗ trợ', 'Khối hố trợ' (lỗi chính tả); tương tự 'Khối Kinh doanh xe tải' / 'Khối Kinh doanh xe tải '. Cố ý KHÔNG chuẩn hoá trong spec (giữ nguyên văn để truy được về file); chỗ nào cộng theo khối thì phải tự gộp — xem app/metrics/xdv.py.",
+    "SỐ NGƯỜI LÀ SỐ DƯ CUỐI THÁNG -> report_type này PHẢI vào `_SNAP_RT` (app/metrics/_shared.py), nếu không xem nhiều kỳ sẽ cộng 6 tháng ra ~3.000 người cho một khối 532 người.",
+    "MỘT FILE MỖI THÁNG nhưng sheet 'Chi tiết' chứa CẢ 6 THÁNG (cột A là ngày đầu tháng) -> kỳ lấy từ CỘT A, không phải tên file. Nạp cả 6 file là 6 lần ghi cùng dữ liệu dưới 6 `source_file` khác nhau -> ĐẾM 6 LẦN. Vì vậy `moi_ky_lay_file_moi_nhat: true` — chỉ giữ bản mới nhất, đúng cách xử lý bản kế hoạch năm."
+  ],
+  "_kiem_chung": [
+    "T6/2026 khối 'Khối Dịch vụ Hậu mãi': 14 xưởng = 524 người · cả khối (thêm Văn phòng + đào tạo KT + kiểm soát VH) = 532.",
+    "Chuỗi 14 xưởng T1→T6: 482 · 470 · 495 · 502 · 506 · 524.",
+    "Tổng mọi khối T6 = 2.625 người, khớp ô 'Grand Total' B13 sheet 'Tong so nhan su' (và khớp Σ 7 công ty của HCNS_TONGSO).",
+    "Xưởng Ocean Park T6 = 67 người (lớn nhất), Smart City = 78."
+  ],
+  "report_type": "HCNS_NS_PB",
+  "row_index_base": 7880000,
+  "nguon": {
+    "folder": "HCNS/baocaotongsonhansu",
+    "file_glob": "B.9.GR.HCNS.M.*.Bctongsonhansu.xlsx",
+    "sheet": {
+      "ten": "Chi tiết"
+    }
+  },
+  "moi_ky_lay_file_moi_nhat": "mot_file",
+  "header": {
+    "dong": 1
+  },
+  "dong_bat_dau": 2,
+  "kiem_tra_o": [
+    {
+      "o": "C1",
+      "bang": "Công ty"
+    },
+    {
+      "o": "D1",
+      "bang": "Khối chức năng"
+    },
+    {
+      "o": "E1",
+      "bang": "Phòng/Ban"
+    }
+  ],
+  "cot": {
+    "ngay": {
+      "header": "Tháng",
+      "kieu": "date"
+    },
+    "dim1": {
+      "header": "Khối chức năng"
+    },
+    "dim2": {
+      "header": "Phòng/Ban"
+    },
+    "dim3": {
+      "header": "Công ty"
+    },
+    "cost_center": {
+      "header": "Phòng/Ban",
+      "chuan_hoa": "hcns_xdv",
+      "giu_khi_khong_map": true
+    },
+    "amount": {
+      "header": "NS đang làm việc cuối thág",
+      "kieu": "so"
+    },
+    "amount2": {
+      "header": "Định biên nhân sự",
+      "kieu": "so"
+    },
+    "payload.tuyenMoi": {
+      "header": "NS tuyển mới trong tháng",
+      "kieu": "so",
+      "bat_buoc": false
+    },
+    "payload.nghiViec": {
+      "header": "NS nghỉ việc trong tháng",
+      "kieu": "so",
+      "bat_buoc": false
+    },
+    "payload.lvDauKy": {
+      "header": "Nhân sự đang làm việc đầu kỳ",
+      "kieu": "so",
+      "bat_buoc": false
+    }
+  },
+  "dan_xuat": {
+    "payload.coSo": "amount + amount2"
+  },
+  "loc": [
+    {
+      "cot": "ngay",
+      "dieu_kien": "khac_rong"
+    },
+    {
+      "cot": "dim2",
+      "dieu_kien": "khac_rong"
+    },
+    {
+      "cot": "payload.coSo",
+      "dieu_kien": "khac_rong"
+    }
+  ],
+  "payload_them": {
+    "unit": "nguoi"
+  },
+  "ky_tu_ten_file": {
+    "regex_nam": "\\.M\\.(\\d{4})\\.",
+    "regex_thang": "\\.M\\.\\d{4}\\.(\\d{1,2})\\."
+  }
+}

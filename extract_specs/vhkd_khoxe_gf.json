@@ -1,0 +1,45 @@
+{
+  "id": "vhkd_khoxe_gf",
+  "_mo_ta": "Tồn kho hóa đơn kênh GF (DASHBOARD 4 chỉ tiêu 10-12, màn vhkd4). Nguồn: 1.VINFAST_SR/QUANTRINOIBO_VHKD/BaocaoKhoxe_GF -> SRVF/baocaokhoxegf. Dùng CHUNG report_type VHKD_KHOXE với B2B/B2C, phân kênh bằng dim2. Mapping dòng 85-87 ghi 'Mô tả sau' cho 2/3 chỉ tiêu — spec này chỉ cấp được đúng phần file có.",
+  "_bay": [
+    "'Số ngày tồn thực tế' LÀ CÔNG THỨC SỐNG `=TODAY()-F` (khác B2C/B2B lưu số cứng). Nghĩa là tuổi tồn đọc ra là tuổi TÍNH ĐẾN NGÀY FILE ĐƯỢC MỞ/LƯU LẦN CUỐI, KHÔNG neo vào kỳ báo cáo. Ai mở file rồi bấm lưu là mọi con số tuổi tồn nhảy. Đừng dùng số này để so tuổi tồn giữa các kỳ; muốn chuẩn thì phải tính lại từ 'Ngày xe về SR' với mốc là ngày chốt kỳ (hiện chưa làm — cần chốt nghiệp vụ trước).",
+    "12/62 xe có 'Ngày xe về SR' = 'Chưa' -> ô tuổi tồn thành #VALUE!. Engine coi ô lỗi Excel là ô TRỐNG nên 12 xe đó VẪN được nạp (là xe tồn thật) nhưng `so_ngay_ton` = null. PHẢI khai `kieu: \"so_co_rong\"` chứ không phải `\"so\"`: `_so` biến ô trống thành 0.0, tức 12 xe đó đọc thành 'mới về, tồn 0 ngày' và lọt vào nhóm dưới 30 ngày -> tỷ lệ quá hạn tự hạ, im lặng. Đã dính đúng lỗi này ở lần nạp đầu 14/08/2026, phát hiện khi soát lại `chuaRoTuoiTon` ra 0. Hệ quả: tầng đọc số PHẢI phân biệt 'tuổi tồn = 0' với 'chưa biết tuổi tồn' — đếm >30 ngày trên 62 xe là 49, nhưng mẫu số chắc chắn chỉ 50 xe có tuổi. Cộng 12 xe kia vào nhóm 'dưới 30 ngày' là báo cáo sai theo hướng có lợi.",
+    "FILE KHÔNG CÓ CỘT SR/COST CENTER và cũng không có cột khách hàng. Vì vậy: (a) không khai `cost_center` -> dòng GF không lên bảng 'theo Showroom'; (b) chỉ tiêu 11 của mapping ('Tồn kho hóa đơn chưa ghép khách' kênh GF) KHÔNG có nguồn, đừng suy từ cột 'Ngày GF XHĐ' = 'Chưa' — đó là CHƯA XUẤT HÓA ĐƠN, hoàn toàn khác chuyện chưa ghép khách.",
+    "FILE KHÔNG CÓ CỘT GIÁ -> `amount` = 1 (đếm XE), giống hệt B2C. HỆ QUẢ NGUY HIỂM Ở TẦNG ĐỌC SỐ: `app/metrics/vhkd.py` trước 14/08/2026 lấy giá trị tồn bằng `[r for r in hd if r['dim2'] != 'B2C']` — thêm kênh GF vào là 62 dòng amount=1 bị cộng thành '62 tỷ' giá trị tồn. Đã sửa thành lọc `dim2 == 'B2B'` khi thêm spec này. Bất kỳ chỗ nào cộng tiền trên VHKD_KHOXE đều phải ghim ĐÚNG B2B, không dùng phép loại trừ.",
+    "Chỉ có DUY NHẤT 1 ảnh chụp, tên file '2026.8.12' -> kỳ 2026-08. Lưu ý B2C thì chỉ có ảnh 2026-07: xem kỳ T7 sẽ có B2C mà KHÔNG có GF, xem T8 thì ngược lại. Đừng đọc thành 'GF hết tồn ở T7'.",
+    "Loại xe ghi 'VFe34' (liền, không dấu cách) còn báo cáo bán xe dùng mã 'VF5'/'LM1' — cùng cảnh không có bảng quy đổi dòng xe như đã ghi ở `vhkd_khoxe_b2b`. Muốn so tồn với bán phải chốt bảng quy đổi trước.",
+    "Sheet tên 'Sheet1' và file chỉ có 1 sheet -> chọn bằng `{\"so\": 0}`, chốt layout bằng A1/E1/H1."
+  ],
+  "_kiem_chung": [
+    "Kỳ 2026-08: 62 xe (62 dòng có Số VIN; max_row = 63 nên không có dòng thừa nào).",
+    "Theo loại xe: VF8 = 48 · VF5 = 9 · VFe34 = 4 · VF3 = 1. Cộng = 62.",
+    "Tuổi tồn: 50 xe có số (min 13, max 244 ngày) — trong đó > 30 ngày: 49 xe, > 45 ngày: 36 xe; 12 xe KHÔNG có tuổi tồn (ô #VALUE! do 'Ngày xe về SR' = 'Chưa').",
+    "Con số tuổi tồn ở trên đúng với BẢN FILE HIỆN TẠI. Vì cột là `=TODAY()-F`, mở lại file vào ngày khác sẽ ra số khác — nếu soát lại thấy lệch, kiểm ngày lưu file TRƯỚC khi nghi spec."
+  ],
+  "report_type": "VHKD_KHOXE",
+  "row_index_base": 6850000,
+  "khoi": "Khối KD Vinfast - Showroom",
+  "nguon": { "folder": "SRVF/baocaokhoxegf", "file_glob": "*.xlsx", "sheet": { "so": 0 } },
+  "kiem_tra_o": [
+    { "o": "A1", "bang": "Loại xe" },
+    { "o": "E1", "bang": "Số VIN" },
+    { "o": "H1", "bang": "Số ngày tồn thực tế" }
+  ],
+  "header": { "dong": 1 },
+  "dong_bat_dau": 2,
+  "ngay_tu_ten_file": { "regex": "M\\.(\\d{4})\\.(\\d{1,2})\\.(\\d{1,2})" },
+  "moi_ky_lay_file_moi_nhat": true,
+  "chieu_co_dinh": { "dim2": "GF" },
+  "cot": {
+    "dim1": { "header": "Loại xe", "chuan_hoa": "hoa" },
+    "payload.so_vin": { "header": "Số VIN" },
+    "payload.so_ngay_ton": { "header": "Số ngày tồn thực tế", "kieu": "so_co_rong" },
+    "payload.phien_ban": { "header": "Phiên bản", "bat_buoc": false },
+    "payload.ngay_ve_sr": { "header": "Ngày xe về SR", "bat_buoc": false },
+    "payload.ngay_gf_xhd": { "header": "Ngày GF XHĐ", "bat_buoc": false }
+  },
+  "ban_ghi": "moi_dong",
+  "dan_xuat": { "amount": "1" },
+  "loc": [ { "cot": "payload.so_vin", "dieu_kien": "khac_rong" } ],
+  "payload_them": { "unit": "xe", "kenh": "GF" }
+}

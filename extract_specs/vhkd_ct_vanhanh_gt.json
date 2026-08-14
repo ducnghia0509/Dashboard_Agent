@@ -1,0 +1,43 @@
+{
+  "id": "vhkd_ct_vanhanh_gt",
+  "_mo_ta": "NĂNG SUẤT KẾ HOẠCH tính bằng TIỀN (CT35 — doanh thu/1 NV bán hàng/tháng), khối Vinfast - Showroom — sheet 'CT Vận hành' của bản kế hoạch, cột 'Tháng 7'..'Tháng 12'. Đây là vế KẾ HOẠCH cho nhóm 'Năng suất theo doanh thu' của màn vhkd0 — nhóm mà KT log 14/08/2026 ghi 'Chưa có trên Dashboard' và lý do thật là CẢ SHEET NÀY CHƯA CÓ SPEC (bản XDV đã có `xdv_ct_vanhanh_gt`, bản SR thì không).",
+  "_bay": [
+    "SHEET 'CT Vận hành' CỦA HAI BẢN KẾ HOẠCH KHÔNG GIỐNG NHAU — đừng thấy trùng tên mà dùng lại spec XDV. Bản SR KHÔNG có cột 'Công thức tính' nên dải tháng là E..J; bản XDV có, nên là F..K. Dùng sai dải là lệch kỳ MỘT THÁNG trên toàn bộ dữ liệu mà vẫn 'chạy' im lặng (T7 đọc ra số của T8). Chốt bằng `kiem_tra_o` E4 = 'Tháng 7'.",
+    "Sheet chỉ có T7..T12 — đây là bản 'ĐĂNG KÝ CHỈ TIÊU VẬN HÀNH 6 THÁNG CUỐI NĂM'. KHÔNG có T1..T6, đừng đi tìm. Cột D là 'Tổng 6 tháng cuối năm', nằm NGOÀI dải nên không lọt vào.",
+    "GLOB PHẢI GHIM TIỀN TỐ '1.SR.' — thư mục còn có '2.XDV.OO.M.202608.Kehoachthang.xlsx', và sheet cùng tên 'CT Vận hành' của file đó có nhãn dòng khác hẳn. Dùng '*.Kehoachthang.xlsx' là nạp cả hai file dưới 2 source_file, `_ghi` xoá theo (report_type, source_file) nên KHÔNG phát hiện được.",
+    "Ô C2 sheet này ghi khối 'KINH DOANH XE VINFAST' — giống y bản XDV (vết biểu mẫu dùng chung). ĐỪNG dùng làm chốt layout.",
+    "CHỈ NẠP CT35. Xem khối chú thích `_SR_CT_DONG` trong `scripts/spec_extract.py` để biết vì sao 8 dòng còn lại bị bỏ (CT33/CT34 là công thức trỏ sang sheet KHDT đã nạp; CT36 backend tự suy; 4 dòng ngưỡng ghi bằng LỜI).",
+    "CT35 trong file là DẪN XUẤT: ô E8 = '=E9*E10' = CT38 (năng suất sản lượng) × CT36 (giá trị BQ đơn hàng). Vẫn nạp thay vì tự tính lại ở backend, vì tính lại phải qua HAI tầng dẫn xuất (CT36 tự nó cũng là D5/D7) — đọc thẳng ô mà nghiệp vụ đã đăng ký thì lệch là biết ngay có người sửa file.",
+    "ĐỪNG suy 'số NV bán hàng kế hoạch' bằng CT33/CT35. Ra 471,3 / 561,7 / 449 / 629,3 người — trông như số thật nhưng chỉ là hệ quả của việc CT38 được gõ tay số NGUYÊN đã làm tròn (3/3/4/3/4/4). Mẫu số thật của vế THỰC HIỆN vẫn thiếu, đúng như ghi chú của chính file ở ô K8."
+  ],
+  "_kiem_chung": [
+    "NS_DT: T7 = 1,746685739847651 tỷ · T8 = 1,984614598593838 tỷ · T9 = 3,218137966643507 tỷ · T10 = 2,046217378970235 tỷ · T11 = 2,688482613004427 tỷ · T12 = 2,723083539469662 tỷ (6 bản ghi).",
+    "Tổng 6 bản ghi = 14,40722183652932 tỷ. ĐỪNG soát bằng ô D8 (14,36207580660779): D8 là '=D9*D10' — TÍCH của 21 xe/NV cả kỳ với giá trị BQ đơn hàng cả kỳ, KHÔNG phải tổng cột. Lệch 0,045 tỷ là ĐÚNG theo file, không phải lỗi đọc.",
+    "KHÔNG có bản ghi nào cho T1..T6.",
+    "TRÍCH ra 6 bản ghi nhưng GHI vào DB chỉ 2 (T7, T8) — engine báo `bo_qua_chua_co_dataset: [2026-09..2026-12]`. ĐÚNG, không phải mất dữ liệu: kỳ tương lai chưa có dataset nào. Y hệt VHKD_KH (kế hoạch cả 12 tháng, DB mới có T1..T8). Số sẽ tự vào khi dataset của tháng đó được tạo — KHÔNG cần chạy lại spec bằng tay, cron nạp lại mỗi kỳ."
+  ],
+  "report_type": "VHKD_KH_CT",
+  "row_index_base": 6830000,
+  "khoi": "Khối KD Vinfast - Showroom",
+  "nguon": {
+    "folder": "KEHOACH/baocaokehoachthang",
+    "file_glob": "1.SR.*.Kehoachthang.xlsx",
+    "sheet": { "ten": "CT Vận hành" }
+  },
+  "header": { "dong": 4 },
+  "dong_bat_dau": 5,
+  "kiem_tra_o": [
+    { "o": "C1", "bang": "ĐĂNG KÝ CHỈ TIÊU VẬN HÀNH" },
+    { "o": "E4", "bang": "Tháng 7" },
+    { "o": "B8", "bang": "Năng suất Doanh thu/1NV bán hàng" }
+  ],
+  "cot": {
+    "dim1": { "header": "Kế hoạch/Mục tiêu cần đạt", "chuan_hoa": "sr_ct_dong" }
+  },
+  "ban_ghi": "moi_cot_thang",
+  "cot_thang": { "tu": "E", "den": "J", "he_so": 1e-9 },
+  "loc": [
+    { "cot": "dim1", "dieu_kien": "bang", "gia_tri": "NS_DT" }
+  ],
+  "payload_them": { "unit": "ty", "loai": "kehoach" }
+}

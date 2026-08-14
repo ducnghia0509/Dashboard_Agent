@@ -1,0 +1,71 @@
+{
+  "id": "atx_ngay_doixe",
+  "_mo_ta": "ĐỘI XE THEO NGÀY của An Taxi × depot — sheet 'BC Ngày PKDVH'. dim1: Tổng số xe · Xe hoạt động · Xe nằm. Bổ trợ cho bản THEO THÁNG (spec atx_doixe) ở các màn cần tỷ lệ vận doanh của ngày mới nhất và diễn biến trong tháng đang chạy.",
+  "_bay": [
+    "SỐ ĐẾM TẠI THỜI ĐIỂM — KHÔNG ĐƯỢC CỘNG NHIỀU NGÀY. Cố ý KHÔNG đưa ATX_XE_D vào `_SNAP_RT` (app/metrics/_shared.py) vì màn hình cần cả CHUỖI theo ngày để vẽ; backend tự chọn ngày mới nhất cho thẻ KPI (xem `_ngay_chot` trong app/metrics/antaxi.py). Query nào cộng thẳng amount của report_type này là sai.",
+    "Cột phạm vi ST/TN dùng CHỮ CỘT (dòng 9 chỉ ghi 'ST'/'TN' lặp 3 lần cho 3 chỉ tiêu) — khoá bằng `kiem_tra_o` cả dòng 8 (tên chỉ tiêu) và dòng 9 (phạm vi). Riêng vùng Tổng 2 depot dò được THEO TÊN vì dòng 9 ghi hẳn 'Tổng số xe'/'Số xe hoạt động' ở H/I.",
+    "VÙNG TỔNG KHÔNG CÓ CỘT 'XE NẰM' — chỉ có H (tổng) và I (hoạt động). Xe nằm tổng = H − I = Σ(F,G) của 2 depot, verify ngày 01 (148−137 = 11 = 6+5). Backend trừ, không nạp thêm dòng.",
+    "NGÀY 11 VÀ 12/08/2026 THIẾU HẲN SỐ CỦA THÁI NGUYÊN — cả xe hoạt động (E21/E22) LẪN xe nằm (G21/G22) đều rỗng, chỉ còn tổng số xe C21/C22 = 57. Cột I (xe hoạt động tổng 2 depot) của file vì thế tụt còn 87/88 (= đúng phần Sơn Tây) và tỷ lệ J rơi xuống 58,8%/59,5%: LỖI FILE NGUỒN, không phải lỗi trích xuất. Spec bỏ 4 ô rỗng đó (92 thay vì 96 bản ghi); backend PHẢI nêu cảnh báo và loại 2 ngày này khỏi tỷ lệ vận doanh thay vì vẽ một cú sụt không có thật.",
+    "File tháng 08/2026 chỉ có số đến ngày 12; dòng 23-41 (ngày 13-31) rỗng và bị `loc` loại."
+  ],
+  "_kiem_chung": [
+    "01/08/2026: ST 91 xe / 85 hoạt động / 6 nằm · TN 57 / 52 / 5 · Tổng 148 / 137 -> vận doanh 92,57% (=J11).",
+    "10/08/2026: ST 91/84/7 · TN 57/50/7 · Tổng 148/134 -> 90,54% (=J20).",
+    "Tổng số xe 148 khớp đúng số tháng T7 của spec atx_doixe (C76)."
+  ],
+  "report_type": "ATX_XE_D",
+  "row_index_base": 7850000,
+  "khoi": "Khối KD Dịch vụ An Taxi",
+  "nguon": {
+    "folder": "ANTAXI/baocaoqtvhngay",
+    "file_glob": "B.7.AAG.PKDVH.D.*.Baocaotonghop.xlsx",
+    "sheet": { "chua": "BC Ngày PKDVH" }
+  },
+  "header": { "dong": 9 },
+  "dong_bat_dau": 11,
+  "dong_ket_thuc": 41,
+  "cot": { "ngay": { "cot": "A", "kieu": "ngay_trong_thang" } },
+  "chieu_co_dinh": { "cong_ty": "AAG" },
+  "ban_ghi": "moi_cot_gia_tri",
+  "vung": [
+    {
+      "ten": "Sơn Tây",
+      "chieu_co_dinh": { "cong_ty": "AAG", "cost_center": "ST_AT" },
+      "kiem_tra_o": [
+        { "o": "B8", "bang": "Tổng số xe" }, { "o": "D8", "bang": "Số xe hoạt động" },
+        { "o": "F8", "bang": "Xe nằm" }, { "o": "B9", "bang": "ST" },
+        { "o": "D9", "bang": "ST" }, { "o": "F9", "bang": "ST" }
+      ],
+      "cot_gia_tri": [
+        { "cot": "B", "dim1": "Tổng số xe" },
+        { "cot": "D", "dim1": "Xe hoạt động" },
+        { "cot": "F", "dim1": "Xe nằm" }
+      ]
+    },
+    {
+      "ten": "Thái Nguyên",
+      "chieu_co_dinh": { "cong_ty": "AAG", "cost_center": "TN_AT" },
+      "kiem_tra_o": [
+        { "o": "C9", "bang": "TN" }, { "o": "E9", "bang": "TN" }, { "o": "G9", "bang": "TN" }
+      ],
+      "cot_gia_tri": [
+        { "cot": "C", "dim1": "Tổng số xe" },
+        { "cot": "E", "dim1": "Xe hoạt động" },
+        { "cot": "G", "dim1": "Xe nằm" }
+      ]
+    },
+    {
+      "ten": "Tổng 2 depot",
+      "kiem_tra_o": [ { "o": "H8", "bang": "Tổng 2 depot" } ],
+      "cot_gia_tri": [
+        { "header": "Tổng số xe", "dim1": "Tổng số xe" },
+        { "header": "Số xe hoạt động", "dim1": "Xe hoạt động" }
+      ]
+    }
+  ],
+  "loc": [
+    { "cot": "ngay", "dieu_kien": "khac_rong" },
+    { "cot": "amount", "dieu_kien": "khac_rong" }
+  ],
+  "payload_them": { "unit": "xe" }
+}
