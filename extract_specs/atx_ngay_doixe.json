@@ -5,7 +5,7 @@
     "SỐ ĐẾM TẠI THỜI ĐIỂM — KHÔNG ĐƯỢC CỘNG NHIỀU NGÀY. Cố ý KHÔNG đưa ATX_XE_D vào `_SNAP_RT` (app/metrics/_shared.py) vì màn hình cần cả CHUỖI theo ngày để vẽ; backend tự chọn ngày mới nhất cho thẻ KPI (xem `_ngay_chot` trong app/metrics/antaxi.py). Query nào cộng thẳng amount của report_type này là sai.",
     "Cột phạm vi ST/TN dùng CHỮ CỘT (dòng 9 chỉ ghi 'ST'/'TN' lặp 3 lần cho 3 chỉ tiêu) — khoá bằng `kiem_tra_o` cả dòng 8 (tên chỉ tiêu) và dòng 9 (phạm vi). Riêng vùng Tổng 2 depot dò được THEO TÊN vì dòng 9 ghi hẳn 'Tổng số xe'/'Số xe hoạt động' ở H/I.",
     "VÙNG TỔNG KHÔNG CÓ CỘT 'XE NẰM' — chỉ có H (tổng) và I (hoạt động). Xe nằm tổng = H − I = Σ(F,G) của 2 depot, verify ngày 01 (148−137 = 11 = 6+5). Backend trừ, không nạp thêm dòng.",
-    "NGÀY 11 VÀ 12/08/2026 THIẾU SỐ XE HOẠT ĐỘNG CỦA THÁI NGUYÊN (ô E21/E22 rỗng) nên cột I của file tụt còn 87/88 và tỷ lệ J rơi xuống 58,8%/59,5% — LỖI FILE NGUỒN, không phải lỗi trích xuất. Backend phải nêu cảnh báo thay vì vẽ tỷ lệ vận doanh sụt.",
+    "NGÀY 11 VÀ 12/08/2026 THIẾU HẲN SỐ CỦA THÁI NGUYÊN — cả xe hoạt động (E21/E22) LẪN xe nằm (G21/G22) đều rỗng, chỉ còn tổng số xe C21/C22 = 57. Cột I (xe hoạt động tổng 2 depot) của file vì thế tụt còn 87/88 (= đúng phần Sơn Tây) và tỷ lệ J rơi xuống 58,8%/59,5%: LỖI FILE NGUỒN, không phải lỗi trích xuất. Spec bỏ 4 ô rỗng đó (92 thay vì 96 bản ghi); backend PHẢI nêu cảnh báo và loại 2 ngày này khỏi tỷ lệ vận doanh thay vì vẽ một cú sụt không có thật.",
     "File tháng 08/2026 chỉ có số đến ngày 12; dòng 23-41 (ngày 13-31) rỗng và bị `loc` loại."
   ],
   "_kiem_chung": [
