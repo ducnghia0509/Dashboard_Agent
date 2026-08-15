@@ -1,0 +1,49 @@
+{
+  "id": "vhkd_pthu_coc",
+  "_mo_ta": "Công nợ phải thu CHI TIẾT theo hợp đồng: trong hạn/quá hạn × kênh × trạng thái COC (Mapping_Dashboard_VHKD dòng 30, 58, 59, 61 — DASHBOARD mẹ 'Công nợ quá hạn đã có COC' và DASHBOARD 2 'Quản lý phải thu'). Nguồn: SRVF/baocaocongnophaithu, sheet chi tiết.",
+  "_bay": [
+    "SHEET: T7 có BA sheet chứa chữ 'Chi tiết'. Bản 'Chi tiết theo hợp đồng (2)' lệch 1 cột (COC nằm ở AH/AD thay vì AG/AC) và cột COC RỖNG SẠCH 0/4689 — nó đứng ĐẦU file nên mọi cách khớp kiểu 'chua'/'batdau' đều vớ đúng nó và ra một tháng không có COC nào mà không báo lỗi. Phải khai `ten` dạng LIST tên tuyệt đối. Tên sheet đổi giữa các kỳ: 'Chi tiết theo hợp đồng' (T1-T4, T6, T7) -> 'Chi tiết công nợ' (T5, T8).",
+    "HEADER: dòng 5 ở T1-T4/T6/T7 nhưng dòng 8 ở T5/T8 -> dùng `tim_o` chứ đừng gõ số dòng.",
+    "CỘT: mapping ghi chữ cột C/N/W/AE/AF/AG. Bộ chữ đó đúng với bố cục T1-T7; T8 bỏ cột trống ở A nên 'Tên đơn vị' tụt về B trong khi N/W/AE/AF/AG vẫn y nguyên. Dò theo TÊN là chạy được cả hai, đừng khai chữ cột.",
+    "T3 KHÔNG có cột 'COC Ngày về/ chưa về' -> spec vẫn chạy, dim3 rỗng, chỉ mất chiều COC chứ không mất số dư nợ. Đây là thiếu của FILE, cần báo SR.",
+    "Cột COC là ô TỰ DO (datetime, 'dd/mm/yyyy', serial Excel 46137, và ~15 biến thể chữ) -> phân loại bằng hook `coc_trang_thai`, có nhóm thứ ba 'Không xác định' cho xe thương quyền/demo. Đừng đếm bằng isinstance(datetime): bỏ sót gần nửa số dòng đã có COC.",
+    "Kênh suy từ 'Tài khoản' theo TIỀN TỐ (13111=B2C, 13116=GF, 1316*=B2B). Tài khoản thật là 13161/13163, khớp tuyệt đối '1316' là mất sạch B2B.",
+    "Số ở đây KHÔNG khớp bảng tổng hợp chép tay trong sheet 'CN theo đơn vị'/'Báo cáo' (T7: 36,68 vs 27,14 tỷ) vì bảng đó chỉ phủ B2B+B2C, bỏ các tài khoản khác. Chưa có kết luận của kế toán bên nào là số công bố — xem đây là số DỰNG THEO MAPPING.",
+    "T5 và T8 có cả .Xls lẫn .xlsx cùng tên; `quet_nguon` thấy .xlsx đã tồn tại nên KHÔNG chuyển lại bản .Xls mới hơn. Nếu số một kỳ đứng yên trong khi file .Xls vừa về, kiểm tra mtime hai file trước khi nghi spec."
+  ],
+  "report_type": "VHKD_PTHU_COC",
+  "row_index_base": 6620000,
+  "khoi": "Khối KD Vinfast - Showroom",
+  "nguon": {
+    "folder": "SRVF/baocaocongnophaithu",
+    "file_glob": "*.xlsx",
+    "sheet": { "ten": ["Chi tiết theo hợp đồng", "Chi tiết công nợ"] }
+  },
+  "header": { "tim_o": "Nợ cuối kỳ" },
+  "ky_tu_ten_file": {
+    "regex_nam": "M\\.(\\d{4})",
+    "regex_thang": "_T(\\d{1,2})",
+    "ngay": "cuoi_thang"
+  },
+  "cot": {
+    "cost_center": { "header": "Tên đơn vị", "chuan_hoa": "sr_showroom", "giu_khi_khong_map": true },
+    "amount": { "header": "Nợ cuối kỳ", "kieu": "so", "he_so": 1e-9 },
+    "dim1": { "header": "số ngày quá hạn", "chuan_hoa": "qua_han", "chuan_hoa_khi_rong": true },
+    "dim2": { "header": "Tài khoản", "chuan_hoa": "kenh_tk", "bat_buoc": false },
+    "dim3": { "header": "COC Ngày về/ chưa về", "chuan_hoa": "coc_trang_thai", "bat_buoc": false },
+    "payload.don_vi": { "header": "Tên đơn vị" },
+    "payload.ten_khach": { "header": ["Tên kh", "Tên khách hàng"], "bat_buoc": false },
+    "payload.ma_hop_dong": { "header": "Mã Hợp đồng" },
+    "payload.tai_khoan": { "header": "Tài khoản" },
+    "payload.so_ngay_qua_han": { "header": "số ngày quá hạn", "kieu": "so" },
+    "payload.ngay_hoa_don": { "header": "Ngày hóa đơn", "kieu": "date", "bat_buoc": false },
+    "payload.den_han": { "header": "đến hạn", "kieu": "date", "bat_buoc": false },
+    "payload.coc_tho": { "header": "COC Ngày về/ chưa về", "bat_buoc": false }
+  },
+  "ban_ghi": "moi_dong",
+  "loc": [
+    { "cot": "amount", "dieu_kien": "khac_rong" },
+    { "cot": "payload.don_vi", "dieu_kien": "khac_rong" }
+  ],
+  "payload_them": { "unit": "ty", "nguon": "chi_tiet_theo_hop_dong" }
+}

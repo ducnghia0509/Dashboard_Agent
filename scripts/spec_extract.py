@@ -444,8 +444,84 @@ def _xdv_kh_cong(v):
     return {"dim2": "Tổng"} if _nd(v) in ("cong", "tong", "tongcong") else {}
 
 
+_KENH_TK = [("13111", "B2C"), ("13116", "GF"), ("1316", "B2B")]
+
+
+def _kenh_tk(v):
+    """Số hiệu tài khoản -> kênh bán. Khớp theo TIỀN TỐ, không khớp tuyệt đối.
+
+    Mapping ghi kênh B2B = "1316" nhưng tài khoản THẬT trong file là 13161 và 13163 (1.053 dòng
+    trên tổng 1.911). Khớp tuyệt đối "1316" thì toàn bộ B2B rơi vào nhóm "Khác" mà vẫn chạy trơn.
+    Thứ tự trong `_KENH_TK` quan trọng: "13116" (GF) phải đứng TRƯỚC "1316" (B2B), nếu không GF
+    bị tiền tố B2B nuốt.
+    """
+    s = re.sub(r"\D", "", str(v or ""))
+    for tien_to, kenh in _KENH_TK:
+        if s.startswith(tien_to):
+            return kenh
+    return "Khác" if s else None
+
+
+def _qua_han(v):
+    """Cột "số ngày quá hạn" -> "Quá hạn" / "Trong hạn".
+
+    Mapping (DASHBOARD 2 dòng 3-4) định nghĩa quá hạn = cột AE > 0, trong hạn = còn lại. Ô rỗng
+    hoặc không phải số -> "Trong hạn": đó là hợp đồng chưa tới hạn nên file bỏ trắng, không phải
+    dữ liệu thiếu.
+    """
+    n = _so(v)
+    return "Quá hạn" if n is not None and n > 0 else "Trong hạn"
+
+
+_COC_CHUA = ("chuacococ", "chuave", "cocchuave", "chuaco", "chua", "xechuacococ",
+             "dangst", "chohsgf", "chuacohosogf", "chuacohoso")
+_COC_DA = ("dacococ", "dave", "dacohoso")
+_COC_NGOAI = ("tq", "xanhtq", "thuongquyen", "xanhthuongquyen", "xegf", "gf", "xedemo", "demo")
+
+
+def _coc_trang_thai(v):
+    """Cột "COC Ngày về/ chưa về" -> "Đã có COC" / "Chưa có COC" / "Không xác định".
+
+    Cột này là Ô TỰ DO, kế toán mỗi kỳ ghi một kiểu. Trên 8 kỳ đã gặp: datetime thật (669 dòng),
+    chuỗi "dd/mm/yyyy" (~120), SỐ SERIAL Excel chưa format (46137, 46120…), và ~15 biến thể chữ
+    ("Chưa có COC", "CHƯA CÓ COC", "COC chưa về", "Đã về", "chưa có"…). Đếm bằng
+    `isinstance(datetime)` như bản dò tay đầu tiên là bỏ sót gần một nửa số dòng ĐÃ CÓ COC.
+
+    Ba nhóm chứ không phải hai: "TQ"/"Xanh TQ"/"Thương quyền"/"Xe demo"/"xe GF" là xe KHÔNG thuộc
+    diện COC — chính file cũng tách riêng ("Xanh Thương quyền 28,03 tỷ" đứng ngoài bảng COC ở T5).
+    Dồn chúng vào "Chưa có COC" là thổi phồng phần chưa có. Chuỗi lạ -> "Không xác định" và được
+    đếm vào cảnh báo, KHÔNG im lặng gán về một phía.
+    """
+    if isinstance(v, (dt.datetime, dt.date)):
+        return "Đã có COC"
+    s = str(v if v is not None else "").strip()
+    if not s:
+        return None
+    if _date(s):                       # "22/01/2026", "21/1/2025", "2026-07-14 00:00:00"
+        return "Đã có COC"
+    # Serial Excel chưa format (`_lay_o` đã đổi ô thành chuỗi trước khi gọi hook, nên 46137 tới
+    # đây là "46137"). 40000 ≈ 2009-07, 60000 ≈ 2064; ngoài dải là số rác, phần lớn là 0.
+    if re.fullmatch(r"\d+(\.0+)?", s):
+        return "Đã có COC" if 40000 <= float(s) <= 60000 else "Không xác định"
+    n = _nd(s)
+    if any(k in n for k in _COC_NGOAI):
+        return "Không xác định"
+    if any(k in n for k in _COC_CHUA):
+        return "Chưa có COC"
+    if any(k in n for k in _COC_DA):
+        return "Đã có COC"
+    # "ST 16/04/2026", "DBP 28/5/26" — ngày kèm chú thích. Bắt buộc có DẤU GẠCH CHÉO: "Đã giải
+    # ngân 30.01" cũng có dạng số-chấm-số nhưng là ngày GIẢI NGÂN của ngân hàng, không phải COC.
+    if re.search(r"\d{1,2}/\d{1,2}", s):
+        return "Đã có COC"
+    return "Không xác định"
+
+
 _CHUAN_HOA = {
     "sr_showroom": _cc_showroom,
+    "kenh_tk": _kenh_tk,
+    "qua_han": _qua_han,
+    "coc_trang_thai": _coc_trang_thai,
     "xdv": _cc_xdv,
     "hcns_xdv": _cc_hcns_xdv,
     "kh_dong": _kh_dong,
@@ -570,10 +646,19 @@ def _chon_sheet(wb, cfg, thang=None):
             if _nd(name) == muon:
                 return name
         return None
+    # `ten` nhận LIST tên ứng viên, thử theo ĐÚNG THỨ TỰ KHAI (không theo thứ tự sheet trong
+    # file). Công nợ phải thu SRVF đổi tên sheet chi tiết giữa các kỳ ("Chi tiết theo hợp đồng"
+    # T1-T4/T6/T7 -> "Chi tiết công nợ" T5/T8) và T7 còn có một BẢN SAO tên "Chi tiết theo hợp
+    # đồng (2)" lệch 1 cột, cột COC rỗng sạch. Khớp kiểu `chua: "Chi tiết"` sẽ vớ đúng bản sao đó
+    # vì nó là sheet đầu tiên trong file -> ra một tháng toàn "chưa có COC" mà không lỗi gì.
+    ung_vien = cfg["ten"] if isinstance(cfg.get("ten"), list) else \
+        ([cfg["ten"]] if "ten" in cfg else [])
+    for t in ung_vien:
+        for name in wb.sheetnames:
+            if _nd(name) == _nd(t):
+                return name
     for name in wb.sheetnames:
         n = _nd(name)
-        if "ten" in cfg and n == _nd(cfg["ten"]):
-            return name
         if "batdau" in cfg and n.startswith(_nd(cfg["batdau"])):
             return name
         if "chua" in cfg and _nd(cfg["chua"]) in n:
@@ -1239,7 +1324,7 @@ def _extract_vung(spec, path):
             if not thang_theo_cot:
                 return [], [*warn, "BỎ QUA — không dựng được dải cột theo tháng"]
 
-        khong_map, bo_loc, o_loi = {}, 0, {}
+        khong_map, khong_map_giu, bo_loc, o_loi = {}, {}, 0, {}
         ngu_canh = {}          # ngữ cảnh mang từ dòng tiêu đề xuống, xem `ngu_canh_dong`
         nc_cfg = spec.get("ngu_canh_dong")
         for row in ws.iter_rows(min_row=bat_dau, max_row=ket_thuc, values_only=True):
@@ -1291,7 +1376,11 @@ def _extract_vung(spec, path):
             for dich, (j, cfg) in cot.items():
                 val = _lay_o(row, j, cfg, o_loi)
                 hook = cfg.get("chuan_hoa")
-                if hook and val is not None:
+                # `chuan_hoa_khi_rong`: chạy hook CẢ KHI ô trống, vì với cột này "để trống" là
+                # một TRẠNG THÁI chứ không phải thiếu dữ liệu. Cột "số ngày quá hạn" của công nợ
+                # phải thu T8 bỏ trắng 46/273 hợp đồng chưa tới hạn (16,99 tỷ); bỏ qua hook thì
+                # dim1 rỗng và 17 tỷ đó biến mất khỏi cả "Quá hạn" lẫn "Trong hạn" trên màn hình.
+                if hook and (val is not None or cfg.get("chuan_hoa_khi_rong")):
                     res = _CHUAN_HOA[hook](val)
                     if isinstance(res, dict):
                         # Hook hỏng KHÔNG loại dòng ngay: phải để `loc` chạy trước, nếu không mọi
@@ -1302,8 +1391,12 @@ def _extract_vung(spec, path):
                             # phải giữ để tổng không hụt — vd 16 xe tồn đứng tên "CHI NHÁNH
                             # VINFAST HÀ NỘI" trong báo cáo tồn vật lý: không thuộc SR nào nhưng
                             # là xe có thật. Giữ lại, cost_center để trống, tên thô nằm ở payload.
-                            if not cfg.get("giu_khi_khong_map"):
-                                base["_khong_map"] = res["_khong_map"]
+                            # Giữ dòng thì VẪN PHẢI BÁO. Trước đây `giu_khi_khong_map` nuốt luôn
+                            # cảnh báo: 38 dòng công nợ mang tên "Showroom Uông Bí_ HL"/"_ CP"
+                            # (8,0 tỷ ở T5, 6,1 tỷ ở T6) vào DB với cost_center rỗng — tổng khối
+                            # đúng nhưng biến mất khỏi mọi biểu đồ theo SR, không dấu hiệu gì.
+                            base["_khong_map_giu" if cfg.get("giu_khi_khong_map")
+                                 else "_khong_map"] = res["_khong_map"]
                         for k2, v2 in res.items():
                             if k2 != "_khong_map":
                                 base[k2] = v2
@@ -1367,6 +1460,9 @@ def _extract_vung(spec, path):
             for r2 in outs:
                 _dan_xuat(r2, spec.get("dan_xuat"))
                 hong = r2.pop("_khong_map", None)
+                giu = r2.pop("_khong_map_giu", None)
+                if giu and (r2.get("amount") or 0):
+                    khong_map_giu[giu] = khong_map_giu.get(giu, 0) + 1
                 # Đơn vị KHÔNG map được mà dòng CÓ SỐ -> luôn báo ra, KHÔNG để bộ lọc nuốt trước.
                 # Bắt được 2026-08-09: spec lọc `cost_center khác rỗng`, nên xưởng "Quận 12" (có
                 # thật trong file DMS, chưa có trong master_data) rơi vào nhánh "bỏ N dòng không
@@ -1390,6 +1486,11 @@ def _extract_vung(spec, path):
             warn.append("KHÔNG MAP ĐƯỢC đơn vị (đã qua bộ lọc, tức là dòng THẬT): "
                         + ", ".join(f"{k} ({v} dòng)"
                                     for k, v in sorted(khong_map.items(), key=lambda x: -x[1])[:10]))
+        if khong_map_giu:
+            warn.append("ĐƠN VỊ NGOÀI DANH MỤC — đã GIỮ dòng (tổng khối đúng) nhưng cost_center "
+                        "rỗng nên không lên được biểu đồ theo đơn vị: "
+                        + ", ".join(f"{k} ({v} dòng)" for k, v in
+                                    sorted(khong_map_giu.items(), key=lambda x: -x[1])[:10]))
         return recs, warn
     finally:
         wb.close()
