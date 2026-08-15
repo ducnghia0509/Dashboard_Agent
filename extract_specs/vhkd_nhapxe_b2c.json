@@ -1,0 +1,35 @@
+{
+  "id": "vhkd_nhapxe_b2c",
+  "_mo_ta": "Xe NHẬP MỚI kênh B2C — vế 'Nhập trong kỳ' của bảng xuất tồn (màn vhkd4). Bản B2B là `vhkd_nhapxe_b2b`; thư mục B2C có file từ lâu mà chưa ai khai spec, nên bảng xuất tồn tới 15/08/2026 mới chỉ phủ MỘT kênh.",
+  "_bay": [
+    "CỘT KHÁC HẲN BẢN B2B, đừng chép spec kia sang: B2C ghi 'SốVin' (KHÔNG có dấu cách, bản B2B là 'Số Vin'), 'SR Phân bổ' thay cho 'Kho vật lý', 'Giá nhập' thay cho 'Giá XHĐ', và KHÔNG có cột 'Lô xe'. Khai `header` dạng LIST để chịu được cả hai cách viết nếu kế toán sửa lại.",
+    "Kỳ lấy từ TÊN FILE như bản B2B. Cột 'Ngày phân bổ' CÓ đủ dữ liệu ở file hiện tại (22/22 dòng, đều 06/07/2026) nhưng vẫn không dùng làm kỳ — cùng lý do đã ghi ở spec B2B: một file có thể chứa ngày rơi sang tháng sau, và đối chiếu rollforward đang neo theo tên file.",
+    "'Giá nhập' là GIÁ NHẬP, KHÔNG cùng cơ sở với giá vốn/giá bán của KDVH — nạp `amount` để dành, màn hình chỉ dùng SỐ LƯỢNG cho tới khi nghiệp vụ chốt cơ sở định giá (y hệt cảnh báo của bản B2B).",
+    "File hiện chỉ có MỘT kỳ (T07, 22 xe). Chưa đủ 2 kỳ liền nhau nên chưa dựng được rollforward B2C — đừng vội bật vế 'xuất' suy ra."
+  ],
+  "report_type": "VHKD_NHAPXE",
+  "row_index_base": 6850000,
+  "khoi": "Khối KD Vinfast - Showroom",
+  "nguon": {
+    "folder": "SRVF/baocaonhapxeb2c",
+    "file_glob": "*NhapxeB2C.xlsx",
+    "sheet": { "so": 0 }
+  },
+  "kiem_tra_o": [{ "o": "A1", "bang": "Ngày phân bổ" }, { "o": "H1", "bang": "SốVin" }],
+  "header": { "dong": 1 },
+  "ngay_tu_ten_file": { "regex": "M\\.(\\d{4})\\.(\\d{1,2})\\.(\\d{1,2})" },
+  "moi_ky_lay_file_moi_nhat": true,
+  "chieu_co_dinh": { "dim2": "B2C" },
+  "cot": {
+    "cost_center": { "header": "SR Phân bổ", "chuan_hoa": "sr_showroom", "giu_khi_khong_map": true },
+    "dim1": { "header": "Loại xe" },
+    "amount": { "header": ["Giá nhập", "Giá XHĐ"], "kieu": "so", "he_so": 1e-9 },
+    "payload.so_vin": { "header": ["SốVin", "Số Vin"] },
+    "payload.phien_ban": { "header": "Phiên bản", "bat_buoc": false },
+    "payload.so_po": { "header": "Số PO xe", "bat_buoc": false },
+    "payload.ngay_phan_bo": { "header": "Ngày phân bổ", "kieu": "date", "bat_buoc": false }
+  },
+  "ban_ghi": "moi_dong",
+  "loc": [{ "cot": "payload.so_vin", "dieu_kien": "khac_rong" }],
+  "payload_them": { "unit": "ty", "kenh": "B2C" }
+}
