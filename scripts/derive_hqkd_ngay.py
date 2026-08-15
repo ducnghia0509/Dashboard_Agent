@@ -125,7 +125,12 @@ RT_HQKD, RT_PNLT, RT_CHIPHI, RT_DTHU = "HQKD_D", "PNLT_D", "CHIPHI_D", "DTHU_D"
 # thu thuần toàn khối, còn cái này là cụm A200 chia B2C/B2B/GF — vế thực hiện của bảng
 # điểm vhkd0. Tên khớp `KDVH` (bản THÁNG, nguồn BaocaoKQKD) + hậu tố _D theo quy ước ngày.
 RT_KDVH = "KDVH_D"
-REPORT_TYPES = (RT_HQKD, RT_PNLT, RT_CHIPHI, RT_DTHU, RT_KDVH)
+# Lợi nhuận theo NGÀY x KENH (15/08/2026). Tach khoi PNLT_D: PNLT_D giu dong muc SHOWROOM
+# (dim2 rong), con day la breakdown theo kenh — de chung mot report_type thi ai cong ca hai se
+# dem doi. Verify sheet 13.8: A401 (B2C) -368.300.254 + A402 (B2B) -39.218.994 = -407.519.248
+# = dung o A600 "LOI NHUAN SHOW ROOM".
+RT_LN_KENH = "VHKD_LN_D"
+REPORT_TYPES = (RT_HQKD, RT_PNLT, RT_CHIPHI, RT_DTHU, RT_KDVH, RT_LN_KENH)
 
 # Mã chỉ tiêu 01_HQKD (khớp app/metrics/repository.py: HQKD_REVENUE/COST/PROFIT_AT).
 MA_DT, MA_CP, MA_LNTT = "1000", "1047", "1112"
@@ -226,6 +231,11 @@ def is_daily_report(path):
 _SRVF_BANXE = [("A210", "B2C"), ("A211", "B2B"), ("A211A", "B2B"),
                ("A212", "GF"), ("A213", "B2B")]
 
+# Ma CON cua A600 (LNTT) va U302 (LNST) -> kenh. Cung nguyen tac: chi doc dong CON, dong cha
+# da nam o PNLT_D roi.
+_SRVF_LN_KENH = [("A401", "B2C", "A600"), ("A402", "B2B", "A600"), ("A403", "GF", "A600"),
+                 ("A407", "B2C", "U302"), ("A408", "B2B", "U302"), ("A409", "GF", "U302")]
+
 _SRVF_CP_CODES = ["A310", "A320", "A325", "A330", "A340", "A350", "A360", "A500"]
 
 
@@ -286,6 +296,12 @@ def _srvf_facts(rows):
             v = val(code, j)
             if v:
                 facts.append((cc, RT_KDVH, "A200", code, v, kenh))
+        # Loi nhuan truoc/sau thue theo KENH. dim1 = ma CHA (A600 / U302) de tang chung mot
+        # truc voi PNLT_D, dim3 = ma con de soat nguoc tung dong voi file.
+        for code, kenh, cha in _SRVF_LN_KENH:
+            v = val(code, j)
+            if v:
+                facts.append((cc, RT_LN_KENH, cha, code, v, kenh))
 
         for code in _SRVF_CP_CODES:
             v = val(code, j)
