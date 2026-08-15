@@ -121,7 +121,11 @@ DB_URL = (os.environ.get("DATABASE_URL") or os.environ.get("TC_DATABASE_URL")
           or "postgresql://tc:tc@localhost:5433/tc_dashboard")
 
 RT_HQKD, RT_PNLT, RT_CHIPHI, RT_DTHU = "HQKD_D", "PNLT_D", "CHIPHI_D", "DTHU_D"
-REPORT_TYPES = (RT_HQKD, RT_PNLT, RT_CHIPHI, RT_DTHU)
+# Doanh thu BÁN XE theo ngày × kênh (chỉ layout "srvf"). Tách khỏi RT_DTHU vì đó là doanh
+# thu thuần toàn khối, còn cái này là cụm A200 chia B2C/B2B/GF — vế thực hiện của bảng
+# điểm vhkd0. Tên khớp `KDVH` (bản THÁNG, nguồn BaocaoKQKD) + hậu tố _D theo quy ước ngày.
+RT_KDVH = "KDVH_D"
+REPORT_TYPES = (RT_HQKD, RT_PNLT, RT_CHIPHI, RT_DTHU, RT_KDVH)
 
 # Mã chỉ tiêu 01_HQKD (khớp app/metrics/repository.py: HQKD_REVENUE/COST/PROFIT_AT).
 MA_DT, MA_CP, MA_LNTT = "1000", "1047", "1112"
@@ -216,6 +220,12 @@ def is_daily_report(path):
 # ---------------------------------------------------------------------------------------------
 # Cấu phần TRỰC TIẾP của A300 (bản tháng parse từ công thức A300; workbook data_only KHÔNG còn
 # công thức nên dùng thẳng danh sách fallback y hệt agent_cli._chiphi_recs_srvf).
+# Mã CON của A200 -> kênh bán. A211/A211A/A213 đều là B2B (xe khối B2B, xe khối B2B bản
+# phụ, và B2B đã xuất hoá đơn) — gộp về một kênh cho khớp chiều phân tích của mapping
+# ("Kênh B2B, B2C, GF"), mã gốc vẫn giữ ở dim3 để soát ngược từng dòng với file.
+_SRVF_BANXE = [("A210", "B2C"), ("A211", "B2B"), ("A211A", "B2B"),
+               ("A212", "GF"), ("A213", "B2B")]
+
 _SRVF_CP_CODES = ["A310", "A320", "A325", "A330", "A340", "A350", "A360", "A500"]
 
 
@@ -267,6 +277,16 @@ def _srvf_facts(rows):
         lnst = lnst if lnst else val("A600", j)
         if lnst:
             facts.append((cc, RT_PNLT, "Lợi nhuận sau thuế", "Lợi nhuận sau thuế", lnst))
+        # ── Doanh thu BÁN XE theo KÊNH (mapping VHKD dòng 37: "Số liệu BC ngày: Folder
+        # BAOCAOHQKDNGAY - Sheet 01,02.. tương ứng ngày, tương ứng các cột costcenter").
+        # CHỈ lấy các mã CON, KHÔNG lấy A200: A200 = A210+A211+A211A+A212+A213 (verify sheet 13.8:
+        # 7.352.955.365 + 387.727.273 + 1.697.181.819 = 9.437.864.457 = đúng ô A200). Lấy cả hai
+        # là gấp đôi doanh thu bán xe của mọi ngày.
+        for code, kenh in _SRVF_BANXE:
+            v = val(code, j)
+            if v:
+                facts.append((cc, RT_KDVH, "A200", code, v, kenh))
+
         for code in _SRVF_CP_CODES:
             v = val(code, j)
             if not v:
@@ -1178,12 +1198,15 @@ def derive(path, write=False):
     out = {"ok": True, "file": os.path.basename(path), "period": period, "cong_ty": unit["cong_ty"],
            "layout": unit["layout"], "days": len(per_day),
            "tong_theo_ngay": {
-               ngay: {"doanh_thu_ty": round(sum(v for _, rt, d1, _, v in f
-                                                if rt == RT_HQKD and d1 == MA_DT) * 1e-9, 9),
-                      "chi_phi_ty": round(sum(v for _, rt, d1, _, v in f
-                                              if rt == RT_HQKD and d1 == MA_CP) * 1e-9, 9),
-                      "lntt_ty": round(sum(v for _, rt, d1, _, v in f
-                                           if rt == RT_HQKD and d1 == MA_LNTT) * 1e-9, 9)}
+               # `x[:5]` chứ không giải nén cứng 5 phần tử: fact của layout "srvf" có thêm
+               # dim2 (kênh bán) ở vị trí thứ 6.
+               ngay: {"doanh_thu_ty": round(sum(x[4] for x in f
+                                                if x[1] == RT_HQKD and x[2] == MA_DT) * 1e-9, 9),
+                      "chi_phi_ty": round(sum(x[4] for x in f
+                                              if x[1] == RT_HQKD and x[2] == MA_CP) * 1e-9, 9),
+                      "lntt_ty": round(sum(x[4] for x in f
+                                           if x[1] == RT_HQKD and x[2] == MA_LNTT) * 1e-9, 9),
+                      "ban_xe_ty": round(sum(x[4] for x in f if x[1] == RT_KDVH) * 1e-9, 9)}
                for ngay, f in per_day}}
     if not write:
         return out
@@ -1212,11 +1235,15 @@ def derive(path, write=False):
         payload = json.dumps({"unit": "ty", "grain": "day"}, ensure_ascii=False)
         recs, i = [], 0
         for ngay, facts in per_day:
-            for cc, rt, dim1, dim3, v in facts:
+            for f in facts:
+                # Phần tử thứ 6 (dim2) là TUỲ CHỌN — chỉ layout "srvf" dùng, để gắn kênh bán cho
+                # cụm bán xe. Giải nén theo lát cắt thay vì đổi mọi layout sang tuple 6 phần tử.
+                cc, rt, dim1, dim3, v = f[:5]
+                dim2 = f[5] if len(f) > 5 else None
                 i += 1
                 recs.append((dataset_id, rt, 6200000 + i, ngay,
                              _CC_CONGTY.get(cc) or unit["cong_ty"], unit["khoi"], cc, period,
-                             round(v * 1e-9, 9), None, dim1, None, dim3, payload, source_file))
+                             round(v * 1e-9, 9), None, dim1, dim2, dim3, payload, source_file))
         cur.executemany(
             "INSERT INTO raw_rows (dataset_id, report_type, row_index, ngay, cong_ty, khoi, "
             "cost_center, period_month, amount, amount2, dim1, dim2, dim3, payload, source_file) "

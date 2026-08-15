@@ -1224,6 +1224,23 @@ def _extract_vung(spec, path):
                 return [], [f"BỎ QUA — layout khác spec: ô {ktr['o']} = "
                             f"{str(thuc)[:40]!r}, cần chứa {ktr.get('bang')!r}"]
 
+        # `chi_doc_khi_o`: giống `kiem_tra_o` nhưng KHÔNG khớp thì bỏ qua IM LẶNG, và `bang`
+        # nhận `{thang}`/`{mm}` thay bằng tháng của kỳ. Dùng cho sheet xếp NHIỀU KHỐI THÁNG nối
+        # tiếp nhau (kế hoạch ngày của Showroom: THÁNG 8 ở dòng 2, THÁNG 9 dòng 13, … tới THÁNG
+        # 12) — mỗi khối khai một `vung`, và chỉ khối trùng tháng của file mới được đọc. Không có
+        # chốt này thì cột "Ngày 01..31" của khối THÁNG 9 sẽ bị gán vào tháng 8 (kỳ suy từ TÊN
+        # FILE), tức kế hoạch tháng sau đè lên tháng này. Im lặng vì 4/5 khối không khớp là
+        # chuyện BÌNH THƯỜNG mỗi lần chạy, báo ra chỉ làm loãng cảnh báo thật.
+        if spec.get("chi_doc_khi_o"):
+            _kyt, w6 = _ky_thang(spec, path)
+            warn.extend(w6)
+            for ktr in spec["chi_doc_khi_o"]:
+                can = str(ktr.get("bang", ""))
+                if _kyt:
+                    can = can.replace("{thang}", str(_kyt[1])).replace("{mm}", f"{_kyt[1]:02d}")
+                if _nd(can) not in _nd(ws[ktr["o"]].value):
+                    return [], []
+
         ngay_file, w2 = ngay_tu_ten_file(spec, path)
         warn.extend(w2)
         # Nguồn báo cáo TUẦN: kèm mốc tuần vào payload từng dòng để giao diện nói rõ đang xem
@@ -1280,7 +1297,9 @@ def _extract_vung(spec, path):
                             warn.append(f"cột {get_column_letter(j + 1)} ghi ngày {raw} không thuộc "
                                         f"kỳ {y}-{mo:02d} của file -> bỏ cột")
                     else:
-                        m = re.match(r"^\s*(\d{1,2})\s*$", str(raw or ""))
+                        # Chấp cả "01" lẫn "Ngày 01": bản kế hoạch ngày của Showroom ghi tiêu
+                        # đề cột là "Ngày 01".."Ngày 31" chứ không phải số trần.
+                        m = re.match(r"^\s*(?:ng[àa]y\s*)?(\d{1,2})\s*$", str(raw or ""), re.I)
                         if m:
                             try:
                                 ngay_cot = dt.date(y, mo, int(m.group(1))).isoformat()

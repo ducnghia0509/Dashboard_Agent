@@ -1,0 +1,140 @@
+{
+  "id": "vhkd_kehoach_ngay_gt",
+  "_mo_ta": "Kế hoạch DOANH THU bán xe theo NGÀY × kênh của khối Showroom (Mapping_Dashboard_VHKD dòng 39 cột K: \"Lấy theo ngày: SHEET: KH ngày Tổng\"). Bản theo THÁNG là `vhkd_kehoach_gt` (sheet KHDT) — hai bản khớp nhau tuyệt đối.",
+  "_bay": [
+    "Sheet 'KHngày' xếp NĂM KHỐI THÁNG nối tiếp (THÁNG 8 dòng 2, 9 dòng 13, 10 dòng 24, 11 dòng 35, 12 dòng 46). Kỳ của bản ghi suy từ TÊN FILE, nên nếu đọc cả 5 khối thì cột 'Ngày 01..31' của THÁNG 9 sẽ bị gán vào tháng 8 — kế hoạch tháng sau đè lên tháng này. `chi_doc_khi_o` chốt: chỉ khối trùng tháng của file mới được đọc, 4 khối kia bỏ qua IM LẶNG.",
+    "CHỈ đọc 3 dòng KÊNH (B2C/B2B/GF), BỎ dòng 'A. Tổng sản lượng' / 'B.Tổng Doanh thu' ngay trên chúng — cộng cả hai là gấp đôi. Đã verify: 893+762+30 = 1.685 và 526,332+499,410+13,227.575 = 1.038.969,575 tr, khớp đúng ô tổng.",
+    "Khớp tuyệt đối kế hoạch THÁNG đang dùng: Σ 31 cột ngày THÁNG 8 = 1.038.969.575.271 = ô 'Cộng tháng' = ô KHDT 'Tháng 8' = Σ VHKD_KH T08 (B2B 499,410 + B2C 526,332 + GF 13,228). Lệch 0.",
+    "Tiêu đề cột ghi 'Ngày 01'..'Ngày 31' chứ không phải số trần — engine đã nới regex 15/08/2026, đừng đổi lại.",
+    "T09-T12 hiện toàn 0 (nghiệp vụ chưa lập). Engine bỏ ô 0 nên chúng không đẻ 'kế hoạch 0 giả'."
+  ],
+  "report_type": "VHKD_KH_NGAY",
+  "row_index_base": 6630000,
+  "khoi": "Khối KD Vinfast - Showroom",
+  "nguon": {
+    "folder": "KEHOACH/baocaokehoachthang",
+    "file_glob": "1.SR.*.Kehoachthang.xlsx",
+    "sheet": {
+      "ten": "KHngày"
+    }
+  },
+  "ky_thang_tu_ten_file": {
+    "regex": "\\.M\\.(\\d{4})(\\d{2})\\."
+  },
+  "chieu_co_dinh": {
+    "dim1": "A200"
+  },
+  "cot": {
+    "dim2": {
+      "header": "Mã",
+      "chuan_hoa": "hoa"
+    }
+  },
+  "ban_ghi": "moi_cot_ngay",
+  "vung": [
+    {
+      "ten": "khối tháng @dòng 2 · doanh thu",
+      "chi_doc_khi_o": [
+        {
+          "o": "B2",
+          "bang": "THÁNG {thang}"
+        }
+      ],
+      "header": {
+        "dong": 3
+      },
+      "dong_bat_dau": 9,
+      "dong_ket_thuc": 11,
+      "cot_ngay": {
+        "dong": 3,
+        "tu": "D",
+        "den": "AH",
+        "he_so": 1e-09
+      }
+    },
+    {
+      "ten": "khối tháng @dòng 13 · doanh thu",
+      "chi_doc_khi_o": [
+        {
+          "o": "B13",
+          "bang": "THÁNG {thang}"
+        }
+      ],
+      "header": {
+        "dong": 14
+      },
+      "dong_bat_dau": 20,
+      "dong_ket_thuc": 22,
+      "cot_ngay": {
+        "dong": 14,
+        "tu": "D",
+        "den": "AH",
+        "he_so": 1e-09
+      }
+    },
+    {
+      "ten": "khối tháng @dòng 24 · doanh thu",
+      "chi_doc_khi_o": [
+        {
+          "o": "B24",
+          "bang": "THÁNG {thang}"
+        }
+      ],
+      "header": {
+        "dong": 25
+      },
+      "dong_bat_dau": 31,
+      "dong_ket_thuc": 33,
+      "cot_ngay": {
+        "dong": 25,
+        "tu": "D",
+        "den": "AH",
+        "he_so": 1e-09
+      }
+    },
+    {
+      "ten": "khối tháng @dòng 35 · doanh thu",
+      "chi_doc_khi_o": [
+        {
+          "o": "B35",
+          "bang": "THÁNG {thang}"
+        }
+      ],
+      "header": {
+        "dong": 36
+      },
+      "dong_bat_dau": 42,
+      "dong_ket_thuc": 44,
+      "cot_ngay": {
+        "dong": 36,
+        "tu": "D",
+        "den": "AH",
+        "he_so": 1e-09
+      }
+    },
+    {
+      "ten": "khối tháng @dòng 46 · doanh thu",
+      "chi_doc_khi_o": [
+        {
+          "o": "B46",
+          "bang": "THÁNG {thang}"
+        }
+      ],
+      "header": {
+        "dong": 47
+      },
+      "dong_bat_dau": 53,
+      "dong_ket_thuc": 55,
+      "cot_ngay": {
+        "dong": 47,
+        "tu": "D",
+        "den": "AH",
+        "he_so": 1e-09
+      }
+    }
+  ],
+  "payload_them": {
+    "unit": "ty",
+    "nguon": "kehoach_ngay_sheet_KHngay"
+  }
+}
