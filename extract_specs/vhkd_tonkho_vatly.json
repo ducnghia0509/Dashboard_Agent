@@ -1,27 +1,71 @@
 {
   "id": "vhkd_tonkho_vatly",
-  "_mo_ta": "Tồn kho xe VẬT LÝ theo SR (DASHBOARD 4 chỉ tiêu 14-15, khối B màn vhkd4). Nguồn: 1.VINFAST_SR/QUANTRINOIBO_VHKD/Baocaotonkhoxevatly.",
+  "_mo_ta": "Tồn kho xe VẬT LÝ theo SR VÀ THEO KÊNH (DASHBOARD 4 chỉ tiêu 14-15, khối B màn vhkd4). Nguồn: 1.VINFAST_SR/QUANTRINOIBO_VHKD/Baocaotonkhoxevatly. Từ 16/08/2026 đơn vị phát hành lại toàn bộ lịch sử TÁCH 3 KÊNH B2B/B2C/GF (1 file mỗi kênh mỗi kỳ) — đúng chiều 'Theo kênh B2B.B2C.GF' mà mapping đòi ở sheet 'Mô tả sơ bộ' dòng 21-22 nhưng file gộp cũ không cấp được. dim2 = kênh, lấy từ TÊN FILE.",
   "_bay": [
     "Sheet KHÔNG có dòng tiêu đề — dữ liệu chạy thẳng từ dòng 2, 3 cột: A tên SR, B số VIN, C mã kho. Vì vậy phải khai `header.khong_co` + chỉ đích danh chữ cột.",
-    "File KHÔNG có dòng xe và KHÔNG có giá trị -> chỉ đếm được SỐ XE theo SR. Bảng 'Chênh lệch tồn vật lý – hóa đơn theo dòng xe' trong thiết kế hiện CHƯA làm được, cần xin thêm cột Loại xe.",
+    "TÊN SHEET KHÔNG ĐỒNG NHẤT giữa các file kênh: phần lớn là 'Tồn kho B2B'/'Tồn kho B2C'/'Tồn kho GF', nhưng `T4_B2C` có DẤU CÁCH THỪA ở cuối ('Tồn kho B2C ') và `T1_B2B` vẫn giữ tên CŨ là 'Tồn kho'. Vì vậy dùng `sheet.batdau: \"Tồn kho\"` chứ KHÔNG khai `ten` — khai `ten: \"Tồn kho\"` như trước là bỏ qua im lặng 23/24 file mới mà chỉ nuốt đúng T1_B2B.",
+    "⚠️ `file_glob` CỐ Ý chỉ khớp file CÓ HẬU TỐ KÊNH (`*Tonkhoxevatly_T*_*.xlsx`). Thư mục vẫn còn 7 file bản GỘP cũ không hậu tố (`...Tonkhoxevatly_T1..T7.xlsx`). Để glob `*.xlsx` là đọc cả hai bộ cho cùng một kỳ -> tồn kho phình gần gấp đôi. Khi nạp bản kênh lần đầu PHẢI xoá tay các dòng khoá theo 7 file cũ (`_ghi` chỉ xoá theo đúng source_file nó vừa ghi).",
+    "File KHÔNG có dòng xe và KHÔNG có giá trị -> chỉ đếm được SỐ XE theo SR × kênh. Mapping còn đòi 'Dòng xe' và 'Tồn ngày' (sheet 'Mô tả sơ bộ' dòng 21) nên bảng 'Chênh lệch tồn vật lý – hóa đơn theo dòng xe' (chỉ tiêu 15) VẪN chưa làm được, cần xin thêm cột.",
     "amount = 1 (đếm xe), không phải tiền.",
-    "T1-T4 có 16 xe đứng tên 'CHI NHÁNH VINFAST HÀ NỘI' (không thuộc SR nào) — GIỮ LẠI với cost_center rỗng để tổng tồn không hụt; tên thô ở payload.don_vi. Trên UI gom vào nhóm 'Chưa phân bổ SR'."
+    "T1-T4 có 16 xe đứng tên 'CHI NHÁNH VINFAST HÀ NỘI' (không thuộc SR nào) — GIỮ LẠI với cost_center rỗng để tổng tồn không hụt; tên thô ở payload.don_vi. Trên UI gom vào nhóm 'Chưa phân bổ SR'.",
+    "⚠️ SỐ LIỆU NGUỒN CHƯA SẠCH (kiểm 17/08/2026, đã báo đơn vị): (a) `T1_B2B` là BẢN LƯU NHẦM của B2C — đối chiếu theo VIN trùng khít 974/974, và nó còn giữ tên sheet cũ; nạp vào là T1 đếm đôi 974 xe. (b) Σ 3 kênh THẤP HƠN bản gộp cũ ở mọi kỳ: T2 −107, T3 −137, T4 −158, T5 −146, T6 −101, T7 −223 xe; riêng T1 hụt 495 VIN. Nhiều khả năng bản kênh đã lọc theo điều kiện 'Tồn cuối = 1' mà mapping ghi, còn bản gộp thì không — CHỜ ĐƠN VỊ XÁC NHẬN. Người dùng chốt 17/08: cứ nạp cả 8 kỳ, chấp nhận T1 sai cho tới khi có file thay thế."
   ],
   "report_type": "VHKD_TONVATLY",
   "row_index_base": 6900000,
   "khoi": "Khối KD Vinfast - Showroom",
-  "nguon": { "folder": "SRVF/baocaotonkhoxevatly", "file_glob": "*.xlsx", "sheet": { "ten": "Tồn kho" } },
-  "header": { "khong_co": true },
+  "nguon": {
+    "folder": "SRVF/baocaotonkhoxevatly",
+    "file_glob": "*Tonkhoxevatly_T*_*.xlsx",
+    "sheet": {
+      "batdau": "Tồn kho"
+    }
+  },
+  "header": {
+    "khong_co": true
+  },
   "dong_bat_dau": 2,
-  "ky_tu_ten_file": { "regex_nam": "M\\.(\\d{4})", "regex_thang": "_T(\\d{1,2})" },
+  "ky_tu_ten_file": {
+    "regex_nam": "M\\.(\\d{4})",
+    "regex_thang": "_T(\\d{1,2})"
+  },
   "cot": {
-    "cost_center": { "cot": "A", "chuan_hoa": "sr_showroom", "giu_khi_khong_map": true },
-    "payload.don_vi": { "cot": "A" },
-    "payload.so_vin": { "cot": "B" },
-    "payload.ma_kho": { "cot": "C" }
+    "cost_center": {
+      "cot": "A",
+      "chuan_hoa": "sr_showroom",
+      "giu_khi_khong_map": true
+    },
+    "payload.don_vi": {
+      "cot": "A"
+    },
+    "payload.so_vin": {
+      "cot": "B"
+    },
+    "payload.ma_kho": {
+      "cot": "C"
+    }
   },
   "ban_ghi": "moi_dong",
-  "dan_xuat": { "amount": "1" },
-  "loc": [ { "cot": "payload.so_vin", "dieu_kien": "khac_rong" } ],
-  "payload_them": { "unit": "xe" }
+  "dan_xuat": {
+    "amount": "1"
+  },
+  "loc": [
+    {
+      "cot": "payload.so_vin",
+      "dieu_kien": "khac_rong"
+    }
+  ],
+  "payload_them": {
+    "unit": "xe"
+  },
+  "chieu_tu_ten_file": {
+    "dim2": {
+      "regex": "Tonkhoxevatly_T\\d+_(B2B|B2C|GF)",
+      "hoa": true
+    }
+  },
+  "_kiem_chung": [
+    "Số xe theo kỳ × kênh (đếm dòng có VIN, 17/08/2026): T1 975/975/141 · T2 351/803/110 · T3 551/1018/111 · T4 419/1054/83 · T5 403/852/68 · T6 510/864/65 · T7 490/915/45 · T8 448/844/45 (B2B/B2C/GF).",
+    "T1_B2B == T1_B2C theo VIN (974 VIN trùng hoàn toàn) -> dấu hiệu lưu nhầm, KHÔNG phải trùng ngẫu nhiên.",
+    "Bản gộp cũ (không còn nạp): T1 1.612 · T2 1.371 · T3 1.817 · T4 1.714 · T5 1.469 · T6 1.540 · T7 1.673."
+  ]
 }
