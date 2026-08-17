@@ -426,7 +426,9 @@ def main():
     arrived_names = {e["fileName"] for e in wait_arrival(bank + cash, before)}
 
     # Ngày hôm qua (giờ VN) — mục tiêu của lần chạy này: file phải đã có số liệu của ngày đó.
-    yday = (datetime.now(VN) - timedelta(days=1)).strftime("%Y-%m-%d")
+    # Ngày số liệu được phép đòi — KHÔNG phải cứ "hôm qua": lượt Chủ nhật lùi về thứ Sáu
+    # vì không ai nhập ngày Chủ nhật. Xem cron_status.ngay_can().
+    yday = cron_status.ngay_can(datetime.now(VN))
     today = datetime.now(VN).strftime("%Y-%m-%d")
     ok = 0
     for e in sorted(cash, key=lambda x: x["_period"]):     # kỳ cũ trước, kỳ mới sau

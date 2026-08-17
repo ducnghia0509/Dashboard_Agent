@@ -43,6 +43,26 @@ RUN_TAT = "bi_tat"              # cờ .disabled do UI đặt
 RUN_DUNG_SOM = "dung_som"       # receiver chết / metadata lỗi / không có file nào khớp
 
 
+def ngay_can(now) -> str:
+    """Ngày số liệu mà lượt chạy hôm nay ĐƯỢC PHÉP đòi hỏi.
+
+    Quy ước nghiệp vụ: số liệu ngày D được kế toán nhập vào ngày D+1. **Chủ nhật không ai nhập**
+    (user xác nhận 2026-08-17), nên lượt chạy NGÀY CHỦ NHẬT không được đòi số của thứ Bảy — số đó
+    chỉ được nhập vào thứ Hai. Lấy hôm qua rồi lùi tiếp chừng nào NGÀY NHẬP (D+1) rơi vào Chủ nhật.
+
+    Kết quả: lượt Chủ nhật đòi tới thứ Sáu, mọi lượt khác đòi tới hôm qua như cũ. Không sửa thì mỗi
+    lượt Chủ nhật đều báo cả loạt đơn vị "chậm 1 ngày" trong khi không ai làm sai — báo động giả
+    hằng tuần là cách nhanh nhất khiến người ta bỏ qua bản tin.
+
+    Số liệu ngày Chủ nhật VẪN CÓ (kinh doanh vẫn chạy, đã kiểm raw_rows: 02/08 và 09/08 đều có số),
+    nó chỉ về muộn vào thứ Hai — nên lượt thứ Hai vẫn đòi tới Chủ nhật như bình thường, không lùi.
+    """
+    d = now - timedelta(days=1)
+    while (d + timedelta(days=1)).weekday() == 6:      # 6 = Chủ nhật = ngày không ai nhập
+        d -= timedelta(days=1)
+    return d.strftime("%Y-%m-%d")
+
+
 def state_from_verify(verify: dict, autofill_ok: bool, today: str) -> str:
     """Suy trạng thái từ kết quả verify — MỘT chỗ duy nhất, để 2 cron không lệch cách xếp.
 
@@ -83,7 +103,7 @@ class StatusWriter:
             "run_at": datetime.now(VN).strftime("%Y-%m-%d %H:%M:%S"),
             "run_date": datetime.now(VN).strftime("%Y-%m-%d"),
             "today": datetime.now(VN).strftime("%Y-%m-%d"),
-            "ngay_can": (datetime.now(VN) - timedelta(days=1)).strftime("%Y-%m-%d"),
+            "ngay_can": ngay_can(datetime.now(VN)),
             "expected_count": len(expected),
         }
         # Tạo sẵn bản ghi cho MỌI mục kỳ vọng ở state xấu nhất; các bước sau nâng dần lên.
