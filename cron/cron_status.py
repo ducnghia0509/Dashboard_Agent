@@ -44,23 +44,17 @@ RUN_DUNG_SOM = "dung_som"       # receiver chết / metadata lỗi / không có 
 
 
 def ngay_can(now) -> str:
-    """Ngày số liệu mà lượt chạy hôm nay ĐƯỢC PHÉP đòi hỏi.
+    """Ngày số liệu mà lượt chạy hôm nay đòi hỏi = HÔM QUA, mọi ngày trong tuần như nhau.
 
-    Quy ước nghiệp vụ: số liệu ngày D được kế toán nhập vào ngày D+1. **Chủ nhật không ai nhập**
-    (user xác nhận 2026-08-17), nên lượt chạy NGÀY CHỦ NHẬT không được đòi số của thứ Bảy — số đó
-    chỉ được nhập vào thứ Hai. Lấy hôm qua rồi lùi tiếp chừng nào NGÀY NHẬP (D+1) rơi vào Chủ nhật.
+    KHÔNG trừ Chủ nhật (user chốt 2026-08-17). Bản 17/08 từng lùi ngày cần khi ngày nhập rơi vào
+    Chủ nhật, với lý lẽ "Chủ nhật không ai nhập nên đừng báo chậm oan" — user bác: vẫn muốn thông
+    báo từng ngày như bình thường, Chủ nhật chưa nhập thì cứ hiện đúng là chưa nhập. Bản tin phản
+    ánh thực tế, không tự bào chữa thay cho nguồn.
 
-    Kết quả: lượt Chủ nhật đòi tới thứ Sáu, mọi lượt khác đòi tới hôm qua như cũ. Không sửa thì mỗi
-    lượt Chủ nhật đều báo cả loạt đơn vị "chậm 1 ngày" trong khi không ai làm sai — báo động giả
-    hằng tuần là cách nhanh nhất khiến người ta bỏ qua bản tin.
-
-    Số liệu ngày Chủ nhật VẪN CÓ (kinh doanh vẫn chạy, đã kiểm raw_rows: 02/08 và 09/08 đều có số),
-    nó chỉ về muộn vào thứ Hai — nên lượt thứ Hai vẫn đòi tới Chủ nhật như bình thường, không lùi.
+    Giữ hàm này (thay vì tính tại chỗ) để 2 job và trường `ngay_can` trong artifact dùng chung một
+    định nghĩa — đổi quy ước sau này chỉ sửa ở đây.
     """
-    d = now - timedelta(days=1)
-    while (d + timedelta(days=1)).weekday() == 6:      # 6 = Chủ nhật = ngày không ai nhập
-        d -= timedelta(days=1)
-    return d.strftime("%Y-%m-%d")
+    return (now - timedelta(days=1)).strftime("%Y-%m-%d")
 
 
 def state_from_verify(verify: dict, autofill_ok: bool, today: str) -> str:

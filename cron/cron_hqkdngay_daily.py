@@ -413,8 +413,8 @@ def main():
     before = request_files(targets)
     arrived_names = {e["fileName"] for e in wait_arrival(targets, before)}
 
-    # Ngày số liệu được phép đòi — KHÔNG phải cứ "hôm qua": lượt Chủ nhật lùi về thứ Sáu
-    # vì không ai nhập ngày Chủ nhật. Xem cron_status.ngay_can().
+    # Ngày số liệu đòi hỏi = hôm qua, mọi ngày như nhau (kể cả Chủ nhật). Xem
+    # cron_status.ngay_can() để biết vì sao không có ngoại lệ cuối tuần.
     yday = cron_status.ngay_can(datetime.now(VN))
     today = datetime.now(VN).strftime("%Y-%m-%d")
     ky_chinh = periods[0][0]
