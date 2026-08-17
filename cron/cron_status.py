@@ -57,26 +57,43 @@ def ngay_can(now) -> str:
     return (now - timedelta(days=1)).strftime("%Y-%m-%d")
 
 
-def state_from_verify(verify: dict, autofill_ok: bool, today: str) -> str:
+def state_from_verify(verify: dict, autofill_ok: bool, today: str, van_tay_cu: str = None,
+                      doi_luc_cu: str = None) -> tuple:
     """Suy trạng thái từ kết quả verify — MỘT chỗ duy nhất, để 2 cron không lệch cách xếp.
 
-    Thứ tự xét là xấu-trước-tốt-sau. Đặc biệt phải xét `max_ngay > today` TRƯỚC nhánh 'đủ':
-    HTX XTQ/XVP dựng sẵn cột cho cả tháng nên verify trả OK_CO_NGAY_HOM_QUA kể cả khi kế toán
-    chưa nhập gì — lấy OK đó làm 'đủ' là báo xanh oan.
+    BẰNG CHỨNG "KẾ TOÁN ĐÃ NHẬP" LÀ VÂN TAY ĐỔI, không phải "có dòng cho ngày hôm qua". Kế toán
+    nhập số vào CHÍNH file tháng đó (giống bên dòng tiền), mà nhiều file dựng sẵn cột cho cả tháng:
+    XDV có 98 dòng mỗi ngày 12→15/08 với tổng giống hệt 1.655; HTX Xanh VP có số tới tận 20/08 —
+    ngày tương lai. Với những file này "có dòng ngày hôm qua" luôn đúng kể cả khi không ai đụng vào,
+    nên trước đây chúng nằm mãi ở `khong_xac_nhan`, tức bản tin không nói được gì suốt nhiều ngày.
 
-    KHÔNG xét việc file có về trong lượt này hay không: file tháng bị ép kéo lại mỗi ngày nên gần
-    như luôn "về", còn bằng chứng kế toán đã cập nhật chỉ nằm ở ngày mới nhất trong DB. Cờ `arrived`
-    vẫn được ghi vào bản ghi để tra cứu, chỉ là không dùng để xếp loại.
+    So VÂN TAY (số dòng + tổng |amount| của cả kỳ) với lượt trước thì bắt được đúng thứ cần biết:
+    file có ĐỔI hay không. Đổi = ai đó đã nhập/sửa. Không đổi = y nguyên hôm qua, dù có bao nhiêu
+    dòng đi nữa.
+
+    Lượt ĐẦU TIÊN chưa có vân tay cũ (`van_tay_cu=None`) thì không kết luận được — lùi về cách cũ
+    (`max_ngay > today` -> `khong_xac_nhan`) thay vì đoán bừa. Từ lượt thứ hai trở đi mới đủ dữ kiện.
+
+    So với NGÀY ĐỔI GẦN NHẤT chứ không phải "đổi ngay trong lượt này": job chạy 2 lượt cùng ngày
+    (hoặc ai đó bấm "Chạy ngay" trên UI) thì lượt sau thấy vân tay y hệt lượt trước — nếu lấy đó
+    làm "chưa cập nhật" thì cả bảng chuyển sang chậm oan, dù sáng nay kế toán đã nhập thật. Vì vậy
+    ghi lại `doi_luc` = ngày vân tay đổi lần cuối, và "đủ" nghĩa là đã đổi TRONG HÔM NAY.
+
+    Trả (state, doi_luc) để bên gọi ghi `doi_luc` vào artifact cho lượt sau dùng tiếp.
     """
     if not autofill_ok:
-        return STATE_LOI_NAP
+        return STATE_LOI_NAP, doi_luc_cu
     code = (verify or {}).get("code") or ""
     max_ngay = (verify or {}).get("max_ngay") or ""
+    van_tay = (verify or {}).get("van_tay")
+    doi_luc = today if (van_tay and van_tay_cu and van_tay != van_tay_cu) else doi_luc_cu
     if code == "THIEU_NGAY_HOM_QUA":
-        return STATE_CHAM
+        return STATE_CHAM, doi_luc
     if code == "OK_CO_NGAY_HOM_QUA":
-        return STATE_KHONG_XAC_NHAN if (max_ngay and max_ngay > today) else STATE_DU
-    return STATE_LOI_NAP        # KHONG_CO_DONG_NAO, hoặc verify không đọc được kết quả
+        if van_tay and van_tay_cu:
+            return (STATE_DU if doi_luc == today else STATE_CHAM), doi_luc
+        return (STATE_KHONG_XAC_NHAN if (max_ngay and max_ngay > today) else STATE_DU), doi_luc
+    return STATE_LOI_NAP, doi_luc   # KHONG_CO_DONG_NAO, hoặc verify không đọc được kết quả
 
 
 class StatusWriter:
@@ -90,6 +107,19 @@ class StatusWriter:
                  schedule_vn: str, expected: list, names: dict = None):
         self.json_path = json_path
         self.jsonl_path = jsonl_path
+        # Vân tay của LƯỢT TRƯỚC, đọc từ chính artifact cũ trước khi ghi đè. Đây là toàn bộ "trí nhớ"
+        # của cơ chế phát hiện file có đổi hay không — mất file này thì lượt kế tiếp không kết luận
+        # được (rơi về nhánh không-xác-nhận), không phải kết luận sai.
+        self.van_tay_cu, self.doi_luc_cu = {}, {}
+        try:
+            with open(json_path, encoding="utf-8") as fh:
+                for r in (json.load(fh).get("records") or []):
+                    if r.get("van_tay"):
+                        self.van_tay_cu[r["key"]] = r["van_tay"]
+                    if r.get("doi_luc"):
+                        self.doi_luc_cu[r["key"]] = r["doi_luc"]
+        except (OSError, json.JSONDecodeError, AttributeError):
+            pass
         self.run = {
             "job": job,
             "env": env,

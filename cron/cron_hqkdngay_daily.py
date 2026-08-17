@@ -288,17 +288,25 @@ def autofill(entry: dict):
 def verify(entry: dict, want_day: str):
     """Kiểm theo ĐÚNG source_file (mỗi đơn vị 1 file riêng, không gộp toàn kỳ như THUCHI):
     1. có ít nhất 1 report_type ngày (HQKD_D/PNLT_D/CHIPHI_D/DTHU_D) với dòng thật.
-    2. max(ngay) >= want_day -> đã có số liệu ngày hôm qua (không phụ thuộc múi giờ nguồn)."""
+    2. max(ngay) >= want_day -> đã có số liệu ngày hôm qua (không phụ thuộc múi giờ nguồn).
+    3. VÂN TAY của kỳ (số dòng + tổng |amount| làm tròn 6 chữ số) -> để lượt sau biết file có ĐỔI.
+
+    Vì sao cần (3): với file dựng sẵn cột cả tháng, (1) và (2) vô nghĩa — XDV có 98 dòng mỗi ngày
+    12→15/08 với tổng GIỐNG HỆT 1.655, HTX Xanh VP có số tới tận 20/08. "Có dòng cho ngày hôm qua"
+    và cả "số khác 0" đều không chứng minh kế toán đã nhập. Bằng chứng duy nhất đáng tin là NỘI DUNG
+    FILE ĐỔI so với lượt trước — họ update vào chính file tháng đó, giống bên dòng tiền."""
     sid = source_id(entry)
     rts = ",".join(f"'{t}'" for t in DAY_REPORT_TYPES)
     code = (
         "import sys;sys.path.insert(0,'.');"
         "from app.database.session import get_db;"
         f"sid={sid!r};w={want_day!r};"
-        f"r=get_db().execute(\"SELECT COUNT(DISTINCT ngay) nd,MAX(ngay) mx FROM raw_rows "
+        f"r=get_db().execute(\"SELECT COUNT(DISTINCT ngay) nd,MAX(ngay) mx,COUNT(*) sd,"
+        f"SUM(ABS(COALESCE(amount,0))) tg FROM raw_rows "
         f"WHERE source_file=? AND report_type IN ({rts})\",(sid,)).fetchone();"
         "print('KHONG_CO_DONG_NAO') if not r or not r['nd'] else "
-        "print('so_ngay=%s max_ngay=%s %s'%(r['nd'],r['mx'],"
+        "print('so_ngay=%s max_ngay=%s van_tay=%s:%.6f %s'%(r['nd'],r['mx'],r['sd'],"
+        "float(r['tg'] or 0),"
         "('OK_CO_NGAY_HOM_QUA' if (r['mx'] or '')>=w else 'THIEU_NGAY_HOM_QUA(can>=%s)'%w)))"
     )
     api = VERIFY_API_DIR
@@ -330,6 +338,9 @@ def parse_verify(out: str) -> dict:
     m = re.search(r"max_ngay=(\d{4}-\d{2}-\d{2})", out)
     if m:
         d["max_ngay"] = m.group(1)
+    m = re.search(r"van_tay=(\d+:[\d.]+)", out)
+    if m:
+        d["van_tay"] = m.group(1)
     return d
 
 
@@ -443,10 +454,13 @@ def main():
             continue
         ok += 1
         vr = verify(e, yday if yday.startswith(e["_period"]) else "0000-00-00")
-        state = cron_status.state_from_verify(vr, af_ok, today)
+        van_tay_cu = st.van_tay_cu.get(unit) if st else None
+        state, doi_luc = cron_status.state_from_verify(
+            vr, af_ok, today, van_tay_cu, st.doi_luc_cu.get(unit) if st else None)
         rec(unit, state=state, arrived=arrived, so_ngay=vr.get("so_ngay"),
             max_ngay=vr.get("max_ngay"), verify_code=vr.get("code"),
-            ly_do=_ly_do(state, vr, yday))
+            van_tay=vr.get("van_tay"), doi_luc=doi_luc,
+            ly_do=_ly_do(state, vr, yday, van_tay_cu, doi_luc, today))
 
     log(f"XONG — nạp thành công {ok}/{len(targets)} báo cáo ngày")
     if st:
@@ -454,7 +468,8 @@ def main():
     return done(cron_status.RUN_OK, rc=0 if ok else 1)
 
 
-def _ly_do(state: str, vr: dict, ngay_can: str) -> str:
+def _ly_do(state: str, vr: dict, ngay_can: str, van_tay_cu: str = None,
+           doi_luc: str = None, today: str = None) -> str:
     """Câu lý do bằng lời thường, viết SẴN ở đây cho agent dùng nguyên văn — agent không phải diễn
     giải mã kỹ thuật (`KHONG_CO_DONG_NAO`, `max_ngay=`) thành tiếng Việt và không thể diễn giải sai."""
     if state == cron_status.STATE_DU:
@@ -465,6 +480,11 @@ def _ly_do(state: str, vr: dict, ngay_can: str) -> str:
     # agent tự cắt — agent cắt là agent diễn giải, và diễn giải thì có ngày sai.
     if state == cron_status.STATE_CHAM:
         mx = vr.get("max_ngay")
+        # Ca RIÊNG: file có đủ dòng tới ngày cần nhưng vân tay y hệt lượt trước -> không ai nhập gì.
+        # Nói "mới nhất <ngày>, chậm N ngày" ở đây là sai sự thật, vì ngày đó CÓ dòng — chỉ là dòng cũ.
+        if van_tay_cu and doi_luc != today:
+            return ("file chưa đổi kể từ lượt trước, kế toán chưa cập nhật"
+                    + (f" (lần cập nhật gần nhất {doi_luc[8:10]}/{doi_luc[5:7]})" if doi_luc else ""))
         if mx:
             tre = (datetime.strptime(ngay_can, "%Y-%m-%d") - datetime.strptime(mx, "%Y-%m-%d")).days
             return f"mới nhất {mx[8:10]}/{mx[5:7]}, chậm {tre} ngày"

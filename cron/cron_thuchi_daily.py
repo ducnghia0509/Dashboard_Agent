@@ -453,7 +453,7 @@ def main():
         ok += 1
         # chỉ đòi "có ngày hôm qua" ở kỳ CHỨA ngày đó; kỳ trước thì bỏ qua điều kiện này
         vr = verify(ky, yday if yday.startswith(ky) else "0000-00-00")
-        state = cron_status.state_from_verify(vr, af_ok, today)
+        state, _ = cron_status.state_from_verify(vr, af_ok, today)
         rec(ky, state=state, ky_chinh=la_ky_chinh, arrived=arrived, file=e["fileName"],
             nguon_sua_luc=e.get("createdAt"), so_ngay=vr.get("so_ngay"),
             max_ngay=vr.get("max_ngay"), verify_code=vr.get("code"),
