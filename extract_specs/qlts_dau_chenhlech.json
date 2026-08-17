@@ -27,7 +27,8 @@
   "chieu_tu_ten_file": {
     "dim1": {
       "regex": "BCDau(\\w+)"
-    }
+    },
+    "cost_center": { "regex": "BCDau(\\w+)", "chuan_hoa": "cc_qlts" }
   },
   "cot": {
     "dim2": {

@@ -6,6 +6,8 @@
     "CHÊNH LỆCH LÀ SỐ ÂM khi thiếu (T7/2026: −6 tài sản, −16.226.178 đ). Thiết kế đang vẽ như số dương -> phải GIỮ DẤU, và 'chênh lệch' gồm cả thừa (dương) lẫn thiếu (âm), không được lấy trị tuyệt đối rồi cộng chung.",
     "DÒNG 2 LÀ TỔNG CỘNG (cột F ghi 'TỔNG CỘNG', cột B/C rỗng). Lọc `dim2 khac_rong` loại được nó. Đừng lọc theo amount — phần lớn dòng có SL chênh lệch = 0 và `khac_rong` coi 0 là rỗng.",
     "FILE THEO QUÝ (`.Q.` trong tên, không phải `.M.`) -> regex kỳ phải bắt `\\.Q\\.`. Cụm sau năm là SỐ THÁNG CHỐT (7), không phải số quý.",
+    "CỘT 'Tên đơn vị' (C) GHI ĐÚNG QUY ƯỚC CỦA SHEET CHI TIẾT tài sản ('Tài sản Xưởng dịch vụ Hà Khánh') nên hook `cc_qlts` map thẳng ra cost center + công ty + khối. Không có nó thì band Kiểm kê của màn ts2 RỖNG HOÀN TOÀN khi người xem bật lọc Công ty/Khối (mapping đòi cả 5 chiều).",
+    "⚠️ KỲ 2026-07 CHỈ CÓ 1 ĐƠN VỊ (K05-57 Xưởng dịch vụ Hà Khánh, cả 418 dòng), KHÔNG phải 14 như sheet 'KiemKe_Summary' ghi. Ô 'Tổng Đơn vị kiểm kê = 14' của sheet đó KHÔNG khớp dữ liệu chi tiết — đã hỏi lại QLTS. Dùng số đơn vị đếm từ chi tiết, đừng lấy ô tổng hợp.",
     "Sheet 'Dashboard' và 'KiemKe_Summary' trong cùng file là bản tổng hợp sẵn — CỐ Ý không đọc, để mọi con số trên màn đều truy được về dòng chi tiết."
   ],
   "_kiem_chung": [
@@ -31,6 +33,7 @@
   "cot": {
     "dim1": { "header": "Tình trạng kiểm kê" },
     "dim2": { "header": "Tên đơn vị" },
+    "cost_center": { "header": "Tên đơn vị", "chuan_hoa": "cc_qlts", "giu_khi_khong_map": true },
     "dim3": { "header": "Tên loại tài sản", "bat_buoc": false },
     "amount": { "header": "SL Sổ Sách", "kieu": "so" },
     "amount2": { "header": "Nguyên giá", "kieu": "so", "he_so": 1e-9 },

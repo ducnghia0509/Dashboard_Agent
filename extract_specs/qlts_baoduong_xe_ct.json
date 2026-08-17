@@ -1,0 +1,56 @@
+{
+  "id": "qlts_baoduong_xe_ct",
+  "_mo_ta": "QLTS — BẢO DƯỠNG XE KHỐI LƯỢNG, BẢN CHI TIẾT: sheet 'th Xe' của QLTS/baocaobaoduong/B.9.TC.H5.D.<yyyy>.<m>.BCbaoduongxe.xlsx, dòng 5 trở xuống (mỗi dòng 1 xe). Cùng vai trò với `qlts_baoduong_may_ct`: mở chiều Công ty/Đơn vị/Khối cho màn ts3. amount = 1, dim2 = Cảnh báo nguyên văn, cost_center suy từ 'Vị Trí Thiết bị'.",
+  "_bay": [
+    "CHI TIẾT TÁI LẬP ĐÚNG KHỐI TỔNG (đã kiểm 08/2026): quá hạn 2 · đã BD trong tháng 6 · chưa đến hạn 105 · sắp đến hạn 9 · Σ chi phí 0 · Σ yêu cầu SC 8 — khớp từng số với khối T8:X11 cùng sheet.",
+    "KHỐI TỔNG CỦA FILE XE NẰM Ở CỘT T..X (không phải M..R như file máy) và BẮT ĐẦU TỪ DÒNG 8, tức NẰM NGANG với vùng chi tiết. Vì thế spec này KHÔNG cần `dong_ket_thuc`: dải chi tiết A..Q và khối tổng T..X không chồng cột. Nhưng cũng vì thế ĐỪNG lọc dòng theo 'có giá trị ở cột nào đó' — phải neo vào 'Mã thiết bị' (A).",
+    "TIÊU ĐỀ Ở DÒNG 4 (file máy là dòng 7) — hai file cùng bộ nhưng bố cục lệch 3 dòng. Đừng dùng chung một spec.",
+    "'ĐÃ BD TRONG THÁNG' = dòng có ô 'ngày BD trong tháng' (O) khác rỗng, KHÔNG phải một giá trị của cột Cảnh báo — cả 6 dòng đó đang mang cảnh báo 'chưa đến hạn'. Xem `_bay` của `qlts_baoduong_may_ct`.",
+    "CỘT 'Cảnh báo' VIẾT THƯỜNG ở file xe ('chưa đến hạn') nhưng HOA ở file máy ('Chưa đến hạn') — giữ nguyên văn ở dim2, builder ts3 so theo nghĩa (`_la_da_bd`/`_la_tre`), đừng chuẩn hoá ở đây kẻo mất dấu vết về file."
+  ],
+  "_kiem_chung": [
+    "Kỳ 2026-08: 116 dòng xe (dòng 5-120).",
+    "Cảnh báo: chưa đến hạn 105 · Sắp đến hạn 9 · Quá hạn 2 = 116 (khớp khối tổng).",
+    "Đã BD trong tháng = 6 (DT209/211/214/225 Phú Quốc, DT111 Quang Sơn, DT150 Cao Bằng) — khớp ô U9 = 6.",
+    "Vị trí: Phú Quốc 39 · Quang Sơn 22 · Cao Bằng 21 · Sơn Tây 19 · 'Yên Bình 3' 12 · Tân Thịnh 2 · Bình Phước 1. Map được 96/116; 20 dòng chưa map (Sơn Tây 19 + Bình Phước 1)."
+  ],
+  "report_type": "QLTS_BD_CT",
+  "row_index_base": 7904400,
+  "nguon": {
+    "folder": "QLTS/baocaobaoduong",
+    "file_glob": "*.BCbaoduongxe.xlsx",
+    "sheet": { "ten": "th Xe" }
+  },
+  "header": { "dong": 4 },
+  "dong_bat_dau": 5,
+  "kiem_tra_o": [
+    { "o": "B4", "bang": "Vị Trí Thiết bị" },
+    { "o": "M4", "bang": "Cảnh báo" },
+    { "o": "O4", "bang": "ngày BD trong tháng" }
+  ],
+  "chieu_co_dinh": { "amount": 1 },
+  "chieu_tu_ten_file": { "dim1": { "regex": "BCbaoduong(\\w+)" } },
+  "cot": {
+    "dim2": { "header": "Cảnh báo" },
+    "dim3": { "header": "Loại Thiết bị", "bat_buoc": false },
+    "cost_center": { "header": "Vị Trí Thiết bị", "chuan_hoa": "cc_qlts", "giu_khi_khong_map": true },
+
+    "payload.maThietBi":  { "header": "Mã thiết bị" },
+    "payload.viTri":      { "header": "Vị Trí Thiết bị" },
+    "payload.model":      { "header": "Model", "bat_buoc": false },
+    "payload.hang":       { "header": "Hãng sản xuất", "bat_buoc": false },
+    "payload.tieuChuan":  { "header": "Tiêu chuẩn", "kieu": "so", "bat_buoc": false },
+    "payload.gioConLai":  { "header": "Số giờ còn", "kieu": "so", "bat_buoc": false },
+    "payload.ngayBD":     { "header": "ngày BD trong tháng", "kieu": "date", "bat_buoc": false },
+    "payload.chiPhi":     { "header": "chi phí BD sửa chữa", "kieu": "so", "he_so": 1e-9, "bat_buoc": false },
+    "payload.yeuCauSC":   { "header": "số yêu cầu SC-BD", "kieu": "so", "bat_buoc": false }
+  },
+  "loc": [
+    { "cot": "payload.maThietBi", "dieu_kien": "khac_rong" }
+  ],
+  "payload_them": { "unit": "thietbi" },
+  "ky_tu_ten_file": {
+    "regex_nam": "\\.[DM]\\.(\\d{4})\\.",
+    "regex_thang": "\\.[DM]\\.\\d{4}\\.(\\d{1,2})\\."
+  }
+}

@@ -1,0 +1,56 @@
+{
+  "id": "qlts_baoduong_xedemo_ct",
+  "_mo_ta": "QLTS — BẢO DƯỠNG XE DEMO / XE LÃNH ĐẠO, BẢN CHI TIẾT: sheet 'th XE DEMO' của QLTS/baocaobaoduong/B.9.TC.H5.M.<yyyy>.<m>.BCbaoduongxeDEMO.xlsx, dòng 6 trở xuống (mỗi dòng 1 xe). Mở chiều Công ty/Đơn vị/Khối cho màn ts3. amount = 1, dim2 = tình trạng nguyên văn, cost_center suy từ cột 'Phân loại'.",
+  "_bay": [
+    "CHI TIẾT TÁI LẬP ĐÚNG KHỐI TỔNG (đã kiểm 08/2026): đã BD trong tháng 0 · chưa làm BD 10 · chưa đến hạn BD 92 = 102 dòng — khớp khối S8:T10 cùng sheet.",
+    "CỘT 'Phân loại' (B) CHÍNH LÀ ĐƠN VỊ GIỮ XE, viết tắt kiểu 'SR Vĩnh Phúc' / 'SR SmartCity'. Hook `cc_qlts` có luật `^sr\\b` nên map hết 9 showroom (92 xe). 10 xe còn lại ghi 'xe lãnh đạo' — KHÔNG map: đó là xe của Ban lãnh đạo, có cost center `BLĐ` trong danh mục nhưng file không nói xe đứng tên đơn vị nào, nên KHÔNG suy. `giu_khi_khong_map` giữ nguyên 10 dòng để tổng không hụt; muốn lọc được thì phải hỏi QLTS ghi rõ đơn vị.",
+    "KHÁC HAI FILE MÁY/XE: sheet này KHÔNG có cột 'Cảnh báo' và KHÔNG có 'ngày BD trong tháng' theo ngày — trạng thái nằm ở cột 'tình trạng' (P) và đã gồm luôn 'đã BD trong tháng'. Vì vậy dim2 ở đây phủ đủ 3 trạng thái, không cần suy từ cột ngày.",
+    "TIÊU ĐỀ 2 TẦNG (dòng 4-5): dòng 5 chỉ ghi nhãn con SK/SM1/SM2 cho ô gộp 'Thông số kỹ thuật chuẩn' ở F. Gộp theo thứ tự [4, 5] để tên cột thật của dòng 4 thắng.",
+    "KHỐI TỔNG NẰM Ở CỘT S..U DÒNG 7-13, tức NGANG với vùng chi tiết — không chồng cột A..P nên không cần `dong_ket_thuc`. Neo dòng theo 'STT' (A).",
+    "report_type `QLTS_BD_CT` dùng chung với 2 spec máy/xe (khác file nên không xoá nhau). TUYỆT ĐỐI không đặt trùng `QLTS_BD` hay `QLTS_BD_TH` — hai spec đó đọc CÙNG file này."
+  ],
+  "_kiem_chung": [
+    "Kỳ 2026-08: 102 dòng xe (dòng 6-107).",
+    "Phân loại: xe lãnh đạo 10 · SR Hạ Long 11 · SR Sơn Tây 11 · 7 showroom còn lại 10 mỗi nơi.",
+    "tình trạng: 'chưa đến hạn BD' 92 · 'chưa làm BD' 10 (khớp T10 = 92, T9 = 10, T8 = 0).",
+    "Đúng 10 dòng 'chưa làm BD' cũng chính là 10 xe lãnh đạo."
+  ],
+  "report_type": "QLTS_BD_CT",
+  "row_index_base": 7904600,
+  "nguon": {
+    "folder": "QLTS/baocaobaoduong",
+    "file_glob": "*.BCbaoduongxeDEMO.xlsx",
+    "sheet": { "ten": "th XE DEMO" }
+  },
+  "header": { "dong": [4, 5] },
+  "dong_bat_dau": 6,
+  "kiem_tra_o": [
+    { "o": "B4", "bang": "Phân loại" },
+    { "o": "P4", "bang": "tình trạng" },
+    { "o": "S7", "bang": "tình trạng xe" }
+  ],
+  "chieu_co_dinh": { "amount": 1 },
+  "chieu_tu_ten_file": { "dim1": { "regex": "BCbaoduong(\\w+)" } },
+  "cot": {
+    "dim2": { "header": "tình trạng" },
+    "dim3": { "header": "TÊN", "bat_buoc": false },
+    "cost_center": { "header": "Phân loại", "chuan_hoa": "cc_qlts", "giu_khi_khong_map": true },
+
+    "payload.maThietBi":  { "header": "Biển kiểm soát" },
+    "payload.viTri":      { "header": "Phân loại" },
+    "payload.model":      { "header": "Loại", "bat_buoc": false },
+    "payload.chuXe":      { "header": "Tên chủ xe", "bat_buoc": false },
+    "payload.kmHienTai":  { "header": "số KM hiện tại", "kieu": "so", "bat_buoc": false },
+    "payload.mocBDTiep":  { "header": "Mốc BD tiếp", "kieu": "so", "bat_buoc": false },
+    "payload.soLanSC":    { "header": "số lần sửa chữa", "kieu": "so", "bat_buoc": false },
+    "payload.danhMucBD":  { "header": "danh mục BD trong tháng", "bat_buoc": false }
+  },
+  "loc": [
+    { "cot": "payload.maThietBi", "dieu_kien": "khac_rong" }
+  ],
+  "payload_them": { "unit": "thietbi" },
+  "ky_tu_ten_file": {
+    "regex_nam": "\\.[DM]\\.(\\d{4})\\.",
+    "regex_thang": "\\.[DM]\\.\\d{4}\\.(\\d{1,2})\\."
+  }
+}

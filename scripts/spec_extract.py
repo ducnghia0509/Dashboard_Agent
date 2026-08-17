@@ -38,7 +38,9 @@ CẤU TRÚC SPEC (khoá tiếng Việt cho kế toán/BA đọc được):
     {"ten": "Sơn Tây", "header": {"dong": [6, 7]}, "dong_bat_dau": 8, "dong_ket_thuc": 19,
      "chieu_co_dinh": {"cost_center": "ST_AT"}, "cot": {"amount": {"header": "TXTX"}}}
   ],                                     // khoá trong vùng ghi đè spec; `cot`/`chieu_co_dinh` trộn
-  "chieu_tu_ten_file": {"dim2": {"regex": "Xuathoadon_(B2B|B2C|GF)", "hoa": true}},
+  "chieu_tu_ten_file": {"dim2": {"regex": "Xuathoadon_(B2B|B2C|GF)", "hoa": true},
+                        // `chuan_hoa` chạy trên chính tên bắt được; hook trả dict thì trộn cả dict
+                        "cost_center": {"regex": "BCDau(\\w+)", "chuan_hoa": "cc_qlts"}},
   "ngay_tu_ten_file": {"regex": "M\\.(\\d{4})\\.(\\d{1,2})\\.(\\d{1,2})", "thu_tu": "ymd"},
   "cot": {                               // đích -> cách lấy. Đích: ngay/cost_center/cong_ty/
     "cost_center": {"header": "Tên DVCS", "chuan_hoa": "sr_showroom"},   // amount/amount2/dim1..3/
@@ -517,7 +519,178 @@ def _coc_trang_thai(v):
     return "Không xác định"
 
 
+# QLTS gọi cùng một địa điểm ở nhiều nghiệp vụ khác nhau, mà master_data lại có tới 3 cost center
+# cùng địa danh (vd Vĩnh Phúc: `VP_SR` showroom · `VP_XDV` xưởng · `VP_DP` depot taxi). Vì vậy KHÔNG
+# bóc hết tiền tố rồi khớp theo địa danh trần — sẽ va nhau và gán bừa. Thay vào đó dùng CHÍNH TỪ
+# LOẠI trong tên đơn vị để khoanh hậu tố mã cần tìm.
+_QLTS_LOAI = (
+    (r"^xưởng\s*dịch\s*vụ\s*", ("_XDV",)),
+    (r"^showroom\s*",          ("_SR",)),
+    # Taxi: thử depot (Xanh) trước, rồi An Taxi, rồi HTX — nhờ vậy "Taxi Vĩnh Phúc" ra `VP_DP`
+    # (Khối KD Vận tải Taxi Xanh) còn "Taxi Sơn Tây" ra `ST_AT` (Khối KD Dịch vụ An Taxi). Đây
+    # chính là chỗ tách "Khối taxi" của QLTS thành 2 khối chuẩn mà không cần bảng tay.
+    (r"^taxi\s*",              ("_DP", "_AT", "_HTX")),
+    (r"^trạm\s*sạc\s*",        ("_TS",)),
+    # VIẾT TẮT — các nguồn QLTS khác (bảo hiểm cột "Vị trí tài sản", bảo dưỡng xe demo cột "Địa
+    # điểm BD") ghi tắt "XDV Sơn Tây" / "SR Ocean Park" thay vì viết đủ như sheet tài sản. Đặt SAU
+    # các mẫu viết đủ để không chen ngang, và neo bằng `\b` để không cắt nhầm tên bắt đầu bằng
+    # "sr"/"dp" (vd không có ca nào hiện tại, nhưng luật phải chặt).
+    (r"^xdv\b\s*",             ("_XDV",)),
+    (r"^sr\b\s*",              ("_SR",)),
+    (r"^(?:depot|dp)\b\s*",    ("_DP", "_AT", "_HTX")),
+)
+# File QLTS hay ghi "<địa điểm> - <tỉnh>" trong khi master chỉ có địa điểm ("Xưởng dịch vụ Việt Trì
+# - Phú Thọ" vs "Vinfast Việt Trì"). Cắt phần sau dấu gạch bằng regex TỔNG QUÁT thay vì liệt kê
+# từng ca — bản đầu tôi khai alias tay và trỏ SAI đích (`viettriphutho`->`vietri` trong khi khoá
+# master là `viettri`), nên 974 tài sản xưởng Việt Trì rơi mất mà cảnh báo chỉ ghi "ngoài danh mục".
+_QLTS_BO_TINH = re.compile(r"\s*-\s*[^-]+$")
+# Số thứ tự khu/lô dính cuối tên công trường ("Yên Bình 3" -> "yenbinh"). Chạy SAU khi khoá đủ đã
+# trượt, xem `_cc_qlts`.
+_QLTS_KHU_SO = re.compile(r"\d+$")
+# Còn lại chỉ là khác CÁCH GỌI, không suy được bằng luật.
+_QLTS_ALIAS = {"saigon": "hochiminh", "ocenpark": "oceanpark"}
+# Gán THẲNG mã cost center cho các tên mà luật chung không với tới. Bảng này khai TÊN -> MÃ nên
+# không thể lan sang tên khác, khác hẳn cách nới `hau_to`: có lúc tôi thêm "_GD" vào danh sách hậu
+# tố của tên trơn để bắt "An An Garden", và nó gán luôn "Tài sản Sơn Tây (gồm văn phòng, xưởng,
+# Nhà Xanh...)" — 2.930 tài sản khối văn phòng — vào `ST_GD` khối Dịch vụ An KS.
+_QLTS_CC_TRUC_TIEP = {"anangarden": "ST_GD"}
+_QLTS_CACHE = {}
+
+# 8 khối của file QLTS -> 10 khối chuẩn của master_data. QLTS phân loại theo BẢN CHẤT TÀI SẢN nên
+# tên không trùng khối kinh doanh; phải map tay. Dùng làm NỀN cho cột `khoi`: `_cc_qlts` sẽ ghi đè
+# bằng khối của cost center khi map được (nhờ vậy "Khối taxi" tách đúng thành Vận tải Taxi Xanh /
+# Dịch vụ An Taxi theo từng đơn vị), còn đơn vị chưa có mã chuẩn thì vẫn giữ được khối từ đây ->
+# bộ lọc Khối phủ 100% dòng thay vì rơi mất phần dư.
+_QLTS_KHOI = {
+    "khoiduan": "Khối KD Dự án",
+    "khoihaumai": "Khối KD Vinfast - XDV",          # 'hậu mãi' CHÍNH LÀ khối XDV (xem hcns_nhansu_phongban)
+    "khoikinhdoanh": "Khối KD Vinfast - Showroom",
+    "khoitramsac": "Khối KD Trạm sạc Vgreen",
+    "khoikinhdoanhdichvu": "Khối KD Dịch vụ An KS",
+    "khoivanphongkhoxuong": "Khối hỗ trợ tập đoàn",
+    # Mặc định cho "Khối taxi": phần lớn là Taxi Xanh (2.102/2.500 tài sản). Đơn vị nào map được
+    # cost center thì `_cc_qlts` ghi đè đúng khối của nó.
+    "khoitaxi": "Khối KD Vận tải Taxi Xanh",
+    # "Bất động sản" (5 tài sản) KHÔNG có khối chuẩn tương ứng -> để trống, không nhét bừa vào
+    # "Khối hỗ trợ tập đoàn" cho đủ.
+}
+
+
+def _cty_qlts(ten):
+    """Cột "TÊN PHÁP NHÂN" của file QLTS -> mã công ty chuẩn, hoặc None.
+
+    Đây là NƯỚC LÙI cho `cong_ty`, KHÔNG phải nguồn chính: spec đặt cột này TRƯỚC `cost_center`
+    nên khi `_cc_qlts` khớp được đơn vị thì công ty của cost center GHI ĐÈ lên đây. Lý do phải
+    tách hai nguồn: đó là HAI KHÁI NIỆM khác nhau và lệch nhau 2.171 dòng ở kỳ T8/2026 — cột
+    Pháp nhân là bên ĐỨNG TÊN tài sản (Café VinFast Sơn Tây đứng tên Thịnh Cường), còn công ty
+    của cost center là pháp nhân VẬN HÀNH đơn vị (An An's Garden). Bảng chỉ tiêu đọc theo cơ cấu
+    vận hành nên cost center thắng; cột Pháp nhân chỉ để vá 3.687 dòng mà đơn vị chưa có mã chuẩn
+    (chủ yếu 2.738 tài sản "Sơn Tây (gồm văn phòng, xưởng, Nhà Xanh…)") — nhờ nó bộ lọc Công ty
+    của màn tài sản phủ 99% thay vì 81%.
+
+    TÊN NGOÀI DANH MỤC TẬP ĐOÀN THÌ TRẢ None, KHÔNG đoán: cột này lẫn cả cá nhân đứng tên
+    (BÙI HÙNG THỊNH 143 dòng), bên cho thuê tài chính (Chailease, BIDV SumiTrust) và rác `0x2a`
+    (90 dòng). Tổng 264 dòng — vẫn nằm trong tổng tài sản, chỉ không thuộc pháp nhân nào.
+    """
+    t = str(ten or "").strip()
+    if not t:
+        return None
+    return _master_loader().resolve_company_code(t) or None
+
+
+def _khoi_qlts(ten):
+    """Tên khối trong file QLTS -> tên khối chuẩn. Không có trong bảng -> None (giữ trống)."""
+    return _QLTS_KHOI.get(_nd(ten))
+
+
+def _qlts_khoa(ten):
+    """Khoá khớp cho PHÍA MASTER: bóc luôn từ loại của master ("Depot Vĩnh Phúc" -> "vinhphuc").
+
+    Bắt buộc phải có, KHÔNG dùng trực tiếp `_bo_tien_to`: hàm đó bóc `vinfast`/`xuongdichvu`/`xdv`
+    nhưng KHÔNG bóc `depot`/`duan`/`tramsac`. Hệ quả đã gặp: "Vinfast Tuyên Quang" (TQ_XDV) ra khoá
+    `tuyenquang` còn "Depot Tuyên Quang" (TQ_DP) ra `depottuyenquang` -> tra hậu tố `_DP` cho
+    "Tài sản Taxi Tuyên Quang" TRƯỢT và rơi vào ứng viên duy nhất còn lại là TQ_XDV, gán 328 tài
+    sản taxi vào khối Xưởng dịch vụ mà không có lỗi nào. Không sửa `_bo_tien_to` vì nó dùng chung
+    với spec HCNS/XDV/công nợ.
+    """
+    n = _nd(ten)
+    doi = True
+    while doi:
+        doi = False
+        for p in ("depot", "duan", "tramsac", "garden"):
+            if n.startswith(p) and len(n) > len(p):
+                n, doi = n[len(p):], True
+    return _bo_tien_to(n)
+
+
+def _cc_qlts(ten):
+    """Đơn vị sử dụng của QLTS ("Tài sản Xưởng dịch vụ Ocean Park") -> cost center chuẩn.
+
+    Trả `{cost_center, cong_ty, khoi}` lấy TỪ master_data, nên một phép map này giải luôn cả ba
+    chiều mà mapping QLTS đòi (Công ty · Đơn vị · và khối để lọc). CỐ Ý không dùng cột "TÊN PHÁP
+    NHÂN" của file làm `cong_ty`: cột đó là PHÁP NHÂN ĐỨNG TÊN tài sản nên lẫn cả `0x2a` (198
+    dòng), tên cá nhân (BÙI HÙNG THỊNH 145 dòng), và bên cho thuê tài chính (Chailease, BIDV
+    SumiTrust) — đưa vào bộ lọc Công ty là sinh ra "công ty" không tồn tại. Bản nguyên văn vẫn giữ
+    ở payload để truy vết.
+
+    Không khớp -> `{"_khong_map": <tên gốc>}` giống `_cc_theo_khoi`, để `giu_khi_khong_map` giữ
+    nguyên văn. 15 đơn vị hiện chưa có mã chuẩn (An An Garden, VP G2, Café VinFast, Sân
+    Pickleball, Núi Pháo, Bình Phước, Quảng Ngãi, Cù Vân, Bất động sản, trạm sạc theo địa
+    điểm...) — user chốt 17/08/2026: giữ nguyên tên, KHÔNG gộp vào "Khác", để tổng không hụt và
+    biết chính xác cần bổ sung mã nào vào master_data.
+    """
+    goc = str(ten or "").strip()
+    if not goc:
+        return None
+    if not _QLTS_CACHE:
+        master = _master_loader()
+        for cc in master.master_data().get("costCenters", []):
+            ma = str(cc.get("ma") or "").strip()
+            _QLTS_CACHE.setdefault(_qlts_khoa(cc.get("ten")), []).append(
+                (ma, master.resolve_company_code(cc.get("congTy") or ""), cc.get("khoi") or ""))
+    # Bỏ phần trong ngoặc: "Tài sản Sơn Tây (gồm văn phòng, xưởng, Nhà Xanh...)" và
+    # "Taxi Vĩnh Phúc (thương quyền)" — phần chú thích không tham gia khớp tên.
+    t = re.sub(r"\s*\(.*$", "", goc).strip()
+    t = re.sub(r"^\s*tài\s*sản\s*", "", t, flags=re.I).strip()
+    # Tên TRƠN (không có từ loại) chỉ thử DỰ ÁN. CỐ Ý không thử `_SR`: showroom trong file QLTS
+    # luôn ghi rõ "Showroom …", nên tên trơn mà khớp `_SR` gần như chắc chắn là gán bừa. Bản đầu
+    # có `_SR` ở đây và nó gán "Tài sản Sơn Tây (gồm văn phòng, xưởng, Nhà Xanh, Bảo Long, Đồng
+    # Vừng)" — 2.936 tài sản thuộc *Khối văn phòng, kho, xưởng* — vào `ST_SR` khối Showroom.
+    hau_to = ("_DA",)
+    for pat, suf in _QLTS_LOAI:
+        if re.match(pat, t, re.I):
+            t = re.sub(pat, "", t, flags=re.I).strip()
+            hau_to = suf
+            break
+    key = _qlts_khoa(t)
+    ma_thang = _QLTS_CC_TRUC_TIEP.get(key)
+    if ma_thang:
+        for ds in _QLTS_CACHE.values():
+            for ma, cty, khoi in ds:
+                if ma == ma_thang:
+                    return {"cost_center": ma, "cong_ty": cty, "khoi": khoi}
+    if key not in _QLTS_CACHE:
+        key = _QLTS_ALIAS.get(key) or _qlts_khoa(_QLTS_BO_TINH.sub("", t)) or key
+        key = _QLTS_ALIAS.get(key, key)
+    if key not in _QLTS_CACHE:
+        # SỐ THỨ TỰ KHU/LÔ ở cuối tên công trường: báo cáo bảo dưỡng ghi "Yên Bình 3" trong khi
+        # danh mục chỉ có "Dự án Yên Bình" (13 thiết bị rơi mất vì đúng một chữ số). Chỉ thử ở
+        # nước cuối, sau khi khoá đầy đủ đã không khớp — cắt sớm là gộp bừa các khu khác nhau.
+        key = _QLTS_KHU_SO.sub("", key) or key
+    for suf in hau_to:
+        for ma, cty, khoi in _QLTS_CACHE.get(key) or []:
+            if ma.endswith(suf):
+                return {"cost_center": ma, "cong_ty": cty, "khoi": khoi}
+    # CỐ Ý KHÔNG có nhánh dự phòng "địa danh khớp nhưng khác loại thì lấy ứng viên duy nhất".
+    # Bản đầu có nhánh đó và nó gán "Tài sản Taxi Tuyên Quang" vào `TQ_XDV` (xưởng dịch vụ) —
+    # sai khối, sai cả cách đọc số. Không map được thì để nguyên tên còn hơn gán bừa.
+    return {"_khong_map": goc}
+
+
 _CHUAN_HOA = {
+    "cc_qlts": _cc_qlts,
+    "khoi_qlts": _khoi_qlts,
+    "cty_qlts": _cty_qlts,
     "sr_showroom": _cc_showroom,
     "kenh_tk": _kenh_tk,
     "qua_han": _qua_han,
@@ -1280,7 +1453,22 @@ def _extract_vung(spec, path):
         for dich, cfg in (spec.get("chieu_tu_ten_file") or {}).items():
             m = re.search(cfg["regex"], os.path.basename(path), re.I)
             v = (m.group(int(cfg.get("nhom", 1))) if m else cfg.get("mac_dinh"))
-            chieu[dich] = (str(v).upper() if v and cfg.get("hoa") else v)
+            v = (str(v).upper() if v and cfg.get("hoa") else v)
+            # `chuan_hoa` (17/08/2026): CHÍNH cái tên bắt được từ file cũng cần chuẩn hoá. Báo cáo
+            # dầu không có cột đơn vị nào — dự án chỉ nằm trong TÊN FILE (`BCDauCaoBang`) — nên
+            # không hook được ở `cot`, và thiếu nó thì màn nhiên liệu rỗng hoàn toàn khi bật lọc.
+            # Hook trả dict (vd `cc_qlts` -> cost_center + cong_ty + khoi) thì trộn cả 3 vào, khi
+            # đó `dich` do chính dict quyết định.
+            hook = cfg.get("chuan_hoa")
+            if hook and v is not None:
+                res = _CHUAN_HOA[hook](v)
+                if isinstance(res, dict):
+                    if res.get("_khong_map"):
+                        warn.append(f"{dich}: không map được {res['_khong_map']!r} (từ tên file)")
+                    chieu.update({k: x for k, x in res.items() if k != "_khong_map"})
+                    continue
+                v = res
+            chieu[dich] = v
 
         # CHỐT CHẶN LAYOUT: nguồn chỉ đúng khi các ô mốc khớp. Bắt buộc với spec dùng CHỮ CỘT —
         # file công nợ T1 và T7 tuy cùng tên sheet nhưng bố cục KHÁC HẲN (T1 không có phân tách

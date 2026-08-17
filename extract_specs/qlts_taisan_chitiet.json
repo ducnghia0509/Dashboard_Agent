@@ -7,50 +7,221 @@
     "SỐ DÒNG (21.247) KHÁC SL TỒN CUỐI (21.212) vì bảng chi tiết giữ cả tài sản đã xuất trong kỳ. Muốn ra đúng 21.212 thì cộng cột 'SL TỒN CUỐI' (amount), ĐỪNG đếm số dòng.",
     "DÒNG 5 LÀ TỔNG (cột AB ghi 'Tổng cộng'), dòng 6 trống, dữ liệu từ dòng 7 — giống sheet ĐƠN VỊ/NHÓM.",
     "MÃ ODOO có ô rỗng thật (8 tài sản mang trạng thái 'Chưa có mã'), nên khai `bat_buoc: false` cho giá trị và ĐỪNG lọc theo nó — lọc là mất đúng nhóm tài sản mà chỉ tiêu 'tỷ lệ gắn mã' cần đếm.",
-    "NGÀY THÁNG (cột Q) là SỐ SERIAL Excel vì file gốc là .xlsb và bộ chuyển `_chuyen_xlsb` giữ nguyên số. KHÔNG khai `kieu: date` cho cột này — kỳ lấy từ tên file."
+    "NGÀY THÁNG (cột Q) là SỐ SERIAL Excel vì file gốc là .xlsb và bộ chuyển `_chuyen_xlsb` giữ nguyên số. KHÔNG khai `kieu: date` cho cột này — kỳ lấy từ tên file.",
+    "THU TU KHAI COT CO Y: `khoi` (hook khoi_qlts tren cot TEN KHOI) dat TRUOC `cost_center` (hook cc_qlts). Khi cc_qlts map duoc thi dict tra ve GHI DE `khoi` bang khoi cua chinh cost center -> 'Khoi taxi' cua QLTS tach dung thanh Van tai Taxi Xanh / Dich vu An Taxi theo tung don vi. Khi KHONG map duoc, engine chi set `_khong_map` va KHONG cham cac field khac, nen khoi tu cot van con -> bo loc Khoi phu 100% dong. Dao thu tu la mat mot trong hai tinh chat do.",
+    "CONG TY: nguon CHINH la cost center cua master_data; cot 'TEN PHAP NHAN' cua file chi la NUOC LUI. Hai cai la HAI KHAI NIEM khac nhau va lech nhau 2.171 dong o T8/2026 — cot Phap nhan la ben DUNG TEN tai san (Cafe VinFast Son Tay dung ten Thinh Cuong), con cong ty cua cost center la phap nhan VAN HANH don vi (An An's Garden). Bang chi tieu doc theo co cau van hanh nen cost center thang.",
+    "THU TU KHAI COT QUYET DINH KET QUA — `khoi` roi `cong_ty` roi `cost_center`. `_cc_qlts` tra ve dict (cost_center + cong_ty + khoi) nen no GHI DE hai cot khai truoc; dat `cong_ty` sau `cost_center` la cot Phap nhan de len cong ty van hanh, sai nghia va lam lech 2.171 dong. Dat truoc thi thanh nuoc lui dung y: va 3.687 dong ma don vi chua co ma chuan (chu yeu 2.738 tai san 'Son Tay (gom van phong, xuong, Nha Xanh...)') -> bo loc Cong ty cua man tai san phu 99% thay vi 81%.",
+    "264 DONG VAN KHONG CO PHAP NHAN va DE NGUYEN nhu vay: cot nay lan ca ca nhan dung ten (BUI HUNG THINH 143), ben cho thue tai chinh (Chailease 8, BIDV SumiTrust 2), rac `0x2a` (90) va 9 o trong. Theo chot cua user: ngoai danh muc phap nhan tap doan thi KHONG tinh. Ban nguyen van giu o payload.phapNhanFile de truy vet.",
+    "CHIEU PHAN TICH theo mapping (cot G sheet '2. Mapping chi tieu'): Cong ty; Don vi; Phong ban; Du an; Loai tai san; Thang; Quy; Nam. Anh xa: cong_ty + cost_center (Don vi/Du an — du an CHINH LA mot don vi, vd CB_DA 'Du an Cao Bang'), dim1 Loai tai san, dim3 Phong ban. dim2 giu Trang thai vi ty le su dung can no.",
+    "LAY LUON 8 cau phan SL + 8 cau phan NG (cung ten header voi sheet DON VI) de ts1/ts2/ts3 tinh THANG tu day. Bat buoc phai vay moi loc duoc theo mapping: sheet DON VI da gop san 8 dong khoi nen KHONG mang cong_ty/cost_center, ai chon loc Cong ty la man RONG. CHI TIET tai lap DUNG sheet DON VI theo tung khoi (da kiem 8/8 khoi, ca SL lan NG) nen doi nen khong doi mot con so nao."
   ],
   "_kiem_chung": [
     "T8/2026: 21.247 dòng; Σ cột 'SL TỒN CUỐI' = 21.212 (khớp ô AO5 và khớp sheet ĐƠN VỊ); Σ 'NG TỒN CUỐI' = 1.752.861.079.403,40 đ (khớp ô AZ5 và sheet ĐƠN VỊ).",
     "Phân bố Trạng thái tài sản T8: Đang sử dụng 20.555 · Chưa sử dụng/Tồn kho 447 · Hỏng 150 · Bảo dưỡng định kỳ 27 · Xe cho mượn 21 · Hủy 19 · Sửa chữa 16 · Chưa có mã 8 · Thất Thoát 3 · Chờ thanh lý 1.",
     "-> Tỷ lệ sử dụng T8 = 20.555 / (21.247 − 19 Hủy) = 20.555 / 21.228 = 96,8%.",
-    "Phân loại kế toán T8: CCDC 18.689 · TSCĐ 2.107 · HH-G 188 · HH-X 148 · XTQ 51 · TSCĐVH 6 · (rỗng) 58."
+    "Phân loại kế toán T8: CCDC 18.689 · TSCĐ 2.107 · HH-G 188 · HH-X 148 · XTQ 51 · TSCĐVH 6 · (rỗng) 58.",
+    "T8/2026 map cost center: 36/59 don vi. Khoi phu 100% dong (nho nen tu cot TEN KHOI). Cong ty suy ra: TC / XVP / AAG / VFQN.",
+    "Khoi taxi tach dung: Taxi Vinh Phuc->VP_DP, Phu Tho->PT_DP, Tuyen Quang->TQ_DP (Van tai Taxi Xanh); Taxi Son Tay->ST_AT, Thai Nguyen->TN_AT (Dich vu An Taxi)."
   ],
   "report_type": "QLTS_TS_CT",
   "row_index_base": 7902000,
   "nguon": {
     "folder": "QLTS/baocaotaisanqlts",
     "file_glob": "*.Taisan.xlsb",
-    "sheet": { "ten": "CHI TIẾT" }
+    "sheet": {
+      "ten": "CHI TIẾT"
+    }
   },
-  "header": { "dong": [4, 3, 2] },
+  "header": {
+    "dong": [
+      4,
+      3,
+      2
+    ]
+  },
   "dong_bat_dau": 7,
   "kiem_tra_o": [
-    { "o": "BI2", "bang": "Trạng thái tài sản" },
-    { "o": "U2", "bang": "MÃ ODOO" },
-    { "o": "AO3", "bang": "SL TỒN CUỐI" }
+    {
+      "o": "BI2",
+      "bang": "Trạng thái tài sản"
+    },
+    {
+      "o": "U2",
+      "bang": "MÃ ODOO"
+    },
+    {
+      "o": "AO3",
+      "bang": "SL TỒN CUỐI"
+    }
   ],
   "cot": {
-    "dim1": { "header": "TÊN KHỐI" },
-    "dim2": { "header": "Trạng thái tài sản", "bat_buoc": false },
-    "dim3": { "header": "TÊN NHÓM CHA" },
-    "amount": { "header": "SL TỒN CUỐI", "kieu": "so" },
-    "amount2": { "header": "NG TỒN CUỐI", "kieu": "so", "he_so": 1e-9 },
-
-    "payload.maOdoo":   { "header": "MÃ ODOO", "bat_buoc": false },
-    "payload.maDVSD":   { "header": "MÃ ĐVSD" },
-    "payload.tenDV":    { "header": "TÊN ĐƠN VỊ SỬ DỤNG" },
-    "payload.phapNhan": { "header": "TÊN PHÁP NHÂN", "bat_buoc": false },
-    "payload.plKeToan": { "header": "PL KẾ TOÁN", "bat_buoc": false },
-    "payload.tenLoai":  { "header": "TÊN LOẠI", "bat_buoc": false },
-    "payload.phongBan": { "header": "Phòng ban", "bat_buoc": false },
-    "payload.tinhTrang":{ "header": "Tình trạng", "bat_buoc": false }
+    "khoi": {
+      "header": "TÊN KHỐI",
+      "chuan_hoa": "khoi_qlts"
+    },
+    "cong_ty": {
+      "header": "TÊN PHÁP NHÂN",
+      "chuan_hoa": "cty_qlts",
+      "bat_buoc": false
+    },
+    "cost_center": {
+      "header": "TÊN ĐƠN VỊ SỬ DỤNG",
+      "chuan_hoa": "cc_qlts",
+      "giu_khi_khong_map": true
+    },
+    "dim1": {
+      "header": "TÊN NHÓM CHA"
+    },
+    "dim2": {
+      "header": "Trạng thái tài sản",
+      "bat_buoc": false
+    },
+    "dim3": {
+      "header": "Phòng ban",
+      "bat_buoc": false
+    },
+    "amount": {
+      "header": "SL TỒN CUỐI",
+      "kieu": "so"
+    },
+    "amount2": {
+      "header": "NG TỒN CUỐI",
+      "kieu": "so",
+      "he_so": 1e-09
+    },
+    "payload.maOdoo": {
+      "header": "MÃ ODOO",
+      "bat_buoc": false
+    },
+    "payload.maDVSD": {
+      "header": "MÃ ĐVSD"
+    },
+    "payload.tenDV": {
+      "header": "TÊN ĐƠN VỊ SỬ DỤNG"
+    },
+    "payload.khoiQlts": {
+      "header": "TÊN KHỐI"
+    },
+    "payload.phapNhanFile": {
+      "header": "TÊN PHÁP NHÂN",
+      "bat_buoc": false
+    },
+    "payload.plKeToan": {
+      "header": "PL KẾ TOÁN",
+      "bat_buoc": false
+    },
+    "payload.tenLoai": {
+      "header": "TÊN LOẠI",
+      "bat_buoc": false
+    },
+    "payload.tinhTrang": {
+      "header": "Tình trạng",
+      "bat_buoc": false
+    },
+    "payload.slDau": {
+      "header": "SL TỒN ĐẦU",
+      "kieu": "so",
+      "bat_buoc": false
+    },
+    "payload.slMoi": {
+      "header": "SL MỚI",
+      "kieu": "so",
+      "bat_buoc": false
+    },
+    "payload.slNhanDC": {
+      "header": "SL NHẬN ĐIỀU CHUYỂN",
+      "kieu": "so",
+      "bat_buoc": false
+    },
+    "payload.slBan": {
+      "header": "SL BÁN",
+      "kieu": "so",
+      "bat_buoc": false
+    },
+    "payload.slThatThoat": {
+      "header": "SL THẤT THOÁT",
+      "kieu": "so",
+      "bat_buoc": false
+    },
+    "payload.slHuy": {
+      "header": "SL HỦY/CHO/TẶNG",
+      "kieu": "so",
+      "bat_buoc": false
+    },
+    "payload.slXuatDC": {
+      "header": "SL XUẤT ĐIỀU CHUYỂN",
+      "kieu": "so",
+      "bat_buoc": false
+    },
+    "payload.slTraLai": {
+      "header": "SL TRẢ LẠI",
+      "kieu": "so",
+      "bat_buoc": false
+    },
+    "payload.ngDau": {
+      "header": "NG TỒN ĐẦU",
+      "kieu": "so",
+      "he_so": 1e-09,
+      "bat_buoc": false
+    },
+    "payload.ngMoi": {
+      "header": "NG MỚI",
+      "kieu": "so",
+      "he_so": 1e-09,
+      "bat_buoc": false
+    },
+    "payload.ngNhanDC": {
+      "header": "NG NHẬN ĐIỀU CHUYỂN",
+      "kieu": "so",
+      "he_so": 1e-09,
+      "bat_buoc": false
+    },
+    "payload.ngBan": {
+      "header": "NG BÁN",
+      "kieu": "so",
+      "he_so": 1e-09,
+      "bat_buoc": false
+    },
+    "payload.ngThatThoat": {
+      "header": "NG THẤT THOÁT",
+      "kieu": "so",
+      "he_so": 1e-09,
+      "bat_buoc": false
+    },
+    "payload.ngHuy": {
+      "header": "NG HỦY/CHO/TẶNG",
+      "kieu": "so",
+      "he_so": 1e-09,
+      "bat_buoc": false
+    },
+    "payload.ngXuatDC": {
+      "header": "NG XUẤT ĐIỀU CHUYỂN",
+      "kieu": "so",
+      "he_so": 1e-09,
+      "bat_buoc": false
+    },
+    "payload.ngTraLai": {
+      "header": "NG TRẢ LẠI",
+      "kieu": "so",
+      "he_so": 1e-09,
+      "bat_buoc": false
+    }
   },
   "loc": [
-    { "cot": "payload.maDVSD", "dieu_kien": "khac_rong" }
+    {
+      "cot": "payload.maDVSD",
+      "dieu_kien": "khac_rong"
+    }
   ],
-  "payload_them": { "unit": "ts" },
+  "payload_them": {
+    "unit": "ts"
+  },
   "ky_tu_ten_file": {
     "regex_nam": "\\.M\\.(\\d{4})\\.",
     "regex_thang": "\\.M\\.\\d{4}\\.(\\d{1,2})\\."
+  },
+  "dan_xuat": {
+    "payload.slGiam": "payload.slBan + payload.slThatThoat + payload.slHuy + payload.slTraLai",
+    "payload.ngGiam": "payload.ngBan + payload.ngThatThoat + payload.ngHuy + payload.ngTraLai"
   }
 }
