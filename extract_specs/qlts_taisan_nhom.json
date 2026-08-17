@@ -1,0 +1,55 @@
+{
+  "id": "qlts_taisan_nhom",
+  "_mo_ta": "QLTS — TÀI SẢN THEO NHÓM/LOẠI, sheet 'NHÓM' của file Taisan (bố cục từ T8/2026). Cấp số cho bảng 'Cơ cấu nguyên giá theo loại tài sản' ở màn ts1. amount = SL tồn cuối, amount2 = NG tồn cuối (tỷ). dim1 = Tên nhóm CHA (8 nhóm), dim2 = nhóm con, dim3 = loại tài sản.",
+  "_bay": [
+    "MAPPING KHÔNG KHAI SHEET NÀY. Thiết kế ts1 lại có bảng 'Cơ cấu nguyên giá theo loại tài sản' (mock 5 loại) — nguồn thật chính là sheet 'NHÓM' với 8 NHÓM CHA, không phải 5. Nhãn trên màn phải theo 8 nhóm của file.",
+    "CỘT A VÀ B ĐỀU TÊN 'Mã' ở dòng 2 -> dò theo tên chỉ ra cột A. Vì vậy mã nhóm con (B) khai bằng chữ cột. Không cần B cho màn hình, giữ lại để truy vết.",
+    "DÒNG 5 LÀ TỔNG, dòng 6 trống, dữ liệu từ dòng 7. Hai dòng CUỐI sheet (74-75) là khối tự kiểm 'SL bảng chi tiết' / 'chênh lệch' — chúng có cột E nhưng KHÔNG có cột A, nên lọc `payload.maNhom khac_rong` là đủ để loại; đừng neo `dong_ket_thuc` vì số nhóm thay đổi theo kỳ.",
+    "File kỳ CŨ (đến T7/2026) đặt tên sheet là 'TH theo Nhóm' và bố cục khác -> spec này CỐ Ý chỉ khớp sheet 'NHÓM', file cũ sẽ bị bỏ qua kèm cảnh báo. Chấp nhận: cơ cấu theo nhóm chỉ có từ T8. Xem [[qlts_taisan_donvi_cu]] để biết cách xử nếu cần bù kỳ cũ.",
+    "Tổng dòng 5 của sheet NHÓM là 21.211, LỆCH 1 so với sheet ĐƠN VỊ (21.212) và lệch 1 ở cột 'SL MỚI' (53 vs 54). Chính file cũng tự phát hiện: dòng 75 'chênh lệch' ghi G=1. Đây là lỗi SỐ LIỆU NGUỒN, không phải lỗi đọc — đừng chỉnh cho khớp, để nguyên và cảnh báo."
+  ],
+  "_kiem_chung": [
+    "T8/2026: 66 nhóm (dòng 7-72), tổng SL tồn cuối = 21.211, tổng NG tồn cuối = 1.752.844.714.588,38 đ.",
+    "8 nhóm cha: Thiết bị thi công và hỗ trợ thi công · Trang thiết bị xưởng · Trang thiết bị văn phòng · Tài sản khác · Xe taxi · Nhà hàng, khách sạn · Công cụ phục vụ dự án, phục vụ sinh hoạt · Xe chạy thử.",
+    "Nhóm M01 (Máy đào) T8: SL tồn đầu 32, mới 2, nhận ĐC 2, xuất ĐC 2, tồn cuối 34, NG tồn cuối 196.172.753.806 đ."
+  ],
+  "report_type": "QLTS_TS_NHOM",
+  "row_index_base": 7901000,
+  "nguon": {
+    "folder": "QLTS/baocaotaisanqlts",
+    "file_glob": "*.Taisan.xlsb",
+    "sheet": { "ten": "NHÓM" }
+  },
+  "header": { "dong": [4, 3, 2] },
+  "dong_bat_dau": 7,
+  "kiem_tra_o": [
+    { "o": "C2", "bang": "Nhóm tài sản CHA" },
+    { "o": "N3", "bang": "SL TỒN CUỐI" },
+    { "o": "W3", "bang": "NG TỒN CUỐI" }
+  ],
+  "cot": {
+    "dim1": { "header": "Nhóm tài sản CHA" },
+    "dim2": { "header": "Nhóm tài sản Con" },
+    "dim3": { "header": "Loại tài sản" },
+    "amount": { "header": "SL TỒN CUỐI", "kieu": "so" },
+    "amount2": { "header": "NG TỒN CUỐI", "kieu": "so", "he_so": 1e-9 },
+
+    "payload.maNhom":   { "cot": "A" },
+    "payload.maCon":    { "cot": "B" },
+    "payload.slDau":    { "header": "SL TỒN ĐẦU", "kieu": "so" },
+    "payload.slMoi":    { "header": "SL MỚI", "kieu": "so" },
+    "payload.slNhanDC": { "header": "SL NHẬN ĐIỀU CHUYỂN", "kieu": "so" },
+    "payload.slXuatDC": { "header": "SL XUẤT ĐIỀU CHUYỂN", "kieu": "so" },
+    "payload.ngDau":    { "header": "NG TỒN ĐẦU", "kieu": "so", "he_so": 1e-9 },
+    "payload.ngMoi":    { "header": "NG MỚI", "kieu": "so", "he_so": 1e-9 }
+  },
+  "loc": [
+    { "cot": "payload.maNhom", "dieu_kien": "khac_rong" },
+    { "cot": "dim1", "dieu_kien": "khac_rong" }
+  ],
+  "payload_them": { "unit": "ts" },
+  "ky_tu_ten_file": {
+    "regex_nam": "\\.M\\.(\\d{4})\\.",
+    "regex_thang": "\\.M\\.\\d{4}\\.(\\d{1,2})\\."
+  }
+}

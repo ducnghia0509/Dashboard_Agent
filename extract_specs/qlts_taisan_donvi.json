@@ -1,0 +1,71 @@
+{
+  "id": "qlts_taisan_donvi",
+  "_mo_ta": "QLTS — TÀI SẢN THEO KHỐI SỬ DỤNG, sheet 'ĐƠN VỊ' của QLTS/baocaotaisanqlts/B.9.TC.H5.M.<yyyy>.<m>.Taisan.xlsb. Mỗi kỳ 8 dòng = 8 khối (dòng 6-13). amount = SL tồn cuối (số tài sản), amount2 = NG tồn cuối (tỷ đồng). dim1 = mã khối ('Khối 1'..'Khối 8'), dim2 = tên khối. payload giữ đủ 8 cấu phần SL và 8 cấu phần NG để màn ts2 (biến động) và ts3 (thanh lý) dùng lại mà không phải đọc file lần nữa.",
+  "_bay": [
+    "FILE LÀ .xlsb (Excel nhị phân) — openpyxl KHÔNG đọc được. `quet_nguon` tự chuyển sang .xlsx bằng pyxlsb (hàm `_chuyen_xlsb`), nên `source_file` ghi vào DB là '...Taisan.xlsx' chứ không phải '.xlsb'. Đừng sửa file_glob thành '*.xlsx' — bản .xlsx cạnh nó là DO ENGINE SINH RA, khớp cả hai là nạp đôi.",
+    "MỘT FILE CHO CẢ TẬP ĐOÀN, 8 khối nằm ở 8 DÒNG (6-13) — khác hẳn quy ước '1 file 1 đơn vị 1 kỳ' của mọi nguồn kế toán. Vì vậy đơn vị lấy từ CỘT A/B, tuyệt đối không suy từ tên file hay tên thư mục.",
+    "DÒNG 5 LÀ DÒNG TỔNG (không có mã ở cột A) và DÒNG 14 TRỞ ĐI LẶP LẠI từng khối rồi tách chi tiết theo đơn vị con (K01-01, K01-02...). Không chặn `dong_ket_thuc: 13` là cộng đôi toàn bộ: tổng SL sẽ ra ~42.000 thay vì 21.212.",
+    "HEADER 3 TẦNG (dòng 2-3-4) và phải đọc NGƯỢC [4,3,2]: cột D dòng 3 ghi 'SL NHẬP' còn dòng 4 ghi 'SL MỚI'. Khai [2,3,4] là cột D bắt trúng 'SL NHẬP' (gồm cả nhận điều chuyển) — sai nghĩa ghi tăng.",
+    "KHÔNG CÓ CỘT GIÁ TRỊ CÒN LẠI / HAO MÒN LŨY KẾ ở bất kỳ sheet nào của file này (đã soi cả 11 sheet, 17/08/2026). Màn ts1 phải để GTCL là '—'. Đừng ghép tạm GTCL từ sổ TSCĐ kế toán (received_reports/<ĐV>/baocaotaisancodinhcongcudungcu) — đó là bộ số KHÁC, nguyên giá không khớp.",
+    "8 KHỐI Ở ĐÂY LÀ PHÂN LOẠI TÀI SẢN CỦA QLTS, KHÔNG PHẢI KHỐI KINH DOANH của kế toán: 'Khối văn phòng, kho, xưởng', 'Khối hậu mãi', 'Bất động sản'... Không map sang `khoi` của master_data — sẽ sai. Giữ nguyên văn ở dim1/dim2.",
+    "TIỀN LƯU THEO TỶ (he_so 1e-9) cho đồng bộ với các nguồn khác; KHÔNG làm tròn ở đây, chỗ hiển thị mới làm tròn."
+  ],
+  "_kiem_chung": [
+    "T8/2026: tổng SL tồn cuối 8 khối = 21.212 (khớp ô K5 dòng tổng); tổng NG tồn cuối = 1.752.861.079.403,38 đ = 1.752,86 tỷ (khớp ô T5).",
+    "T8/2026 SL tồn cuối từng khối: Khối 1 = 1.347 · Khối 2 = 3.472 · Khối 3 = 2.564 · Khối 4 = 1.497 · Khối 5 = 11.083 · Khối 6 = 14 · Khối 7 = 1.230 · Khối 8 = 5.",
+    "T8/2026 kiểm tra cân đối: tồn đầu 21.187 + nhập (54 mới + 24 nhận ĐC) − xuất (0 bán + 3 thất thoát + 26 hủy + 24 xuất ĐC + 0 trả lại) = 21.212 ✔",
+    "T8/2026 ghi giảm (bán+thất thoát+hủy+trả lại) = 0+3+26+0 = 29 TS, giá trị 0+4.391.000+2.250.000+0 = 6.641.000 đ."
+  ],
+  "report_type": "QLTS_TS_DV",
+  "row_index_base": 7900000,
+  "nguon": {
+    "folder": "QLTS/baocaotaisanqlts",
+    "file_glob": "*.Taisan.xlsb",
+    "sheet": { "ten": "ĐƠN VỊ" }
+  },
+  "header": { "dong": [4, 3, 2] },
+  "dong_bat_dau": 6,
+  "dong_ket_thuc": 13,
+  "kiem_tra_o": [
+    { "o": "K3", "bang": "SL TỒN CUỐI" },
+    { "o": "T3", "bang": "NG TỒN CUỐI" },
+    { "o": "D4", "bang": "SL MỚI" },
+    { "o": "E4", "bang": "SL NHẬN ĐIỀU CHUYỂN" }
+  ],
+  "cot": {
+    "dim1": { "header": "Mã" },
+    "dim2": { "header": "Diễn giải" },
+    "amount": { "header": "SL TỒN CUỐI", "kieu": "so" },
+    "amount2": { "header": "NG TỒN CUỐI", "kieu": "so", "he_so": 1e-9 },
+
+    "payload.slDau":      { "header": "SL TỒN ĐẦU", "kieu": "so" },
+    "payload.slMoi":      { "header": "SL MỚI", "kieu": "so" },
+    "payload.slNhanDC":   { "header": "SL NHẬN ĐIỀU CHUYỂN", "kieu": "so" },
+    "payload.slBan":      { "header": "SL BÁN", "kieu": "so" },
+    "payload.slThatThoat":{ "header": "SL THẤT THOÁT", "kieu": "so" },
+    "payload.slHuy":      { "header": "SL HỦY/CHO/TẶNG", "kieu": "so" },
+    "payload.slXuatDC":   { "header": "SL XUẤT ĐIỀU CHUYỂN", "kieu": "so" },
+    "payload.slTraLai":   { "header": "SL TRẢ LẠI", "kieu": "so" },
+
+    "payload.ngDau":      { "header": "NG TỒN ĐẦU", "kieu": "so", "he_so": 1e-9 },
+    "payload.ngMoi":      { "header": "NG MỚI", "kieu": "so", "he_so": 1e-9 },
+    "payload.ngNhanDC":   { "header": "NG NHẬN ĐIỀU CHUYỂN", "kieu": "so", "he_so": 1e-9 },
+    "payload.ngBan":      { "header": "NG BÁN", "kieu": "so", "he_so": 1e-9 },
+    "payload.ngThatThoat":{ "header": "NG THẤT THOÁT", "kieu": "so", "he_so": 1e-9 },
+    "payload.ngHuy":      { "header": "NG HỦY/CHO/TẶNG", "kieu": "so", "he_so": 1e-9 },
+    "payload.ngXuatDC":   { "header": "NG XUẤT ĐIỀU CHUYỂN", "kieu": "so", "he_so": 1e-9 },
+    "payload.ngTraLai":   { "header": "NG TRẢ LẠI", "kieu": "so", "he_so": 1e-9 }
+  },
+  "dan_xuat": {
+    "payload.slGiam": "payload.slBan + payload.slThatThoat + payload.slHuy + payload.slTraLai",
+    "payload.ngGiam": "payload.ngBan + payload.ngThatThoat + payload.ngHuy + payload.ngTraLai"
+  },
+  "loc": [
+    { "cot": "dim1", "dieu_kien": "khac_rong" }
+  ],
+  "payload_them": { "unit": "ts" },
+  "ky_tu_ten_file": {
+    "regex_nam": "\\.M\\.(\\d{4})\\.",
+    "regex_thang": "\\.M\\.\\d{4}\\.(\\d{1,2})\\."
+  }
+}

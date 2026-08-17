@@ -1,0 +1,59 @@
+{
+  "id": "qlts_baohiem",
+  "_mo_ta": "QLTS — BẢO HIỂM TÀI SẢN, sheet 'Tổng hợp' của QLTS/baocaobaohiem/F.9.TC.H5.M.<yyyy>.<m>.TheodoiBaohiem.xlsx. Mỗi dòng = 1 hợp đồng bảo hiểm cho 1 tài sản. amount = giá trị bảo hiểm tài sản (tỷ), amount2 = bồi thường (tỷ). dim1 = loại bảo hiểm, dim2 = Thông báo (trạng thái hiệu lực), dim3 = nhà bảo hiểm. Cấp số cho band A màn ts4.",
+  "_bay": [
+    "⚠️ KHÔNG CÓ MẪU SỐ 'TÀI SẢN THUỘC DIỆN PHẢI MUA BẢO HIỂM'. File chỉ liệt kê tài sản ĐÃ mua (~134 dòng). Vì vậy chỉ tiêu 'Tỷ lệ tài sản tham gia bảo hiểm' (mapping #23) KHÔNG lên được số — màn ts4 chỉ hiện số tuyệt đối (số TS đã BH, giá trị BH). Đừng lấy 21.212 làm mẫu số: phần lớn tài sản là CCDC không thuộc diện bảo hiểm, tỷ lệ sẽ ra 0,6% và vô nghĩa.",
+    "HEADER Ở DÒNG 9-10, DỮ LIỆU TỪ DÒNG 12 — phía trên (dòng 3-7) là một bảng NHỎ KHÁC: tổng phí theo 4 loại bảo hiểm (BHCN/BHMMTB/BHVC/BHTNDS). Nếu khai `header.dong: 3` thì bắt trúng bảng phụ đó và ra 4 dòng vô nghĩa.",
+    "PHẢI GỘP HEADER THEO THỨ TỰ [10, 9]: dòng 9 ghi nhãn nhóm ('Giá trị' ở P, 'Tổng giá trị' ở S, 'Ngày tháng năm' ở K) còn dòng 10 mới là tên cột thật ('Giá trị bảo hiểm tài sản', 'Tổng phí phải nộp', 'Bắt đầu'). Khai [9,10] là cột P thành 'Giá trị' -> vẫn chạy nhưng lệch nghĩa.",
+    "CỘT 'Giá trị bảo hiểm tài sản' (P) RỖNG với các hợp đồng BHTNDS (trách nhiệm dân sự — không có giá trị tài sản). Khai `bat_buoc: false` và ĐỪNG lọc theo nó, nếu không mất sạch nhóm TNDS.",
+    "'Đơn vị tham gia BH' (cột W) CHÍNH LÀ NHÀ BẢO HIỂM (Bảo Việt Đông Đô, Bảo hiểm Ngân hàng...). Mapping liệt 'Nhà bảo hiểm' ở cột Chiều phân tích nhưng không khai cột nào — đây là cột đó. Tên viết dài và không nhất quán, khi vẽ donut nên gom theo tiền tố.",
+    "File còn 6 sheet rác dùng chung với file Đăng kiểm ('Sheet1', 'Sheet1 (2)', 'Sheet2', 'Sheet3', 'Sheet4', 'công thức tính bảo hiểm') — CỐ Ý chỉ đọc 'Tổng hợp'.",
+    "LỌC THEO `dim1` (Loại bảo hiểm), TUYỆT ĐỐI KHÔNG lọc theo `payload.maTaiSan`: dòng 48 là hợp đồng BẢO HIỂM CHÁY NỔ cho căn hộ, phí 5.060.000 đ, KHÔNG có mã tài sản (bảo hiểm bất động sản chứ không phải thiết bị). Lọc theo mã tài sản là mất trắng CẢ NHÓM BHCN mà tổng phí vẫn 'trông hợp lý' — đã dính đúng lỗi này lúc dựng spec 17/08/2026."
+  ],
+  "_kiem_chung": [
+    "Kỳ 2026-07: 134 dòng hợp đồng (dòng 12-145).",
+    "Bảng phụ dòng 4-7 của chính file: tổng phí BHCN 5.060.000 · BHMMTB 448.954.026,68 · BHVC 81.713.500 · BHTNDS 21.706.300 — dùng để đối chiếu Σ payload.tongPhi theo dim1.",
+    "Nhà bảo hiểm chính: 'TỔNG CÔNG TY CỔ PHẦN BẢO HIỂM NGÂN…' (nhóm BHMMTB) và 'CÔNG TY BẢO VIỆT ĐÔNG ĐÔ…' (nhóm BHTNDS)."
+  ],
+  "report_type": "QLTS_BH",
+  "row_index_base": 7905000,
+  "nguon": {
+    "folder": "QLTS/baocaobaohiem",
+    "file_glob": "*.TheodoiBaohiem.xlsx",
+    "sheet": { "ten": "Tổng hợp" }
+  },
+  "header": { "dong": [10, 9] },
+  "dong_bat_dau": 12,
+  "kiem_tra_o": [
+    { "o": "O10", "bang": "Thông báo" },
+    { "o": "P10", "bang": "Giá trị bảo hiểm tài sản" },
+    { "o": "R10", "bang": "Bồi thường" },
+    { "o": "W9", "bang": "Đơn vị tham gia BH" }
+  ],
+  "cot": {
+    "dim1": { "header": "Loại bảo hiểm" },
+    "dim2": { "header": "Thông báo", "bat_buoc": false },
+    "dim3": { "header": "Đơn vị tham gia BH", "bat_buoc": false },
+    "amount": { "header": "Giá trị bảo hiểm tài sản", "kieu": "so", "he_so": 1e-9, "bat_buoc": false },
+    "amount2": { "header": "Bồi thường", "kieu": "so", "he_so": 1e-9, "bat_buoc": false },
+
+    "payload.maTaiSan":     { "header": "Mã tài sản", "bat_buoc": false },
+    "payload.tenTaiSan":    { "header": "Tên tài sản", "bat_buoc": false },
+    "payload.bks":          { "header": "Biển kiểm soát", "bat_buoc": false },
+    "payload.soHopDong":    { "header": "Số hợp đồng bảo hiểm", "bat_buoc": false },
+    "payload.batDau":       { "header": "Bắt đầu", "kieu": "date", "bat_buoc": false },
+    "payload.ketThuc":      { "header": "Kết thúc", "kieu": "date", "bat_buoc": false },
+    "payload.soNgayConLai": { "header": "Số ngày còn lại/quá hạn", "kieu": "so", "bat_buoc": false },
+    "payload.phiBH":        { "header": "Phí BH", "kieu": "so", "he_so": 1e-9, "bat_buoc": false },
+    "payload.tongPhi":      { "header": "Tổng phí phải nộp", "kieu": "so", "he_so": 1e-9, "bat_buoc": false },
+    "payload.viTri":        { "header": "Vị trí tài sản", "bat_buoc": false }
+  },
+  "loc": [
+    { "cot": "dim1", "dieu_kien": "khac_rong" }
+  ],
+  "payload_them": { "unit": "ty" },
+  "ky_tu_ten_file": {
+    "regex_nam": "\\.M\\.(\\d{4})\\.",
+    "regex_thang": "\\.M\\.\\d{4}\\.(\\d{1,2})\\."
+  }
+}

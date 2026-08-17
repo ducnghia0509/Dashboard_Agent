@@ -1,0 +1,72 @@
+{
+  "id": "qlts_dau_bqnl",
+  "_mo_ta": "QLTS — MỨC TIÊU HAO NHIÊN LIỆU BÌNH QUÂN theo từng xe/máy, sheet 'BQ-NL' của 4 file dầu. Mỗi dòng = 1 phương tiện. amount = MỨC THBQ. dim1 = dự án (tên file), dim2 = mã xe/máy, payload.dvt = đơn vị tính. Cấp số cho chỉ tiêu 'Mức tiêu hao nhiên liệu' (mapping #32) ở màn ts5.",
+  "_bay": [
+    "⚠️ KỲ TRONG FILE MÂU THUẪN VỚI TÊN FILE. Cả 4 file đều tên `.M.2026.7.` nhưng ô tiêu đề ghi: Cao Bằng 'THÁNG 6-2026', Quang Sơn 'THÁNG 7-2025' (lệch HẲN 1 NĂM), Tân Thịnh 'THÁNG 7-2026' ở BC NXT nhưng 'T6/2026' ở BQ-NL, chỉ Thổ Chu nhất quán. Ô tiêu đề là ô GÕ TAY không cập nhật khi copy file sang tháng mới -> LẤY KỲ THEO TÊN FILE, đúng quy ước mọi nguồn khác. Vẫn phải hỏi đơn vị xác nhận riêng file Quang Sơn có đúng là số T7/2026 không.",
+    "MAPPING GHI 'dòng lấy màu vàng' — KHÔNG CẦN ĐỌC MÀU, và engine cũng không đọc được màu ô. Sheet xếp MỖI PHƯƠNG TIỆN 3 DÒNG: dòng 1 mã ở cột C (ĐVT 'Lít'), dòng 2 mã ở cột B (ĐVT 'Km'), dòng 3 mã ở cột A (ĐVT 'Lít/km') — dòng 3 mới là dòng tỷ lệ và là 'dòng màu vàng' kia. Vì CHỈ dòng 3 có giá trị ở cột A nên lọc `dim2 khac_rong` chọn đúng nó, không cần biết màu.",
+    "⚠️ ĐƠN VỊ ĐO KHÁC NHAU GIỮA CÁC DỰ ÁN: Cao Bằng ghi 'Lít/km' (đội xe), Tân Thịnh ghi 'Lít/giờ' và Thổ Chu ghi 'Lít/Giờ' (máy thi công — lệch cả hoa thường). Vì vậy TUYỆT ĐỐI không cộng hay bình quân mức tiêu hao GIỮA các dự án; chỉ bình quân trong một dự án và luôn hiển thị kèm `payload.dvt`. Thiết kế ts5 gộp chung một cột 'lít/giờ máy' kèm định mức gõ cứng 18,0 là sai ở cả đơn vị lẫn việc gộp — nguồn KHÔNG có bảng định mức nào.",
+    "BỐ CỤC 2 PANEL CẠNH NHAU ('2 tờ một trang'): ngày 1-17 ở cột E-U, ngày 18-31 lặp lại ở V-AK với header RIÊNG — nên 'MÃ XE' và 'ĐVT' xuất hiện HAI LẦN ở dòng 4 (A và V, D và W). `_map_header` lấy ô khác rỗng ĐẦU TIÊN nên trúng A/D (panel trái) — đúng ý. Đừng đổi sang dò từ phải sang.",
+    "Cột AL 'MỨC THBQ' có XUỐNG DÒNG trong ô ('MỨC\\nTHBQ'); `_nd` bỏ hết ký tự không phải chữ số nên khai 'MỨC THBQ' vẫn khớp.",
+    "Các cột AM-AQ là BQ của những tháng TRƯỚC (BQ T8/2025, T9/2025…) và cột chênh lệch — CỐ Ý không lấy, tránh lẫn kỳ. Nhiều ô trong đó là #VALUE!."
+  ],
+  "_kiem_chung": [
+    "Cao Bằng, xe DT134: mức THBQ = 10,8969 Lít/km (ô AL21), dòng có mã ở cột A và ĐVT 'Lít/km'.",
+    "Xe không phát sinh (DT01-CB, DT02-CB…) có dòng nhưng MỨC THBQ rỗng — giữ dòng, để trống, đừng coi là 0.",
+    "Đơn vị theo dự án (kỳ 2026-07): Cao Bằng Lít/km 14,59 · Tân Thịnh Lít/giờ 25,92 · Thổ Chu Lít/Giờ 15,86 · Quang Sơn không có xe nào phát sinh."
+  ],
+  "report_type": "QLTS_DAU_BQ",
+  "row_index_base": 7908000,
+  "nguon": {
+    "folder": "QLTS/baocaodau",
+    "file_glob": "*.BCDau*.xlsm",
+    "sheet": {
+      "ten": "BQ-NL"
+    }
+  },
+  "header": {
+    "dong": 4
+  },
+  "dong_bat_dau": 7,
+  "kiem_tra_o": [
+    {
+      "o": "A4",
+      "bang": "MÃ XE"
+    },
+    {
+      "o": "D4",
+      "bang": "ĐVT"
+    }
+  ],
+  "chieu_tu_ten_file": {
+    "dim1": {
+      "regex": "BCDau(\\w+)"
+    }
+  },
+  "cot": {
+    "dim2": {
+      "header": "MÃ XE"
+    },
+    "amount": {
+      "header": "MỨC THBQ",
+      "kieu": "so",
+      "bat_buoc": false
+    },
+    "payload.dvt": {
+      "header": "ĐVT",
+      "bat_buoc": false
+    }
+  },
+  "loc": [
+    {
+      "cot": "dim2",
+      "dieu_kien": "khac_rong"
+    }
+  ],
+  "payload_them": {
+    "unit": "lit_km"
+  },
+  "ky_tu_ten_file": {
+    "regex_nam": "\\.M\\.(\\d{4})\\.",
+    "regex_thang": "\\.M\\.\\d{4}\\.(\\d{1,2})\\."
+  }
+}

@@ -863,8 +863,15 @@ def _dan_xuat(rec, cong_thuc):
     safe = {re.sub(r"\W", "_", k): (v or 0) for k, v in env.items()}
     for dich, bt in cong_thuc.items():
         try:
-            _dat(rec, dich, eval(re.sub(r"\W", "_", bt) if "." in bt else bt,  # noqa: S307
-                                {"__builtins__": {}}, safe))
+            # Đổi `payload.x` -> `payload_x` NHƯNG CHỈ TRONG TÊN BIẾN. Bản cũ chạy
+            # `re.sub(r"\W", "_", bt)` trên CẢ biểu thức nên thay luôn dấu cách và toán tử:
+            # "payload.a + payload.b" biến thành MỘT tên biến "payload_a___payload_b" -> NameError
+            # -> `dan_xuat` trả None mà không ai thấy (chỉ ghi vào `rec["_loi"]`). Công thức một
+            # biến hoặc không có dấu chấm thì cả hai cách cho kết quả như nhau, nên đổi ở đây
+            # không ảnh hưởng spec cũ (đã rà: chỉ `amount + amount2`, `1`, `amount - payload_gia_von`).
+            _dat(rec, dich, eval(  # noqa: S307
+                re.sub(r"\b[A-Za-z_][\w.]*\b", lambda m: m.group(0).replace(".", "_"), bt),
+                {"__builtins__": {}}, safe))
         except Exception as ex:                                    # noqa: BLE001
             _dat(rec, dich, None)
             rec.setdefault("_loi", []).append(f"{dich}: {ex}")
@@ -1022,6 +1029,55 @@ def _chuyen_xls_cu(duong_dan):
     return dich
 
 
+def _chuyen_xlsb(duong_dan):
+    """`.xlsb` (Excel nhị phân) -> sinh bản `.xlsx` cạnh nó, trả đường dẫn mới (None nếu hỏng).
+
+    Cùng lý do và cùng cách làm với `_chuyen_xls_cu`: openpyxl KHÔNG đọc được `.xlsb`, mà nguồn
+    QLTS (`B.9.TC.H5.M.<yyyy>.<m>.Taisan.xlsb`, 17/08/2026) lại lưu ở đúng định dạng đó — 21k dòng
+    sheet "CHI TIẾT". Không có bước này thì file nằm im, không dòng nào vào DB và KHÔNG có cảnh báo.
+
+    Dùng `pyxlsb` thuần Python, KHÔNG gọi `soffice` (máy này thiếu `libreoffice-calc`, xem ghi chú
+    dài ở `_chuyen_xls_cu`).
+
+    NGÀY THÁNG: `.xlsb` trả ngày dưới dạng SỐ SERIAL của Excel (vd 46226 = 2026-08-01) và pyxlsb
+    không cho biết ô nào đang định dạng ngày. Bản chuyển vì vậy giữ nguyên SỐ — spec đọc nguồn này
+    phải lấy kỳ từ TÊN FILE (`ky_tu_ten_file`), đừng khai `"kieu": "date"` cho cột lấy từ `.xlsb`.
+    """
+    dich = os.path.splitext(duong_dan)[0] + ".xlsx"
+    if os.path.exists(dich) and os.path.getmtime(dich) >= os.path.getmtime(duong_dan):
+        return dich
+    try:
+        from pyxlsb import open_workbook as _mo_xlsb
+    except ImportError:
+        return None
+    try:
+        from openpyxl.cell.cell import ILLEGAL_CHARACTERS_RE
+        wb = openpyxl.Workbook()
+        wb.remove(wb.active)
+        with _mo_xlsb(duong_dan) as nguon:
+            for ten_sh in nguon.sheets:
+                ws = wb.create_sheet(title=re.sub(r"[:\\/?*\[\]]", "-", ten_sh)[:31] or "Sheet")
+                with nguon.get_sheet(ten_sh) as sh:
+                    for row in sh.rows():
+                        for o in row:
+                            v = o.v
+                            if v is None or v == "":
+                                continue
+                            if isinstance(v, str):
+                                # Ô kế toán gõ tay hay dính ký tự điều khiển (vd tên tài sản
+                                # "Camera quan sát …\x07gồm thẻ nhớ"). XML của .xlsx cấm hẳn nhóm
+                                # này -> openpyxl ném IllegalCharacterError và HỎNG CẢ FILE, chỉ
+                                # vì một ô. Bỏ ký tự đó đi, phần chữ giữ nguyên.
+                                v = ILLEGAL_CHARACTERS_RE.sub("", v)
+                                if not v:
+                                    continue
+                            ws.cell(row=o.r + 1, column=o.c + 1, value=v)
+        wb.save(dich)
+    except Exception:                                                  # noqa: BLE001
+        return None
+    return dich
+
+
 def quet_nguon(spec):
     """Danh sách file của nguồn -> [đường dẫn], [cảnh báo].
 
@@ -1051,7 +1107,19 @@ def quet_nguon(spec):
                     out.append(moi)
                 else:
                     warn.append(f"{n}: Excel 97-2003 và CHUYỂN ĐỔI HỎNG — file này chưa vào DB")
-    return sorted(out), warn
+    # `.xlsb` (Excel nhị phân) -> chuyển sang `.xlsx` rồi đọc bản đã chuyển. Đặt SAU nhánh `.xls`
+    # để cả hai định dạng lạ đều quy về một đường: engine phía dưới chỉ biết openpyxl.
+    doi = []
+    for p in out:
+        if p.lower().endswith(".xlsb"):
+            moi = _chuyen_xlsb(p)
+            if moi:
+                doi.append(moi)
+            else:
+                warn.append(f"{os.path.basename(p)}: .xlsb và CHUYỂN ĐỔI HỎNG — file này chưa vào DB")
+        else:
+            doi.append(p)
+    return sorted(doi), warn
 
 
 def loc_file_moi_nhat(spec, files):

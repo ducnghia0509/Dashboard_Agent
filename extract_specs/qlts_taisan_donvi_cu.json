@@ -1,0 +1,62 @@
+{
+  "id": "qlts_taisan_donvi_cu",
+  "_mo_ta": "QLTS — TÀI SẢN THEO KHỐI, BỐ CỤC CŨ (đến hết T7/2026): sheet 'TH theo ĐVSD'. Cùng report_type QLTS_TS_DV với `qlts_taisan_donvi` (bố cục mới từ T8) để màn hình đọc một luồng liên tục qua các kỳ. Hai spec KHÔNG BAO GIỜ đụng nhau vì chọn sheet theo tên: file cũ không có sheet 'ĐƠN VỊ', file mới không có 'TH theo ĐVSD'.",
+  "_bay": [
+    "BỐ CỤC ĐỔI GIỮA T7 VÀ T8/2026 — ba thứ đổi cùng lúc: (1) tên sheet 'TH theo ĐVSD' -> 'ĐƠN VỊ' (và 'TH theo Nhóm' -> 'NHÓM', 'Chi tiết tài sản' -> 'CHI TIẾT', 'Nhật ký PS' -> 'NHẬT KÝ'); (2) dòng tổng dời từ 6 lên 5 nên 8 khối dời từ 7-14 xuống 6-13; (3) TÊN CỘT đổi hết ('Tồn đầu'->'SL TỒN ĐẦU', 'Mới / Nhập lại'->'SL MỚI', 'Bán'->'SL BÁN'...).",
+    "PHẢI ĐỌC THEO CHỮ CỘT (`header.khong_co` + `cot`), KHÔNG dò được theo tên: dòng 4 của bố cục cũ có 'Điều chuyển' LẶP 4 LẦN (E nhận SL, I xuất SL, N nhận NG, R xuất NG), 'Mới / Nhập lại' 2 lần (D, M), 'Thất thoát' 2 lần (G, P), 'Trả lại' 2 lần (J, S). Dò theo tên thì mọi cột xuất đều bắt trúng cột nhận -> điều chuyển và ghi giảm sai hoàn toàn mà không có lỗi nào. `dong_header` cũng không cứu được vì trùng NGAY TRONG CÙNG một dòng.",
+    "Đây là spec cho BỐ CỤC ĐÃ NGỪNG DÙNG. Nếu các kỳ sau lại quay về tên sheet cũ thì kiểm lại vị trí dòng trước khi tin spec này — nó neo cứng dòng 7-14.",
+    "Bố cục cũ KHÔNG tách 'Hủy' với 'Hỏng' (cột H = 'Hủy /cho', Q = 'Hủy / Hỏng /Cho'), bố cục mới ghi 'HỦY/CHO/TẶNG'. Gộp chung vào payload.slHuy/ngHuy ở cả hai spec."
+  ],
+  "_kiem_chung": [
+    "T7/2026: tổng SL tồn cuối 8 khối = 21.187 (khớp ô K6 dòng tổng), và ĐÚNG BẰNG SL tồn đầu của T8 -> chuỗi kỳ liền mạch.",
+    "T7/2026 tổng NG tồn cuối = 1.744.758.097.089,38 đ = 1.744,76 tỷ (ô T6).",
+    "T7/2026 cân đối: tồn đầu 20.455 + mới 848 + nhận ĐC 188 − (bán 0 + thất thoát 73 + hủy 35 + xuất ĐC 188 + trả lại 8) = 21.187 ✔",
+    "T7/2026 SL tồn cuối từng khối: 1.358 · 3.469 · 2.563 · 1.486 · 11.062 · 14 · 1.230 · 5."
+  ],
+  "report_type": "QLTS_TS_DV",
+  "row_index_base": 7900500,
+  "nguon": {
+    "folder": "QLTS/baocaotaisanqlts",
+    "file_glob": "*.Taisan.xlsb",
+    "sheet": { "ten": "TH theo ĐVSD" }
+  },
+  "header": { "khong_co": true },
+  "dong_bat_dau": 7,
+  "dong_ket_thuc": 14,
+  "cot": {
+    "dim1": { "cot": "A" },
+    "dim2": { "cot": "B" },
+    "amount": { "cot": "K", "kieu": "so" },
+    "amount2": { "cot": "T", "kieu": "so", "he_so": 1e-9 },
+
+    "payload.slDau":      { "cot": "C", "kieu": "so" },
+    "payload.slMoi":      { "cot": "D", "kieu": "so" },
+    "payload.slNhanDC":   { "cot": "E", "kieu": "so" },
+    "payload.slBan":      { "cot": "F", "kieu": "so" },
+    "payload.slThatThoat":{ "cot": "G", "kieu": "so" },
+    "payload.slHuy":      { "cot": "H", "kieu": "so" },
+    "payload.slXuatDC":   { "cot": "I", "kieu": "so" },
+    "payload.slTraLai":   { "cot": "J", "kieu": "so" },
+
+    "payload.ngDau":      { "cot": "L", "kieu": "so", "he_so": 1e-9 },
+    "payload.ngMoi":      { "cot": "M", "kieu": "so", "he_so": 1e-9 },
+    "payload.ngNhanDC":   { "cot": "N", "kieu": "so", "he_so": 1e-9 },
+    "payload.ngBan":      { "cot": "O", "kieu": "so", "he_so": 1e-9 },
+    "payload.ngThatThoat":{ "cot": "P", "kieu": "so", "he_so": 1e-9 },
+    "payload.ngHuy":      { "cot": "Q", "kieu": "so", "he_so": 1e-9 },
+    "payload.ngXuatDC":   { "cot": "R", "kieu": "so", "he_so": 1e-9 },
+    "payload.ngTraLai":   { "cot": "S", "kieu": "so", "he_so": 1e-9 }
+  },
+  "dan_xuat": {
+    "payload.slGiam": "payload.slBan + payload.slThatThoat + payload.slHuy + payload.slTraLai",
+    "payload.ngGiam": "payload.ngBan + payload.ngThatThoat + payload.ngHuy + payload.ngTraLai"
+  },
+  "loc": [
+    { "cot": "dim1", "dieu_kien": "khac_rong" }
+  ],
+  "payload_them": { "unit": "ts" },
+  "ky_tu_ten_file": {
+    "regex_nam": "\\.M\\.(\\d{4})\\.",
+    "regex_thang": "\\.M\\.\\d{4}\\.(\\d{1,2})\\."
+  }
+}
