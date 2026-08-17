@@ -1,0 +1,56 @@
+{
+  "id": "qlts_taisan_chitiet",
+  "_mo_ta": "QLTS — DANH MỤC CHI TIẾT TỪNG TÀI SẢN, sheet 'CHI TIẾT' của file Taisan (bố cục từ T8/2026). Mỗi dòng = 1 tài sản. Cấp số cho 2 chỉ tiêu 'tuân thủ' ở màn ts1: TỶ LỆ SỬ DỤNG (theo dim2 = Trạng thái tài sản) và TỶ LỆ GẮN MÃ (theo payload.maOdoo rỗng hay không). Đồng thời mở khoá mọi chiều phân tích mà mapping đòi (Đơn vị · Phòng ban · Pháp nhân · Loại tài sản).",
+  "_bay": [
+    "NGUỒN NẶNG: 21.247 dòng MỖI KỲ. Nạp 12 kỳ là ~255k dòng raw_rows cho riêng report_type này — lớn hơn mọi nguồn hiện có. Cố ý CHỈ giữ các cột thật sự dùng cho màn hình + truy vết, đừng thêm cột cho vui. Nếu về sau chỉ cần số tổng thì nên đổi sang nạp bản đã gộp.",
+    "TRẠNG THÁI DÙNG CHO MẪU SỐ 'tỷ lệ sử dụng' KHÔNG PHẢI TỔNG SỐ DÒNG. Công thức mapping: mẫu số = tất cả trạng thái TRỪ (Đã thanh lý + Hủy + Biếu/Tặng + Đã trả NCC). Dữ liệu T8 chỉ có 'Hủy' khớp danh sách loại trừ. CHÚ Ý 'Chờ thanh lý' KHÁC 'Đã thanh lý' -> KHÔNG loại. Việc loại trừ làm ở tầng đọc (backend), spec giữ nguyên mọi dòng.",
+    "SỐ DÒNG (21.247) KHÁC SL TỒN CUỐI (21.212) vì bảng chi tiết giữ cả tài sản đã xuất trong kỳ. Muốn ra đúng 21.212 thì cộng cột 'SL TỒN CUỐI' (amount), ĐỪNG đếm số dòng.",
+    "DÒNG 5 LÀ TỔNG (cột AB ghi 'Tổng cộng'), dòng 6 trống, dữ liệu từ dòng 7 — giống sheet ĐƠN VỊ/NHÓM.",
+    "MÃ ODOO có ô rỗng thật (8 tài sản mang trạng thái 'Chưa có mã'), nên khai `bat_buoc: false` cho giá trị và ĐỪNG lọc theo nó — lọc là mất đúng nhóm tài sản mà chỉ tiêu 'tỷ lệ gắn mã' cần đếm.",
+    "NGÀY THÁNG (cột Q) là SỐ SERIAL Excel vì file gốc là .xlsb và bộ chuyển `_chuyen_xlsb` giữ nguyên số. KHÔNG khai `kieu: date` cho cột này — kỳ lấy từ tên file."
+  ],
+  "_kiem_chung": [
+    "T8/2026: 21.247 dòng; Σ cột 'SL TỒN CUỐI' = 21.212 (khớp ô AO5 và khớp sheet ĐƠN VỊ); Σ 'NG TỒN CUỐI' = 1.752.861.079.403,40 đ (khớp ô AZ5 và sheet ĐƠN VỊ).",
+    "Phân bố Trạng thái tài sản T8: Đang sử dụng 20.555 · Chưa sử dụng/Tồn kho 447 · Hỏng 150 · Bảo dưỡng định kỳ 27 · Xe cho mượn 21 · Hủy 19 · Sửa chữa 16 · Chưa có mã 8 · Thất Thoát 3 · Chờ thanh lý 1.",
+    "-> Tỷ lệ sử dụng T8 = 20.555 / (21.247 − 19 Hủy) = 20.555 / 21.228 = 96,8%.",
+    "Phân loại kế toán T8: CCDC 18.689 · TSCĐ 2.107 · HH-G 188 · HH-X 148 · XTQ 51 · TSCĐVH 6 · (rỗng) 58."
+  ],
+  "report_type": "QLTS_TS_CT",
+  "row_index_base": 7902000,
+  "nguon": {
+    "folder": "QLTS/baocaotaisanqlts",
+    "file_glob": "*.Taisan.xlsb",
+    "sheet": { "ten": "CHI TIẾT" }
+  },
+  "header": { "dong": [4, 3, 2] },
+  "dong_bat_dau": 7,
+  "kiem_tra_o": [
+    { "o": "BI2", "bang": "Trạng thái tài sản" },
+    { "o": "U2", "bang": "MÃ ODOO" },
+    { "o": "AO3", "bang": "SL TỒN CUỐI" }
+  ],
+  "cot": {
+    "dim1": { "header": "TÊN KHỐI" },
+    "dim2": { "header": "Trạng thái tài sản", "bat_buoc": false },
+    "dim3": { "header": "TÊN NHÓM CHA" },
+    "amount": { "header": "SL TỒN CUỐI", "kieu": "so" },
+    "amount2": { "header": "NG TỒN CUỐI", "kieu": "so", "he_so": 1e-9 },
+
+    "payload.maOdoo":   { "header": "MÃ ODOO", "bat_buoc": false },
+    "payload.maDVSD":   { "header": "MÃ ĐVSD" },
+    "payload.tenDV":    { "header": "TÊN ĐƠN VỊ SỬ DỤNG" },
+    "payload.phapNhan": { "header": "TÊN PHÁP NHÂN", "bat_buoc": false },
+    "payload.plKeToan": { "header": "PL KẾ TOÁN", "bat_buoc": false },
+    "payload.tenLoai":  { "header": "TÊN LOẠI", "bat_buoc": false },
+    "payload.phongBan": { "header": "Phòng ban", "bat_buoc": false },
+    "payload.tinhTrang":{ "header": "Tình trạng", "bat_buoc": false }
+  },
+  "loc": [
+    { "cot": "payload.maDVSD", "dieu_kien": "khac_rong" }
+  ],
+  "payload_them": { "unit": "ts" },
+  "ky_tu_ten_file": {
+    "regex_nam": "\\.M\\.(\\d{4})\\.",
+    "regex_thang": "\\.M\\.\\d{4}\\.(\\d{1,2})\\."
+  }
+}

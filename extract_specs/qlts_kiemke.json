@@ -1,0 +1,56 @@
+{
+  "id": "qlts_kiemke",
+  "_mo_ta": "QLTS — KIỂM KÊ TÀI SẢN, sheet 'Data_TaiSan' của QLTS/baocaokiemke/B.9.TC.H5.Q.<yyyy>.<q>.BCKiemke.xlsx. Mỗi dòng = 1 tài sản trong KẾ HOẠCH kiểm kê kỳ đó. amount = SL sổ sách, amount2 = nguyên giá (tỷ). dim1 = Tình trạng kiểm kê, dim2 = tên đơn vị, dim3 = tên loại tài sản. Cấp số cho band B của màn ts2.",
+  "_bay": [
+    "⚠️ MẪU SỐ KHÔNG PHẢI TỔNG TÀI SẢN. Báo cáo này chỉ phủ 418 tài sản / 14 đơn vị, trong khi toàn tập đoàn có 21.212. Thiết kế ts2 tính 'tỷ lệ hoàn thành kiểm kê = đã kiểm kê / TỔNG tài sản' -> ra ~2%, sai nghĩa hoàn toàn. Mẫu số ĐÚNG là số dòng của chính báo cáo này (= kế hoạch kiểm kê kỳ đó), và nhãn trên màn phải ghi rõ 'trên kế hoạch kiểm kê', đừng để lãnh đạo hiểu là toàn tập đoàn.",
+    "CHÊNH LỆCH LÀ SỐ ÂM khi thiếu (T7/2026: −6 tài sản, −16.226.178 đ). Thiết kế đang vẽ như số dương -> phải GIỮ DẤU, và 'chênh lệch' gồm cả thừa (dương) lẫn thiếu (âm), không được lấy trị tuyệt đối rồi cộng chung.",
+    "DÒNG 2 LÀ TỔNG CỘNG (cột F ghi 'TỔNG CỘNG', cột B/C rỗng). Lọc `dim2 khac_rong` loại được nó. Đừng lọc theo amount — phần lớn dòng có SL chênh lệch = 0 và `khac_rong` coi 0 là rỗng.",
+    "FILE THEO QUÝ (`.Q.` trong tên, không phải `.M.`) -> regex kỳ phải bắt `\\.Q\\.`. Cụm sau năm là SỐ THÁNG CHỐT (7), không phải số quý.",
+    "Sheet 'Dashboard' và 'KiemKe_Summary' trong cùng file là bản tổng hợp sẵn — CỐ Ý không đọc, để mọi con số trên màn đều truy được về dòng chi tiết."
+  ],
+  "_kiem_chung": [
+    "Kỳ 2026-07: 418 dòng chi tiết; Σ SL sổ sách = 418; Σ nguyên giá = 1.450.481.271 đ (khớp ô G2/J2 dòng TỔNG CỘNG và khớp sheet 'KiemKe_Summary').",
+    "Σ SL thực tế = 412 · Σ SL chênh lệch = −6 · Σ GT chênh lệch = −16.226.178 đ.",
+    "-> Tỷ lệ hoàn thành kiểm kê = 412/418 = 98,6% (KHÔNG phải 412/21.212).",
+    "14 đơn vị được kiểm kê (khớp 'Tổng Đơn vị kiểm kê' = 14 ở sheet KiemKe_Summary)."
+  ],
+  "report_type": "QLTS_KK",
+  "row_index_base": 7903000,
+  "nguon": {
+    "folder": "QLTS/baocaokiemke",
+    "file_glob": "*.BCKiemke.xlsx",
+    "sheet": { "ten": "Data_TaiSan" }
+  },
+  "header": { "dong": 1 },
+  "dong_bat_dau": 3,
+  "kiem_tra_o": [
+    { "o": "A1", "bang": "Tình trạng kiểm kê" },
+    { "o": "I1", "bang": "SL Chênh Lệch" },
+    { "o": "K1", "bang": "GT Chênh lệch" }
+  ],
+  "cot": {
+    "dim1": { "header": "Tình trạng kiểm kê" },
+    "dim2": { "header": "Tên đơn vị" },
+    "dim3": { "header": "Tên loại tài sản", "bat_buoc": false },
+    "amount": { "header": "SL Sổ Sách", "kieu": "so" },
+    "amount2": { "header": "Nguyên giá", "kieu": "so", "he_so": 1e-9 },
+
+    "payload.maDonVi":     { "header": "Đơn vị" },
+    "payload.maOdoo":      { "header": "Mã Odoo", "bat_buoc": false },
+    "payload.maCyber":     { "header": "Mã Cyber", "bat_buoc": false },
+    "payload.tenTaiSan":   { "header": "Tên Tài Sản", "bat_buoc": false },
+    "payload.slThucTe":    { "header": "SL Thực Tế", "kieu": "so" },
+    "payload.slChenhLech": { "header": "SL Chênh Lệch", "kieu": "so" },
+    "payload.gtChenhLech": { "header": "GT Chênh lệch", "kieu": "so", "he_so": 1e-9 },
+    "payload.tinhTrang":   { "header": "Tình Trạng", "bat_buoc": false },
+    "payload.deXuat":      { "header": "Đề Xuất Xử Lý", "bat_buoc": false }
+  },
+  "loc": [
+    { "cot": "dim2", "dieu_kien": "khac_rong" }
+  ],
+  "payload_them": { "unit": "ts" },
+  "ky_tu_ten_file": {
+    "regex_nam": "\\.Q\\.(\\d{4})\\.",
+    "regex_thang": "\\.Q\\.\\d{4}\\.(\\d{1,2})\\."
+  }
+}

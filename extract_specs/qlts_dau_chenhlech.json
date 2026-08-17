@@ -1,0 +1,56 @@
+{
+  "id": "qlts_dau_chenhlech",
+  "_mo_ta": "QLTS — CHÊNH LỆCH NHIÊN LIỆU (thực tế kiểm kho − sổ sách theo hóa đơn), dòng 'Chênh lệch theo hóa đơn' ở cuối sheet 'BC NXT' của 4 file dầu. amount = số lít chênh lệch. dim1 = dự án (tên file). Cấp số cho KPI 'Chênh lệch nhiên liệu' (mapping #34) ở màn ts5.",
+  "_bay": [
+    "DÒNG NÀY NẰM Ở VỊ TRÍ KHÁC NHAU TRONG TỪNG FILE: Cao Bằng dòng 149 · Tân Thịnh 116 · Thổ Chu 208 · Quang Sơn 235. Vì vậy KHÔNG neo `dong_bat_dau/dong_ket_thuc` vào một dòng cụ thể mà quét từ dòng 8 rồi lọc theo NHÃN ở cột B.",
+    "TRONG CÙNG SHEET CÒN MỘT Ô GẦN GIỐNG: khối 'TỔNG HỢP' (dòng 134/104/194/222) có nhãn 'Chênh Lệch Theo Hóa Đơn' ở cột J, kèm số kiểm kho ở L/M/N/O. Bộ lọc chỉ soi CỘT B nên không vớ nhầm ô đó — đừng đổi sang quét mọi cột.",
+    "Chỉ tiêu mục tiêu là 0. Giá trị ÂM/DƯƠNG đều có nghĩa (thiếu/thừa so với hóa đơn) nên giữ nguyên dấu, và KHÔNG lọc `amount khac_rong` — engine coi 0 là rỗng, mà 'chênh lệch = 0' chính là kết quả TỐT cần hiển thị (T7/2026 có 3/4 dự án bằng 0).",
+    "Xem thêm cảnh báo về kỳ ở [[qlts_dau_nxt]]: tên file ghi .M.2026.7. nhưng tiêu đề trong sheet của Cao Bằng/Quang Sơn ghi tháng khác, riêng Quang Sơn ghi năm 2025."
+  ],
+  "_kiem_chung": [
+    "Kỳ 2026-07: Cao Bằng 31.467 lít (ô D149) · Quang Sơn 0 · Tân Thịnh 0 · Thổ Chu 0.",
+    "Cao Bằng lệch 31.467 lít là con số RẤT LỚN so với xuất trong tháng 69.643 lít — cần đơn vị giải trình, không phải lỗi đọc (ô D149 của file ghi đúng số đó)."
+  ],
+  "report_type": "QLTS_DAU_CL",
+  "row_index_base": 7909000,
+  "nguon": {
+    "folder": "QLTS/baocaodau",
+    "file_glob": "*.BCDau*.xlsm",
+    "sheet": {
+      "ten": "BC NXT"
+    }
+  },
+  "header": {
+    "khong_co": true
+  },
+  "dong_bat_dau": 8,
+  "chieu_tu_ten_file": {
+    "dim1": {
+      "regex": "BCDau(\\w+)"
+    }
+  },
+  "cot": {
+    "dim2": {
+      "cot": "B"
+    },
+    "amount": {
+      "cot": "D",
+      "kieu": "so",
+      "bat_buoc": false
+    }
+  },
+  "loc": [
+    {
+      "cot": "dim2",
+      "dieu_kien": "chua",
+      "gia_tri": "Chênh lệch theo hóa đơn"
+    }
+  ],
+  "payload_them": {
+    "unit": "lit"
+  },
+  "ky_tu_ten_file": {
+    "regex_nam": "\\.M\\.(\\d{4})\\.",
+    "regex_thang": "\\.M\\.\\d{4}\\.(\\d{1,2})\\."
+  }
+}

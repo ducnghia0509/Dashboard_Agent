@@ -1,0 +1,102 @@
+{
+  "id": "qlts_dau_nxt",
+  "_mo_ta": "QLTS — NHẬP XUẤT TỒN DẦU THEO NGÀY, sheet 'BC NXT' của 4 file QLTS/baocaodau/B.9.TC.H5.M.<yyyy>.<m>.BCDau<DuAn>.xlsm. Mỗi dòng = 1 ngày của 1 dự án. amount = SL xuất (lít), amount2 = thành tiền xuất (tỷ), payload.ton = tồn cuối ngày. dim1 = dự án (lấy từ tên file). Cấp số cho band A màn ts5 (mapping #28/#29/#31/#33).",
+  "_bay": [
+    "⚠️ KỲ TRONG FILE MÂU THUẪN VỚI TÊN FILE. Cả 4 file đều tên `.M.2026.7.` nhưng ô tiêu đề ghi: Cao Bằng 'THÁNG 6-2026', Quang Sơn 'THÁNG 7-2025' (lệch HẲN 1 NĂM), Tân Thịnh 'THÁNG 7-2026' ở BC NXT nhưng 'T6/2026' ở BQ-NL, chỉ Thổ Chu nhất quán. Ô tiêu đề là ô GÕ TAY không cập nhật khi copy file sang tháng mới -> LẤY KỲ THEO TÊN FILE, đúng quy ước mọi nguồn khác. Vẫn phải hỏi đơn vị xác nhận riêng file Quang Sơn có đúng là số T7/2026 không.",
+    "FILE LÀ .xlsm (có macro) — `file_glob` phải ghi đúng đuôi, `*.xlsx` bỏ sạch 4 file mà KHÔNG báo gì.",
+    "TÊN HEADER LỆCH GIỮA 4 FILE: Cao Bằng ghi 'SL Xuất'/'Thành tiền Xuất'/'SL Nhập'/'Thành tiền Nhập'; Quang Sơn, Tân Thịnh, Thổ Chu ghi 'SL xuất'/'Thành tiền xuất'/'Số lượng'/'Thành tiền'. Hàm `_nd` bỏ dấu + thường hoá nên 'SL Xuất' và 'SL xuất' khớp nhau — nhưng 'Số lượng' của cột F TRÙNG với 'Số lượng' của cột C (tồn đầu), dò theo tên sẽ vớ nhầm C. Vì vậy cột NHẬP khai kèm phao `cot_du_phong: F`.",
+    "MỖI NGÀY CHIẾM NHIỀU DÒNG (dòng phụ 1a/1b/1c… ở cột P dùng cho tính FIFO). CHỈ dòng đầu của mỗi ngày có số ở cột A. Lọc `ngay khac_rong` giữ đúng dòng ngày; đừng bỏ bộ lọc, nếu không mỗi ngày bị đếm 3-5 lần.",
+    "PHÍA DƯỚI BẢNG NGÀY còn khối 'TỔNG HỢP' và dòng 'Chênh lệch theo hóa đơn' ở các dòng KHÁC NHAU theo từng file (149 / 235 / 116 / 208). Chúng không có số ở cột A nên bộ lọc `ngay` tự loại. Chỉ tiêu chênh lệch nằm ở spec riêng `qlts_dau_chenhlech`.",
+    "CỘT L tên header là 'Tổng' (nhóm 'Tồn cuối Ngày'), KHÔNG phải 'SL tồn tổng' như mapping #33 viết.",
+    "`kieu: \"ngay_trong_thang\"` (ô chỉ ghi SỐ NGÀY 1..31) lấy năm+tháng qua `_ky_thang`, đọc khoá `ky_thang_tu_ten_file` — KHÁC với `ky_tu_ten_file` (regex_nam/regex_thang) dùng cho kỳ của bản ghi. Phải khai CẢ HAI: thiếu `ky_thang_tu_ten_file` thì regex mặc định `\\.(\\d{4})(\\d{2})\\.` không khớp tên file dạng `.M.2026.7.` và MỌI dòng rớt bộ lọc `ngay khac_rong` -> file ra 0 dòng."
+  ],
+  "_kiem_chung": [
+    "Cao Bằng ngày 1: tồn đầu 20.634 · xuất 2.148 lít · thành tiền xuất 50.005.440 đ · tồn cuối 11.540.",
+    "Cao Bằng ngày 2: tồn đầu 11.540 (= tồn cuối ngày 1 ✔) · nhập 28.230 · xuất 2.416 · tồn cuối 9.124.",
+    "4 dự án: CaoBang · ThoChu · TanThinh · QuangSon — khớp đúng 4 dự án ở thiết kế ts5."
+  ],
+  "report_type": "QLTS_DAU",
+  "row_index_base": 7907000,
+  "nguon": {
+    "folder": "QLTS/baocaodau",
+    "file_glob": "*.BCDau*.xlsm",
+    "sheet": {
+      "ten": "BC NXT"
+    }
+  },
+  "header": {
+    "dong": [
+      7,
+      6
+    ]
+  },
+  "dong_bat_dau": 8,
+  "kiem_tra_o": [
+    {
+      "o": "A6",
+      "bang": "Ngày"
+    },
+    {
+      "o": "J7",
+      "bang": "Đơn giá Trung Bình"
+    }
+  ],
+  "chieu_tu_ten_file": {
+    "dim1": {
+      "regex": "BCDau(\\w+)"
+    }
+  },
+  "cot": {
+    "ngay": {
+      "header": "Ngày",
+      "kieu": "ngay_trong_thang"
+    },
+    "amount": {
+      "header": "SL Xuất",
+      "kieu": "so"
+    },
+    "amount2": {
+      "header": "Thành tiền Xuất",
+      "kieu": "so",
+      "he_so": 1e-09
+    },
+    "payload.ton": {
+      "header": "Tổng",
+      "kieu": "so",
+      "bat_buoc": false
+    },
+    "payload.tonDau": {
+      "header": "Tồn đầu Ngày",
+      "cot_du_phong": "C",
+      "kieu": "so",
+      "bat_buoc": false
+    },
+    "payload.slNhap": {
+      "header": "SL Nhập",
+      "cot_du_phong": "F",
+      "kieu": "so",
+      "bat_buoc": false
+    },
+    "payload.donGiaTB": {
+      "header": "Đơn giá Trung Bình",
+      "kieu": "so",
+      "bat_buoc": false
+    }
+  },
+  "loc": [
+    {
+      "cot": "ngay",
+      "dieu_kien": "khac_rong"
+    }
+  ],
+  "payload_them": {
+    "unit": "lit"
+  },
+  "ky_tu_ten_file": {
+    "regex_nam": "\\.M\\.(\\d{4})\\.",
+    "regex_thang": "\\.M\\.\\d{4}\\.(\\d{1,2})\\."
+  },
+  "ky_thang_tu_ten_file": {
+    "regex": "\\.M\\.(\\d{4})\\.(\\d{1,2})\\."
+  }
+}
