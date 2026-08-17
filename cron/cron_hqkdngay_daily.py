@@ -92,14 +92,26 @@ UNIT_NAMES = {
 }
 
 
-def expected_units() -> list:
+def units_source() -> dict:
+    """`_UNITS` của deriver — nguồn DUY NHẤT cho danh sách đơn vị kỳ vọng."""
     try:
         sys.path.insert(0, f"{AGENT}/scripts")
         import derive_hqkd_ngay                      # noqa: PLC0415
-        return sorted(derive_hqkd_ngay._UNITS)
+        return dict(derive_hqkd_ngay._UNITS)
     except Exception as ex:                          # noqa: BLE001
         log(f"  CANH BAO: khong import duoc _UNITS ({ex}) -> dung danh sach fallback")
-        return sorted(_UNITS_FALLBACK)
+        return {u: {} for u in _UNITS_FALLBACK}
+
+
+def unit_names(src: dict) -> dict:
+    """Tên tiếng Việt cho tin gửi lãnh đạo, có ĐƯỜNG LÙI.
+
+    Thêm đơn vị mới vào `_UNITS` mà quên khai ở `UNIT_NAMES` thì trước đây tin hiện trơ mã thư mục
+    ("VANTAIABC") giữa danh sách tên tiếng Việt. Giờ lùi về `khoi` của chính deriver (vd "Khối KD
+    Vinfast - Showroom") — dài hơn tên rút gọn nhưng vẫn đọc được, và không ai phải nhớ sửa 2 chỗ
+    mới thêm được một đơn vị.
+    """
+    return {u: UNIT_NAMES.get(u) or (src.get(u) or {}).get("khoi") or u for u in src}
 
 
 REPORT_TYPES = ("baocaohqkdngay",)
@@ -344,10 +356,11 @@ def main():
     log(f"MOI TRUONG: {args.env} (DB {DATABASE_URL.rsplit('@', 1)[-1]})")
     # Artifact JSON cho agent giám sát (xem cron_status.py). DRY-RUN không ghi: nó không kéo/không
     # nạp nên trạng thái sinh ra là giả, ghi vào sẽ đè mất trạng thái thật của lượt trước.
+    _src = units_source()
     st = None if args.dry_run else cron_status.StatusWriter(
         job="hqkdngay_daily", env=args.env, json_path=cfg["status_json"],
-        jsonl_path=cfg["status_jsonl"], schedule_vn=SCHEDULE_VN, expected=expected_units(),
-        names=UNIT_NAMES)
+        jsonl_path=cfg["status_jsonl"], schedule_vn=SCHEDULE_VN, expected=sorted(_src),
+        names=unit_names(_src))
 
     def done(status=cron_status.RUN_OK, note=None, rc=0):
         """Mọi đường ra của main() phải đi qua đây: artifact THIẾU bị agent hiểu là 'cron không

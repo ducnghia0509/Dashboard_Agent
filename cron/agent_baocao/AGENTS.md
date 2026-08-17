@@ -7,7 +7,7 @@ KSNB**. Bạn **chỉ báo, không sửa**: không kéo file, không nạp DB, k
 
 | Phần tin | Artifact (môi trường PROD) |
 |---|---|
-| Báo cáo ngày (12 đơn vị) | `/home/itadmin/AI_Dashboard_QT/AI_coding/logs/status_hqkdngay_daily_prod.json` |
+| Báo cáo ngày (các đơn vị) | `/home/itadmin/AI_Dashboard_QT/AI_coding/logs/status_hqkdngay_daily_prod.json` |
 | Dòng tiền | `/home/itadmin/AI_Dashboard_QT/AI_coding/logs/status_thuchi_daily_prod.json` |
 
 Tin gửi vào kênh thông báo của prod nên phải đọc artifact PROD. Bản test là cùng tên **bỏ** hậu tố
@@ -28,7 +28,8 @@ Mức lượt chạy:
 - `today`, `ngay_can` — hôm nay theo giờ VN, và ngày số liệu mà lượt đó đòi (= `today` − 1).
 - `schedule_vn` — mốc giờ cron của job (`"17:00"` / `"13:00"`). Dùng cái này, đừng hard-code.
 - `cron_status` — `ok` | `bi_tat` | `dung_som`, kèm `note` giải thích.
-- `expected_count` — số mục PHẢI có (12 đơn vị với báo cáo ngày).
+- `expected_count` / `expected_chinh_count` — số mục PHẢI có. **Đọc từ artifact, đừng giả định là 12**:
+  danh sách đơn vị lấy động từ cấu hình deriver, thêm/bớt đơn vị là con số này đổi theo.
 - `summary` — đếm theo state, chỉ tính kỳ chính.
 
 Mỗi phần tử `records`: `ten` (tên tiếng Việt, **dùng nguyên văn**), `state`, `ly_do` (câu tiếng Việt,
@@ -47,7 +48,7 @@ không đoán nguyên nhân. Trường `ly_do_ky_thuat` (nếu có) là câu l�
 | `loi_nap` | **Có file báo cáo, nhưng không có dữ liệu** |
 | `chua_co_file` | **Chưa có file báo cáo** |
 
-Cron đã lo phần khó, đừng làm lại: mẫu số là 12 đơn vị kỳ vọng (không phải số file tìm thấy), đơn vị vắng
+Cron đã lo phần khó, đừng làm lại: mẫu số là danh sách đơn vị kỳ vọng (không phải số file tìm thấy), đơn vị vắng
 mặt hoàn toàn ở nguồn vẫn có bản ghi `chua_co_file`, và ca "file dựng sẵn cột cả tháng" đã được tách riêng
 thành `khong_xac_nhan` thay vì báo xanh. Bạn chỉ trình bày.
 
@@ -64,7 +65,8 @@ các mục.
 - `🟡`: **gom các đơn vị có `ly_do` GIỐNG NHAU thành một cụm**, lý do đặt trong ngoặc sau cụm đó, các cụm
   ngăn nhau bằng ` · `. Ví dụ: `An Taxi, Trạm sạc Vgreen (mới nhất 10/08, chậm 1 ngày) · HTX Xanh Tuyên
   Quang (file dựng sẵn cả tháng, chưa xác nhận được)`.
-- Dòng đầu gộp luôn tỉ lệ: `· đủ X/12` (X = `summary.du`). Không cần dòng đếm chi tiết riêng.
+- Dòng đầu gộp luôn tỉ lệ: `· đủ X/N` — X = `summary.du`, **N = `expected_chinh_count`** của chính artifact
+  đó, KHÔNG phải hằng số 12. Không cần dòng đếm chi tiết riêng.
 - **Chỉ dùng ký tự thường**: khoảng trắng để thụt dòng, `•` cho gạch đầu dòng. Không HTML entity
   (`&nbsp;`), không thẻ HTML, không bảng markdown.
 - **Không** đưa vào tin: `max_ngay=`, `so_ngay=`, `state`, tên file `.xlsx`, đường dẫn, mã đơn vị
