@@ -7,6 +7,7 @@
     "PHẢI GỘP HEADER THEO THỨ TỰ [10, 9]: dòng 9 ghi nhãn nhóm ('Giá trị' ở P, 'Tổng giá trị' ở S, 'Ngày tháng năm' ở K) còn dòng 10 mới là tên cột thật ('Giá trị bảo hiểm tài sản', 'Tổng phí phải nộp', 'Bắt đầu'). Khai [9,10] là cột P thành 'Giá trị' -> vẫn chạy nhưng lệch nghĩa.",
     "CỘT 'Giá trị bảo hiểm tài sản' (P) RỖNG với các hợp đồng BHTNDS (trách nhiệm dân sự — không có giá trị tài sản). Khai `bat_buoc: false` và ĐỪNG lọc theo nó, nếu không mất sạch nhóm TNDS.",
     "'Đơn vị tham gia BH' (cột W) CHÍNH LÀ NHÀ BẢO HIỂM (Bảo Việt Đông Đô, Bảo hiểm Ngân hàng...). Mapping liệt 'Nhà bảo hiểm' ở cột Chiều phân tích nhưng không khai cột nào — đây là cột đó. Tên viết dài và không nhất quán, khi vẽ donut nên gom theo tiền tố.",
+    "CỘT 'Vị trí tài sản' (X) LÀ ĐƠN VỊ GIỮ TÀI SẢN, map ra cost center được 84/120 dòng (Phú Quốc->PQ_DA, Cao bằng->CB_DA, Tân Thịnh->YB_DA, Quang sơn->QS_DA, Yên Bình->TT_DA, 'XDV Sơn tây'->ST_XDV). 36 dòng CÒN LẠI KHÔNG map được vì tên quá trơn hoặc không có trong danh mục: 'Sơn tây' (31 dòng — Sơn Tây có tới 5 cost center ST_SR/ST_XDV/ST_AT/ST_GD/ST_SR_61 nên đoán là gán bừa), 'Sếp Thịnh' 2, 'H0' 1, 'Ho Sơn tây' 1, 'Hưng Thịnh' 1. `giu_khi_khong_map` giữ nguyên dòng để TỔNG không hụt, nhưng khi bật lọc thì 36 dòng đó rơi — cần QLTS ghi rõ đơn vị thay vì địa danh trơn.",
     "File còn 6 sheet rác dùng chung với file Đăng kiểm ('Sheet1', 'Sheet1 (2)', 'Sheet2', 'Sheet3', 'Sheet4', 'công thức tính bảo hiểm') — CỐ Ý chỉ đọc 'Tổng hợp'.",
     "LỌC THEO `dim1` (Loại bảo hiểm), TUYỆT ĐỐI KHÔNG lọc theo `payload.maTaiSan`: dòng 48 là hợp đồng BẢO HIỂM CHÁY NỔ cho căn hộ, phí 5.060.000 đ, KHÔNG có mã tài sản (bảo hiểm bất động sản chứ không phải thiết bị). Lọc theo mã tài sản là mất trắng CẢ NHÓM BHCN mà tổng phí vẫn 'trông hợp lý' — đã dính đúng lỗi này lúc dựng spec 17/08/2026."
   ],
@@ -46,7 +47,8 @@
     "payload.soNgayConLai": { "header": "Số ngày còn lại/quá hạn", "kieu": "so", "bat_buoc": false },
     "payload.phiBH":        { "header": "Phí BH", "kieu": "so", "he_so": 1e-9, "bat_buoc": false },
     "payload.tongPhi":      { "header": "Tổng phí phải nộp", "kieu": "so", "he_so": 1e-9, "bat_buoc": false },
-    "payload.viTri":        { "header": "Vị trí tài sản", "bat_buoc": false }
+    "payload.viTri":        { "header": "Vị trí tài sản", "bat_buoc": false },
+    "cost_center":          { "header": "Vị trí tài sản", "chuan_hoa": "cc_qlts", "giu_khi_khong_map": true, "bat_buoc": false }
   },
   "loc": [
     { "cot": "dim1", "dieu_kien": "khac_rong" }
