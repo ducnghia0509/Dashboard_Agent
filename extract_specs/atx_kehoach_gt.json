@@ -1,0 +1,43 @@
+{
+  "id": "atx_kehoach_gt",
+  "_mo_ta": "KẾ HOẠCH DOANH THU 12 tháng của khối KD Dịch vụ An Taxi — sheet 'KHDT' phần A GIÁ TRỊ. Nguồn: KEHOACH/baocaokehoachthang/7.AnTX.OO.M.<yyyymm>.Kehoachthang.xlsx (về VPS 17/08/2026). Đây là file mà `app/metrics/antaxi.py::_THIEU_KE_HOACH` ghi 'CHƯA về VPS'.",
+  "_bay": [
+    "GLOB PHẢI GHIM TIỀN TỐ '7.AnTX.' — thư mục `baocaokehoachthang` chứa MỖI KHỐI MỘT FILE (1.SR, 2.XDV, 3.TS, 5.HT, 6.XVP, 7.AnTX) và tất cả đều tên '*.Kehoachthang.xlsx'. Glob rộng là nạp kế hoạch của khối khác vào report_type này; `_ghi` xoá theo (report_type, source_file) nên KHÔNG chặn được.",
+    "MỘT file cấp kế hoạch cho CẢ 12 THÁNG — kỳ lấy từ CỘT (G..R = 'Tháng 1'..'Tháng 12'), KHÔNG lấy theo tên file. '202608' trong tên chỉ là kỳ phát hành bản kế hoạch.",
+    "BẢNG BA TẦNG, cùng một cột: Tổng (dòng 'Khối KD Dịch vụ An Taxi') / Nhóm (DT_BANXE_TQ + DT_TAXI + DT_KHAC) / Chi tiết (3 dòng 'DT cung cấp dịch vụ bằng xe …' nằm TRONG DT_TAXI). Cộng cả bảng là nhân đôi — lọc `dim2` trước khi cộng. Backend nên đọc thẳng dòng Tổng (quy tắc 3 của `antaxi.py`).",
+    "Phần B SẢN LƯỢNG của CHÍNH sheet này nằm ở spec `atx_kehoach_sl` (đơn vị XE, he_so khác) — hai spec không gộp được vì `cot_thang.he_so` chỉ có một, và cùng report_type trên cùng file thì cái chạy sau xoá sạch cái trước.",
+    "Dòng 'Doanh thu bán xe Thương quyền' chỉ có ô F (6 tháng cuối năm) = 0, không có tháng nào -> không sinh bản ghi. Đúng, không phải mất dữ liệu.",
+    "ĐỪNG lẫn với kế hoạch doanh thu đã có sẵn trong `ATX_DTHU.amount2` (cột 'Doanh thu Kế hoạch' của báo cáo QTVH tháng): hai nguồn phải khớp nhau, lệch là dấu hiệu nghiệp vụ sửa một bên. T1 file kế hoạch = 3,13067886 tỷ."
+  ],
+  "_kiem_chung": [
+    "Σ Nhóm = dòng Tổng ở MỌI kỳ. T7: 0 + 3,22875 + 0,25 = 3,47875 tỷ. T12: 4,3047 + 0,2 = 4,5047 tỷ.",
+    "Σ Chi tiết = DT_TAXI ở mọi kỳ. T7: 3,16575 + 0,063 = 3,22875 tỷ.",
+    "Cả năm (Σ 12 tháng) dòng Tổng = 40,955889098 tỷ = ô D3 'Tổng năm' của file.",
+    "T8 Tổng = 3,47875 tỷ · DT_TAXI_XECT = 3,16575 tỷ (ô N6)."
+  ],
+  "report_type": "ATX_KH",
+  "row_index_base": 8000000,
+  "khoi": "Khối KD Dịch vụ An Taxi",
+  "nguon": {
+    "folder": "KEHOACH/baocaokehoachthang",
+    "file_glob": "7.AnTX.*.Kehoachthang.xlsx",
+    "sheet": { "ten": "KHDT" }
+  },
+  "header": { "dong": 2 },
+  "dong_bat_dau": 3,
+  "dong_ket_thuc": 9,
+  "kiem_tra_o": [
+    { "o": "C2", "bang": "Khối" },
+    { "o": "G2", "bang": "Tháng 1" },
+    { "o": "B3", "bang": "GIÁ TRỊ" },
+    { "o": "C3", "bang": "An Taxi" }
+  ],
+  "chieu_co_dinh": { "dim3": "GIÁ TRỊ" },
+  "cot": {
+    "dim1": { "header": "Khối", "chuan_hoa": "kh_khoi_dong" }
+  },
+  "ban_ghi": "moi_cot_thang",
+  "cot_thang": { "tu": "G", "den": "R", "he_so": 1e-9 },
+  "loc": [{ "cot": "dim2", "dieu_kien": "khac_rong" }],
+  "payload_them": { "unit": "ty", "loai": "kehoach" }
+}

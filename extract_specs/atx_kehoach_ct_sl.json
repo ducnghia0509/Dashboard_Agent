@@ -1,0 +1,43 @@
+{
+  "id": "atx_kehoach_ct_sl",
+  "_mo_ta": "MỤC TIÊU VẬN HÀNH đếm bằng SỐ LƯỢNG của khối An Taxi — sheet 'CT Vận hành' bản 7.AnTX: số cuốc chạy hoàn thành (CT36) và số ngày phát sinh doanh thu (CT47), T7..T12. `SL_CUOC` chính là 'keHoachSanLuong' mà `app/metrics/antaxi.py` liệt kê trong `_THIEU_KE_HOACH` từ ngày dựng màn.",
+  "_bay": [
+    "Tách khỏi `atx_kehoach_ct_gt` vì ĐƠN VỊ (cuốc/ngày, he_so = 1) — `cot_thang.he_so` mỗi spec một giá trị. Cùng report_type trên cùng file cũng không được: `_ghi` xoá theo (report_type, source_file).",
+    "BỎ dòng 'Số lượng xe chạy' dù cùng đơn vị đếm: nó lặp y hệt sheet KHDT đã nạp thành ATX_KH_SL (148 xe/tháng). Hai nguồn cho một con số, sớm muộn lệch.",
+    "Dải tháng E..J (T7..T12) — xem `atx_kehoach_ct_gt.json` để biết vì sao không phải F..K.",
+    "'Số lượng cuốc chạy' của kế hoạch là cuốc HOÀN THÀNH (nhãn file ghi rõ trong ngoặc). Vế thực hiện phải lấy `ATX_CHUYEN` dim1='Chuyến hoàn thành', KHÔNG lấy 'Tổng chuyến' — mẫu số khác nhau khoảng 17%."
+  ],
+  "_kiem_chung": [
+    "12 bản ghi (2 chỉ tiêu × 6 tháng). T7/T8 = 31.865 cuốc · T9 = 33.237 · T10 = 36.192 · T11 = 38.727 · T12 = 41.262. Σ 6 tháng = 213.148 = ô D8 của file.",
+    "SO_NGAY = 31/31/30/31/30/31 — đúng số ngày lịch của T7..T12, tức kế hoạch giả định chạy MỌI ngày.",
+    "Đối chiếu chéo với `atx_kehoach_ct_gt`: SL_CUOC T7 (31.865) × DT_BQ_CUOC (109.174 đ) = 3,478,750,910 đ ≈ ATX_KH T7 (3.478.750.000 đ), lệch 910 đ do file làm tròn đơn giá — KHÔNG phải lỗi đọc."
+  ],
+  "report_type": "ATX_KH_CT_SL",
+  "row_index_base": 8030000,
+  "khoi": "Khối KD Dịch vụ An Taxi",
+  "nguon": {
+    "folder": "KEHOACH/baocaokehoachthang",
+    "file_glob": "7.AnTX.*.Kehoachthang.xlsx",
+    "sheet": { "ten": "CT Vận hành" }
+  },
+  "header": { "dong": 4 },
+  "dong_bat_dau": 5,
+  "dong_ket_thuc": 16,
+  "kiem_tra_o": [
+    { "o": "B1", "bang": "ĐĂNG KÝ CHỈ TIÊU VẬN HÀNH" },
+    { "o": "B2", "bang": "An Taxi" },
+    { "o": "E4", "bang": "Tháng 7" },
+    { "o": "B8", "bang": "Số lượng cuốc chạy" }
+  ],
+  "chieu_co_dinh": { "dim2": "Tổng" },
+  "cot": {
+    "dim1": { "header": "Kế hoạch/Mục tiêu cần đạt", "chuan_hoa": "kh_ct_dong" },
+    "payload.dvt": { "header": "Đvt", "kieu": "cat" }
+  },
+  "ban_ghi": "moi_cot_thang",
+  "cot_thang": { "tu": "E", "den": "J", "he_so": 1.0 },
+  "loc": [
+    { "cot": "dim1", "dieu_kien": "thuoc", "gia_tri": ["SL_CUOC", "SO_NGAY"] }
+  ],
+  "payload_them": { "unit": "so", "loai": "kehoach" }
+}

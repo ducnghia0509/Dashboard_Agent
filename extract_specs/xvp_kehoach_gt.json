@@ -1,0 +1,80 @@
+{
+  "id": "xvp_kehoach_gt",
+  "_mo_ta": "KẾ HOẠCH DOANH THU 12 tháng khối KD Vận tải Taxi Xanh (XVP) — sheet 'KHDT' phần A GIÁ TRỊ, file 6.XVP.OO.M.<yyyymm>.Kehoachthang.xlsx (về VPS 17/08/2026).",
+  "_bay": [
+    "GLOB PHẢI GHIM TIỀN TỐ '6.XVP.*.Kehoachthang.xlsx' — thư mục `baocaokehoachthang` chứa MỖI KHỐI MỘT FILE (1.SR, 2.XDV, 3.TS, 5.HT, 6.XVP, 7.AnTX), tất cả cùng đuôi '*.Kehoachthang.xlsx'. Glob rộng là nạp kế hoạch khối khác vào report_type này, và `_ghi` xoá theo (report_type, source_file) nên KHÔNG chặn được.",
+    "MỘT file cấp kế hoạch cho CẢ 12 THÁNG — kỳ lấy từ CỘT (G..R = 'Tháng 1'..'Tháng 12'), KHÔNG theo tên file.",
+    "BẢNG PHÂN CẤP, mọi tầng có số ở CÙNG một cột — `dim2` phân biệt Tổng / Nhóm / Chi tiết. Cộng cả bảng là nhân đôi: lọc `dim2` trước khi cộng, hoặc đọc thẳng dòng `dim2='Tổng'`.",
+    "Tách GIÁ TRỊ / SẢN LƯỢNG thành hai spec vì ĐƠN VỊ khác (`cot_thang.he_so` mỗi spec một giá trị) và vì `_ghi` xoá theo (report_type, source_file).",
+    "FILE GHI KHỐI LÀ 'Khối KD Vận tải Taxi XVP' nhưng danh mục chuẩn (master_data.khoi mã 6) là 'Khối KD Vận tải Taxi Xanh' — spec ghi theo DANH MỤC để thanh lọc theo khối trên dashboard bắt được, đừng đổi theo file.",
+    "Chỉ HAI TẦNG: Tổng và 5 nhóm nguồn thu (dịch vụ taxi, HTKD, xe thuê khoán, phí quản lý xe HTKD, phí quản lý HTX) — không có tầng Chi tiết như bản An Taxi/Xe tải.",
+    "'Doanh thu phí quản lý xe HTKD' và 'Doanh thu phí quản lý HTX' là HAI nhóm khác nhau, nhãn chỉ khác đúng hai chữ — hook khớp CHÍNH XÁC chứ không 'chứa' để không trộn."
+  ],
+  "_kiem_chung": [
+    "Σ 5 nhóm = dòng Tổng ở mọi kỳ. T7: 30,343970626 + 6,238342666 + 4,97376 + 9,933666666 + 0,175 = 51,664739958 tỷ = ô M3.",
+    "Cả năm dòng Tổng = 511,563470492 tỷ = ô D3.",
+    "DT_TAXI T8 = 33,007072563 tỷ — khớp ô 'Cộng tháng' của sheet 'KH ngày' (33,007072567; lệch 4 đồng do làm tròn từng ngày trong chính file)."
+  ],
+  "report_type": "XVP_KH",
+  "row_index_base": 8300000,
+  "khoi": "Khối KD Vận tải Taxi Xanh",
+  "nguon": {
+    "folder": "KEHOACH/baocaokehoachthang",
+    "file_glob": "6.XVP.*.Kehoachthang.xlsx",
+    "sheet": {
+      "ten": "KHDT"
+    }
+  },
+  "header": {
+    "dong": 2
+  },
+  "dong_bat_dau": 3,
+  "dong_ket_thuc": 8,
+  "kiem_tra_o": [
+    {
+      "o": "C2",
+      "bang": "Khối"
+    },
+    {
+      "o": "G2",
+      "bang": "Tháng 1"
+    },
+    {
+      "o": "B3",
+      "bang": "GIÁ TRỊ"
+    },
+    {
+      "o": "C3",
+      "bang": "XVP"
+    },
+    {
+      "o": "C4",
+      "bang": "Doanh thu  dịch vụ taxi"
+    }
+  ],
+  "chieu_co_dinh": {
+    "dim3": "GIÁ TRỊ"
+  },
+  "cot": {
+    "dim1": {
+      "header": "Khối",
+      "chuan_hoa": "kh_khoi_dong"
+    }
+  },
+  "ban_ghi": "moi_cot_thang",
+  "cot_thang": {
+    "tu": "G",
+    "den": "R",
+    "he_so": 1e-09
+  },
+  "loc": [
+    {
+      "cot": "dim2",
+      "dieu_kien": "khac_rong"
+    }
+  ],
+  "payload_them": {
+    "unit": "ty",
+    "loai": "kehoach"
+  }
+}

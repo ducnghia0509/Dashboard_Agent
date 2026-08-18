@@ -1,0 +1,148 @@
+{
+  "id": "atx_kehoach_ngay_sl",
+  "_mo_ta": "KẾ HOẠCH SỐ XE CHẠY TỪNG NGÀY của khối An Taxi — sheet 'KH ngày' bản 7.AnTX, dòng 'Số lượng xe chạy/ ngày'.",
+  "_bay": [
+    "Tách khỏi `atx_kehoach_ngay_gt` vì ĐƠN VỊ (xe, he_so = 1) — xem `atx_kehoach_sl.json`.",
+    "SỐ LẺ LÀ ĐÚNG THEO FILE: 67,74 / 64,52 xe/ngày (= 2.100/31 và 2.000/31) — nghiệp vụ rải chỉ tiêu tháng theo ngày chứ không đăng ký số xe nguyên chiếc. ĐỪNG làm tròn khi nạp; làm tròn lúc hiển thị.",
+    "Năm khối tháng và cách chốt `chi_doc_khi_o` giống bản doanh thu — xem `atx_kehoach_ngay_gt.json`.",
+    "CHỐT NHẬN DẠNG KHỐI LÀ BẮT BUỘC Ở SHEET NÀY: `specs_for_path` chọn spec theo THƯ MỤC và BỎ QUA `file_glob`, nên nút 'Phân tích AI'/'Đồng bộ & nạp' trên MỘT file kế hoạch sẽ chạy TẤT CẢ spec của thư mục lên nó. Sheet 'KH ngày' của An Taxi và XVP giống hệt nhau (cùng tiêu đề B1, cùng nhãn dòng) và sheet 'KHngày' của Showroom cũng khớp tên sau chuẩn hoá — không có chốt thì spec này đọc file khối khác và đẻ ra 31 dòng kế hoạch SAI dưới một source_file mới, `_ghi` không chặn được vì nó chỉ xoá theo (report_type, source_file). Đã kiểm chéo 6 spec × 6 file ngày 18/08/2026: có chốt thì 0 lượt đọc nhầm."
+  ],
+  "_kiem_chung": [
+    "T8: 31 bản ghi, Σ = 2.042,419355 (con số này KHÔNG có nghĩa nghiệp vụ — số xe không cộng dồn theo ngày được, chỉ dùng để soát đã đọc đủ 31 cột); bình quân 65,9 xe/ngày.",
+    "Mức xe/ngày (64-75) THẤP HƠN hẳn 148 xe của `ATX_KH_SL` cùng tháng: 148 là số xe dự kiến phát sinh doanh thu trong THÁNG, còn đây là số xe chạy MỖI NGÀY. Hai chỉ tiêu khác nhau, đừng chấm %HT chéo."
+  ],
+  "report_type": "ATX_KH_NGAY_SL",
+  "row_index_base": 8060000,
+  "khoi": "Khối KD Dịch vụ An Taxi",
+  "nguon": {
+    "folder": "KEHOACH/baocaokehoachthang",
+    "file_glob": "7.AnTX.*.Kehoachthang.xlsx",
+    "sheet": {
+      "ten": "KH ngày"
+    }
+  },
+  "ky_thang_tu_ten_file": {
+    "regex": "\\.M\\.(\\d{4})(\\d{2})\\."
+  },
+  "chieu_co_dinh": {
+    "dim1": "SL_XE",
+    "dim2": "Tổng"
+  },
+  "ban_ghi": "moi_cot_ngay",
+  "vung": [
+    {
+      "ten": "khối tháng @dòng 2 · số xe",
+      "chi_doc_khi_o": [
+        {
+          "o": "B2",
+          "bang": "THÁNG {thang}"
+        }
+      ],
+      "header": {
+        "dong": 3
+      },
+      "dong_bat_dau": 4,
+      "dong_ket_thuc": 4,
+      "cot_ngay": {
+        "dong": 3,
+        "tu": "D",
+        "den": "AH",
+        "he_so": 1.0
+      }
+    },
+    {
+      "ten": "khối tháng @dòng 6 · số xe",
+      "chi_doc_khi_o": [
+        {
+          "o": "B6",
+          "bang": "THÁNG {thang}"
+        }
+      ],
+      "header": {
+        "dong": 7
+      },
+      "dong_bat_dau": 8,
+      "dong_ket_thuc": 8,
+      "cot_ngay": {
+        "dong": 7,
+        "tu": "D",
+        "den": "AH",
+        "he_so": 1.0
+      }
+    },
+    {
+      "ten": "khối tháng @dòng 11 · số xe",
+      "chi_doc_khi_o": [
+        {
+          "o": "B11",
+          "bang": "THÁNG {thang}"
+        }
+      ],
+      "header": {
+        "dong": 12
+      },
+      "dong_bat_dau": 13,
+      "dong_ket_thuc": 13,
+      "cot_ngay": {
+        "dong": 12,
+        "tu": "D",
+        "den": "AH",
+        "he_so": 1.0
+      }
+    },
+    {
+      "ten": "khối tháng @dòng 16 · số xe",
+      "chi_doc_khi_o": [
+        {
+          "o": "B16",
+          "bang": "THÁNG {thang}"
+        }
+      ],
+      "header": {
+        "dong": 17
+      },
+      "dong_bat_dau": 18,
+      "dong_ket_thuc": 18,
+      "cot_ngay": {
+        "dong": 17,
+        "tu": "D",
+        "den": "AH",
+        "he_so": 1.0
+      }
+    },
+    {
+      "ten": "khối tháng @dòng 21 · số xe",
+      "chi_doc_khi_o": [
+        {
+          "o": "B21",
+          "bang": "THÁNG {thang}"
+        }
+      ],
+      "header": {
+        "dong": 22
+      },
+      "dong_bat_dau": 23,
+      "dong_ket_thuc": 23,
+      "cot_ngay": {
+        "dong": 22,
+        "tu": "D",
+        "den": "AH",
+        "he_so": 1.0
+      }
+    }
+  ],
+  "payload_them": {
+    "unit": "xe",
+    "loai": "kehoach_ngay"
+  },
+  "kiem_tra_o": [
+    {
+      "o": "B1",
+      "bang": "DỊCH VỤ TAXI"
+    },
+    {
+      "o": "B6",
+      "bang": "THÁNG 9"
+    }
+  ]
+}

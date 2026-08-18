@@ -50,6 +50,9 @@ CẤU TRÚC SPEC (khoá tiếng Việt cho kế toán/BA đọc được):
                                          // lấy từ tên file -> ngày cuối tháng) · "ngay_trong_thang"
                                          // (ô là SỐ NGÀY, năm+tháng từ tên file). Hai kiểu này cho
                                          // báo cáo xếp mỗi kỳ MỘT DÒNG thay vì một cột.
+  "cot_thang": {"tu": "E", "den": "J", "he_so": 1.0,
+                "kieu": "nguong"},       // tuỳ chọn — ô là ngưỡng có toán tử ("≥95%", "<4%"):
+                                         // amount = số, payload.toan_tu = '>='/'<='/'<'/'='
   "ban_ghi": "moi_dong",                 // | "moi_cot_gia_tri" | "moi_cot_ngay"
                                          // | "moi_cot_thang" (xem dưới)
   "cot_gia_tri": [                       // chỉ dùng khi ban_ghi = "moi_cot_gia_tri":
@@ -172,6 +175,41 @@ def _so_co_rong(v, he_so=1.0):
         return float(s) * he_so
     except ValueError:
         return None
+
+
+# Ô NGƯỠNG: nghiệp vụ đăng ký mục tiêu vận hành bằng chuỗi có TOÁN TỬ — "≥95%", "≤10%", "<4%",
+# "<5". `_so` trả 0.0 cho những ô này nên `moi_cot_thang` bỏ qua chúng IM LẶNG: cả cụm chỉ tiêu
+# chất lượng của bản kế hoạch An Taxi/XVP/Trạm sạc (vận doanh, hủy chuyến, hoàn thành trên app,
+# xe nằm, bàn giao đúng hạn) rơi hết vào đây. Trước 18/08/2026 backend phải gõ cứng mấy ngưỡng
+# này từ file mapping (`antaxi.py::KPI_*`) — và mapping ghi KHÁC bản đăng ký kế hoạch (xe nằm 5%
+# vs 4%, hủy cuốc 15% vs 10%), tức số trên màn không phải chỉ tiêu nghiệp vụ đã ký.
+# KHÁC "ngưỡng ghi bằng LỜI" ("Nhỏ hơn 30% tồn kho", "Bằng 0 - cứ có 1 khách hàng quá hạn trừ
+# 5%…"): những ô đó KHÔNG parse được và vẫn phải chốt số với nghiệp vụ, `_nguong` trả None để
+# chúng tiếp tục bị bỏ chứ không đoán bừa.
+_RE_NGUONG = re.compile(r"^(>=|<=|=>|=<|>|<|≥|≤|=)?\s*([\d.,]+)\s*(%)?$")
+_TOAN_TU = {"≥": ">=", "=>": ">=", "≤": "<=", "=<": "<=", "": "=", None: "="}
+
+
+def _nguong(v, he_so=1.0):
+    """Ô ngưỡng -> (giá trị, toán tử) hoặc None nếu không phải ngưỡng số.
+
+    Toán tử được GIỮ LẠI (payload.toan_tu) chứ không quy hết về một chiều: "≥95%" và "<4%" chấm
+    đèn ngược nhau, mất toán tử là giao diện phải đoán chiều theo tên chỉ tiêu — đúng kiểu suy
+    diễn sinh lỗi im lặng khi nghiệp vụ đổi mục tiêu.
+    """
+    if isinstance(v, bool) or v is None:
+        return None
+    if isinstance(v, (int, float)):
+        return float(v) * he_so, "="
+    s = str(v).strip().replace(" ", "").replace("\u00a0", "")
+    if not s:
+        return None
+    m = _RE_NGUONG.match(s)
+    if not m:
+        return None
+    # "%" trong ô chỉ là ĐƠN VỊ, không quy đổi: file ghi "≥95%" thì ngưỡng là 95 (đơn vị %),
+    # đúng thang mà backend/FE đang dùng cho mọi tỷ lệ. Nhân/chia 100 ở đây là chỗ dễ lệch nhất.
+    return _so(m.group(2)) * he_so, _TOAN_TU.get(m.group(1), m.group(1))
 
 
 def _date(v):
@@ -434,6 +472,129 @@ def _sr_ct_dong(nhan):
     for key, ma in _SR_CT_DONG:
         if key in n:
             return {"dim1": ma, "dim2": "Tổng"}
+    return {}
+
+
+# ── Bản kế hoạch của 4 khối về VPS 17/08/2026: 3.TS (Trạm sạc) · 5.HT (Xe tải) · 6.XVP (Vận tải
+# Taxi XVP) · 7.AnTX (An Taxi). Bốn file DÙNG CHUNG một biểu mẫu sheet "KHDT": cột C là nhãn dòng,
+# cột G..R là 12 tháng, khối tách làm hai phần A GIÁ TRỊ / B SẢN LƯỢNG.
+# BẢNG PHÂN CẤP 3 TẦNG, và tầng nào cũng có số ở CÙNG một cột — cộng nhầm tầng là nhân đôi:
+#     Tổng   : dòng "Khối KD …" (số chính thức của khối)
+#     Nhóm   : các nguồn thu / nhóm sản lượng, Σ nhóm = Tổng (đã verify từng file, xem `_kiem_chung`)
+#     Chi tiết: dòng con của một nhóm (An Taxi: 3 dòng "DT cung cấp dịch vụ bằng xe …" nằm TRONG
+#               "Doanh thu từ hoạt động kinh doanh taxi"; Xe tải: 6 dòng đời xe nằm trong A200)
+# `dim2` mang đúng ba nhãn đó để backend chọn tầng, KHÔNG phải tự đoán theo tên dòng.
+# Khớp CHÍNH XÁC sau `_nd` (không "chứa"): "Doanh thu khác" là nhãn của một NHÓM ở An Taxi/Xe tải,
+# mà "chứa" thì nó cũng khớp "Doanh thu khác Kênh B2C" của bản Showroom — hai bảng mã khác nhau.
+_KH_KHOI = {
+    # ── 7.AnTX — Khối KD Dịch vụ An Taxi ──
+    "doanhthubanxethuongquyen": ("DT_BANXE_TQ", "Nhóm"),
+    "doanhthutuhoatdongkinhdoanhtaxi": ("DT_TAXI", "Nhóm"),
+    "dtcungcapdichvubangxecongty": ("DT_TAXI_XECT", "Chi tiết"),
+    "dtcungcapdichvubangxethuongquyen": ("DT_TAXI_XETQ", "Chi tiết"),
+    "dtcungcapdichvubangxethueapp": ("DT_TAXI_XEAPP", "Chi tiết"),
+    "doanhthukhac": ("DT_KHAC", "Nhóm"),
+    "soluongxechay": ("SL_XE", "Nhóm"),
+    # ── 3.TS — Khối KD Trạm sạc Vgreen ──
+    "doanhthubanhang": ("DT_BANHANG", "Nhóm"),
+    "tramsac": ("SL_TRAMSAC", "Chi tiết"),
+    "dichvukhac": ("SL_DVKHAC", "Chi tiết"),
+    # ── 6.XVP — Khối KD Vận tải Taxi XVP ──
+    "doanhthudichvutaxi": ("DT_TAXI", "Nhóm"),
+    "doanhthuhtkd": ("DT_HTKD", "Nhóm"),
+    "doanhthuxethuekhoan": ("DT_THUEKHOAN", "Nhóm"),
+    "doanhthuphiquanlyxehtkd": ("DT_PQL_HTKD", "Nhóm"),
+    "doanhthuphiquanlyhtx": ("DT_PQL_HTX", "Nhóm"),
+    "dichvutaxi": ("SL_TAXI", "Chi tiết"),
+    "htkd": ("SL_HTKD", "Chi tiết"),
+    "xethuekhoan": ("SL_THUEKHOAN", "Chi tiết"),
+    "phiquanlyxehtkd": ("SL_PQL_HTKD", "Chi tiết"),
+    "phiquanlyhtx": ("SL_PQL_HTX", "Chi tiết"),
+    # ── 5.HT — Khối KD Xe tải (Hưng Thịnh) ──
+    "doanhthubanxe": ("A200", "Nhóm"),
+    "sanluongbanxe": ("A200", "Nhóm"),
+    "xedaukeo440": ("T101_1", "Chi tiết"),
+    "xeben84": ("T101_2", "Chi tiết"),
+    "xediensanny": ("T101_3_SANNY", "Chi tiết"),
+    "xedienshacman": ("T101_3_SHACMAN", "Chi tiết"),
+    "xedienfaw": ("T101_3_FAW", "Chi tiết"),
+    "xediendongfeng": ("T101_3_DONGFENG", "Chi tiết"),
+    "doanhthutrusac": ("T101_4", "Nhóm"),
+    "sanluongtrusac": ("T101_4", "Nhóm"),
+    "doanhthuhoatdongtaichinh": ("T102", "Nhóm"),
+}
+# Nhãn quá dài để gõ nguyên văn (kèm cả công thức trong ngoặc) -> khớp theo TIỀN TỐ.
+_KH_KHOI_TIEN_TO = (
+    ("doanhthuhoahong", ("DT_HOAHONG", "Nhóm")),   # "…được hưởng( chia sẻ 750đ/kw, chi hộ, DV…)"
+)
+
+
+def _kh_khoi_dong(nhan):
+    """Nhãn cột C sheet KHDT (4 bản kế hoạch khối) -> {dim1: mã, dim2: cấp}.
+
+    Dòng không khai -> {} (bị `loc` loại). CỐ Ý không cảnh báo "không map được": sheet còn dòng
+    trống và dòng tiêu đề phần B, kêu lên là nhiễu. Đổi lại, mọi spec đều có `_kiem_chung` chốt
+    Σ Nhóm = dòng Tổng — nhãn mới xuất hiện mà không được khai sẽ lộ ra ở đó chứ không im.
+    """
+    n = _nd(nhan)
+    if n.startswith("khoikd"):        # "Khối KD Dịch vụ An Taxi", "Khối KD Xe tải", …
+        return {"dim1": "TONG", "dim2": "Tổng"}
+    got = _KH_KHOI.get(n)
+    if not got:
+        got = next((v for k, v in _KH_KHOI_TIEN_TO if n.startswith(k)), None)
+    return {"dim1": got[0], "dim2": got[1]} if got else {}
+
+
+# ── Sheet "CT Vận hành" của 4 bản kế hoạch trên. Nhãn ở cột B, dải tháng E..J (T7..T12) —
+# giống bản Showroom, KHÁC bản XDV (có thêm cột "Công thức tính" nên dải là F..K).
+# Mã ở cột A của FILE KHÔNG tin được: bản Trạm sạc gắn CT37 cho dòng "Năng suất Doanh thu/1NV"
+# nhưng giá trị lại là 42.726.780.000/1.054 bộ = giá trị bình quân MỘT BỘ, còn dòng CT35 "Năng
+# suất Sản lượng/1NV" (đvt ghi "bộ") lại mang 42.726.780.000/12 NV = tiền. Hai dòng bị hoán vị so
+# với nhãn. Vì vậy mã ở đây gắn theo Ý NGHĨA SỐ đã đối chiếu, và `payload.ma_file` giữ nguyên mã
+# của file để đối chất khi nghiệp vụ sửa biểu mẫu.
+_KH_CT_DONG = (
+    ("soluongcuocchay", "SL_CUOC"),
+    ("soluongxechay", "SL_XE"),
+    ("songayphatsinhdoanhthu", "SO_NGAY"),
+    ("doanhthubinhquanxengay", "DT_BQ_XE_NGAY"),
+    ("doanhthubinhquanngay", "DT_BQ_NGAY"),
+    ("doanhthubinhquancuoc", "DT_BQ_CUOC"),
+    ("giatribinhquanxeban", "GT_BQ_XE"),
+    ("tylehoanthanhtrenapp", "TL_APP"),
+    ("tylehoanthanhchuyen", "TL_HT_CHUYEN"),
+    ("tylevandoanh", "TL_VAN_DOANH"),
+    ("tylexenam", "TL_XE_NAM"),
+    ("tylehuychuyen", "TL_HUY_CHUYEN"),
+    ("tylebangiaothicongdunghan", "TL_DUNG_HAN"),
+    ("nangsuatdoanhthu", "NS_DT"),
+    ("nangsuatsanluong", "NS_SL"),
+    ("sanluongnvbanhang", "SL_NV"),
+    ("sanluongbanxe", "SL_BAN_XE"),
+    ("sanluongtramsacbanduoc", "SL_TRAMSAC"),
+    ("dontonta", "DON_TON"),
+    ("donton", "DON_TON"),
+    ("tonkho30ngay", "TON_30N"),
+    ("xetonkho30ngay", "TON_30N"),
+    ("hoahongduochuongdaxacnhan", "HH_DA_XN"),
+    ("hoahongduochuongchuaduocxacnhan", "HH_CHUA_XN"),
+    ("congnoquahandacococ", "CN_QH_COC"),
+    ("loinhuan", "LOI_NHUAN"),
+    ("doanhthu", "DOANH_THU"),
+)
+
+
+def _kh_ct_dong(nhan):
+    """Cột B sheet "CT Vận hành" -> mã chỉ tiêu. Dòng không khai -> {}.
+
+    Khớp kiểu "chứa" (nhãn có đuôi giải thích dài: "Số lượng xe chạy/xe phát sinh doanh thu",
+    "Số lượng cuốc chạy (cuốc hoàn thành)"), nên THỨ TỰ trong `_KH_CT_DONG` là thứ tự ưu tiên:
+    "doanhthubinhquanngay" phải đứng TRƯỚC "doanhthu", "soluongcuocchay" trước "soluongxechay"…
+    Bỏ quy tắc đó là mọi dòng doanh thu bình quân đều bị gắn DOANH_THU và đè lên nhau.
+    """
+    n = _nd(nhan)
+    for key, ma in _KH_CT_DONG:
+        if key in n:
+            return {"dim1": ma}
     return {}
 
 
@@ -702,6 +863,8 @@ _CHUAN_HOA = {
     "xdv_kh_cong": _xdv_kh_cong,
     "xdv_ct_dong": _xdv_ct_dong,
     "sr_ct_dong": _sr_ct_dong,
+    "kh_khoi_dong": _kh_khoi_dong,
+    "kh_ct_dong": _kh_ct_dong,
     "hoa": lambda v: str(v or "").strip().upper() or None,
     "cat": lambda v: str(v or "").strip() or None,
 }
@@ -1713,13 +1876,24 @@ def _extract_vung(spec, path):
             elif spec.get("ban_ghi") == "moi_cot_thang":
                 # Ô rỗng/0 bị bỏ: bản kế hoạch để trống các tháng chưa đăng ký (A230/A250 trống
                 # hết T1-T6). Giữ lại là đẻ ra "kế hoạch = 0" giả, và %HT sẽ chia cho 0.
+                # `kieu: "nguong"` — ô là chuỗi có toán tử ("≥95%", "<4%"), xem `_nguong`.
+                nguong_kieu = nc_thang.get("kieu") == "nguong"
                 for j, ngay_cot in thang_theo_cot:
-                    v = _so(row[j] if j < len(row) else None, float(nc_thang.get("he_so", 1.0)))
-                    if not v:
-                        continue
+                    o = row[j] if j < len(row) else None
+                    if nguong_kieu:
+                        ng = _nguong(o, float(nc_thang.get("he_so", 1.0)))
+                        if ng is None:
+                            continue
+                        v, toan_tu = ng
+                    else:
+                        v, toan_tu = _so(o, float(nc_thang.get("he_so", 1.0))), None
+                        if not v:
+                            continue
                     r2 = json.loads(json.dumps(base))
                     r2["ngay"] = ngay_cot
                     r2["amount"] = v
+                    if toan_tu:
+                        _dat(r2, "payload.toan_tu", toan_tu)
                     outs.append(r2)
             elif spec.get("ban_ghi") == "moi_cot_gia_tri":
                 for j, c in gt_idx:
