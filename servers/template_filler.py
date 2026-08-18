@@ -704,6 +704,30 @@ def _source_sheets(data: bytes) -> list:
         wb.close()
 
 
+def ky_mo_ho(file_name: str) -> bool:
+    """Tên file TỰ MÂU THUẪN về kỳ: khớp 'YYYYMM' xong CÒN DƯ đúng 2 chữ số mà 2 số đó CŨNG là
+    một tháng hợp lệ (vd 'B.1.TC.TCKT.M20250910' — 2025-09 hay 2025-10?).
+
+    Vì sao phải bắt: regex chỉ ăn 6 số đầu rồi nuốt phần đuôi, nên 3 file T10/T11/T12/2025 của
+    SRVF (M20250910/11/12) đều ra CÙNG kỳ 2025-09. Nạp vào là 3 dòng PTHU_TUOINO khác source_file
+    nằm chung một kỳ -> dashboard cộng 3 lần (~665 tỷ) còn T10-T12 rỗng, mà không báo gì.
+    Đoán bừa một trong hai nghĩa còn tệ hơn im lặng -> trả None, buộc đổi tên file ở nguồn.
+
+    KHÔNG đụng 2 quy ước hợp lệ đang dùng: báo cáo NGÀY ('.D.20260801.' = kỳ 2026-08, đuôi là
+    NGÀY 01 — nhận ra bằng marker '.D.'), và '.M.20260500.' của XDV (đuôi '00' không phải tháng).
+    Đồng bộ với sync_orchestrator._ten_ky_mo_ho."""
+    import re
+    if not file_name:
+        return False
+    m = re.search(r"(20\d{2})[.\-_]?(0[1-9]|1[0-2])", file_name)
+    if not m:
+        return False
+    duoi = file_name[m.end():m.end() + 3]
+    return (len(duoi) >= 2 and duoi[:2].isdigit() and 1 <= int(duoi[:2]) <= 12
+            and not (len(duoi) > 2 and duoi[2].isdigit())
+            and not re.search(r"\.D\.", file_name, re.IGNORECASE))
+
+
 def guess_period(file_name: str):
     """Suy kỳ 'YYYY-MM' từ tên file: 'YYYYMM' (202601), 'MM.YYYY' (05.2026),
     hoặc 'THÁNG mm NĂM yyyy' (Báo cáo tiền tập đoàn). Đồng bộ sync_orchestrator._guess_period."""
@@ -715,7 +739,7 @@ def guess_period(file_name: str):
         return f"{m.group(2)}-{int(m.group(1)):02d}"
     m = re.search(r"(20\d{2})[.\-_]?(0[1-9]|1[0-2])", file_name)   # 2026-01 / 202601
     if m:
-        return f"{m.group(1)}-{m.group(2)}"
+        return None if ky_mo_ho(file_name) else f"{m.group(1)}-{m.group(2)}"
     m = re.search(r"(0[1-9]|1[0-2])[.\-_](20\d{2})", file_name)     # 05.2026
     if m:
         return f"{m.group(2)}-{m.group(1)}"
@@ -769,6 +793,14 @@ def autofill_file(path: str, period: str = None, cong_ty: str = None, dry_run: b
         data = fh.read()
     fname = os.path.basename(path)
     period = period or guess_period(fname)
+    # Tên tự mâu thuẫn về kỳ (xem ky_mo_ho) -> DỪNG, không nạp mù: 3 file T10/T11/T12/2025 của
+    # SRVF cùng đọc ra 2025-09, nạp vào là dashboard cộng 3 lần ở một kỳ. Người truyền `period`
+    # thì tin người, chạy tiếp như cũ.
+    if not period and ky_mo_ho(fname):
+        return {"ok": False, "file": fname, "dry_run": dry_run, "mode": "ky_mo_ho",
+                "ky_mo_ho": True, "processed": [], "skipped_sheets": [], "any_processed": False,
+                "error": f"Tên file '{fname}' không nói rõ kỳ (đọc được cả 2 tháng). Đổi tên ở "
+                         f"nguồn theo đúng 1 tháng (vd M202510) rồi nạp lại."}
     comp = C.resolve_company(cong_ty, fname)   # công ty của file (để tra spec scoped, tránh lây B11)
     processed, skipped = [], []
     # Mốc "dòng có TRƯỚC lượt nạp này" + tập report_type lượt này SINH RA -> cuối hàm dọn loại CŨ

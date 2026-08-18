@@ -4370,6 +4370,15 @@ def _cmd_autofill_impl(args):
         data = fh.read()
     fname = os.path.basename(args.file)
     period = args.period or tf.guess_period(fname)
+    # TÊN FILE TỰ MÂU THUẪN VỀ KỲ -> DỪNG, đừng nạp (xem template_filler.ky_mo_ho). 'M20250910'
+    # đọc được cả 2025-09 lẫn 2025-10; cứ nạp thì 3 file T10/T11/T12 của SRVF cùng rơi vào 2025-09
+    # và dashboard cộng 3 lần. Có --period do người truyền thì tin người, chạy tiếp như cũ.
+    if not period and tf.ky_mo_ho(fname):
+        _out({"ok": False, "file": fname, "mode": "ky_mo_ho", "ky_mo_ho": True,
+              "error": f"Tên file '{fname}' không nói rõ kỳ (đọc được cả 2 tháng). Đổi tên ở "
+                       f"nguồn theo đúng 1 tháng (vd M202510) rồi nạp lại, hoặc nạp tay với "
+                       f"--period YYYY-MM."})
+        return
     headers = tf._all_sheet_headers(data)   # mở workbook 1 LẦN (file nặng load chậm)
 
     # File THU CHI (có sheet SD TIỀN): dòng tiền 03_DONGTIEN/03B/04_VAY được các EXTRACTOR
@@ -4661,6 +4670,28 @@ def _cmd_autofill_impl(args):
     #  - 03B_SODU_TIEN (số dư tiền): từ sheet 'SD TIỀN' (nếu file là Báo cáo Thu Chi).
     # Chạy SAU khi nạp xong (report_type CHIPHI/SDT riêng biệt -> KHÔNG đè dữ liệu autofill).
     # (KQKD đã chạy inline trong loop; 'derived' khởi tạo trước loop.)
+    # CHẤM ĐƯỢC CẢ Ở DRY-RUN: khối dẫn xuất ngay dưới bị chặn bởi `if not args.dry_run` (đúng —
+    # hầu hết extractor ghi thẳng DB, không có đường chạy khô), nên `--dry-run` trả `derived: []`
+    # cho MỌI file. Nút "Kiểm tra template" chấm theo đó nên báo error OAN cho nguồn mà số đến từ
+    # deriver chứ không từ router sheet: file tuổi nợ SRVF có 2 sheet skip_dup (cố ý bỏ, tránh đếm
+    # đôi với CĐKT) + 2 sheet need_human, không sheet nào "bóc được số", trong khi DB vẫn có đủ
+    # PTHU_TUOINO 2026-01..07 do derive_congno_tuoino sinh ra. Deriver NÀO có sẵn tham số
+    # write=False thì chạy khô được -> chạy đúng nhóm đó và ghi số thật vào `derived`.
+    # CHỈ deriver có HỢP ĐỒNG SKIP rõ ràng (trả {"skip": True} khi file không thuộc về nó) mới
+    # được gọi ở đây — gọi loại không có skip (vd derive_ga_congno_adv: mở luôn kết nối DB và trả
+    # blocks rỗng cho mọi file) thì file nào cũng có một dòng `derived` và nút kiểm tra sẽ báo
+    # "ready" khống cho cả những file nó chưa hề đọc được.
+    if args.dry_run:
+        try:
+            from derive_congno_tuoino import derive as _tuoino_dry
+            _d = _tuoino_dry(args.file, period, write=False)
+            if not _d.get("skip"):
+                derived.append({"kind": "PTHU_TUOINO (Tuổi nợ phải thu)", "dry_run": True,
+                                "ok": not _d.get("error"), "rows": _d.get("n_rows"),
+                                "sheet": _d.get("sheet"), "error": _d.get("error")})
+        except Exception as ex:  # noqa: BLE001
+            derived.append({"kind": "PTHU_TUOINO (Tuổi nợ phải thu)", "dry_run": True,
+                            "ok": False, "error": str(ex)[:150]})
     if not args.dry_run:
         for sheet, ck in congno_todo:   # TK131->PTHU, TK331->PTRA (tất định, report_type THẬT)
             try:

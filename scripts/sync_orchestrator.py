@@ -62,6 +62,30 @@ def _load_json(path, default):
         return default
 
 
+def _ten_ky_mo_ho(file_name: str) -> bool:
+    """Tên file TỰ MÂU THUẪN về kỳ: khớp 'YYYYMM' xong CÒN DƯ đúng 2 chữ số mà 2 số đó CŨNG là
+    một tháng hợp lệ (vd 'B.1.TC.TCKT.M20250910' — 2025-09 hay 2025-10?).
+
+    Regex dưới chỉ ăn 6 số đầu rồi nuốt phần đuôi, nên 3 file T10/T11/T12/2025 của SRVF
+    (M20250910/11/12) đều ra CÙNG kỳ 2025-09 — nạp vào là 3 dòng PTHU_TUOINO khác source_file
+    chung một kỳ, dashboard cộng 3 lần còn T10-T12 rỗng, im lặng. Thà không có kỳ (người đổi tên
+    file ở nguồn) còn hơn đoán bừa một trong hai nghĩa.
+
+    KHÔNG đụng 2 quy ước hợp lệ đang dùng: báo cáo NGÀY ('.D.20260801.' = kỳ 2026-08, đuôi là
+    NGÀY) và '.M.20260500.' của XDV (đuôi '00' không phải tháng).
+    Đồng bộ với template_filler.ky_mo_ho."""
+    import re
+    if not file_name:
+        return False
+    m = re.search(r"(20\d{2})[.\-_]?(0[1-9]|1[0-2])", file_name)
+    if not m:
+        return False
+    duoi = file_name[m.end():m.end() + 3]
+    return (len(duoi) >= 2 and duoi[:2].isdigit() and 1 <= int(duoi[:2]) <= 12
+            and not (len(duoi) > 2 and duoi[2].isdigit())
+            and not re.search(r"\.D\.", file_name, re.IGNORECASE))
+
+
 def _guess_period(file_name: str):
     """Suy kỳ 'YYYY-MM' từ tên file: 'YYYYMM'/'YYYY-MM' (202601), 'MM.YYYY' (05.2026),
     hoặc 'THÁNG mm NĂM yyyy' (Báo cáo tiền tập đoàn). Không nhận ra -> None."""
@@ -74,7 +98,7 @@ def _guess_period(file_name: str):
         return f"{m.group(2)}-{int(m.group(1)):02d}"
     m = re.search(r"(20\d{2})[.\-_]?(0[1-9]|1[0-2])", file_name)
     if m:
-        return f"{m.group(1)}-{m.group(2)}"
+        return None if _ten_ky_mo_ho(file_name) else f"{m.group(1)}-{m.group(2)}"
     m = re.search(r"(0[1-9]|1[0-2])[.\-_](20\d{2})", file_name)
     if m:
         return f"{m.group(2)}-{m.group(1)}"
@@ -95,6 +119,10 @@ def _period_for(file_name: str, avail: dict, company: str = None):
     p = _guess_period(file_name)
     if p:
         return p
+    # Tên tự mâu thuẫn (xem _ten_ky_mo_ho) -> KHÔNG được lấp bằng 'month' của metadata: metadata
+    # cũng chỉ đọc 6 số đầu nên sẽ trả lại đúng cái kỳ sai vừa từ chối (M20250910 -> month=9).
+    if _ten_ky_mo_ho(file_name):
+        return None
     import re
     m = (avail.get((company, file_name), {}) or {}).get("month")
     if not m:
