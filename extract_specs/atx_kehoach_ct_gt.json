@@ -1,0 +1,44 @@
+{
+  "id": "atx_kehoach_ct_gt",
+  "_mo_ta": "MỤC TIÊU VẬN HÀNH tính bằng TIỀN của khối An Taxi — sheet 'CT Vận hành' bản kế hoạch 7.AnTX, cột 'Tháng 7'..'Tháng 12'. Ba chỉ tiêu bình quân mà mapping 6.Antaxi (sheet 'Chỉ tiêu VHKD Antaxi' dòng 9/13/14) đăng ký mục tiêu nhưng cột 'Nguồn dữ liệu' ghi 'Chưa có ổ'.",
+  "_bay": [
+    "SHEET 'CT Vận hành' MỖI BẢN KẾ HOẠCH MỘT KIỂU — bản An Taxi KHÔNG có cột 'Công thức tính' nên dải tháng là E..J (bản XDV có cột đó, dải F..K). Dùng sai dải là lệch kỳ ĐÚNG MỘT THÁNG trên toàn bộ dữ liệu mà spec vẫn 'chạy'. Chốt bằng `kiem_tra_o` E4 = 'Tháng 7'.",
+    "Sheet chỉ có T7..T12 ('ĐĂNG KÝ CHỈ TIÊU VẬN HÀNH 6 THÁNG CUỐI NĂM'). Cột D là 'Tổng 6 tháng cuối năm', nằm NGOÀI dải nên không lọt vào — đừng nới `tu` về D.",
+    "BỎ 3 dòng TRÙNG NGUỒN: 'Doanh thu' (CT33) và 'Số lượng xe chạy' lặp đúng số của sheet KHDT đã nạp thành ATX_KH/ATX_KH_SL; 'Lợi nhuận' (CT34) trống toàn bộ trong file — cả 6 bản kế hoạch khối đều bỏ trống dòng này, nên chỉ tiêu #34 của màn Tổng quan vẫn CHƯA có nguồn, đừng lấy số gần giống thế chỗ.",
+    "MÃ Ở CỘT A KHÔNG TIN ĐƯỢC (xem `_kh_ct_dong` trong scripts/spec_extract.py) — dim1 gắn theo NHÃN dòng.",
+    "'Doanh thu bình quân/cuốc' là số ĐĂNG KÝ CỐ ĐỊNH 109.174 đ cho cả 6 tháng, không phải công thức theo tháng. Vế thực hiện tương ứng (ô I191 báo cáo QTVH) chia cho cuốc HOÀN THÀNH — xem chú thích (b) đầu `app/metrics/antaxi.py`, hai bên phải cùng mẫu số mới so được."
+  ],
+  "_kiem_chung": [
+    "18 bản ghi (3 chỉ tiêu × 6 tháng), đơn vị TỶ đồng như mọi nguồn tiền khác.",
+    "T7: DT_BQ_CUOC = 0,000109174 · DT_BQ_NGAY = 0,112217742 · DT_BQ_XE_NGAY = 0,000758228 tỷ.",
+    "Đối chiếu chéo: DT_BQ_NGAY T7 × 31 ngày = 3,478750 tỷ = đúng ATX_KH T7 dòng Tổng. T9: 0,120951667 × 30 = 3,62855 tỷ = ATX_KH T9. Khớp tuyệt đối.",
+    "DT_BQ_XE_NGAY T7 = 0,112217742 / 148 xe = 0,000758228 tỷ — khớp ô E11 của file."
+  ],
+  "report_type": "ATX_KH_CT",
+  "row_index_base": 8020000,
+  "khoi": "Khối KD Dịch vụ An Taxi",
+  "nguon": {
+    "folder": "KEHOACH/baocaokehoachthang",
+    "file_glob": "7.AnTX.*.Kehoachthang.xlsx",
+    "sheet": { "ten": "CT Vận hành" }
+  },
+  "header": { "dong": 4 },
+  "dong_bat_dau": 5,
+  "dong_ket_thuc": 16,
+  "kiem_tra_o": [
+    { "o": "B1", "bang": "ĐĂNG KÝ CHỈ TIÊU VẬN HÀNH" },
+    { "o": "B2", "bang": "An Taxi" },
+    { "o": "E4", "bang": "Tháng 7" }
+  ],
+  "chieu_co_dinh": { "dim2": "Tổng" },
+  "cot": {
+    "dim1": { "header": "Kế hoạch/Mục tiêu cần đạt", "chuan_hoa": "kh_ct_dong" },
+    "payload.dvt": { "header": "Đvt", "kieu": "cat" }
+  },
+  "ban_ghi": "moi_cot_thang",
+  "cot_thang": { "tu": "E", "den": "J", "he_so": 1e-9 },
+  "loc": [
+    { "cot": "dim1", "dieu_kien": "thuoc", "gia_tri": ["DT_BQ_CUOC", "DT_BQ_NGAY", "DT_BQ_XE_NGAY"] }
+  ],
+  "payload_them": { "unit": "ty", "loai": "kehoach" }
+}

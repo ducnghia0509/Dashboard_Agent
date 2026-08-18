@@ -1,0 +1,81 @@
+{
+  "id": "tsac_kehoach_ct_gt",
+  "_mo_ta": "MỤC TIÊU VẬN HÀNH bằng TIỀN của khối Trạm sạc — hoa hồng đã/chưa được xác nhận (CT41/CT42), sheet 'CT Vận hành' bản 3.TS.",
+  "_bay": [
+    "GLOB PHẢI GHIM TIỀN TỐ '3.TS.*.Kehoachthang.xlsx' — thư mục `baocaokehoachthang` chứa MỖI KHỐI MỘT FILE (1.SR, 2.XDV, 3.TS, 5.HT, 6.XVP, 7.AnTX), tất cả cùng đuôi '*.Kehoachthang.xlsx'. Glob rộng là nạp kế hoạch khối khác vào report_type này, và `_ghi` xoá theo (report_type, source_file) nên KHÔNG chặn được.",
+    "SHEET 'CT Vận hành' MỖI BẢN KẾ HOẠCH MỘT KIỂU — bản này KHÔNG có cột 'Công thức tính' nên dải tháng là E..J (bản XDV có cột đó, dải F..K). Sai dải là lệch kỳ ĐÚNG MỘT THÁNG trên toàn bộ dữ liệu mà spec vẫn 'chạy'. Chốt bằng `kiem_tra_o` E4.",
+    "Sheet chỉ có T7..T12 ('ĐĂNG KÝ CHỈ TIÊU VẬN HÀNH 6 THÁNG CUỐI NĂM'). Cột D là tổng 6 tháng cuối năm, nằm NGOÀI dải — đừng nới `tu` về D.",
+    "MÃ Ở CỘT A CỦA FILE KHÔNG TIN ĐƯỢC (bản Trạm sạc hoán vị CT35/CT37 so với ý nghĩa số) — dim1 gắn theo NHÃN dòng, xem `_kh_ct_dong` trong scripts/spec_extract.py.",
+    "CHƯA NẠP hai dòng 'Năng suất Doanh thu/1NV' và 'Năng suất Sản lượng/1NV' vì FILE TỰ MÂU THUẪN: ô E8 (gắn CT37, nhãn 'Năng suất Doanh thu/1NV') = 38.108.115 = 5.944.866.000/156 bộ tức GIÁ TRỊ BÌNH QUÂN MỘT BỘ; còn ô E9 (gắn CT35, nhãn 'Năng suất Sản lượng/1NV', đvt ghi 'bộ') = 495.405.500 = 5.944.866.000/12 NV tức TIỀN trên đầu người. Hai dòng bị hoán vị so với nhãn lẫn mã. Nạp theo nhãn là ghi ngược, nạp theo mã cũng ngược — phải để nghiệp vụ sửa biểu mẫu trước.",
+    "Dòng CT41 chỉ có ô D (cả kỳ 45.287.143.506), KHÔNG rải theo tháng -> không sinh bản ghi nào. CT42 có đủ 6 tháng nhưng toàn 0; `_so` trả 0 nên engine bỏ. Kết quả: spec này hiện TRÍCH 0 BẢN GHI. Giữ spec để kỳ sau nghiệp vụ điền vào là tự lên, và để ghi lại vì sao trống — chứ không phải quên nạp."
+  ],
+  "_kiem_chung": [
+    "0 bản ghi ở bản 202608 (CT41 chỉ ghi tổng cả kỳ ở cột D ngoài dải; CT42 toàn 0). Đây là kết quả ĐÚNG, không phải lỗi spec."
+  ],
+  "report_type": "TSAC_KH_CT",
+  "row_index_base": 8120000,
+  "khoi": "Khối KD Trạm sạc Vgreen",
+  "nguon": {
+    "folder": "KEHOACH/baocaokehoachthang",
+    "file_glob": "3.TS.*.Kehoachthang.xlsx",
+    "sheet": {
+      "ten": "CT Vận hành"
+    }
+  },
+  "header": {
+    "dong": 4
+  },
+  "dong_bat_dau": 5,
+  "dong_ket_thuc": 16,
+  "kiem_tra_o": [
+    {
+      "o": "B1",
+      "bang": "ĐĂNG KÝ CHỈ TIÊU VẬN HÀNH"
+    },
+    {
+      "o": "E4",
+      "bang": "Tháng 7"
+    },
+    {
+      "o": "B2",
+      "bang": "Trạm sạc"
+    },
+    {
+      "o": "B13",
+      "bang": "Hoa hồng"
+    }
+  ],
+  "chieu_co_dinh": {
+    "dim2": "Tổng"
+  },
+  "cot": {
+    "dim1": {
+      "header": "Kế hoạch/Mục tiêu cần đạt",
+      "chuan_hoa": "kh_ct_dong"
+    },
+    "payload.dvt": {
+      "header": "Đvt",
+      "kieu": "cat"
+    }
+  },
+  "ban_ghi": "moi_cot_thang",
+  "cot_thang": {
+    "tu": "E",
+    "den": "J",
+    "he_so": 1e-09
+  },
+  "loc": [
+    {
+      "cot": "dim1",
+      "dieu_kien": "thuoc",
+      "gia_tri": [
+        "HH_DA_XN",
+        "HH_CHUA_XN"
+      ]
+    }
+  ],
+  "payload_them": {
+    "unit": "ty",
+    "loai": "kehoach"
+  }
+}

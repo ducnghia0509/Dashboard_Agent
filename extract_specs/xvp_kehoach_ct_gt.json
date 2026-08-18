@@ -1,0 +1,86 @@
+{
+  "id": "xvp_kehoach_ct_gt",
+  "_mo_ta": "MỤC TIÊU VẬN HÀNH bằng TIỀN khối XVP — doanh thu bình quân/cuốc (CT37), bình quân ngày (CT48) và bình quân xe/ngày (CT49), sheet 'CT Vận hành' bản 6.XVP.",
+  "_bay": [
+    "GLOB PHẢI GHIM TIỀN TỐ '6.XVP.*.Kehoachthang.xlsx' — thư mục `baocaokehoachthang` chứa MỖI KHỐI MỘT FILE (1.SR, 2.XDV, 3.TS, 5.HT, 6.XVP, 7.AnTX), tất cả cùng đuôi '*.Kehoachthang.xlsx'. Glob rộng là nạp kế hoạch khối khác vào report_type này, và `_ghi` xoá theo (report_type, source_file) nên KHÔNG chặn được.",
+    "Bản kế hoạch này KHÔNG có cột 'Công thức tính' nên dải tháng là E..J (bản XDV có cột đó, dải F..K). Sai dải là lệch kỳ ĐÚNG MỘT THÁNG mà spec vẫn 'chạy' — chốt bằng E4.",
+    "Sheet chỉ có T7..T12 ('ĐĂNG KÝ CHỈ TIÊU VẬN HÀNH 6 THÁNG CUỐI NĂM'); cột D là tổng cả kỳ, nằm NGOÀI dải.",
+    "MÃ Ở CỘT A CỦA FILE KHÔNG TIN ĐƯỢC (bản Trạm sạc hoán vị CT35/CT37 so với ý nghĩa số) — dim1 gắn theo NHÃN dòng, xem `_kh_ct_dong` trong scripts/spec_extract.py.",
+    "FILE GHI KHỐI LÀ 'Khối KD Vận tải Taxi XVP' nhưng danh mục chuẩn (master_data.khoi mã 6) là 'Khối KD Vận tải Taxi Xanh' — spec ghi theo DANH MỤC để thanh lọc theo khối trên dashboard bắt được, đừng đổi theo file.",
+    "BỎ dòng 'Doanh thu' (CT33) và 'Số lượng xe chạy': lặp y hệt sheet KHDT (XVP_KH/XVP_KH_SL).",
+    "Sheet này lệch cột ở HAI DÒNG ĐẦU (ô tiêu đề nằm ở C1/C2 thay vì B1/B2 như bản An Taxi) nhưng bảng số từ dòng 4 thì giống hệt — `kiem_tra_o` chốt theo C1/C2.",
+    "Bản XVP LỆCH MỘT CỘT Ở HAI DÒNG TIÊU ĐỀ: tiêu đề sheet nằm ở C1 và tên khối ở C2 (bản An Taxi/Trạm sạc/Xe tải để ở B1/B2) — `kiem_tra_o` phải chốt theo C1/C2, chốt B1 là spec bỏ qua cả file và im lặng ra 0 dòng."
+  ],
+  "_kiem_chung": [
+    "18 bản ghi (3 chỉ tiêu × 6 tháng).",
+    "T7: DT_BQ_CUOC = 0,000127203 · DT_BQ_NGAY = 0,978837762 · DT_BQ_XE_NGAY = 0,000777472 tỷ.",
+    "Đối chiếu: DT_BQ_NGAY T7 × 31 ngày = 30,343970622 tỷ ≈ dòng DT_TAXI của XVP_KH T7 (30,343970626) — lệch 4 đồng do file làm tròn."
+  ],
+  "report_type": "XVP_KH_CT",
+  "row_index_base": 8320000,
+  "khoi": "Khối KD Vận tải Taxi Xanh",
+  "nguon": {
+    "folder": "KEHOACH/baocaokehoachthang",
+    "file_glob": "6.XVP.*.Kehoachthang.xlsx",
+    "sheet": {
+      "ten": "CT Vận hành"
+    }
+  },
+  "header": {
+    "dong": 4
+  },
+  "dong_bat_dau": 5,
+  "dong_ket_thuc": 16,
+  "kiem_tra_o": [
+    {
+      "o": "C1",
+      "bang": "ĐĂNG KÝ CHỈ TIÊU VẬN HÀNH"
+    },
+    {
+      "o": "E4",
+      "bang": "Tháng 7"
+    },
+    {
+      "o": "C2",
+      "bang": "XVP"
+    },
+    {
+      "o": "B10",
+      "bang": "Doanh thu bình quân ngày"
+    }
+  ],
+  "chieu_co_dinh": {
+    "dim2": "Tổng"
+  },
+  "cot": {
+    "dim1": {
+      "header": "Kế hoạch/Mục tiêu cần đạt",
+      "chuan_hoa": "kh_ct_dong"
+    },
+    "payload.dvt": {
+      "header": "Đvt",
+      "kieu": "cat"
+    }
+  },
+  "ban_ghi": "moi_cot_thang",
+  "cot_thang": {
+    "tu": "E",
+    "den": "J",
+    "he_so": 1e-09
+  },
+  "loc": [
+    {
+      "cot": "dim1",
+      "dieu_kien": "thuoc",
+      "gia_tri": [
+        "DT_BQ_CUOC",
+        "DT_BQ_NGAY",
+        "DT_BQ_XE_NGAY"
+      ]
+    }
+  ],
+  "payload_them": {
+    "unit": "ty",
+    "loai": "kehoach"
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "id": "atx_kehoach_sl",
+  "_mo_ta": "KẾ HOẠCH SẢN LƯỢNG (số xe chạy) 12 tháng của khối KD Dịch vụ An Taxi — sheet 'KHDT' phần B SẢN LƯỢNG. Cùng file với `atx_kehoach_gt`.",
+  "_bay": [
+    "Tách khỏi `atx_kehoach_gt` CHỈ vì ĐƠN VỊ: phần này đếm XE (he_so = 1), phần A là tiền (he_so = 1e-9). Một `cot_thang.he_so` cho cả spec nên không gộp được; cùng report_type cũng không được vì `_ghi` xoá theo (report_type, source_file).",
+    "Phần B của bản An Taxi CHỈ có một dòng số ('Số lượng xe chạy'). Dòng 'Khối KD Dịch vụ An Taxi' ngay trên nó BỎ TRỐNG mọi tháng — nên ở đây KHÔNG có dòng dim2='Tổng', khác các bản kế hoạch khối khác. Đừng lọc theo dim2='Tổng' rồi kết luận thiếu dữ liệu.",
+    "'Số lượng xe chạy' là số xe DỰ KIẾN PHÁT SINH DOANH THU trong tháng (T1-T6 dao động 130-136, T7-T12 đều 148), KHÔNG phải quy mô đội xe. Vế thực hiện tương ứng là `ATX_XE` dim1='Xe vận doanh', không phải 'Tổng số xe'."
+  ],
+  "_kiem_chung": [
+    "12 bản ghi, T1..T12 = 136 · 131 · 134 · 130 · 130 · 136 · 148 · 148 · 148 · 148 · 148 · 148 xe.",
+    "Ô D11 'Tổng năm' = 148 (file ghi mức xe, không phải tổng cộng dồn) — đừng dùng để soát tổng."
+  ],
+  "report_type": "ATX_KH_SL",
+  "row_index_base": 8010000,
+  "khoi": "Khối KD Dịch vụ An Taxi",
+  "nguon": {
+    "folder": "KEHOACH/baocaokehoachthang",
+    "file_glob": "7.AnTX.*.Kehoachthang.xlsx",
+    "sheet": { "ten": "KHDT" }
+  },
+  "header": { "dong": 2 },
+  "dong_bat_dau": 10,
+  "dong_ket_thuc": 11,
+  "kiem_tra_o": [
+    { "o": "C2", "bang": "Khối" },
+    { "o": "G2", "bang": "Tháng 1" },
+    { "o": "B10", "bang": "SẢN LƯỢNG" },
+    { "o": "C11", "bang": "Số lượng xe chạy" }
+  ],
+  "chieu_co_dinh": { "dim3": "SẢN LƯỢNG" },
+  "cot": {
+    "dim1": { "header": "Khối", "chuan_hoa": "kh_khoi_dong" }
+  },
+  "ban_ghi": "moi_cot_thang",
+  "cot_thang": { "tu": "G", "den": "R", "he_so": 1.0 },
+  "loc": [{ "cot": "dim2", "dieu_kien": "khac_rong" }],
+  "payload_them": { "unit": "xe", "loai": "kehoach" }
+}

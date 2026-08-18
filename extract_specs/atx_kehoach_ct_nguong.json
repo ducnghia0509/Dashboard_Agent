@@ -1,0 +1,44 @@
+{
+  "id": "atx_kehoach_ct_nguong",
+  "_mo_ta": "NGƯỠNG CHẤT LƯỢNG VẬN HÀNH khối An Taxi (đơn vị %) — sheet 'CT Vận hành' bản 7.AnTX: hoàn thành trên APP ≥85%, vận doanh ≥95%, xe nằm <4%, hủy chuyến ≤10%; T7..T12. Đây là bản ĐĂNG KÝ CHÍNH THỨC thay cho 4 hằng số `KPI_*` gõ cứng trong `app/metrics/antaxi.py` (đọc từ file mapping).",
+  "_bay": [
+    "NGƯỠNG GHI KÈM TOÁN TỬ ('≥95%', '<4%') nên `_so` trả 0 và `moi_cot_thang` bỏ im lặng — phải dùng `cot_thang.kieu = 'nguong'` (thêm vào engine 18/08/2026). `amount` = số, `payload.toan_tu` = '>=' / '<=' / '<'. ĐỪNG bỏ toán tử đi rồi để giao diện tự đoán chiều theo tên chỉ tiêu.",
+    "HAI NGƯỠNG LỆCH SO VỚI MAPPING — lấy theo FILE KẾ HOẠCH (bản nghiệp vụ ĐĂNG KÝ, có ký), không theo mapping: xe nằm 4% (mapping `6.Antaxi` dòng 43/65 ghi <5%), hủy chuyến 10% (mapping dòng 47 ghi <15%). Vận doanh ≥95% và hoàn thành app ≥85% thì hai bên trùng.",
+    "'%' trong ô chỉ là ĐƠN VỊ: ngưỡng lưu là 95 / 4 / 10 (thang phần trăm), KHÔNG phải 0,95. Cùng thang với mọi tỷ lệ khác của backend.",
+    "Ngưỡng KHÔNG đổi theo tháng (6 cột giống hệt nhau) nhưng vẫn nạp đủ 6 kỳ: nghiệp vụ có quyền siết ngưỡng giữa năm, nạp một kỳ rồi suy ra các kỳ khác là tự bịa.",
+    "Dòng 'Tỷ lệ xe nằm' KHÔNG có mã ở cột A trong file — bám nhãn, không bám mã (xem `_kh_ct_dong`)."
+  ],
+  "_kiem_chung": [
+    "24 bản ghi (4 chỉ tiêu × 6 tháng T7..T12).",
+    "TL_APP = 85 ('>='), TL_VAN_DOANH = 95 ('>='), TL_XE_NAM = 4 ('<'), TL_HUY_CHUYEN = 10 ('<=') — giống nhau ở cả 6 kỳ."
+  ],
+  "report_type": "ATX_KH_CT_NGUONG",
+  "row_index_base": 8040000,
+  "khoi": "Khối KD Dịch vụ An Taxi",
+  "nguon": {
+    "folder": "KEHOACH/baocaokehoachthang",
+    "file_glob": "7.AnTX.*.Kehoachthang.xlsx",
+    "sheet": { "ten": "CT Vận hành" }
+  },
+  "header": { "dong": 4 },
+  "dong_bat_dau": 5,
+  "dong_ket_thuc": 16,
+  "kiem_tra_o": [
+    { "o": "B1", "bang": "ĐĂNG KÝ CHỈ TIÊU VẬN HÀNH" },
+    { "o": "B2", "bang": "An Taxi" },
+    { "o": "E4", "bang": "Tháng 7" },
+    { "o": "B14", "bang": "Tỷ lệ vận doanh" }
+  ],
+  "chieu_co_dinh": { "dim2": "Tổng" },
+  "cot": {
+    "dim1": { "header": "Kế hoạch/Mục tiêu cần đạt", "chuan_hoa": "kh_ct_dong" },
+    "payload.dvt": { "header": "Đvt", "kieu": "cat" }
+  },
+  "ban_ghi": "moi_cot_thang",
+  "cot_thang": { "tu": "E", "den": "J", "he_so": 1.0, "kieu": "nguong" },
+  "loc": [
+    { "cot": "dim1", "dieu_kien": "thuoc",
+      "gia_tri": ["TL_APP", "TL_VAN_DOANH", "TL_XE_NAM", "TL_HUY_CHUYEN"] }
+  ],
+  "payload_them": { "unit": "pct", "loai": "nguong" }
+}

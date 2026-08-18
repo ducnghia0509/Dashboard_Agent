@@ -1,0 +1,74 @@
+{
+  "id": "tsac_kehoach_sl",
+  "_mo_ta": "KẾ HOẠCH SẢN LƯỢNG (bộ trạm sạc) 12 tháng khối KD Trạm sạc Vgreen — sheet 'KHDT' phần B.",
+  "_bay": [
+    "GLOB PHẢI GHIM TIỀN TỐ '3.TS.*.Kehoachthang.xlsx' — thư mục `baocaokehoachthang` chứa MỖI KHỐI MỘT FILE (1.SR, 2.XDV, 3.TS, 5.HT, 6.XVP, 7.AnTX), tất cả cùng đuôi '*.Kehoachthang.xlsx'. Glob rộng là nạp kế hoạch khối khác vào report_type này, và `_ghi` xoá theo (report_type, source_file) nên KHÔNG chặn được.",
+    "MỘT file cấp kế hoạch cho CẢ 12 THÁNG — kỳ lấy từ CỘT (G..R = 'Tháng 1'..'Tháng 12'), KHÔNG theo tên file. '202608' trong tên chỉ là kỳ phát hành bản kế hoạch.",
+    "BẢNG PHÂN CẤP, mọi tầng có số ở CÙNG một cột — `dim2` phân biệt Tổng / Nhóm / Chi tiết. Cộng cả bảng là nhân đôi (có chỗ nhân ba): lọc `dim2` trước khi cộng, hoặc đọc thẳng dòng `dim2 = 'Tổng'`.",
+    "Tách GIÁ TRỊ / SẢN LƯỢNG thành hai spec vì ĐƠN VỊ khác (`cot_thang.he_so` mỗi spec một giá trị) và vì `_ghi` xoá theo (report_type, source_file) — hai spec cùng report_type trên cùng file thì cái chạy sau xoá sạch cái trước.",
+    "Chỉ có kế hoạch sản lượng T7..T12; T1..T6 bỏ trống trong file (dòng 'Dịch vụ khác' trống hoàn toàn cả năm).",
+    "Ô D6/E6/F6 ('Tổng năm' 450 / '6 tháng đầu' 312 / '6 tháng cuối' 1504) MÂU THUẪN với chính dải tháng (Σ T7..T12 = 1.054, và không tháng nào có số trong T1..T6). Ba ô tổng đó nằm NGOÀI dải G..R nên không lọt vào DB — nhưng đừng dùng chúng để soát, chúng sai."
+  ],
+  "_kiem_chung": [
+    "6 bản ghi Nhóm × 6 bản ghi Chi tiết. T7..T12 = 156 · 268 · 256 · 260 · 114 · (T12 trống).",
+    "Σ T7..T11 = 1.054 bộ = ô D7 dòng 'Trạm sạc' = CT36 sheet CT Vận hành ('Sản lượng trạm sạc bán được', ô D7 = 1.054)."
+  ],
+  "report_type": "TSAC_KH_SL",
+  "row_index_base": 8110000,
+  "khoi": "Khối KD Trạm sạc Vgreen",
+  "nguon": {
+    "folder": "KEHOACH/baocaokehoachthang",
+    "file_glob": "3.TS.*.Kehoachthang.xlsx",
+    "sheet": {
+      "ten": "KHDT"
+    }
+  },
+  "header": {
+    "dong": 2
+  },
+  "dong_bat_dau": 6,
+  "dong_ket_thuc": 8,
+  "kiem_tra_o": [
+    {
+      "o": "C2",
+      "bang": "Khối"
+    },
+    {
+      "o": "G2",
+      "bang": "Tháng 1"
+    },
+    {
+      "o": "B6",
+      "bang": "SẢN LƯỢNG"
+    },
+    {
+      "o": "C7",
+      "bang": "Trạm sạc"
+    }
+  ],
+  "chieu_co_dinh": {
+    "dim3": "SẢN LƯỢNG"
+  },
+  "cot": {
+    "dim1": {
+      "header": "Khối",
+      "chuan_hoa": "kh_khoi_dong"
+    }
+  },
+  "ban_ghi": "moi_cot_thang",
+  "cot_thang": {
+    "tu": "G",
+    "den": "R",
+    "he_so": 1.0
+  },
+  "loc": [
+    {
+      "cot": "dim2",
+      "dieu_kien": "khac_rong"
+    }
+  ],
+  "payload_them": {
+    "unit": "bo",
+    "loai": "kehoach"
+  }
+}

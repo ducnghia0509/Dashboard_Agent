@@ -1,0 +1,82 @@
+{
+  "id": "xtai_kehoach_ct_sl",
+  "_mo_ta": "MỤC TIÊU VẬN HÀNH đếm bằng SỐ khối Xe tải — năng suất sản lượng/1 NV bán hàng (CT38) và đơn tồn (CT39), sheet 'CT Vận hành' bản 5.HT.",
+  "_bay": [
+    "GLOB PHẢI GHIM TIỀN TỐ '5.HT.*.Kehoachthang.xlsx' — thư mục `baocaokehoachthang` chứa MỖI KHỐI MỘT FILE (1.SR, 2.XDV, 3.TS, 5.HT, 6.XVP, 7.AnTX), tất cả cùng đuôi '*.Kehoachthang.xlsx'. Glob rộng là nạp kế hoạch khối khác vào report_type này, và `_ghi` xoá theo (report_type, source_file) nên KHÔNG chặn được.",
+    "Bản kế hoạch này KHÔNG có cột 'Công thức tính' nên dải tháng là E..J (bản XDV có cột đó, dải F..K). Sai dải là lệch kỳ ĐÚNG MỘT THÁNG mà spec vẫn 'chạy' — chốt bằng E4.",
+    "Sheet chỉ có T7..T12 ('ĐĂNG KÝ CHỈ TIÊU VẬN HÀNH 6 THÁNG CUỐI NĂM'); cột D là tổng cả kỳ, nằm NGOÀI dải.",
+    "MÃ Ở CỘT A CỦA FILE KHÔNG TIN ĐƯỢC (bản Trạm sạc hoán vị CT35/CT37 so với ý nghĩa số) — dim1 gắn theo NHÃN dòng, xem `_kh_ct_dong` trong scripts/spec_extract.py.",
+    "CT39 Đơn tồn = 0 ở cả 6 tháng -> `_so` trả 0, engine bỏ; spec chỉ ra bản ghi NS_SL. Muốn hiện 'mục tiêu = 0' phải chuyển sang `kieu: nguong`, sẽ kéo theo mọi ô 0 khác của sheet.",
+    "NS_SL là số GÕ TAY đã làm tròn (14/16/15/18/19/25 xe/NV) — đừng 'sửa' cho khớp NS_DT chia GT_BQ_XE."
+  ],
+  "_kiem_chung": [
+    "6 bản ghi NS_SL (T7..T12) = 14 · 16 · 15 · 18 · 19 · 25 chiếc/NV; Σ = 107 = ô D9.",
+    "Đối chiếu: NS_SL × 7 NV = 98/112/105/126/133/175, xấp xỉ sản lượng A200 (100/114/104/126/134/174) — lệch do làm tròn ở chính file."
+  ],
+  "report_type": "XTAI_KH_CT_SL",
+  "row_index_base": 8230000,
+  "khoi": "Khối KD Xe tải",
+  "nguon": {
+    "folder": "KEHOACH/baocaokehoachthang",
+    "file_glob": "5.HT.*.Kehoachthang.xlsx",
+    "sheet": {
+      "ten": "CT Vận hành"
+    }
+  },
+  "header": {
+    "dong": 4
+  },
+  "dong_bat_dau": 5,
+  "dong_ket_thuc": 13,
+  "kiem_tra_o": [
+    {
+      "o": "B1",
+      "bang": "ĐĂNG KÝ CHỈ TIÊU VẬN HÀNH"
+    },
+    {
+      "o": "E4",
+      "bang": "Tháng 7"
+    },
+    {
+      "o": "B2",
+      "bang": "XE TẢI"
+    },
+    {
+      "o": "B9",
+      "bang": "Năng suất Sản lượng"
+    }
+  ],
+  "chieu_co_dinh": {
+    "dim2": "Tổng"
+  },
+  "cot": {
+    "dim1": {
+      "header": "Kế hoạch/Mục tiêu cần đạt",
+      "chuan_hoa": "kh_ct_dong"
+    },
+    "payload.dvt": {
+      "header": "Đvt",
+      "kieu": "cat"
+    }
+  },
+  "ban_ghi": "moi_cot_thang",
+  "cot_thang": {
+    "tu": "E",
+    "den": "J",
+    "he_so": 1.0
+  },
+  "loc": [
+    {
+      "cot": "dim1",
+      "dieu_kien": "thuoc",
+      "gia_tri": [
+        "NS_SL",
+        "DON_TON"
+      ]
+    }
+  ],
+  "payload_them": {
+    "unit": "so",
+    "loai": "kehoach"
+  }
+}

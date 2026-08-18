@@ -6,7 +6,8 @@
     "CHỈ đọc 3 dòng KÊNH (B2C/B2B/GF), BỎ dòng 'A. Tổng sản lượng' / 'B.Tổng Doanh thu' ngay trên chúng — cộng cả hai là gấp đôi. Đã verify: 893+762+30 = 1.685 và 526,332+499,410+13,227.575 = 1.038.969,575 tr, khớp đúng ô tổng.",
     "Khớp tuyệt đối kế hoạch THÁNG đang dùng: Σ 31 cột ngày THÁNG 8 = 1.038.969.575.271 = ô 'Cộng tháng' = ô KHDT 'Tháng 8' = Σ VHKD_KH T08 (B2B 499,410 + B2C 526,332 + GF 13,228). Lệch 0.",
     "Tiêu đề cột ghi 'Ngày 01'..'Ngày 31' chứ không phải số trần — engine đã nới regex 15/08/2026, đừng đổi lại.",
-    "T09-T12 hiện toàn 0 (nghiệp vụ chưa lập). Engine bỏ ô 0 nên chúng không đẻ 'kế hoạch 0 giả'."
+    "T09-T12 hiện toàn 0 (nghiệp vụ chưa lập). Engine bỏ ô 0 nên chúng không đẻ 'kế hoạch 0 giả'.",
+    "CHỐT NHẬN DẠNG KHỐI LÀ BẮT BUỘC Ở SHEET NÀY: `specs_for_path` chọn spec theo THƯ MỤC và BỎ QUA `file_glob`, nên nút 'Phân tích AI'/'Đồng bộ & nạp' trên MỘT file kế hoạch sẽ chạy TẤT CẢ spec của thư mục lên nó. Sheet 'KH ngày' của An Taxi và XVP giống hệt nhau (cùng tiêu đề B1, cùng nhãn dòng) và sheet 'KHngày' của Showroom cũng khớp tên sau chuẩn hoá — không có chốt thì spec này đọc file khối khác và đẻ ra 31 dòng kế hoạch SAI dưới một source_file mới, `_ghi` không chặn được vì nó chỉ xoá theo (report_type, source_file). Đã kiểm chéo 6 spec × 6 file ngày 18/08/2026: có chốt thì 0 lượt đọc nhầm."
   ],
   "report_type": "VHKD_KH_NGAY",
   "row_index_base": 6630000,
@@ -136,5 +137,15 @@
   "payload_them": {
     "unit": "ty",
     "nguon": "kehoach_ngay_sheet_KHngay"
-  }
+  },
+  "kiem_tra_o": [
+    {
+      "o": "B1",
+      "bang": "BÁN XE"
+    },
+    {
+      "o": "B13",
+      "bang": "THÁNG 9"
+    }
+  ]
 }

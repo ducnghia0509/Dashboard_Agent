@@ -1,0 +1,84 @@
+{
+  "id": "xtai_kehoach_ct_gt",
+  "_mo_ta": "MỤC TIÊU VẬN HÀNH bằng TIỀN khối Xe tải — năng suất doanh thu/1 NV bán hàng (CT35) và giá trị bình quân một xe bán (CT37), sheet 'CT Vận hành' bản 5.HT.",
+  "_bay": [
+    "GLOB PHẢI GHIM TIỀN TỐ '5.HT.*.Kehoachthang.xlsx' — thư mục `baocaokehoachthang` chứa MỖI KHỐI MỘT FILE (1.SR, 2.XDV, 3.TS, 5.HT, 6.XVP, 7.AnTX), tất cả cùng đuôi '*.Kehoachthang.xlsx'. Glob rộng là nạp kế hoạch khối khác vào report_type này, và `_ghi` xoá theo (report_type, source_file) nên KHÔNG chặn được.",
+    "Bản kế hoạch này KHÔNG có cột 'Công thức tính' nên dải tháng là E..J (bản XDV có cột đó, dải F..K). Sai dải là lệch kỳ ĐÚNG MỘT THÁNG mà spec vẫn 'chạy' — chốt bằng E4.",
+    "Sheet chỉ có T7..T12 ('ĐĂNG KÝ CHỈ TIÊU VẬN HÀNH 6 THÁNG CUỐI NĂM'); cột D là tổng cả kỳ, nằm NGOÀI dải.",
+    "MÃ Ở CỘT A CỦA FILE KHÔNG TIN ĐƯỢC (bản Trạm sạc hoán vị CT35/CT37 so với ý nghĩa số) — dim1 gắn theo NHÃN dòng, xem `_kh_ct_dong` trong scripts/spec_extract.py.",
+    "BỎ dòng 'Doanh thu' (CT33) và 'Sản lượng bán xe' (CT36): lặp y hệt sheet KHDT đã nạp thành XTAI_KH/XTAI_KH_SL. Dòng 'Lợi nhuận' (CT34) trống toàn bộ.",
+    "Hai dòng ngưỡng cuối sheet ghi BẰNG LỜI ('Nhỏ hơn 30% tồn kho', 'Bằng 0 - cứ có 1 khách hàng quá hạn, trừ 5%...') nên KHÔNG có spec ngưỡng cho khối này — khác An Taxi/XVP/Trạm sạc vốn ghi ngưỡng bằng số.",
+    "NS_DT ở bản này là số ĐÚNG NGHĨA (268,5 tỷ / 7 NV = 38,357 tỷ), khác bản Trạm sạc bị hoán vị."
+  ],
+  "_kiem_chung": [
+    "12 bản ghi (2 chỉ tiêu × 6 tháng).",
+    "T7: NS_DT = 38,357142857 tỷ/NV · GT_BQ_XE = 2,59695 tỷ/xe. Đối chiếu: GT_BQ_XE × sản lượng A200 (100 xe) = 259,695 tỷ = đúng dòng A200 của XTAI_KH T7.",
+    "NS_DT × 7 NV = 268,5 tỷ = dòng Tổng XTAI_KH T7 (tức mẫu số là 7 nhân viên bán hàng)."
+  ],
+  "report_type": "XTAI_KH_CT",
+  "row_index_base": 8220000,
+  "khoi": "Khối KD Xe tải",
+  "nguon": {
+    "folder": "KEHOACH/baocaokehoachthang",
+    "file_glob": "5.HT.*.Kehoachthang.xlsx",
+    "sheet": {
+      "ten": "CT Vận hành"
+    }
+  },
+  "header": {
+    "dong": 4
+  },
+  "dong_bat_dau": 5,
+  "dong_ket_thuc": 13,
+  "kiem_tra_o": [
+    {
+      "o": "B1",
+      "bang": "ĐĂNG KÝ CHỈ TIÊU VẬN HÀNH"
+    },
+    {
+      "o": "E4",
+      "bang": "Tháng 7"
+    },
+    {
+      "o": "B2",
+      "bang": "XE TẢI"
+    },
+    {
+      "o": "B8",
+      "bang": "Năng suất Doanh thu"
+    }
+  ],
+  "chieu_co_dinh": {
+    "dim2": "Tổng"
+  },
+  "cot": {
+    "dim1": {
+      "header": "Kế hoạch/Mục tiêu cần đạt",
+      "chuan_hoa": "kh_ct_dong"
+    },
+    "payload.dvt": {
+      "header": "Đvt",
+      "kieu": "cat"
+    }
+  },
+  "ban_ghi": "moi_cot_thang",
+  "cot_thang": {
+    "tu": "E",
+    "den": "J",
+    "he_so": 1e-09
+  },
+  "loc": [
+    {
+      "cot": "dim1",
+      "dieu_kien": "thuoc",
+      "gia_tri": [
+        "NS_DT",
+        "GT_BQ_XE"
+      ]
+    }
+  ],
+  "payload_them": {
+    "unit": "ty",
+    "loai": "kehoach"
+  }
+}

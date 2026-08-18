@@ -1,0 +1,150 @@
+{
+  "id": "xvp_kehoach_ngay_gt",
+  "_mo_ta": "KẾ HOẠCH DOANH THU TỪNG NGÀY khối KD Vận tải Taxi Xanh (XVP) — sheet 'KH ngày' bản 6.XVP. Dùng cho %HT lũy kế đến ngày khi tháng đang chạy dở.",
+  "_bay": [
+    "GLOB PHẢI GHIM TIỀN TỐ '6.XVP.' — xem `xvp_kehoach_gt.json`.",
+    "Sheet xếp NĂM KHỐI THÁNG nối tiếp (T8 dòng 2, T9 dòng 7, T10 dòng 12, T11 dòng 17, T12 dòng 22 — đều nhau 5 dòng, KHÁC bản An Taxi vốn lệch 4 dòng ở khối đầu). Kỳ suy từ TÊN FILE nên `chi_doc_khi_o` chốt ô 'THÁNG {thang}': không chốt thì cột ngày của tháng khác bị gán vào tháng của file.",
+    "T9..T12 hiện toàn 0 (nghiệp vụ chưa rải kế hoạch ngày) — engine bỏ ô 0, không đẻ 'kế hoạch 0 giả'.",
+    "FILE GHI KHỐI LÀ 'Taxi XVP' còn danh mục chuẩn là 'Khối KD Vận tải Taxi Xanh' — spec theo danh mục.",
+    "Kế hoạch ngày CHỈ có doanh thu DỊCH VỤ TAXI (1 trong 5 nguồn thu của khối), không phải tổng khối: Σ 31 ngày = 33,007 tỷ trong khi XVP_KH T8 dòng Tổng = 54,328 tỷ. So %HT phải so đúng dòng DT_TAXI.",
+    "CHỐT NHẬN DẠNG KHỐI LÀ BẮT BUỘC Ở SHEET NÀY: `specs_for_path` chọn spec theo THƯ MỤC và BỎ QUA `file_glob`, nên nút 'Phân tích AI'/'Đồng bộ & nạp' trên MỘT file kế hoạch sẽ chạy TẤT CẢ spec của thư mục lên nó. Sheet 'KH ngày' của An Taxi và XVP giống hệt nhau (cùng tiêu đề B1, cùng nhãn dòng) và sheet 'KHngày' của Showroom cũng khớp tên sau chuẩn hoá — không có chốt thì spec này đọc file khối khác và đẻ ra 31 dòng kế hoạch SAI dưới một source_file mới, `_ghi` không chặn được vì nó chỉ xoá theo (report_type, source_file). Đã kiểm chéo 6 spec × 6 file ngày 18/08/2026: có chốt thì 0 lượt đọc nhầm."
+  ],
+  "_kiem_chung": [
+    "T8: 31 bản ghi, Σ = 33,007072567 tỷ = ô C5 'Cộng tháng'; dòng DT_TAXI của XVP_KH T8 = 33,007072563 tỷ — lệch 4 đồng do file làm tròn từng ngày, KHÔNG phải lỗi đọc.",
+    "Kế hoạch ngày không rải đều: 990.212.177 đ ngày thường và 1.221.261.685 đ các ngày cuối tuần."
+  ],
+  "report_type": "XVP_KH_NGAY",
+  "row_index_base": 8350000,
+  "khoi": "Khối KD Vận tải Taxi Xanh",
+  "nguon": {
+    "folder": "KEHOACH/baocaokehoachthang",
+    "file_glob": "6.XVP.*.Kehoachthang.xlsx",
+    "sheet": {
+      "ten": "KH ngày"
+    }
+  },
+  "ky_thang_tu_ten_file": {
+    "regex": "\\.M\\.(\\d{4})(\\d{2})\\."
+  },
+  "chieu_co_dinh": {
+    "dim1": "DT_TAXI",
+    "dim2": "Tổng"
+  },
+  "ban_ghi": "moi_cot_ngay",
+  "vung": [
+    {
+      "ten": "khối tháng @dòng 2 · doanh thu",
+      "chi_doc_khi_o": [
+        {
+          "o": "B2",
+          "bang": "THÁNG {thang}"
+        }
+      ],
+      "header": {
+        "dong": 3
+      },
+      "dong_bat_dau": 5,
+      "dong_ket_thuc": 5,
+      "cot_ngay": {
+        "dong": 3,
+        "tu": "D",
+        "den": "AH",
+        "he_so": 1e-09
+      }
+    },
+    {
+      "ten": "khối tháng @dòng 7 · doanh thu",
+      "chi_doc_khi_o": [
+        {
+          "o": "B7",
+          "bang": "THÁNG {thang}"
+        }
+      ],
+      "header": {
+        "dong": 8
+      },
+      "dong_bat_dau": 10,
+      "dong_ket_thuc": 10,
+      "cot_ngay": {
+        "dong": 8,
+        "tu": "D",
+        "den": "AH",
+        "he_so": 1e-09
+      }
+    },
+    {
+      "ten": "khối tháng @dòng 12 · doanh thu",
+      "chi_doc_khi_o": [
+        {
+          "o": "B12",
+          "bang": "THÁNG {thang}"
+        }
+      ],
+      "header": {
+        "dong": 13
+      },
+      "dong_bat_dau": 15,
+      "dong_ket_thuc": 15,
+      "cot_ngay": {
+        "dong": 13,
+        "tu": "D",
+        "den": "AH",
+        "he_so": 1e-09
+      }
+    },
+    {
+      "ten": "khối tháng @dòng 17 · doanh thu",
+      "chi_doc_khi_o": [
+        {
+          "o": "B17",
+          "bang": "THÁNG {thang}"
+        }
+      ],
+      "header": {
+        "dong": 18
+      },
+      "dong_bat_dau": 20,
+      "dong_ket_thuc": 20,
+      "cot_ngay": {
+        "dong": 18,
+        "tu": "D",
+        "den": "AH",
+        "he_so": 1e-09
+      }
+    },
+    {
+      "ten": "khối tháng @dòng 22 · doanh thu",
+      "chi_doc_khi_o": [
+        {
+          "o": "B22",
+          "bang": "THÁNG {thang}"
+        }
+      ],
+      "header": {
+        "dong": 23
+      },
+      "dong_bat_dau": 25,
+      "dong_ket_thuc": 25,
+      "cot_ngay": {
+        "dong": 23,
+        "tu": "D",
+        "den": "AH",
+        "he_so": 1e-09
+      }
+    }
+  ],
+  "payload_them": {
+    "unit": "ty",
+    "loai": "kehoach_ngay"
+  },
+  "kiem_tra_o": [
+    {
+      "o": "B1",
+      "bang": "DỊCH VỤ TAXI"
+    },
+    {
+      "o": "B7",
+      "bang": "THÁNG 9"
+    }
+  ]
+}
