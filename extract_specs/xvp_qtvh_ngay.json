@@ -1,0 +1,47 @@
+{
+  "id": "xvp_qtvh_ngay",
+  "_mo_ta": "BÁO CÁO QTVH XANH TAXI theo NGÀY × đơn vị — file B.6.XVP.PKDVH.M.<yyyy>.<m>.Baocaotonghop, MỌI sheet 'BÁO CÁO THÁNG n'. Bảng ngang: cột A khối/depot (ô gộp), cột B tên chỉ tiêu, C..AG mỗi ngày một cột. dim1 = mã chỉ tiêu (xem `_XVP_CT` trong spec_extract.py) · dim2 = Tổng/Depot/Kinh doanh/HTX · dim3 = tien|dem|tyle (đơn vị của amount) · cost_center = VP_DP/PT_DP/TQ_DP. Mapping: 'Mapping chỉ tiêu_XanhVP 15.08' của 7.XANHVP_Mapping_Dashboard.xlsx (DASHBOARD mẹ + 5 dashboard con).",
+  "_bay": [
+    "AMOUNT ĐỂ NGUYÊN ĐƠN VỊ GỐC (đồng · xe/cuốc · phân số 0..1) vì một bảng nghiệp vụ ôm cả ba loại. `dim3` nói rõ loại nào: backend chia 1e9 cho 'tien', nhân 100 cho 'tyle'. Đừng đặt he_so ở spec — he_so là của CẢ CỘT, mà ở đây mỗi DÒNG một đơn vị.",
+    "KHÔNG CỘNG dim2='Depot' để ra tổng: dòng tổng (dim2='Tổng', cost_center rỗng) đã là Σ 3 depot ở mọi chỉ tiêu đếm, cộng thêm là nhân đôi. Riêng 'Tỉ lệ xe nằm'/'Tỷ lệ hoàn thành cuốc'/'Tỷ lệ hoàn thành KPI' là PHÂN SỐ — cộng nhiều ngày hay nhiều depot đều vô nghĩa, phải tính lại từ tử/mẫu.",
+    "'GMV ngày' (dòng 19) và 'GMV/ Ngày' (dòng 22) chuẩn hoá trùng chuỗi nếu bỏ dấu '/'. Hook dùng `_nd_gach` giữ lại dấu này và khớp TUYỆT ĐỐI. Nhãn mới chưa khai sẽ ra cảnh báo 'không map được', không im lặng.",
+    "MỖI SHEET LÀ MỘT THÁNG và tháng mới THÊM SHEET vào chính file cũ -> `moi_sheet_chua` quét mọi sheet, `cot_ngay.ky_tu_o` lấy kỳ từ chính ô ngày ở dòng 4 (tên file chỉ ghi tháng mới nhất, suy từ đó là mất trắng các sheet tháng cũ).",
+    "SHEET 'BÁO CÁO THÁNG 7' KHÁC BỐ CỤC sheet tháng 8: thiếu 3 dòng nhân sự đầu khối và 2 dòng cảnh báo đăng kiểm/bảo hiểm, nên mọi số dòng lệch 3. Đây là lý do chỉ tiêu dò theo TÊN ở cột B chứ không theo dòng.",
+    "T7 GẦN NHƯ TRỐNG: khối VĨNH PHÚC không có số ngày nào, PHÚ THỌ chỉ có ngày 31/07, dòng tổng bằng đúng TUYÊN QUANG. Là trạng thái thật của file (mới khai trương), không phải lỗi trích xuất — backend phải nói ra chứ đừng vẽ thành 'sụt giảm'.",
+    "Ô 0 BỊ BỎ (hành vi chung của `moi_cot_ngay`): ngày chưa tới trong tháng đang chạy đều là 0. Kéo theo 'Xe sắp hết đăng kiểm' = 0 mọi ngày thì không có bản ghi nào — backend đọc None phải hiểu là 'không có xe đến hạn', đối chiếu bằng chính sự tồn tại của các dòng khác cùng ngày.",
+    "Dòng 'Lũy kế' cố ý KHÔNG nạp: xuất hiện 3 lần cùng tên (KINH DOANH 1 lần, HỢP TÁC XÃ 2 lần) nên nạp vào là hai dòng HTX chồng khoá. 'GMV Lũy Kế' (DT_LUYKE) thì có nạp — nhãn riêng, và mapping CT33 trỏ thẳng vào ô AG21 của nó."
+  ],
+  "_kiem_chung": [
+    "T8/2026 dòng tổng: Σ DT_NGAY 01→14/08 = 11.845.203.298 = ô AG21 (GMV Lũy Kế ngày cuối có số).",
+    "01/08/2026 tổng: XE_TONG 1326 · XE_DU_DK 1244 · XE_HOAT_DONG 920 · CUOC_TONG 10.643 = CUOC_HT 9.188 + CUOC_HUY 1.455 · KHIEU_NAI 21.",
+    "01/08/2026 Σ 3 depot XE_TONG = 682 + 407 + 237 = 1.326 = dòng tổng.",
+    "01/08/2026 DT_NGAY: VP 476.936.460 + PT ... + TQ ... = 899.802.460 = dòng tổng."
+  ],
+  "report_type": "XVP_QTVH_D",
+  "row_index_base": 7900000,
+  "khoi": "Khối KD Vận tải Taxi Xanh",
+  "nguon": {
+    "folder": "XANHVINHPHUC/baocaoqtvhthang",
+    "file_glob": "B.6.XVP.PKDVH.M.*.Baocaotonghop.xlsx",
+    "sheet": { "moi_sheet_chua": "BÁO CÁO THÁNG" }
+  },
+  "header": { "dong": 4 },
+  "dong_bat_dau": 5,
+  "kiem_tra_o": [
+    { "o": "A4", "bang": "TỈNH" },
+    { "o": "B4", "bang": "NỘI DUNG BÁO CÁO" },
+    { "o": "A5", "bang": "VẬN HÀNH XANH" }
+  ],
+  "chieu_co_dinh": { "cong_ty": "XVP" },
+  "cot": {
+    "cost_center": { "cot": "A", "lap_lai": true, "chuan_hoa": "xvp_don_vi" },
+    "dim1": { "cot": "B", "chuan_hoa": "xvp_chi_tieu" }
+  },
+  "ban_ghi": "moi_cot_ngay",
+  "cot_ngay": { "tu": "C", "den": "AG", "ky_tu_o": true },
+  "loc": [
+    { "cot": "dim1", "dieu_kien": "khac_rong" },
+    { "cot": "ngay", "dieu_kien": "khac_rong" }
+  ],
+  "payload_them": { "unit": "goc" }
+}

@@ -848,6 +848,117 @@ def _cc_qlts(ten):
     return {"_khong_map": goc}
 
 
+# ── BÁO CÁO QTVH XANH TAXI (`B.6.XVP.PKDVH.M.*.Baocaotonghop`) ─────────────────────────────
+# Bảng NGANG: cột A = khối/depot (ô GỘP, chỉ ghi ở dòng đầu -> cột khai `lap_lai`), cột B = tên
+# chỉ tiêu, C..AG = mỗi ngày một cột. Mỗi sheet là MỘT THÁNG và tháng mới lại thêm sheet vào chính
+# file cũ (`moi_sheet_chua`), nên chỉ tiêu phải dò theo TÊN chứ không theo số dòng: sheet "BÁO CÁO
+# THÁNG 7" thiếu hẳn 3 dòng nhân sự và 3 dòng cảnh báo của sheet tháng 8, mọi số dòng đều lệch.
+#
+# BẪY: `_nd()` bỏ hết ký tự không phải chữ/số nên "GMV ngày" (dòng 19, tiền của NGÀY ĐÓ) và
+# "GMV/ Ngày" (dòng 22, tiền chia SỐ XE HOẠT ĐỘNG) chuẩn hoá về CÙNG một chuỗi "gmvngay". Hai
+# dòng khác nhau cả bậc độ lớn (899.802.460 vs 978.046). Vì thế bảng này so bằng `_nd_gach` —
+# GIỮ LẠI dấu "/" — và khớp TUYỆT ĐỐI, không khớp kiểu "chứa".
+def _nd_gach(s):
+    """Như `_nd` nhưng giữ dấu '/' — xem bẫy GMV ngày vs GMV/ Ngày ở trên."""
+    s = str(s if s is not None else "").strip().lower().replace("đ", "d")
+    s = "".join(c for c in unicodedata.normalize("NFD", s) if unicodedata.category(c) != "Mn")
+    return re.sub(r"[^a-z0-9/]", "", s)
+
+
+# nhãn cột B -> (mã chỉ tiêu, nhóm đơn vị). Nhóm đi vào `dim3` để backend biết phải quy đổi thế
+# nào: "tien" = ĐỒNG (chia 1e9 khi hiển thị tỷ) · "dem" = số đếm (xe/cuốc/người) · "tyle" = phân
+# số 0..1 (nhân 100). Một report_type ôm cả ba vì đây là MỘT bảng của nghiệp vụ; tách ba spec chỉ
+# để "đơn vị sạch" thì mỗi lần biểu mẫu thêm dòng lại phải sửa ba chỗ.
+_XVP_CT = {
+    # nhân sự
+    "tongnhansu": ("NS_TONG", "dem"), "nhansu": ("NS_TONG", "dem"),
+    "ho": ("NS_HO", "dem"), "depot": ("NS_DEPOT", "dem"),
+    # đội xe
+    "tongsoxe": ("XE_TONG", "dem"), "tongsoxetaidepot": ("XE_TONG", "dem"),
+    "soluongxedudieukienvandoanh": ("XE_DU_DK", "dem"),
+    "soluongxethieutai": ("XE_THIEU_TAI", "dem"),
+    "xethuongquyen": ("XE_TQ", "dem"), "xethuekhoan": ("XE_KHOAN", "dem"),
+    "soxehoatdongtb/ngaytaxi": ("XE_HOAT_DONG", "dem"),
+    "soxenamxuongvctnloikythuat": ("XE_NAM_XUONG", "dem"),
+    "soxetaidoncongan": ("XE_CONG_AN", "dem"),
+    "soxedanglamlaigiaytodobimatbihong": ("XE_GIAY_TO", "dem"),
+    "soxevctntrongngay": ("XE_VCTN", "dem"),
+    "tilexenamdepotxdvcqca": ("TL_XE_NAM_FILE", "tyle"),
+    "xesaphetdangkiem": ("XE_DANGKIEM", "dem"),
+    "xesaphethanbaohiem": ("XE_BAOHIEM", "dem"),
+    # doanh thu (GMV)
+    "gmvngay": ("DT_NGAY", "tien"), "targetngay": ("TARGET_NGAY", "tien"),
+    "gmvluyke": ("DT_LUYKE", "tien"),
+    "gmv/ngay": ("DT_TREN_XE_NGAY", "tien"), "gmv/tongxe": ("DT_TREN_XE", "tien"),
+    "aov": ("DT_TREN_CUOC", "tien"),
+    "doanhsoxethuongquyen/xekhoan": ("DS_TQ_KHOAN", "tien"),
+    "doanhsoappan": ("DS_APP_AN", "tien"),
+    "tylehoanthanhkpi": ("TL_HT_KPI", "tyle"),
+    # sản lượng · chất lượng
+    "tongcuoctaxi": ("CUOC_TONG", "dem"), "tongcuoc": ("CUOC_TONG", "dem"),
+    "cuochoanthanh": ("CUOC_HT", "dem"), "cuochoanthanhtaxi": ("CUOC_HT", "dem"),
+    "cuochuy": ("CUOC_HUY", "dem"), "cuochuytaxi": ("CUOC_HUY", "dem"),
+    "tylehoanthanhcuoc": ("TL_HT_CUOC", "tyle"),
+    "tylehoanthanhcuoctaxi": ("TL_HT_CUOC", "tyle"),
+    "cuocbidanhgiaduoi5": ("KHIEU_NAI", "dem"),
+    # khối KINH DOANH (bán xe) và HỢP TÁC XÃ — cùng nhãn nhưng khác khối, phân biệt bằng `dim2`
+    "soluongxeban": ("KD_SL_XE", "dem"), "doanhthu": ("KD_DOANHTHU", "tien"),
+    "taixethamgiahtx": ("HTX_TAIXE", "dem"),
+    "doanhthutuphixavien": ("HTX_DT_PHI", "tien"),
+    "sotaixethanhlyhopdong": ("HTX_THANHLY", "dem"),
+}
+# Dòng CỐ Ý BỎ (không phải "chưa khai"): "Lũy kế" xuất hiện 3 lần trong file (KINH DOANH dòng
+# 121, HỢP TÁC XÃ dòng 124 và 126) với CÙNG nhãn, nên nạp vào là hai dòng HTX chồng khoá nhau và
+# cộng đôi. Số lũy kế vốn là tổng dồn của chính dòng ngay trên nó -> backend tự cộng lấy.
+_XVP_BO_QUA = {"luyke"}
+
+
+def _xvp_chi_tieu(nhan):
+    """Cột B -> {dim1: mã, dim3: nhóm đơn vị}. Nhãn lạ -> `_khong_map` để engine kêu lên."""
+    n = _nd_gach(nhan)
+    if not n or n in _XVP_BO_QUA:
+        return {}
+    got = _XVP_CT.get(n)
+    return {"dim1": got[0], "dim3": got[1]} if got else {"_khong_map": str(nhan).strip()}
+
+
+_XVP_DON_VI = {
+    "vanhanhxanh": (None, "Tổng"),        # dòng TỔNG khối — quy tắc 3, không gắn cost_center
+    "vinhphuc": ("VP_DP", "Depot"),
+    "phutho": ("PT_DP", "Depot"),
+    "tuyenquang": ("TQ_DP", "Depot"),
+    "kinhdoanh": (None, "Kinh doanh"),    # bán xe — khối riêng trong cùng sheet
+    "hoptacxa": (None, "HTX"),
+}
+
+
+def _xvp_don_vi(nhan):
+    """Cột A (ô GỘP, đọc kèm `lap_lai`) -> {cost_center, dim2}.
+
+    `dim2` là thứ phân biệt DÒNG TỔNG với dòng depot: cả hai đều mang cùng `dim1`, cộng lẫn là
+    nhân đôi đội xe (Σ 3 depot = dòng tổng ở mọi chỉ tiêu đếm — đã verify T8).
+    """
+    got = _XVP_DON_VI.get(_nd(nhan))
+    if not got:
+        return {"_khong_map": str(nhan).strip()} if str(nhan or "").strip() else {}
+    return {"cost_center": got[0], "dim2": got[1]}
+
+
+# Cột "MÃ SỐ" của báo cáo HQKD NGÀY Xanh Taxi (`B.6.XVP.D.*.Baocaohqkdngay`) — 5 dòng doanh thu
+# THUẦN theo nguồn thu, đúng 5 mục "Cơ cấu doanh thu" mà mapping dòng 31-35 liệt kê. Neo theo MÃ
+# chứ không theo nhãn/dòng: nhãn ghi tay ("3.2 Doanh thu thuần HTKD" = doanh thu BÁN XE hợp tác
+# kinh doanh) còn số dòng thì đổi theo từng kỳ. Mã ngoài bảng -> {} (dòng bị `loc` loại): sheet
+# còn cả phần giá vốn 4.x và chi phí, cố ý không nạp ở đây (đã có `derive_hqkd_ngay.py`).
+_XVP_MA_DT = {
+    "3.1": "DT_TAXI", "3.2": "DT_BANXE", "3.3": "DT_THUEXE",
+    "3.4": "DT_PLF", "3.5": "DT_HTX",
+}
+
+
+def _xvp_ma_doanh_thu(v):
+    return {"dim1": _XVP_MA_DT[k]} if (k := str(v or "").strip()) in _XVP_MA_DT else {}
+
+
 _CHUAN_HOA = {
     "cc_qlts": _cc_qlts,
     "khoi_qlts": _khoi_qlts,
@@ -865,6 +976,9 @@ _CHUAN_HOA = {
     "sr_ct_dong": _sr_ct_dong,
     "kh_khoi_dong": _kh_khoi_dong,
     "kh_ct_dong": _kh_ct_dong,
+    "xvp_chi_tieu": _xvp_chi_tieu,
+    "xvp_ma_doanh_thu": _xvp_ma_doanh_thu,
+    "xvp_don_vi": _xvp_don_vi,
     "hoa": lambda v: str(v or "").strip().upper() or None,
     "cat": lambda v: str(v or "").strip() or None,
 }
@@ -1535,6 +1649,54 @@ def extract_file(spec, path):
     Mỗi vùng vẫn tự dò cột THEO TÊN HEADER trong đúng dòng tiêu đề của nó (nguyên tắc số 1) và
     vẫn kiểm được `kiem_tra_o` riêng, nên chèn/xoá cột trong một khối không lây sang khối khác.
     """
+    # `moi_sheet_chua` (19/08/2026, báo cáo QTVH Xanh Taxi): MỘT file chứa NHIỀU SHEET THÁNG
+    # ("BÁO CÁO THÁNG 8", "BÁO CÁO THÁNG 7"…) và tháng sau lại thêm một sheet nữa vào chính file
+    # đó. Khai `sheet.ten` cứng là mỗi kỳ phải sửa spec, còn `theo_thang` chỉ lấy đúng tháng của
+    # TÊN FILE nên các tháng cũ nằm im trong file mà không ai biết. Ở đây quét MỌI sheet có tên
+    # chứa mốc, mỗi sheet đọc như một file con; kỳ của từng sheet lấy từ chính ô ngày ở dòng tiêu
+    # đề (`cot_ngay.ky_tu_o`), không suy từ tên file.
+    _sh = (spec.get("nguon") or {}).get("sheet") or {}
+    if "moi_sheet_chua" in _sh:
+        ten_sheet = [n for n in _mo_wb(path).sheetnames
+                     if _nd(_sh["moi_sheet_chua"]) in _nd(n)]
+        if not ten_sheet:
+            return [], [f"không sheet nào chứa '{_sh['moi_sheet_chua']}'"]
+        recs, warn = [], []
+        for ten in ten_sheet:
+            con = {**spec, "nguon": {**(spec.get("nguon") or {}), "sheet": {"ten": ten}}}
+            r, w = extract_file(con, path)
+            recs += r
+            warn += [f"[sheet {ten}] {x}" for x in w]
+        return recs, _gop_canh_bao(warn)
+
+    # `moi_sheet_ngay` (19/08/2026): MỖI SHEET LÀ MỘT NGÀY, tên sheet chính là số ngày ("01".."17"
+    # ở báo cáo HQKD ngày của Xanh Taxi). Khác `moi_cot_ngay` (ngày nằm ở CỘT) và khác
+    # `theo_thang` (một sheet cho cả tháng). Năm+tháng lấy từ tên file, ngày từ tên sheet, rồi
+    # ghim vào `chieu_co_dinh.ngay` để mọi dòng của sheet mang đúng ngày đó.
+    if _sh.get("moi_sheet_ngay"):
+        ky, w = _ky_thang(spec, path)
+        if not ky:
+            return [], w
+        y, mo = ky
+        ten_sheet = [n for n in _mo_wb(path).sheetnames if str(n).strip().isdigit()
+                     and 1 <= int(str(n).strip()) <= 31]
+        if not ten_sheet:
+            return [], [*w, "không sheet nào mang tên là SỐ NGÀY (01..31)"]
+        recs, warn = [], list(w)
+        for ten in sorted(ten_sheet, key=lambda x: int(str(x).strip())):
+            try:
+                ngay = dt.date(y, mo, int(str(ten).strip())).isoformat()
+            except ValueError:                       # ngày 30/31 ở tháng ngắn -> sheet thừa
+                warn.append(f"sheet '{ten}' không phải ngày hợp lệ của {y}-{mo:02d} -> bỏ")
+                continue
+            con = {**spec,
+                   "nguon": {**(spec.get("nguon") or {}), "sheet": {"ten": ten}},
+                   "chieu_co_dinh": {**(spec.get("chieu_co_dinh") or {}), "ngay": ngay}}
+            r, w2 = extract_file(con, path)
+            recs += r
+            warn += [f"[sheet {ten}] {x}" for x in w2]
+        return recs, _gop_canh_bao(warn)
+
     vung = spec.get("vung")
     if not vung:
         return _extract_vung(spec, path)
@@ -1546,9 +1708,64 @@ def extract_file(spec, path):
     return recs, warn
 
 
+# Bộ nhớ đệm MỘT workbook (19/08/2026). `vung` và hai chế độ `moi_sheet_*` đọc CÙNG một file
+# nhiều lượt — báo cáo HQKD ngày Xanh Taxi có 17 sheet × 4 vùng = 68 lượt mở, mà riêng
+# `load_workbook` của file đó mất 7,5 giây: 8 phút cho một file 790 KB. Giữ đúng 1 workbook (theo
+# path + mtime) là đủ, vì cả `extract_file` lẫn `run` đều xử lý xong một file rồi mới sang file
+# sau. Không đóng workbook đang nằm trong đệm — `_dong_wb` gọi ở cuối mỗi file trong `run`.
+_WB_CACHE = {}
+
+
+def _gop_canh_bao(warn):
+    """Gộp cảnh báo GIỐNG NHAU lặp qua nhiều sheet thành một dòng.
+
+    File HQKD ngày có 17 sheet × 4 vùng, mỗi lượt đẻ đúng một câu "bỏ 101 dòng không qua bộ lọc"
+    -> 68 dòng cảnh báo y hệt nhau che mất cảnh báo THẬT (sheet lệch layout, mã lạ). Gộp lại giữ
+    nguyên thông tin mà đọc được.
+    """
+    thu_tu, nhom = [], {}
+    for w in warn:
+        m = re.match(r"^\[sheet (.+?)\] (.*)$", w, re.S)
+        khoa, sheet = (m.group(2), m.group(1)) if m else (w, None)
+        if khoa not in nhom:
+            nhom[khoa] = []
+            thu_tu.append(khoa)
+        if sheet:
+            nhom[khoa].append(sheet)
+    ra = []
+    for khoa in thu_tu:
+        sh = nhom[khoa]
+        if not sh:
+            ra.append(khoa)
+        elif len(sh) == 1:
+            ra.append(f"[sheet {sh[0]}] {khoa}")
+        else:
+            ra.append(f"[{len(sh)} sheet: {sh[0]}…{sh[-1]}] {khoa}")
+    return ra
+
+
+def _mo_wb(path):
+    khoa = (os.path.abspath(path), os.path.getmtime(path))
+    if _WB_CACHE.get("khoa") != khoa:
+        _dong_wb()
+        _WB_CACHE["khoa"] = khoa
+        _WB_CACHE["wb"] = openpyxl.load_workbook(path, data_only=True, read_only=True)
+    return _WB_CACHE["wb"]
+
+
+def _dong_wb():
+    wb = _WB_CACHE.pop("wb", None)
+    _WB_CACHE.pop("khoa", None)
+    if wb is not None:
+        try:
+            wb.close()
+        except Exception:                                          # noqa: BLE001
+            pass
+
+
 def _extract_vung(spec, path):
     warn, recs = [], []
-    wb = openpyxl.load_workbook(path, data_only=True, read_only=True)
+    wb = _mo_wb(path)
     try:
         _sh_cfg = (spec.get("nguon") or {}).get("sheet") or {}
         _thang = None
@@ -1695,10 +1912,15 @@ def _extract_vung(spec, path):
         nc_ngay = spec.get("cot_ngay") or {}
         ngay_theo_cot = []
         if spec.get("ban_ghi") == "moi_cot_ngay":
-            nam_thang, w3 = _ky_thang(spec, path)
+            # `ky_tu_o` (19/08/2026): kỳ nằm ở CHÍNH Ô NGÀY của cột, không ở tên file. Cần cho
+            # file một-sheet-một-tháng (`moi_sheet_chua`): tên file chỉ ghi tháng mới nhất nên
+            # sheet tháng cũ sẽ bị loại sạch bởi phép kiểm "ngày không thuộc kỳ của file".
+            # Chỉ chấp ô NGÀY THẬT — ô ghi số trần "1".."31" không nói được nó thuộc tháng nào.
+            ky_tu_o = bool(nc_ngay.get("ky_tu_o"))
+            nam_thang, w3 = (None, []) if ky_tu_o else _ky_thang(spec, path)
             warn.extend(w3)
-            if nam_thang:
-                y, mo = nam_thang
+            if ky_tu_o or nam_thang:
+                y, mo = nam_thang if nam_thang else (None, None)
                 j1 = column_index_from_string(nc_ngay.get("tu", "G")) - 1
                 j2 = column_index_from_string(nc_ngay.get("den", "AK")) - 1
                 dong_ngay = nc_ngay.get("dong")
@@ -1710,7 +1932,7 @@ def _extract_vung(spec, path):
                     raw = moc_row[j] if j < len(moc_row) else None
                     ngay_cot = None
                     if isinstance(raw, (dt.datetime, dt.date)):
-                        if (raw.year, raw.month) == (y, mo):
+                        if ky_tu_o or (raw.year, raw.month) == (y, mo):
                             ngay_cot = dt.date(raw.year, raw.month, raw.day).isoformat()
                         else:
                             warn.append(f"cột {get_column_letter(j + 1)} ghi ngày {raw} không thuộc "
@@ -1718,7 +1940,8 @@ def _extract_vung(spec, path):
                     else:
                         # Chấp cả "01" lẫn "Ngày 01": bản kế hoạch ngày của Showroom ghi tiêu
                         # đề cột là "Ngày 01".."Ngày 31" chứ không phải số trần.
-                        m = re.match(r"^\s*(?:ng[àa]y\s*)?(\d{1,2})\s*$", str(raw or ""), re.I)
+                        m = None if ky_tu_o else \
+                            re.match(r"^\s*(?:ng[àa]y\s*)?(\d{1,2})\s*$", str(raw or ""), re.I)
                         if m:
                             try:
                                 ngay_cot = dt.date(y, mo, int(m.group(1))).isoformat()
@@ -1764,6 +1987,7 @@ def _extract_vung(spec, path):
 
         khong_map, khong_map_giu, bo_loc, o_loi = {}, {}, 0, {}
         ngu_canh = {}          # ngữ cảnh mang từ dòng tiêu đề xuống, xem `ngu_canh_dong`
+        lap_lai_cuoi = {}      # giá trị gần nhất của cột khai `lap_lai`, xem ngay dưới
         nc_cfg = spec.get("ngu_canh_dong")
         for row in ws.iter_rows(min_row=bat_dau, max_row=ket_thuc, values_only=True):
             # BẢNG PHÂN CẤP: một số báo cáo không lặp lại tên đơn vị trên từng dòng mà đặt nó ở
@@ -1813,6 +2037,16 @@ def _extract_vung(spec, path):
                 base["ngay"] = ngay_file
             for dich, (j, cfg) in cot.items():
                 val = _lay_o(row, j, cfg, o_loi)
+                # `lap_lai` (19/08/2026): Ô GỘP theo chiều dọc — tên khối chỉ ghi ở dòng ĐẦU của
+                # khối (cột A báo cáo QTVH Xanh Taxi: "VẬN HÀNH XANH" ở dòng 5 rồi bỏ trắng 29
+                # dòng dưới). openpyxl trả None cho phần thân ô gộp, nên không có nó thì 29/30
+                # dòng mất đơn vị. Khác `ngu_canh_dong` ở chỗ dòng mang nhãn VẪN sinh bản ghi:
+                # ở đây dòng đầu khối cũng là một dòng số liệu thật, không phải dòng tiêu đề.
+                if cfg.get("lap_lai"):
+                    if val in (None, ""):
+                        val = lap_lai_cuoi.get(dich)
+                    else:
+                        lap_lai_cuoi[dich] = val
                 hook = cfg.get("chuan_hoa")
                 # `chuan_hoa_khi_rong`: chạy hook CẢ KHI ô trống, vì với cột này "để trống" là
                 # một TRẠNG THÁI chứ không phải thiếu dữ liệu. Cột "số ngày quá hạn" của công nợ
@@ -1942,7 +2176,7 @@ def _extract_vung(spec, path):
                                     sorted(khong_map_giu.items(), key=lambda x: -x[1])[:10]))
         return recs, warn
     finally:
-        wb.close()
+        pass          # workbook nằm trong `_WB_CACHE`, đóng ở cuối mỗi file (xem `_mo_wb`)
 
 
 def _source_id(path):
@@ -1993,7 +2227,10 @@ def _ghi(spec, path, recs):
 
 
 def run(spec, path, write=False):
-    recs, warn = extract_file(spec, path)
+    try:
+        recs, warn = extract_file(spec, path)
+    finally:
+        _dong_wb()          # xong một file thì nhả workbook trong đệm (xem `_mo_wb`)
     by_ky = {}
     for r in recs:
         by_ky.setdefault((r.get("ngay") or "?")[:7], []).append(r)

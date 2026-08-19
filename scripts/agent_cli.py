@@ -4332,8 +4332,18 @@ def _cmd_autofill_impl(args):
     from derive_hqkd_ngay import derive as _hqkd_ngay_derive, is_daily_report as _is_daily_report
     if _is_daily_report(args.file):
         r = _hqkd_ngay_derive(args.file, write=not args.dry_run)
+        # ...NHƯNG file báo cáo ngày VẪN có thể cấp thêm lát cho một spec JSON. Deriver trên chỉ
+        # bóc cụm P&L (doanh thu thuần / giá vốn / chi phí / lợi nhuận); spec `xvp_doanhthu_ngay`
+        # bóc thêm 5 dòng CƠ CẤU doanh thu thuần (mã 3.1-3.5) của chính sheet đó cho màn Xanh
+        # Taxi. Ra sớm mà không chạy spec là màn xt0/xt1 mất hẳn khối "Cơ cấu doanh thu" — im
+        # lặng, y hệt ca SRVF 14/08/2026 nhưng ngược chiều. Hai bên ghi report_type KHÁC nhau
+        # (`HQKD_D`/`CHIPHI_D` vs `XVP_DT_NGUON_D`) nên không đè nhau, không đếm đôi.
+        from spec_extract import run_for_path as _spec_ngay
+        _kq_ngay = _spec_ngay(args.file, write=not args.dry_run)
         _out({"ok": bool(r.get("ok")), "file": os.path.basename(args.file), "mode": "bao_cao_ngay",
-              "dry_run": bool(args.dry_run), "derived": [r]})
+              "dry_run": bool(args.dry_run), "derived": [r, *_kq_ngay],
+              **({"canh_bao": [c for x in _kq_ngay for c in (x.get("canh_bao") or [])]}
+                 if any(x.get("canh_bao") for x in _kq_ngay) else {})})
         return
 
     # NGUỒN KHAI BẰNG JSON SPEC (extract_specs/*.json — toàn bộ VHKD + XDV): ra sớm y như gate báo
