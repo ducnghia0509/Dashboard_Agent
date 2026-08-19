@@ -4477,8 +4477,23 @@ def _cmd_autofill_impl(args):
         # mọi nhánh route -> không deriver nào materialize nổi ~5.6M ô (thue + tonkho_cdps = 2 lượt
         # ×25s). Không mất dữ liệu thật: các sheet này là phantom-column, extractor luôn fail ("không
         # dò được header"). Rộng chính đáng KHÔNG bao giờ >1000 cột. Log 'skip_wide' để không nuốt thầm.
-        _ncols = max((len(_hr) for _hr in (headers.get(sheet) or [])), default=0)
-        if _ncols > _MAX_SHEET_COLS:
+        # CỘT ẢO vs CỘT THẬT (19/08/2026): sheet được định dạng tràn CẢ DÒNG thì openpyxl khai 16.384
+        # cột trong khi dữ liệu chỉ nằm ở vài chục cột đầu. HT T07 'nxt tk 156' (rộng THẬT 15 cột, y
+        # hệt T01-T06 vẫn chạy tốt) bị hàng rào này cắt -> `HH` tháng 7 của Khối Xe tải MẤT TRẮNG:
+        # `tonkho_todo` chỉ còn 'bảng tính tồn kho hợp nhất' (bảng theo số khung, header 1 tầng ->
+        # _derive_tonkho fail), và vì list KHÔNG rỗng nên đường lùi CĐPS cũng không chạy.
+        # -> MIỄN TRỪ HẸP cho sheet TỒN KHO có rộng THẬT trong ngưỡng. Chỉ TONKHO, vì:
+        #   · nó là nguồn duy-nhất-một-sheet, fail là mất hẳn report_type, và đường lùi CĐPS KHÔNG
+        #     đáng tin (CĐPS hợp nhất HT chỉ bóc được TK151 0,608 tỷ, cuối kỳ 0 — ghi vào là tồn kho
+        #     Xe tải = 0 thay vì 58,23 tỷ);
+        #   · đọc nó chỉ tốn 1,3s (128 dòng), khác hẳn CĐPS của HO (342×16.348 = 5,6M ô, 6,3s/lượt).
+        # CĐPS/CĐKT rộng ảo (HO 'CĐPS'/'TC_CDPS', GA 'TC_CDPS', THUCHI 'TC01_SD TIỀN', QLTS 'Nhật ký')
+        # GIỮ NGUYÊN bị cắt — quét 534 file/mọi kỳ: đúng 1 sheet trên toàn hệ thống thoả điều kiện này.
+        _hrows = headers.get(sheet) or []
+        _ncols = max((len(_hr) for _hr in _hrows), default=0)
+        _ncols_real = max((max((_j + 1 for _j, _c in enumerate(_hr) if _c not in (None, "")), default=0)
+                           for _hr in _hrows), default=0)
+        if _ncols > _MAX_SHEET_COLS and not (ck == "TONKHO" and _ncols_real <= _MAX_SHEET_COLS):
             ledger.append({"sheet": sheet, "bucket": "skip_wide", "target_sheet": None,
                            "canonical_kind": ck, "cols": _ncols,
                            "reason": f"sheet {_ncols} cột (>{_MAX_SHEET_COLS}) — phantom/rác, bỏ qua tránh nghẽn autofill"})
