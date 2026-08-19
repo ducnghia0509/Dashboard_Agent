@@ -763,9 +763,17 @@ def autofill_file(path: str, period: str = None, cong_ty: str = None, dry_run: b
     from derive_hqkd_ngay import derive as _hqkd_ngay_derive, is_daily_report as _is_daily_report
     if _is_daily_report(path):
         r = _hqkd_ngay_derive(path, write=not dry_run)
+        # File báo cáo ngày VẪN có thể cấp thêm lát cho một spec JSON — `xvp_doanhthu_ngay` bóc 5
+        # dòng cơ cấu doanh thu thuần (mã 3.1-3.5) mà deriver P&L ở trên không đụng tới. Ra sớm
+        # trước khi chạy spec là màn Xanh Taxi mất khối "Cơ cấu doanh thu", im lặng. Hai bên ghi
+        # report_type khác nhau nên không đè nhau. Giữ y hệt gate ở `agent_cli.cmd_autofill`.
+        from spec_extract import run_for_path as _spec_ngay
+        _kq_ngay = _spec_ngay(path, write=not dry_run)
+        _cb_ngay = [c for x in _kq_ngay for c in (x.get("canh_bao") or [])]
         return {"ok": bool(r.get("ok")), "file": os.path.basename(path), "dry_run": dry_run,
-                "mode": "bao_cao_ngay", "processed": [r], "skipped_sheets": [],
-                "any_processed": bool(r.get("ok"))}
+                "mode": "bao_cao_ngay", "processed": [r, *_kq_ngay], "skipped_sheets": [],
+                **({"canh_bao": _cb_ngay} if _cb_ngay else {}),
+                "any_processed": bool(r.get("ok")) or bool(_kq_ngay)}
     # NGUỒN KHAI BẰNG JSON SPEC (extract_specs/*.json — toàn bộ VHKD + XDV) -> ra sớm, cùng hình
     # dạng với gate báo cáo ngày ở trên. Trước 10/08/2026 nhánh này KHÔNG có: 18 nguồn đó chỉ nạp
     # được bằng lệnh tay `spec_extract.py <id> --write`, nên bấm "Đồng bộ & nạp" báo thành công mà
