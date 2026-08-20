@@ -6,9 +6,11 @@
     "CỘT 'Kỳ này' LÀ CẢ KHỐI, KHÔNG PHẢI MỘT XƯỞNG — bản ghi của nó để cost_center RỖNG. Cộng cả 15 cột là đếm đôi toàn bộ khối.",
     "Số ở đây là DOANH THU XUẤT HOÁ ĐƠN THEO SỔ, cùng bộ mã B1xx với báo cáo doanh thu ngày (B100 tổng, B110 công việc, B120+B130 phụ tùng) nên đặt cạnh nhau được; nhưng vẫn là số CHỐT THÁNG, đừng ghép với số luỹ kế giữa tháng của báo cáo ngày trong cùng một ô.",
     "Kỳ lấy từ tên file (M<yyyy><mm>), neo CUỐI THÁNG. Tên file có 2 biến thể: 'M202607' và 'M2025.05'; phần mở rộng có cả '.Xlsx' hoa nên file_glob phải bắt cả hai.",
-    "Cột xưởng HCM ghi cả hậu tố pháp nhân ('Chi nhánh Vinfast Hồ Chí Minh- Công ty CP Thịnh Cường'); khai LIST tên ứng viên để bản rút gọn sau này vẫn khớp."
+    "Cột xưởng HCM ghi cả hậu tố pháp nhân ('Chi nhánh Vinfast Hồ Chí Minh- Công ty CP Thịnh Cường'); khai LIST tên ứng viên để bản rút gọn sau này vẫn khớp.",
+    "PHẢI GIỮ `doc_tron_file: false`. CHÍNH file này còn cấp PNLT/DTHU/CHIPHI/HQKD qua đường tất định (đã có 2.121 dòng trong DB). Mặc định của engine là true -> agent_cli chạy spec xong sẽ RA SỚM và nuốt mất 4 report_type đó, im lặng, chỉ lộ khi có người nạp lại một kỳ — đúng ca SRVF T05/T06 ngày 14/08/2026."
   ],
   "report_type": "XDV_PNL",
+  "doc_tron_file": false,
   "row_index_base": 7810000,
   "khoi": "Khối KD Vinfast - XDV",
   "nguon": {
