@@ -56,8 +56,11 @@ CẤU TRÚC SPEC (khoá tiếng Việt cho kế toán/BA đọc được):
   "ban_ghi": "moi_dong",                 // | "moi_cot_gia_tri" | "moi_cot_ngay"
                                          // | "moi_cot_thang" (xem dưới)
   "cot_gia_tri": [                       // chỉ dùng khi ban_ghi = "moi_cot_gia_tri":
-    {"header": "Công nợ trong hạn", "dim1": "Trong hạn", "he_so": 1e-9}
-  ],                                     // -> mỗi dòng nguồn đẻ N bản ghi, amount lấy từng cột
+    {"header": "Công nợ trong hạn", "dim1": "Trong hạn", "he_so": 1e-9},
+    {"header": "XDV Ocean Park", "cost_center": "OCP_XDV", "he_so": 1e-9}
+  ],                                     // -> mỗi dòng nguồn đẻ N bản ghi, amount lấy từng cột;
+                                         // ngoài dim1..3 còn gán được cost_center/cong_ty/khoi
+                                         // khi CHIỀU ĐƠN VỊ nằm ở cột (mỗi xưởng một cột)
   "loc": [{"cot": "ngay", "dieu_kien": "khac_rong"}],
   "dan_xuat": {"payload.lng": "amount - payload.gia_von"},
   "payload_them": {"unit": "ty"}
@@ -2134,7 +2137,11 @@ def _extract_vung(spec, path):
                     r2 = json.loads(json.dumps(base))
                     r2["amount"] = _so(row[j] if j < len(row) else None,
                                        float(c.get("he_so", 1.0)))
-                    for k2 in ("dim1", "dim2", "dim3"):
+                    # `cost_center`/`cong_ty`/`khoi` trong khai báo cột (20/08/2026): báo cáo lợi
+                    # nhuận khối XDV xếp MỖI XƯỞNG MỘT CỘT (I->V) bên phải cột "Kỳ này" của cả
+                    # khối, còn chiều "chỉ tiêu" thì nằm ở CỘT MÃ SỐ của từng dòng. Không có khoá
+                    # này thì phải khai 14 spec gần giống hệt nhau, mỗi spec một xưởng.
+                    for k2 in ("dim1", "dim2", "dim3", "cost_center", "cong_ty", "khoi"):
                         if c.get(k2):
                             r2[k2] = c[k2]
                     outs.append(r2)

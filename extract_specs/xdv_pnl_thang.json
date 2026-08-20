@@ -1,0 +1,156 @@
+{
+  "id": "xdv_pnl_thang",
+  "_mo_ta": "Báo cáo lợi nhuận khối XDV theo THÁNG (BCTC riêng XDV) — 47 mã B100..B900, cột 'Kỳ này' là cả khối và 14 cột xưởng I->V. Đây chính là nguồn mapping XDV ghi 'Mã B410, cột Kỳ này / cột từng xưởng' (chỉ tiêu #2 và #16) và là bản THÁNG của cùng bộ mã B1xx mà báo cáo doanh thu NGÀY dùng.",
+  "_bay": [
+    "CHỈ NHẬN BỐ CỤC 2026. File 2025 (sheet 'T1'..'T12') để cột C là 'Lũy kế' và cột I là 'Công thức' — 14 cột xưởng nằm chỗ khác. `kiem_tra_o` cố ý loại chúng ra: thà bỏ qua có cảnh báo còn hơn đọc lệch cột mà vẫn ra số.",
+    "CỘT 'Kỳ này' LÀ CẢ KHỐI, KHÔNG PHẢI MỘT XƯỞNG — bản ghi của nó để cost_center RỖNG. Cộng cả 15 cột là đếm đôi toàn bộ khối.",
+    "Số ở đây là DOANH THU XUẤT HOÁ ĐƠN THEO SỔ, cùng bộ mã B1xx với báo cáo doanh thu ngày (B100 tổng, B110 công việc, B120+B130 phụ tùng) nên đặt cạnh nhau được; nhưng vẫn là số CHỐT THÁNG, đừng ghép với số luỹ kế giữa tháng của báo cáo ngày trong cùng một ô.",
+    "Kỳ lấy từ tên file (M<yyyy><mm>), neo CUỐI THÁNG. Tên file có 2 biến thể: 'M202607' và 'M2025.05'; phần mở rộng có cả '.Xlsx' hoa nên file_glob phải bắt cả hai.",
+    "Cột xưởng HCM ghi cả hậu tố pháp nhân ('Chi nhánh Vinfast Hồ Chí Minh- Công ty CP Thịnh Cường'); khai LIST tên ứng viên để bản rút gọn sau này vẫn khớp."
+  ],
+  "report_type": "XDV_PNL",
+  "row_index_base": 7810000,
+  "khoi": "Khối KD Vinfast - XDV",
+  "nguon": {
+    "folder": "XDV/baocaotaichinhrieng",
+    "file_glob": "*.[xX]lsx",
+    "sheet": {
+      "so": 0
+    }
+  },
+  "kiem_tra_o": [
+    {
+      "o": "A8",
+      "bang": "Mã số"
+    },
+    {
+      "o": "C8",
+      "bang": "Kỳ này"
+    },
+    {
+      "o": "I8",
+      "bang": "XDV Ocean Park"
+    }
+  ],
+  "header": {
+    "dong": 8
+  },
+  "dong_bat_dau": 9,
+  "ky_tu_ten_file": {
+    "regex_nam": "M\\.?(\\d{4})",
+    "regex_thang": "M\\.?\\d{4}\\.?(\\d{2})"
+  },
+  "cot": {
+    "dim1": {
+      "header": "Mã số"
+    },
+    "payload.chi_tieu": {
+      "header": "Chỉ tiêu"
+    }
+  },
+  "ban_ghi": "moi_cot_gia_tri",
+  "cot_gia_tri": [
+    {
+      "header": "Kỳ này",
+      "dim2": "Khối",
+      "he_so": 1e-09
+    },
+    {
+      "header": "XDV Ocean Park",
+      "dim2": "Xưởng",
+      "cost_center": "OCP_XDV",
+      "he_so": 1e-09
+    },
+    {
+      "header": "XDV Long Biên",
+      "dim2": "Xưởng",
+      "cost_center": "LB_XDV",
+      "he_so": 1e-09
+    },
+    {
+      "header": "XDV Smart City",
+      "dim2": "Xưởng",
+      "cost_center": "SMC_XDV",
+      "he_so": 1e-09
+    },
+    {
+      "header": "XDV Hạ Long",
+      "dim2": "Xưởng",
+      "cost_center": "HL_XDV",
+      "he_so": 1e-09
+    },
+    {
+      "header": "XDV Cẩm Phả",
+      "dim2": "Xưởng",
+      "cost_center": "CP_XDV",
+      "he_so": 1e-09
+    },
+    {
+      "header": "VF Xuân Mai",
+      "dim2": "Xưởng",
+      "cost_center": "XM_XDV",
+      "he_so": 1e-09
+    },
+    {
+      "header": "VF Uông Bí",
+      "dim2": "Xưởng",
+      "cost_center": "UB_XDV",
+      "he_so": 1e-09
+    },
+    {
+      "header": "VF Tuyên Quang",
+      "dim2": "Xưởng",
+      "cost_center": "TQ_XDV",
+      "he_so": 1e-09
+    },
+    {
+      "header": "XDV Vĩnh Phúc",
+      "dim2": "Xưởng",
+      "cost_center": "VP_XDV",
+      "he_so": 1e-09
+    },
+    {
+      "header": "XDV Sơn Tây",
+      "dim2": "Xưởng",
+      "cost_center": "ST_XDV",
+      "he_so": 1e-09
+    },
+    {
+      "header": "XDV Đài Tư",
+      "dim2": "Xưởng",
+      "cost_center": "ĐT_XDV",
+      "he_so": 1e-09
+    },
+    {
+      "header": "XDV Việt Trì",
+      "dim2": "Xưởng",
+      "cost_center": "VT_XDV",
+      "he_so": 1e-09
+    },
+    {
+      "header": "XDV Hà Khánh",
+      "dim2": "Xưởng",
+      "cost_center": "HK_XDV",
+      "he_so": 1e-09
+    },
+    {
+      "header": [
+        "Chi nhánh Vinfast Hồ Chí Minh- Công ty CP Thịnh Cường",
+        "Chi nhánh Vinfast Hồ Chí Minh"
+      ],
+      "dim2": "Xưởng",
+      "cost_center": "HCM_XDV",
+      "he_so": 1e-09
+    }
+  ],
+  "loc": [
+    {
+      "cot": "dim1",
+      "dieu_kien": "khac_rong"
+    }
+  ],
+  "payload_them": {
+    "unit": "ty",
+    "nguon_he": "BCTC riêng XDV"
+  }
+}
