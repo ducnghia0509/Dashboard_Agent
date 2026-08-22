@@ -24,6 +24,7 @@ Ghi nguyên tử (tmp + os.replace) để agent không bao giờ đọc được
 """
 import json
 import os
+import re
 from datetime import datetime, timedelta, timezone
 
 VN = timezone(timedelta(hours=7))
@@ -41,6 +42,53 @@ STATES = (STATE_DU, STATE_CHAM, STATE_KHONG_XAC_NHAN, STATE_LOI_NAP, STATE_CHUA_
 RUN_OK = "ok"
 RUN_TAT = "bi_tat"              # cờ .disabled do UI đặt
 RUN_DUNG_SOM = "dung_som"       # receiver chết / metadata lỗi / không có file nào khớp
+
+
+_RE_KY_PAD = re.compile(r"\.(?:D|M|Y)\.(\d{4})(\d{2})(?:\d{2})?(?!\d)", re.IGNORECASE)
+_RE_KY_KHONG_PAD = re.compile(r"\.(?:D|M|Y)\.(\d{4})(\d{1,2})\.", re.IGNORECASE)
+
+
+def thang_tu_ten_file(name):
+    """'B.4.TC.TCKT.D.20268.BaocaoHQKD.xlsx' -> (2026, 8). (None, None) nếu không chắc.
+
+    ĐƯỜNG LÙI cho `month` của available_metadata.json khi agent quét nguồn để null: Dự án đặt tên
+    file KHÔNG pad số 0 ('.D.20268.' = 2026-08, chỉ 5 chữ số) nên bên quét không bóc được tháng, và
+    pick_targets() của cả 2 job lọc `e["month"] != month` đã loại đơn vị đó khỏi MỌI lượt kéo —
+    im lặng, vì đơn vị vắng mặt khỏi metadata không để lại dấu vết trong log (xem docstring module).
+    derive_hqkd_ngay._period_of() đã biết dạng tên này từ đầu; chỗ CHỌN file thì chưa.
+
+    Đặt ở đây (không import servers.common.source_catalog.ky_tu_ten_file, tuy nó cũng bóc đúng) vì
+    module đó kéo theo be_bridge/canonical/contract — cron chỉ cần 2 regex, không đáng đổi lấy cả
+    chuỗi import có thể vỡ giữa lượt kéo.
+
+    Thứ tự thử: dạng PAD trước (6 số, kèm cả '.D.20260801.' của Trạm sạc/HO/GA — 2 số cuối là NGÀY
+    xuất file, bỏ), rồi dạng không pad (neo dấu '.' liền sau để 5-số không cắn vào 6-số).
+    """
+    base = os.path.basename(str(name or ""))
+    for rx in (_RE_KY_PAD, _RE_KY_KHONG_PAD):
+        m = rx.search(base)
+        if m:
+            nam, thang = int(m.group(1)), int(m.group(2))
+            if 2000 <= nam <= 2099 and 1 <= thang <= 12:
+                return nam, thang
+    return None, None
+
+
+def ky_cua_entry(e: dict):
+    """(thang, nam) của entry metadata — `month` nếu bên quét bóc được, không thì suy từ TÊN FILE.
+
+    `month=null` KHÔNG có nghĩa "file không thuộc kỳ nào": với tên không pad số 0 ('.D.20268.' của
+    Dự án) bên quét đơn giản là không đọc ra. Trước bản này so sánh cứng `e["month"] != month` nên
+    None != 8 -> Dự án bị loại khỏi mọi lượt kéo kể từ ngày có job (log 0 lần nhắc DUAN), số báo cáo
+    ngày trên dashboard đứng ở bản nạp tay cuối cùng.
+
+    `nam` chỉ trả khi suy từ tên file (metadata `month` không mang năm) — dùng để chặn vắt năm ở mốc
+    tháng 1 <-> tháng 12 giống kiểm tra `years` sẵn có.
+    """
+    if e.get("month") is not None:
+        return e.get("month"), None
+    nam, thang = thang_tu_ten_file(e.get("fileName"))
+    return thang, nam
 
 
 def ngay_can(now) -> str:
