@@ -188,13 +188,17 @@ def pick_targets(meta: list, periods: list) -> list:
         for e in meta:
             if e.get("report_type") not in REPORT_TYPES or not e.get("fileName"):
                 continue
-            if e.get("month") != month:
+            thang, nam_ten = cron_status.ky_cua_entry(e)
+            if thang != month:
                 continue
             years = {int(t) for t in re.findall(r"(20\d{2})", e["fileName"])}
             if years and year not in years:
                 continue
+            if nam_ten is not None and nam_ten != year:
+                continue
             out.append({**e, "_period": period})
     return out
+
 
 
 def sidecar_saved_at(entry: dict):
@@ -397,6 +401,12 @@ def main():
         return done(cron_status.RUN_DUNG_SOM, "không đọc được available_metadata.json", 1)
 
     targets = pick_targets(meta, periods)
+    for e in meta:                       # nổ TO khi tên file mới lại không suy được kỳ
+        if e.get("report_type") in REPORT_TYPES and e.get("fileName") \
+                and cron_status.ky_cua_entry(e)[0] is None:
+            log(f"  CANH BAO [{e.get('company')}]: co file o nguon nhung khong doc duoc KY tu ten"
+                f" '{e['fileName'][:60]}' -> khong the xep vao ky nao de keo, can sua ten file"
+                " hoac bo sung dang ten vao cron_status.thang_tu_ten_file()")
     if not targets:
         log("DỪNG: không có file nào khớp kỳ cần kéo (kế toán chưa tạo file tháng này?)")
         return done(cron_status.RUN_DUNG_SOM, "không có file nào khớp kỳ cần kéo", 1)
