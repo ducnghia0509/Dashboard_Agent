@@ -332,7 +332,32 @@ def _cc_theo_khoi(ten, khoi, alias):
                                                  master.resolve_company_code(cc.get("congTy") or ""))
         _CC_CACHE[khoi] = m
     key = _bo_tien_to(_nd(ten))
-    ma, cty = _CC_CACHE[khoi].get(key) or alias.get(key) or (None, None)
+    got = _CC_CACHE[khoi].get(key) or alias.get(key)
+    if not got and "_" in str(ten or ""):
+        # BIẾN THỂ "<đơn vị>_ HL" / "_ CP" (24/08/2026) — nhóm bán hàng nội bộ của CÙNG một
+        # showroom, không phải đơn vị khác. Bắt được ở báo cáo công nợ SRVF T5/T6: 38 dòng dư nợ
+        # hợp đồng thật (14,10 tỷ) mang tên "Showroom Uông Bí_ HL"/"_ CP" -> không khớp danh mục
+        # -> `giu_khi_khong_map` giữ dòng nhưng cost_center/cong_ty rỗng. Hậu quả không phải mất
+        # tổng (tổng khối vẫn đủ) mà là chúng thành MỘT NHÓM SNAPSHOT RIÊNG: `_rows` chọn ngày
+        # chốt theo (cong_ty, khoi), nhóm rỗng đứng mãi ở 30/06 nên view nhiều kỳ cộng số dư T08
+        # với phần sót T06 (38,94 thay vì 36,95 tỷ quá hạn) — sai mà không có dấu hiệu nào.
+        #
+        # Chúng thuộc Uông Bí, kiểm bằng chính file đó: mọi sheet TỔNG HỢP ("CN theo đơn vị",
+        # "Tuổi nợ phải thu", "số dư nợ chuẩn") chỉ ghi "Showroom Uông Bí", và tra mã hợp đồng
+        # của các dòng biến thể trong sheet "Tuổi nợ phải thu" đều ra đơn vị "Showroom Uông Bí".
+        #
+        # CẮT TRÊN TÊN THÔ, KHÔNG PHẢI SAU `_nd`: `_nd` xoá mọi ký tự không phải chữ/số nên dấu
+        # `_` biến mất, và khớp kiểu tiền tố sau đó là gán nhầm pháp nhân — "Vinfast Cẩm Phả (61)"
+        # thành `campha61`, khớp tiền tố `campha` của Thịnh Cường trong khi (61) là Xanh Vĩnh Phúc.
+        # Tên thô của bản (61) không có `_` nên nhánh này không đụng tới nó.
+        #
+        # An toàn vì: (1) chỉ chạy SAU khi đã trượt -> không đổi được map nào đang đúng;
+        # (2) không cost center nào của master có `_` trong TÊN (mã thì có: UB_SR) -> cắt tại `_`
+        # không thể chặt mất tên thật; (3) tên thô vẫn nằm nguyên ở payload để đối chiếu.
+        goc = _bo_tien_to(_nd(str(ten).split("_")[0]))
+        if goc:
+            got = _CC_CACHE[khoi].get(goc) or alias.get(goc)
+    ma, cty = got or (None, None)
     # TRẢ LUÔN `khoi` (14/08/2026). Trước đây chỉ trả cost_center + cong_ty, và mọi spec dùng hook
     # này đều tự khai `"khoi"` ở cấp spec nên không ai thấy thiếu. Nhưng báo cáo NHÂN SỰ chứa NHIỀU
     # khối trong một sheet -> không khai được `khoi` cố định, mà thiếu `khoi` thì `filter_scope`
