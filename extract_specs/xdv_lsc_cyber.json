@@ -7,7 +7,8 @@
     "Nguồn DMS (`xdv_lsc_ton`) KHÔNG có cột tiền nào — sheet 'DMS-BC LSC' chỉ có D/E/F/G/H/I/J là ĐẾM LỆNH. Nên cột 'DMS · giá trị' của thiết kế hiện không có nguồn; để trống chứ đừng mượn tạm số của Cyber.",
     "Kỳ lấy từ tên file W.<năm>.<tháng>.<tuần>.<NGÀY BÁO CÁO>, quy về CHỦ NHẬT của tuần liền trước (giống 3 spec KSCL còn lại). File ra thứ Hai là đúng; ra Chủ nhật bị lùi nguyên một tuần và engine có cảnh báo.",
     "Tên xưởng ở cột B là tên thường ('Ocean Park'), KHÔNG phải mã — `chuan_hoa: xdv` lo việc quy về OCP_XDV. Dòng 'Tổng' cuối bảng tự rớt vì không map ra xưởng nào.",
-    "amount TRỘN đơn vị theo dim2: dim2='Số lệnh' là ĐẾM, dim2='Giá trị' là TỶ ĐỒNG. Cộng SUM(amount) toàn bộ report_type này ra số vô nghĩa — luôn lọc dim2 trước. (XDV_DXBH cũng theo lối này.)"
+    "amount TRỘN đơn vị theo dim2: dim2='Số lệnh' là ĐẾM, dim2='Giá trị' là TỶ ĐỒNG. Cộng SUM(amount) toàn bộ report_type này ra số vô nghĩa — luôn lọc dim2 trước. (XDV_DXBH cũng theo lối này.)",
+    "TÊN SHEET ĐỔI TỪ KỲ 21/08/2026 ('CYBER-BC LSC' -> 'BÁO CÁO') — `ten` là DANH SÁCH, giữ tên cũ để các tuần trước vẫn đọc được. Đã so header FULL WIDTH 21/08 vs 10/08: mọi cột spec đọc GIỮ NGUYÊN vị trí, 2 cột mới ('So với tuần trước', 'Tổng tiền tồn >7 ngày') thêm vào CUỐI nên không đẩy cột nào; bản 21/08 còn chèn 1 DÒNG TRỐNG trước dữ liệu nhưng `dong_bat_dau: 3` vẫn phủ vì dòng trống bị `loc` loại. Đổi tên sheet mà không sửa spec thì nạp 0 dòng và IM LẶNG — đây là lý do 5 nguồn KSCL đứng ở tuần 09/08 từ 12/08 tới 24/08."
   ],
   "report_type": "XDV_LSC_CYBER",
   "row_index_base": 7760000,
@@ -15,7 +16,7 @@
   "nguon": {
     "folder": "XDV/baocaolsccyber",
     "file_glob": "*.xlsx",
-    "sheet": { "ten": "CYBER-BC LSC" }
+    "sheet": { "ten": ["CYBER-BC LSC", "BÁO CÁO"] }
   },
   "kiem_tra_o": [
     { "o": "B2", "bang": "XDV" },
