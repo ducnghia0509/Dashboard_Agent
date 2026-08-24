@@ -4,7 +4,8 @@
   "_bay": [
     "Kỳ lấy từ tên file: W.<năm>.<tháng>.<tuần>.<NGÀY BÁO CÁO> — 'W.2026.8.2.10' = bản phát hành thứ Hai 10/08. Báo cáo ra thứ Hai chốt số của TUẦN LIỀN TRƯỚC, nên `ngay` ghi CHỦ NHẬT cuối tuần đó (10/08 -> 2026-08-09; 03/08 -> 2026-08-02), kèm payload tuan_tu/tuan_den/ngay_bao_cao. Trước 12/08/2026 spec chỉ đọc năm+tháng rồi gán cuối tháng (31/08): mọi bản tuần chồng lên nhau, lọc theo tuần không ra gì và phải vứt bớt file. `moi_ky_lay_file_moi_nhat` để 'ngay' -> giữ đủ các tuần; chống cộng đôi khi xem cả tháng là việc của _SNAP_RT ở backend (chỉ lấy tuần mới nhất).",
     "Dòng cuối là 'Tổng' — tự bị loại vì không map ra xưởng nào; đừng cộng nó vào.",
-    "14 xưởng, khớp master_data."
+    "14 xưởng, khớp master_data.",
+    "TÊN SHEET ĐỔI TỪ KỲ 21/08/2026 — `ten` là DANH SÁCH, tên cũ giữ nguyên để file các tuần trước vẫn đọc được, tên mới (Báo cáo ĐXBH) thêm vào sau. Đã so header FULL WIDTH bản 21/08 với bản 10/08: mọi cột spec đọc GIỮ NGUYÊN vị trí, cột mới ('So với tuần trước'…) thêm vào CUỐI nên không đẩy cột nào — vì vậy chỉ cần thêm tên sheet, KHÔNG đổi cot/cot_gia_tri. Đổi tên sheet mà không ai sửa spec thì nạp ra 0 dòng và IM LẶNG: đây là lý do 5 nguồn KSCL đứng ở tuần 09/08 suốt từ 12/08 tới 24/08."
   ],
   "report_type": "XDV_DXBH",
   "row_index_base": 7600000,
@@ -13,7 +14,10 @@
     "folder": "XDV/baocaolsctreodxbh",
     "file_glob": "*.xlsx",
     "sheet": {
-      "ten": "DMS- BC ĐXBH"
+      "ten": [
+        "DMS- BC ĐXBH",
+        "Báo cáo ĐXBH"
+      ]
     }
   },
   "kiem_tra_o": [
