@@ -808,9 +808,20 @@ def ra_soat_cong_doi(ctx: Ctx, nguon_list: list) -> list:
 
 
 def ra_soat(ctx: Ctx, nguon_list: list, st=None) -> dict:
-    """Chạy cả 2 bộ rà soát và ghi vào artifact trạng thái (agent gửi tin lãnh đạo đọc file này)."""
-    kq = {"mo_coi": ra_soat_mo_coi(ctx, nguon_list),
-          "cong_doi": ra_soat_cong_doi(ctx, nguon_list)}
+    """Chạy cả 2 bộ rà soát và ghi vào artifact trạng thái (agent gửi tin lãnh đạo đọc file này).
+
+    BỌC try/except cho từng bộ: đây là phần ĐI KÈM, chạy sau khi dữ liệu đã nạp xong. Nó nổ mà kéo
+    theo cả `run()` thì mất luôn `finish()` -> artifact thiếu, và bên đọc hiểu thành "cron không
+    chạy" — hỏng cái phụ làm báo động giả cái chính.
+    """
+    kq = {}
+    for ten, fn in (("mo_coi", ra_soat_mo_coi), ("cong_doi", ra_soat_cong_doi)):
+        try:
+            kq[ten] = fn(ctx, nguon_list)
+        except (OSError, ValueError, KeyError, subprocess.SubprocessError) as ex:
+            ctx.log(f"RÀ SOÁT {ten}: LỖI {type(ex).__name__}: {str(ex)[:160]} — bỏ qua, lượt nạp"
+                    " vẫn tính là xong")
+            kq[ten] = []
     if st:
         st.set_run(ra_soat=kq)
     return kq
