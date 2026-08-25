@@ -16,10 +16,15 @@ trong container mới là bản thật.
 
 ## Nó đọc gì
 
-Không parse log. Chỉ đọc 2 artifact JSON do cron sinh ra (xem `../cron_status.py`):
+Không parse log. Chỉ đọc 4 artifact JSON do cron sinh ra (xem `../cron_status.py`):
 
     ../logs/status_hqkdngay_daily_prod.json     (+ .jsonl lịch sử)
     ../logs/status_thuchi_daily_prod.json
+    ../logs/status_srvf_daily_prod.json         (thêm 25/08/2026)
+    ../logs/status_xdv_daily_prod.json          (thêm 25/08/2026)
+
+Hai artifact QTVH mang thêm khối `ra_soat` (`cong_doi` / `mo_coi`) — hai lớp lỗi làm SỐ SAI mà
+không làm job đỏ, xem `ra_soat_cong_doi()` / `ra_soat_mo_coi()` trong `../cron_qtvh_core.py`.
 
 ## Chạy khi nào
 

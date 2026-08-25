@@ -59,8 +59,14 @@ NGUON = [
     {
         "company": "SRVF", "rt": "baocaotonkhoxevatly", "che_do": core.LUY_KE,
         "ten": "Tồn kho xe vật lý",
-        # Kỳ cũ (T7) đặt tên KHÔNG có kênh ('...Tonkhoxevatly_T7.xlsx') nên nhóm kênh phải optional;
-        # không thì tên kiểu cũ rơi vào nhánh "không khớp -> đứng riêng" và không bao giờ bị dọn.
+        # BẢN GỘP KHÔNG HẬU TỐ KÊNH ('...Tonkhoxevatly_T7.xlsx') PHẢI BỎ, KHÔNG PHẢI GOM SLOT.
+        # Nó KHÔNG phải bản chốt cũ của 3 file kênh mà là một lát khác của cùng kỳ: prod 25/08 có
+        # cả 4 file T7 cùng ngày chốt 31/07, trùng 852 VIN -> tồn kho vật lý T7 phình từ 1.673 lên
+        # 3.123 xe. Để nhóm kênh optional (bản 24/08) KHÔNG cứu được: khớp regex nhưng nhóm kênh
+        # rỗng vẫn là một slot RIÊNG nên chẳng bao giờ có "bản mới cùng slot" để dọn nó đi.
+        # Gộp chung slot với 3 file kênh còn tệ hơn — luy_ke sẽ giữ 1 và xoá oan 2 kênh thật.
+        # Kỳ nào kế toán CHỈ gửi bản gộp thì `ra_soat_mo_coi` sẽ kêu file nằm ngoài DB.
+        "bo_qua": r"Tonkhoxevatly_T\d+\.xlsx$",
         "slot": r"Tonkhoxevatly_T(\d+)(?:_(B2B|B2C|GF))?",
         # BẮT BUỘC ở đây: `_T{n}_` nằm GIỮA tên nên bên quét bóc SAI (Tonkhoxevatly_T1_B2B ->
         # month=7 theo token ngày tạo). Thiếu dòng này thì kỳ 2026-07 gom cả 22 file T1..T7.

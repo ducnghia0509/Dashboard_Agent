@@ -3,12 +3,17 @@
 Việc của bạn: đọc **artifact JSON** do 2 job cron ghi ra, rồi soạn tin cho **Ban lãnh đạo và bộ phận
 KSNB**. Bạn **chỉ báo, không sửa**: không kéo file, không nạp DB, không chạy lại cron.
 
-## Nguồn dữ liệu — chỉ 2 file này
+## Nguồn dữ liệu — chỉ 4 file này
 
 | Phần tin | Artifact (môi trường PROD) |
 |---|---|
 | Báo cáo ngày (các đơn vị) | `/home/itadmin/AI_Dashboard_QT/AI_coding/logs/status_hqkdngay_daily_prod.json` |
 | Dòng tiền | `/home/itadmin/AI_Dashboard_QT/AI_coding/logs/status_thuchi_daily_prod.json` |
+| Nguồn QTVH Showroom Vinfast | `/home/itadmin/AI_Dashboard_QT/AI_coding/logs/status_srvf_daily_prod.json` |
+| Nguồn QTVH Xưởng dịch vụ | `/home/itadmin/AI_Dashboard_QT/AI_coding/logs/status_xdv_daily_prod.json` |
+
+Hai artifact QTVH thêm vào 25/08/2026. Trước đó 2 job này chạy mà **không ai nhìn**: hỏng thì chỉ
+nằm trong file `.log`, phải có người mở ra mới thấy.
 
 Tin gửi vào kênh thông báo của prod nên phải đọc artifact PROD. Bản test là cùng tên **bỏ** hậu tố
 `_prod` — chỉ dùng khi đang thử nghiệm, và nhớ đổi lại.
@@ -115,10 +120,39 @@ dừng kéo theo yêu cầu).
 Nếu 2 artifact có `run_date` khác nhau thì nói rõ trong dòng `💰` là số liệu của lượt ngày nào, đừng để
 người đọc tưởng cùng một lượt.
 
+## Phần NGUỒN QTVH — 2 dòng cuối, và chỉ in khi CÓ CHUYỆN
+
+Hai job này kéo nguồn quản trị vận hành (Showroom Vinfast 11:00, Xưởng dịch vụ 19:00). Artifact
+cùng cấu trúc với 2 job trên, đọc y hệt — `records`/`state`/`ly_do` dùng nguyên văn, `ten` là tên
+tiếng Việt của THƯ MỤC NGUỒN (`"Tồn kho xe vật lý"`, `"Claim B2B"`…), không phải tên đơn vị.
+
+Dòng `📦`: **chỉ in khi có mục KHÔNG ở state `du`**. Cả hai job đủ hết thì bỏ hẳn dòng này — tin
+gửi lãnh đạo không cần điểm danh những thứ chạy đúng.
+
+    📦 Nguồn quản trị vận hành: ⚪ chưa có file: Claim B2B, Nhập xe B2C · 🔴 có file nhưng không có dữ liệu: Claim B2C
+
+Dòng `🛠`: in khi artifact có khối `ra_soat` và khối đó KHÔNG rỗng. Đây là hai lớp lỗi **không làm
+job đỏ nhưng làm số trên dashboard sai** (chi tiết: `ra_soat_cong_doi` / `ra_soat_mo_coi` trong
+`cron_qtvh_core.py`):
+
+- `ra_soat.cong_doi` — một lát dữ liệu bị hai file cùng đóng góp, tức **số đang bị đếm hai lần**;
+- `ra_soat.mo_coi` — file có trên đĩa mà chưa vào DB, tức **số đang thiếu**.
+
+Chỉ báo SỐ LƯỢNG và hướng ảnh hưởng, **không đọc nguyên văn** các phần tử: chúng chứa tên file
+`.xlsx` và mã `report_type` — đúng những thứ mục Trình bày cấm đưa vào tin.
+
+    🛠 Cần IT xử lý: 2 lát dữ liệu đang bị đếm hai lần · 10 file chưa vào DB (xem `ra_soat` trong artifact)
+
+Lượt XDV chạy **19:00**, tức muộn hơn giờ gửi tin (17:15): artifact của nó luôn là lượt HÔM QUA.
+Đó là bình thường, **không** dùng `⚠️` cho ca này; nếu phải nhắc thì ghi rõ "lượt ngày DD/MM" như
+quy tắc ở dòng `💰`. Artifact thiếu hẳn (job chưa từng chạy) thì nói "chưa có dữ liệu trạng thái"
+kèm đường dẫn, không đoán.
+
 ## Phép kiểm cuối trước khi gửi
 
 1. `sum(summary.values())` phải bằng **`expected_chinh_count`** (không phải `expected_count` — với dòng
    tiền hai số này khác nhau vì `summary` chỉ đếm kỳ chính). Lệch là artifact có vấn đề — nói ra, đừng
    lặng lẽ gửi tin thiếu.
 2. Số tên xuất hiện trong tin (phần báo cáo ngày) phải bằng `expected_chinh_count`, mỗi tên đúng **một lần**.
+   Phép kiểm này CHỈ áp cho phần báo cáo ngày: dòng `📦` cố ý chỉ liệt kê mục chưa đủ nên không khớp mẫu số.
 3. Không còn ký tự nào trong danh sách cấm ở mục Trình bày.
