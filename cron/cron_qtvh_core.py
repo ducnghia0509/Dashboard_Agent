@@ -709,81 +709,101 @@ def ra_soat_mo_coi(ctx: Ctx, nguon_list: list) -> list:
     return canh_bao
 
 
-def _lat_anh_chup(ctx: Ctx, ctys: list) -> list:
-    """[(rt, cong_ty, khoi, ngay, source_file, so_dong)] của các report_type ẢNH CHỤP.
+def _lat_du_lieu(ctx: Ctx, ctys: list) -> list:
+    """[(rt, cong_ty, khoi, khoa, kieu_khoa, source_file, so_dong)] — một lát = một đơn vị đo bị
+    cộng chung.
 
-    `_SNAP_RT` nhập THẲNG từ API (`app.metrics._shared`) chứ không chép lại danh sách sang đây:
-    danh sách đó dài 38 mã và còn dài ra mỗi lần thêm nguồn số dư — chép là cầm chắc có ngày lệch.
+    KHOÁ LÁT KHÁC NHAU THEO BẢN CHẤT BÁO CÁO, không thể dùng chung một kiểu:
+    · ẢNH CHỤP (`_SNAP_RT`) -> khoá là NGÀY CHỐT. Cả tháng có 4-5 bản tuần là bình thường (KSCL
+      của XDV), chỉ hai file CÙNG một ngày chốt mới là cộng đôi.
+    · BÁO CÁO DÒNG (claim, xuất hoá đơn…) -> khoá là KỲ. Cả tháng cộng dồn, nên hai bản chốt khác
+      ngày của cùng một kỳ là cộng đôi — mà xét theo ngày thì chúng nằm hai ô khác nhau, lọt lưới.
+      Đây KHÔNG phải giả định: prod 25/08 cõng claim T7 hai bản (13/08 + 25/08) cho cả B2B lẫn
+      B2C, tức số claim tháng 7 đang gấp đôi, mà bản dò chỉ soi ảnh chụp thì không thấy gì.
+
+    `_SNAP_RT` nhập THẲNG từ API (`app.metrics._shared`) chứ không chép sang đây: danh sách đó dài
+    38 mã và còn dài ra mỗi lần thêm nguồn số dư, chép là cầm chắc có ngày lệch.
+
+    Dòng của file đang ẨN (`hidden_files`) bị loại: ẩn nghĩa là mọi truy vấn của dashboard đã bỏ
+    chúng ra: báo tiếp là báo một cái đã xử lý xong.
     """
+    # SQL cố ý KHÔNG có COALESCE/chuỗi rỗng: mỗi dấu nháy trong đoạn code nhúng phải escape hai
+    # tầng (chuỗi Python ở đây -> chuỗi Python bên trong `python -c`), sai một tầng là SyntaxError
+    # nuốt cả bộ dò. Ghép giá trị rỗng bằng `or ''` ở tầng Python cho khỏi phải escape gì.
     code = (
         "import sys;sys.path.insert(0,'.');"
         "from app.metrics._shared import _SNAP_RT;"
         "from app.database.session import get_db;"
         f"ctys={sorted(ctys)!r};"
-        "ph=','.join(['?']*len(_SNAP_RT));pc=','.join(['?']*len(ctys));"
-        "\nfor r in get_db().execute('SELECT report_type rt,COALESCE(cong_ty,\\'\\') ct,"
-        "COALESCE(khoi,\\'\\') k,ngay,source_file sf,COUNT(*) c FROM raw_rows WHERE report_type "
-        "IN (%s) AND ngay IS NOT NULL AND split_part(source_file,\\'::\\',1) IN (%s) "
-        "GROUP BY 1,2,3,4,5'%(ph,pc),(*sorted(_SNAP_RT),*ctys)):\n"
-        "    print('LAT|%s|%s|%s|%s|%s|%s'%(r['rt'],r['ct'],r['k'],r['ngay'],r['sf'],r['c']))\n"
+        "pc=','.join(['?']*len(ctys));"
+        "sql=('SELECT report_type rt,cong_ty ct,khoi k,ngay ng,period_month pm,source_file sf,"
+        "COUNT(*) c FROM raw_rows WHERE split_part(source_file,%s,1) IN (%s) AND source_file NOT "
+        "IN (SELECT source_file FROM hidden_files) GROUP BY 1,2,3,4,5,6')%(chr(39)+'::'+chr(39),"
+        "pc);"
+        "\nfor r in get_db().execute(sql, tuple(ctys)):\n"
+        "    snap=r['rt'] in _SNAP_RT\n"
+        "    print('LAT|%s|%s|%s|%s|%s|%s|%s'%(r['rt'],r['ct'] or '',r['k'] or '',"
+        "(r['ng'] if snap else r['pm']) or '','chốt' if snap else 'kỳ',r['sf'],r['c']))\n"
     )
     out = _py_sql(ctx, code, timeout=300)
     lat = []
     for line in out.splitlines():
         if line.startswith("LAT|"):
             p = line.split("|")
-            if len(p) == 7:
-                lat.append((p[1], p[2], p[3], p[4], p[5], int(p[6])))
+            if len(p) == 8 and p[4]:
+                lat.append((p[1], p[2], p[3], p[4], p[5], p[6], int(p[7])))
         elif line.strip():
             ctx.log(f"  RÀ SOÁT CỘNG ĐÔI lỗi: {line[:200]}")
     return lat
 
 
 def ra_soat_cong_doi(ctx: Ctx, nguon_list: list) -> list:
-    """CỘNG ĐÔI = trong CÙNG một (report_type, công ty, khối, ngày chốt) có nhiều hơn một file.
+    """CỘNG ĐÔI = trong CÙNG một lát (xem `_lat_du_lieu`) có nhiều hơn một file cùng đóng góp.
 
-    Chỉ soi report_type ẢNH CHỤP: với báo cáo DÒNG, nhiều file cùng ngày là chuyện thường (3 kênh
-    xuất hoá đơn). Ở nhóm ảnh chụp thì `_rows()` chọn ngày chốt theo (công ty, khối) chứ KHÔNG
-    theo source_file, nên hai file cùng lọt vào một ngày chốt là cộng cả hai — đúng lớp lỗi đã đo
-    được 24/08/2026 (294 dòng xuất hoá đơn + 1.337 dòng tồn vật lý ở DB test).
+    Vì sao không tự khỏi: với ảnh chụp, `_rows()` chọn ngày chốt theo (công ty, khối) chứ KHÔNG
+    theo source_file nên hai file cùng ngày được cộng cả hai; với báo cáo dòng thì cộng dồn cả kỳ
+    là đúng nghiệp vụ, hai bản chốt của cùng kỳ cũng cộng cả hai. `xoa_ban_cu` chỉ dọn được bản cũ
+    mà lượt chạy NHÌN THẤY ở nguồn — bản mà kế toán đã xoá/đổi tên bên nguồn thì nằm lại trong DB
+    vĩnh viễn, không lượt nào chọn nó làm "bản thua" nữa.
 
     Hai kiểu bị bắt, cùng là "một thứ đếm hai lần" nhưng cách sửa KHÁC hẳn nhau:
-    · TRÙNG BẢN CHỐT — cùng tên gốc, khác ngày phát hành. `xoa_ban_cu` lẽ ra đã dọn; còn sót nghĩa
-      là hai bản rơi vào hai slot khác nhau, sửa ở `slot`/`ky_regex` của nguồn.
-    · BẢN GỘP ⊃ BẢN TÁCH — file gộp cả kênh nằm cạnh các file tách kênh của đúng kỳ đó. Sửa bằng
-      `bo_qua` cho tên bản gộp rồi ẩn/xoá rows của nó; TUYỆT ĐỐI không gộp chung `slot` với các
-      file kênh — chúng không phải hai bản chốt của nhau, gộp là xoá oan cả 3 kênh.
+    · TRÙNG BẢN CHỐT — cùng tên gốc, khác ngày phát hành. Xoá rows của bản cũ (`source_file` nào
+      không còn ở nguồn thì cron không bao giờ tự dọn được).
+    · BẢN GỘP ⊃ BẢN TÁCH — file gộp cả kênh nằm cạnh các file tách kênh của đúng lát đó. Sửa bằng
+      `bo_qua` cho tên bản gộp rồi xoá rows của nó; TUYỆT ĐỐI không gộp chung `slot` với các file
+      kênh — chúng không phải hai bản chốt của nhau, gộp là xoá oan cả 3 kênh.
     """
-    lat = _lat_anh_chup(ctx, [n["company"] for n in nguon_list])
+    lat = _lat_du_lieu(ctx, [n["company"] for n in nguon_list])
     nhom = {}
-    for rt, ct, khoi, ngay, sf, c in lat:
-        nhom.setdefault((rt, ct, khoi, ngay), []).append((sf, c))
+    for rt, ct, khoi, khoa, kieu, sf, c in lat:
+        nhom.setdefault((rt, ct, khoi, khoa, kieu), {}).setdefault(sf, 0)
+        nhom[(rt, ct, khoi, khoa, kieu)][sf] += c
     canh_bao = []
-    for (rt, ct, khoi, ngay), ds in sorted(nhom.items()):
-        if len(ds) < 2:
+    for (rt, ct, khoi, khoa, kieu), files in sorted(nhom.items()):
+        if len(files) < 2:
             continue
+        o = f"[{rt} {ct}/{khoi} {kieu} {khoa}]"
         theo_ten = {}
-        for sf, c in ds:
+        for sf, c in files.items():
             theo_ten.setdefault(_ten_goc(sf), []).append((sf.split("::")[-1], c))
-        for ten, same in sorted(theo_ten.items()):
+        for _, same in sorted(theo_ten.items()):
             if len(same) > 1:
                 chi_tiet = " + ".join(f"{f} ({c} dòng)" for f, c in sorted(same))
-                canh_bao.append(f"TRÙNG BẢN CHỐT [{rt} {ct}/{khoi} chốt {ngay}]: {chi_tiet}")
+                canh_bao.append(f"TRÙNG BẢN CHỐT {o}: {chi_tiet}")
         for a in sorted(theo_ten):
             con = [b for b in sorted(theo_ten) if b != a and _la_ban_gop(a, b)]
             if con:
                 fa, ca = theo_ten[a][0]
                 chi_tiet = ", ".join(f"{theo_ten[b][0][0]} ({theo_ten[b][0][1]} dòng)"
                                      for b in con)
-                canh_bao.append(f"BẢN GỘP ⊃ BẢN TÁCH [{rt} {ct}/{khoi} chốt {ngay}]:"
-                                f" {fa} ({ca} dòng) nằm cạnh {chi_tiet}")
+                canh_bao.append(f"BẢN GỘP ⊃ BẢN TÁCH {o}: {fa} ({ca} dòng) nằm cạnh {chi_tiet}")
     for msg in canh_bao:
         ctx.log(f"  CỘNG ĐÔI {msg[:250]}")
     if not canh_bao:
-        ctx.log(f"RÀ SOÁT CỘNG ĐÔI: {len(nhom)} lát ảnh chụp, không lát nào bị 2 file cùng đóng góp")
+        ctx.log(f"RÀ SOÁT CỘNG ĐÔI: {len(nhom)} lát dữ liệu, không lát nào bị 2 file cùng đóng góp")
     else:
-        ctx.log(f"RÀ SOÁT CỘNG ĐÔI: {len(canh_bao)} lát bị đếm hai lần trên {len(nhom)} lát ảnh"
-                " chụp — SỐ TRÊN DASHBOARD ĐANG SAI, cách sửa xem docstring ra_soat_cong_doi()")
+        ctx.log(f"RÀ SOÁT CỘNG ĐÔI: {len(canh_bao)} lát bị đếm hai lần trên {len(nhom)} lát —"
+                " SỐ TRÊN DASHBOARD ĐANG SAI, cách sửa xem docstring ra_soat_cong_doi()")
     return canh_bao
 
 
