@@ -4,7 +4,8 @@
   "_bay": [
     "Mapping ghi 'Tên KH' ở cột O — SAI. File thật: O = 'Số ngày tồn theo hóa đơn', P = 'Tên KH'. Dò theo TÊN nên không ảnh hưởng.",
     "Dòng 2 là dòng CHÚ THÍCH ('Admin HO paste dữ liệu') chứ không phải dữ liệu -> dong_bat_dau = 3.",
-    "File KHÔNG có cột giá trị -> amount = 1 (đếm XE). Muốn ra giá trị tồn kho B2C phải xin thêm cột giá hoặc ghép với bảng giá.",
+    "TỪ BẢN 2026.8.17 FILE CÓ CỘT GIÁ: cột U 'Giá nhập' (878/878 xe có số, tổng 499,53 tỷ). Bản 2026.7.1.6 KHÔNG có cột này (file chỉ tới cột T) -> khai 'bat_buoc': false, kỳ T07 vẫn nạp bình thường và `gia_nhap` = null. GIÁ Ở ĐÂY LÀ GIÁ NHẬP (giá vốn), KHÁC cơ sở với B2B (cột 'Giá XHĐ' = giá xuất hoá đơn) — tầng đọc số cộng hai vế lại thì phải nói ra chuyện đó, đừng lặng lẽ gọi chung là 'giá trị tồn kho'.",
+    "amount VẪN = 1 (đếm XE), KHÔNG đổi sang tiền: mọi chỗ đang cộng amount trên VHKD_KHOXE đều hiểu B2C là đếm xe (xem `_KHOXE_CO_GIA` bên app/metrics/vhkd.py). Giá đi riêng ở `payload.gia_nhap` để đổi một chỗ không kéo sập chỗ khác.",
     "Chỉ có DUY NHẤT 1 ảnh chụp và tên file '2026.7.1.6' không rõ là ngày nào — tạm hiểu 01/07/2026. CẦN XÁC NHẬN với kế toán trước khi tin số theo kỳ.",
     "cost_center lấy 'SR Phân bổ sau khi kéo khách' (cột C, đã tính công thức) chứ không phải 'SR nhận xe thực tế' (cột A, nơi nhập xe)."
   ],
@@ -24,7 +25,8 @@
     "payload.so_vin": { "header": "SốVin" },
     "payload.so_ngay_ton": { "header": "Số ngày tồn thực tế", "kieu": "so" },
     "payload.ten_kh": { "header": "Tên KH", "bat_buoc": false },
-    "payload.sr_nhan": { "header": "SR nhận xe thực tế (Tạo PO)", "bat_buoc": false }
+    "payload.sr_nhan": { "header": "SR nhận xe thực tế (Tạo PO)", "bat_buoc": false },
+    "payload.gia_nhap": { "header": "Giá nhập", "kieu": "so_co_rong", "he_so": 1e-9, "bat_buoc": false }
   },
   "ban_ghi": "moi_dong",
   "dan_xuat": { "amount": "1" },
