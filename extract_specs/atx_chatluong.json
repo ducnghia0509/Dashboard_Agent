@@ -1,0 +1,81 @@
+{
+  "id": "atx_chatluong",
+  "_mo_ta": "KHIẾU NẠI khối An Taxi theo THÁNG — sheet 'BC Tháng PKDVH' (bố cục MỚI 26/08/2026). Bản THÁNG của `ATX_CL_D`, dùng ĐÚNG bộ dim1 của bản ngày để builder gom chung một nhánh. Mapping 'Mapping Antaxi 25.08' dòng 61 'Số lượng khiếu nại phát sinh' -> BG50:BG61 (Depot ST BG10:BG21 · TN BG30:BG41).",
+  "_bay": [
+    "XEM `_bay` CỦA `atx_nhansu` cho bố cục chung (3 vùng 10-21 / 30-41 / 50-61, cột A = số tháng, ghim chữ cột).",
+    "KHIẾU NẠI NAY CÓ Ở BẢN THÁNG VÀ TÁCH ĐƯỢC THEO DEPOT — bố cục cũ hoàn toàn không có, backend phải lấy từ báo cáo NGÀY (`ATX_CL_D`, chỉ có T8). Nhờ vậy màn at5 có số khiếu nại đủ T1-T7.",
+    "BA/BD (số khiếu nại App An / App Xanh) CỘNG LẠI ĐÚNG BẰNG BG (tổng) ở cả 3 vùng × 7 kỳ, và Σ 2 depot = dòng tổng. Ba dim1 'Khiếu nại App An' · 'Khiếu nại App xanh' · 'Tổng khiếu nại' vì thế CHỒNG NHAU — cộng cả ba là gấp đôi. Giống hệt quy ước của `ATX_CL_D`.",
+    "BC/BF ('chưa xử lý') RỖNG SẠCH ở mọi kỳ, tức mọi khiếu nại đều đã xử lý (BB = BA, BE = BD khít). Vẫn khai để ngày có tồn đọng là hiện ngay; bộ lọc `amount khác_rong` tự loại lúc rỗng.",
+    "CỘT BH ('Tỷ lệ khiếu nại') CỦA VÙNG SƠN TÂY BẰNG 0 Ở CẢ 7 KỲ dù BG có số (T1: 18 khiếu nại / 19.419 cuốc hoàn thành = 0,0927% chứ không phải 0) — công thức của riêng khối I hỏng. Vùng Thái Nguyên và dòng tổng thì đúng: BH = BG / AJ (khiếu nại / cuốc HOÀN THÀNH, khớp công thức mapping dòng 62). BH nằm ở `atx_chitieu` (chỉ để đối chiếu), backend tự tính lại từ số gốc.",
+    "CỘT BI ('Số khiếu nại bình quân/ngày') VÔ NGHĨA: Sơn Tây T1 ghi 18 — đúng bằng TỔNG số khiếu nại BG, không phải bình quân ngày (25 khiếu nại / 31 ngày ≈ 0,8). Dòng tổng ghi 15,3-17,0 ở mọi kỳ, không liên hệ được với BG/số ngày nào. ĐỪNG DÙNG; backend tự chia BG cho SỐ NGÀY CỦA KỲ. Cùng loại lỗi với cột AK của báo cáo ngày."
+  ],
+  "_kiem_chung": [
+    "T1/2026 Sơn Tây: App An 8 (BA10) · App Xanh 10 (BD10) · tổng 18 (BG10) · đã xử lý 8 + 10 = 18 (BB10/BE10).",
+    "T1/2026 Thái Nguyên: App An 3 (BA30) · App Xanh 4 (BD30) · tổng 7 (BG30).",
+    "T1/2026 Tổng 2 depot: App An 11 (BA50) · App Xanh 14 (BD50) · tổng 25 (BG50) = 18 + 7 khít.",
+    "T7/2026 Tổng 2 depot: App An 1 (BA56) · App Xanh 28 (BD56) · tổng 29 (BG56).",
+    "3 vùng × 7 kỳ × 4 chỉ tiêu có số (BA/BB/BD/BE) + 1 tổng (BG) = 105 bản ghi; BC/BF rỗng nên bị lọc."
+  ],
+  "report_type": "ATX_CL",
+  "row_index_base": 7890000,
+  "khoi": "Khối KD Dịch vụ An Taxi",
+  "nguon": {
+    "folder": "ANTAXI/baocaoqtvhthang",
+    "file_glob": "B.7.AAG.PKDVH.M.*.BAOCAOTONGHOP.xlsx",
+    "sheet": {"chua": "BC Tháng PKDVH"}
+  },
+  "header": {"dong": 6},
+  "cot": {"ngay": {"cot": "A", "kieu": "thang_cuoi"}},
+  "chieu_co_dinh": {"cong_ty": "AAG"},
+  "ban_ghi": "moi_cot_gia_tri",
+  "cot_gia_tri": [
+    {"cot": "BA", "dim1": "Khiếu nại App An"},
+    {"cot": "BD", "dim1": "Khiếu nại App xanh"},
+    {"cot": "BB", "dim1": "Khiếu nại đã xử lý"},
+    {"cot": "BE", "dim1": "Khiếu nại đã xử lý"},
+    {"cot": "BC", "dim1": "Khiếu nại chưa xử lý"},
+    {"cot": "BF", "dim1": "Khiếu nại chưa xử lý"},
+    {"cot": "BG", "dim1": "Tổng khiếu nại"}
+  ],
+  "vung": [
+    {
+      "ten": "I Depot Sơn Tây",
+      "dong_bat_dau": 10,
+      "dong_ket_thuc": 21,
+      "chieu_co_dinh": {"cong_ty": "AAG", "cost_center": "ST_AT"},
+      "kiem_tra_o": [
+        {"o": "BA4", "bang": "Khiếu nại"}, {"o": "BA6", "bang": "App An"},
+        {"o": "BD6", "bang": "App Xanh"}, {"o": "BA7", "bang": "Số khiếu nại"},
+        {"o": "BB7", "bang": "Đã xử lý"}, {"o": "BC7", "bang": "Chưa xử lý"},
+        {"o": "BD7", "bang": "Số khiếu nại"}, {"o": "BE7", "bang": "Đã xử lý"},
+        {"o": "BF7", "bang": "Chưa xử lý"}, {"o": "BG6", "bang": "Số lượng khiếu nại"},
+        {"o": "B9", "bang": "Depot Sơn Tây"}
+      ]
+    },
+    {
+      "ten": "II Depot Thái Nguyên",
+      "dong_bat_dau": 30,
+      "dong_ket_thuc": 41,
+      "chieu_co_dinh": {"cong_ty": "AAG", "cost_center": "TN_AT"},
+      "kiem_tra_o": [
+        {"o": "BA6", "bang": "App An"}, {"o": "BD6", "bang": "App Xanh"},
+        {"o": "BG6", "bang": "Số lượng khiếu nại"}, {"o": "B29", "bang": "Depot Thái Nguyên"}
+      ]
+    },
+    {
+      "ten": "III Tổng 2 depot",
+      "dong_bat_dau": 50,
+      "dong_ket_thuc": 61,
+      "chieu_co_dinh": {"cong_ty": "AAG"},
+      "kiem_tra_o": [
+        {"o": "BA6", "bang": "App An"}, {"o": "BD6", "bang": "App Xanh"},
+        {"o": "BG6", "bang": "Số lượng khiếu nại"}, {"o": "B49", "bang": "Tổng 2 depot"}
+      ]
+    }
+  ],
+  "loc": [
+    {"cot": "ngay", "dieu_kien": "khac_rong"},
+    {"cot": "amount", "dieu_kien": "khac_rong"}
+  ],
+  "payload_them": {"unit": "so"}
+}

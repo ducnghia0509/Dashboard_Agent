@@ -56,8 +56,14 @@ CẤU TRÚC SPEC (khoá tiếng Việt cho kế toán/BA đọc được):
   "ban_ghi": "moi_dong",                 // | "moi_cot_gia_tri" | "moi_cot_ngay"
                                          // | "moi_cot_thang" (xem dưới)
   "cot_gia_tri": [                       // chỉ dùng khi ban_ghi = "moi_cot_gia_tri":
-    {"header": "Công nợ trong hạn", "dim1": "Trong hạn", "he_so": 1e-9}
-  ],                                     // -> mỗi dòng nguồn đẻ N bản ghi, amount lấy từng cột
+    {"header": "Công nợ trong hạn", "dim1": "Trong hạn", "he_so": 1e-9},
+    {"cot": "R", "dim1": "App An", "he_so": 1e-9,
+     "amount2": {"cot": "M"}}            // tuỳ chọn — ĐO THỨ HAI của cùng cột giá trị, ghi vào
+  ],                                     // amount2 (nhận "cot"/"header"/"he_so" như khai báo cột
+                                         // thường). Cần khi một chiều mang HAI số đi liền nhau
+                                         // (doanh thu + số cuốc của mỗi kênh An Taxi) và bản
+                                         // NGÀY của cùng chiều đó đã dùng amount/amount2.
+                                         // -> mỗi dòng nguồn đẻ N bản ghi, amount lấy từng cột
   "loc": [{"cot": "ngay", "dieu_kien": "khac_rong"}],
   "dan_xuat": {"payload.lng": "amount - payload.gia_von"},
   "payload_them": {"unit": "ty"}
@@ -2159,6 +2165,18 @@ def _extract_vung(spec, path):
                     r2 = json.loads(json.dumps(base))
                     r2["amount"] = _so(row[j] if j < len(row) else None,
                                        float(c.get("he_so", 1.0)))
+                    # `amount2` (26/08/2026): ĐO THỨ HAI đi kèm cùng một chiều. Báo cáo tháng An
+                    # Taxi xếp mỗi kênh thu một CỤM cột (App An: số cuốc M · hoàn thành N · hủy O
+                    # · doanh thu R) và bản NGÀY của đúng chiều đó đã quy ước amount = doanh thu,
+                    # amount2 = số cuốc. Không có khoá này thì phải tách kênh thành 2 dim2 riêng,
+                    # tức hai nguồn cùng một chiều lại có hình dạng khác nhau — builder phải viết
+                    # hai nhánh và rất dễ cộng nhầm doanh thu với số cuốc.
+                    if c.get("amount2"):
+                        j2 = _tim_cot(hmap, c["amount2"],
+                                      f"amount2 của {c.get('dim1') or c.get('cot')}", warn)
+                        if j2 is not None:
+                            r2["amount2"] = _so(row[j2] if j2 < len(row) else None,
+                                                float(c["amount2"].get("he_so", 1.0)))
                     for k2 in ("dim1", "dim2", "dim3"):
                         if c.get(k2):
                             r2[k2] = c[k2]

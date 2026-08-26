@@ -1,0 +1,87 @@
+{
+  "id": "atx_chitieu",
+  "_mo_ta": "CHỈ TIÊU FILE TỰ TÍNH của báo cáo QTVH An Taxi theo THÁNG — sheet 'BC Tháng PKDVH' (bố cục MỚI 26/08/2026). Bản THÁNG của `ATX_CT_D`: CHỈ ĐỂ ĐỐI CHIẾU, backend luôn tính lại từ số gốc theo quy ước full precision. Mapping 'Mapping Antaxi 25.08' dòng 27 (AT) · 28/48 (AQ) · 29/50/53 (AV) · 30 (BP) · 49/54 (AR).",
+  "_bay": [
+    "XEM `_bay` CỦA `atx_nhansu` cho bố cục chung (3 vùng 10-21 / 30-41 / 50-61, cột A = số tháng, ghim chữ cột).",
+    "KHÔNG BAO GIỜ HIỂN THỊ THẲNG report_type NÀY. Nó là vế 'file nói gì' của bảng `doiChieuFile`; vế 'ta tính ra gì' do backend dựng từ ATX_DTHU/ATX_CHUYEN/ATX_XE/ATX_NS. Ba trong tám cột dưới đây SAI, xem từng gạch đầu dòng.",
+    "AQ 'Đơn giá BP' = AO / AJ KHÍT TUYỆT ĐỐI 7/7 kỳ (doanh thu / cuốc HOÀN THÀNH). Mapping 25.08 dòng 28 nay cũng viết '/ Tổng cuốc xe hoàn thành (Bổ sung 16/08/26)' -> chỗ MAPPING ≠ FILE (b) của bản 13.08 ĐÃ HẾT, hai vế thống nhất.",
+    "AS 'Doanh thu/TXTX' = AO / C (số TXTX) khít 7/7 kỳ. Bản CŨ lấy mẫu số là SỐ XE HOẠT ĐỘNG chứ không phải tài xế dù tiêu đề ghi TXTX -> lỗi đó ĐÃ ĐƯỢC SỬA trong file mới.",
+    "AR 'Số cuốc/ số xe hoạt động' = AJ / J khít 7/7 kỳ (cuốc HOÀN THÀNH / xe hoạt động). Tên chỉ tiêu ở mapping dòng 49/54 là 'Số cuốc/xe/NGÀY' nhưng ô KHÔNG chia thêm cho số ngày (T1 = 272,5 cuốc/xe cho cả tháng) — đọc theo Ô, đừng tin nhãn.",
+    "AV 'Doanh thu bình quân/ngày/xe' = AO / (số ngày × I 'TỔNG số xe') chứ KHÔNG phải / số xe hoạt động như mapping dòng 29/50 viết (T1: 3.080.061.422 / (31 × 143) = 694.803 đ; theo mapping phải là /137 xe hoạt động = 725.232 đ). Chỗ MAPPING ≠ FILE (c) của bản 13.08 VẪN CÒN -> backend trả `lechDinhNghia`, không tự chọn hộ. Lại còn cõng luôn lỗi mẫu số 28 ngày dưới đây.",
+    "AU 'Doanh thu bình quân/ngày' CHIA SỐ NGÀY GÕ TAY VÀ SAI 5/7 KỲ: T1 chia 31 (đúng), T2 chia 28 (đúng, tháng 2), nhưng T3/T4/T5/T6/T7 ĐỀU CHIA 28 trong khi số ngày thật là 31/30/31/30/31. Bản cũ cũng lỗi cùng loại (T2 chia 31, T7 chia 30) — nay divisor kẹt luôn ở 28. Lỗi lan sang AV. Backend tự chia theo lịch.",
+    "AT 'Doanh thu thực hiện/ Số ngày phát sinh doanh thu' KHÔNG ĐÁNG TIN: T1 ghi ĐÚNG BẰNG AO (3.080.061.422 — tức chưa chia gì cả), T2-T7 ra những số không suy được từ AO/số ngày nào. Cùng loại với cột AK hằng số của báo cáo ngày. Nạp để đối chiếu, KHÔNG dùng.",
+    "BP 'Doanh thu/Nhân viên' = BQ / D (TỔNG doanh thu An Taxi / tổng nhân viên), KHÔNG phải AO / D như tên gọi gợi ý. Vì BQ dòng tổng đang thiếu tiền (cột BN hỏng, xem `atx_doanhthu`) nên BP dòng tổng cũng thiếu theo.",
+    "BQ 'Tổng doanh thu An Taxi' = AO + G + BN. Dòng TỔNG sai từ T2 vì BN kẹt ở 29.550.000 — nạp để đối chiếu, đừng dùng làm tổng doanh thu."
+  ],
+  "_kiem_chung": [
+    "T1/2026 Tổng 2 depot: AQ 82.500 đ/cuốc (= 3.080.061.422 / 37.334) · AR 272,5 cuốc/xe (= 37.334 / 137) · AS 19.871.364 đ/TXTX (= 3.080.061.422 / 155) · AU 99.356.820 đ/ngày (= /31, đúng) · AV 694.803 đ (= /(31 × 143)) · BP 17.593.182 đ (= 3.166.772.812 / 180) · BQ 3.166.772.812 đ.",
+    "T3/2026 Tổng 2 depot: AU 100.224.237 đ — chia 28 trong khi tháng 3 có 31 ngày; số ĐÚNG phải là 2.806.278.641 / 31 = 90.525.117 đ.",
+    "T7/2026 Tổng 2 depot: AQ 100.660 đ · AR 217,3 · AS 18.938.277 đ."
+  ],
+  "report_type": "ATX_CT",
+  "row_index_base": 7895000,
+  "khoi": "Khối KD Dịch vụ An Taxi",
+  "nguon": {
+    "folder": "ANTAXI/baocaoqtvhthang",
+    "file_glob": "B.7.AAG.PKDVH.M.*.BAOCAOTONGHOP.xlsx",
+    "sheet": {"chua": "BC Tháng PKDVH"}
+  },
+  "header": {"dong": 6},
+  "cot": {"ngay": {"cot": "A", "kieu": "thang_cuoi"}},
+  "chieu_co_dinh": {"cong_ty": "AAG"},
+  "ban_ghi": "moi_cot_gia_tri",
+  "cot_gia_tri": [
+    {"cot": "AQ", "dim1": "DT/cuốc (file)", "he_so": 1e-09},
+    {"cot": "AR", "dim1": "Số cuốc/xe/ngày (file)"},
+    {"cot": "AS", "dim1": "DT/TXTX (file)", "he_so": 1e-09},
+    {"cot": "AT", "dim1": "DT/ngày phát sinh (file)", "he_so": 1e-09},
+    {"cot": "AU", "dim1": "DT bình quân ngày (file)", "he_so": 1e-09},
+    {"cot": "AV", "dim1": "DT/xe/ngày (file)", "he_so": 1e-09},
+    {"cot": "BP", "dim1": "DT/nhân viên (file)", "he_so": 1e-09},
+    {"cot": "BQ", "dim1": "Tổng DT An Taxi (file)", "he_so": 1e-09},
+    {"cot": "BH", "dim1": "Tỷ lệ khiếu nại (file)"}
+  ],
+  "vung": [
+    {
+      "ten": "I Depot Sơn Tây",
+      "dong_bat_dau": 10,
+      "dong_ket_thuc": 21,
+      "chieu_co_dinh": {"cong_ty": "AAG", "cost_center": "ST_AT"},
+      "kiem_tra_o": [
+        {"o": "AQ6", "bang": "Đơn giá BP"}, {"o": "AR6", "bang": "Số cuốc/ số xe hoạt động"},
+        {"o": "AS6", "bang": "Doanh thu/TXTX"},
+        {"o": "AT6", "bang": "Doanh thu thực hiện/ Số ngày phát sinh doanh thu"},
+        {"o": "AU6", "bang": "Doanh thu bình quân/ngày"},
+        {"o": "AV6", "bang": "Doanh thu bình quân/ngày/xe"},
+        {"o": "BP4", "bang": "Doanh thu/Nhân viên"},
+        {"o": "BQ4", "bang": "Tỷ trọng doanh thu"}, {"o": "BQ6", "bang": "Tổng doanh thu An Taxi"},
+        {"o": "BH6", "bang": "Tỷ lệ khiếu nại"}, {"o": "B9", "bang": "Depot Sơn Tây"}
+      ]
+    },
+    {
+      "ten": "II Depot Thái Nguyên",
+      "dong_bat_dau": 30,
+      "dong_ket_thuc": 41,
+      "chieu_co_dinh": {"cong_ty": "AAG", "cost_center": "TN_AT"},
+      "kiem_tra_o": [
+        {"o": "AQ6", "bang": "Đơn giá BP"}, {"o": "AU6", "bang": "Doanh thu bình quân/ngày"},
+        {"o": "BQ6", "bang": "Tổng doanh thu An Taxi"}, {"o": "B29", "bang": "Depot Thái Nguyên"}
+      ]
+    },
+    {
+      "ten": "III Tổng 2 depot",
+      "dong_bat_dau": 50,
+      "dong_ket_thuc": 61,
+      "chieu_co_dinh": {"cong_ty": "AAG"},
+      "kiem_tra_o": [
+        {"o": "AQ6", "bang": "Đơn giá BP"}, {"o": "AU6", "bang": "Doanh thu bình quân/ngày"},
+        {"o": "BQ6", "bang": "Tổng doanh thu An Taxi"}, {"o": "B49", "bang": "Tổng 2 depot"}
+      ]
+    }
+  ],
+  "loc": [
+    {"cot": "ngay", "dieu_kien": "khac_rong"},
+    {"cot": "amount", "dieu_kien": "khac_rong"}
+  ],
+  "payload_them": {"unit": "hon_hop"}
+}

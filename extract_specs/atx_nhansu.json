@@ -1,127 +1,69 @@
 {
   "id": "atx_nhansu",
-  "_mo_ta": "NHÂN SỰ khối An Taxi theo tháng × depot — phần A của 'BC Tổng Hợp PKDVH' (B.7.AAG.PKDVH.M.<yyyy>.Baocaotonghop.xlsx). dim1: NVVP (nhân viên văn phòng) · TXTX (tài xế taxi). Mapping 6.Antaxi.Mapping_Dashboard.xlsx sheet 'Mapping Antaxi 13.08 - BS KPI' dòng 52 (Tổng số lái xe = Phần A/mục I/N8-N19) và chỉ tiêu CT35 Doanh thu/Nhân viên.",
+  "_mo_ta": "NHÂN SỰ khối An Taxi theo tháng — sheet 'BC Tháng PKDVH' của báo cáo QTVH tháng (bố cục MỚI 26/08/2026). Cột B = NVVP, C = TXTX (D = Tổng, CỐ Ý không nạp vì là ô cộng của chính B+C). Mapping 'Mapping Antaxi 25.08' dòng 52 'Tổng số lái xe' -> C50:C61 (mục III) · Depot ST C10:C21 · Depot TN C30:C41.",
   "_bay": [
-    "MỘT FILE CẤP SỐ CHO CẢ 12 THÁNG (tên file chỉ có NĂM: '...M.2026.Baocaotonghop'). Kỳ lấy từ CỘT B (số tháng) qua kieu 'thang_cuoi', KHÔNG suy từ tên file — suy từ tên file là dồn cả 12 tháng vào 31/12.",
-    "6 KHỐI NGHIỆP VỤ NỐI TIẾP TRONG 1 SHEET (A nhân sự · B đội xe · C chuyến · D1/D2/D3 doanh thu · E tỷ lệ nghỉ việc) nên BẮT BUỘC có `dong_ket_thuc`: cột 'Tổng' của bảng nhân sự và cột 'Tổng số xe' của bảng đội xe cùng nằm ở C/E, quét tràn là cộng số của khối khác vào.",
-    "Bảng 'Tổng 2 depot' (cột L-O) DÙNG CHUNG dòng 8-19 với bảng Sơn Tây (cột B-E) — cùng dải dòng, khác dải cột. Nhận biết bằng DÒNG TIÊU ĐỀ: NVVP/TXTX của Sơn Tây ở dòng 6, của Tổng 2 depot ở dòng 7.",
-    "Σ 2 depot ĐÚNG BẰNG dòng tổng của file (T1: 95+60 = 155 = N8) — đã verify cả 7 kỳ. Vẫn nạp cả dòng tổng (cost_center rỗng) theo quy tắc 'lấy dòng tổng của file, không cộng cost_center'; đọc phải chọn MỘT tầng, cộng cả hai là đếm đôi.",
-    "Phần E 'Tỷ lệ Tài xế nghỉ việc' (dòng 254-282) KHÔNG nằm trong mapping và ghi lẫn số với chữ ('27,7%') -> cố ý không nạp."
+    "BỐ CỤC NGUỒN ĐÃ ĐỔI HẲN 26/08/2026: file cũ 'B.7.AAG.PKDVH.M.2026.Baocaotonghop.xlsx' xếp 6 khối A/B/C/D1/D2/E NỐI TIẾP THEO CHIỀU DỌC trong sheet 'BC Tổng Hợp PKDVH' (304 dòng × 25 cột), mỗi khối 12 dòng tháng × 3 mục. Bản mới 'B.7.AAG.PKDVH.M.2026.BAOCAOTONGHOP.xlsx' gộp TẤT CẢ chỉ tiêu thành CỘT trong MỘT bảng rộng (68 dòng × 72 cột), sheet đổi tên thành 'BC Tháng PKDVH'. Hai tên file chỉ khác HOA/THƯỜNG nên cùng khớp một `file_glob` — bản cũ đã được xoá khỏi thư mục nguồn 26/08 (còn bản lưu ở ~/backups/antaxi-mapping-2026-08-26/).",
+    "BA VÙNG cố định cho MỌI spec đọc file này: I Depot Sơn Tây dòng 10-21 · II Depot Thái Nguyên dòng 30-41 · III Tổng 2 depot dòng 50-61. Mỗi khối còn có 7 dòng TỔNG HỢP ngay dưới dải 12 tháng (Quý I..IV, '06 Tháng đầu năm', '06 Tháng cuối năm') — `dong_ket_thuc` là thứ duy nhất chặn chúng lại, thiếu là cộng đôi cả năm vào một kỳ.",
+    "Cột A là SỐ THÁNG của MỌI khối (1..12) -> `kieu: 'thang_cuoi'`, năm lấy từ tên file (regex mặc định `\\.M\\.(\\d{4})\\.`). Các dòng tổng hợp ghi chữ ('Quý', 'I', '06 Tháng đầu năm') nên `_thang_cuoi` trả None và bộ lọc `ngay khác_rong` tự loại — nhưng ĐỪNG bỏ `dong_ket_thuc` vì 'I'/'II' của dòng Quý vẫn là dòng thật của khối sau.",
+    "MỌI CỘT GHIM THEO CHỮ CỘT, không dò theo tên. Dòng tiêu đề 6 lặp lại tên chỉ tiêu rất nhiều lần (riêng 'Số cuốc' xuất hiện 5 lần ở M/S/Y/AE/AI, 'Doanh thu' 4 lần ở R/X/AD/AH, 'Tỷ lệ HT' 5 lần) — dò theo tên là vớ nhầm kênh khác mà vẫn chạy trơn. `kiem_tra_o` của từng vùng khoá lại nhãn khối + nhãn cột để layout đổi thì BỎ QUA có tiếng, không đọc bừa."
   ],
   "_kiem_chung": [
-    "T1/2026: ST NVVP=22 TXTX=95 · TN NVVP=3 TXTX=60 · Tổng NVVP=25 TXTX=155 (=M8/N8).",
-    "T7/2026: ST 21/104 · TN 3/60 · Tổng 24/164. Tổng NV T7 = 188 (=O14).",
-    "T8-T12 chưa có số (ô rỗng/0) -> bị `loc` amount khác_rong loại, KHÔNG đẻ ra 'nhân sự = 0'."
+    "T1/2026 Sơn Tây: NVVP 22 (B10) · TXTX 95 (C10). Thái Nguyên: NVVP 3 (B30) · TXTX 60 (C30). Tổng 2 depot: NVVP 25 (B50) · TXTX 155 (C50) = đúng Σ 2 depot.",
+    "T7/2026 Tổng 2 depot: NVVP 24 (B56) · TXTX 164 (C56).",
+    "Chỉ T1-T7 có số nhân sự; T8-T12 các khối chỉ còn cột kế hoạch doanh thu -> 3 vùng × 7 kỳ × 2 chỉ tiêu = 42 bản ghi."
   ],
   "report_type": "ATX_NS",
   "row_index_base": 7800000,
   "khoi": "Khối KD Dịch vụ An Taxi",
   "nguon": {
     "folder": "ANTAXI/baocaoqtvhthang",
-    "file_glob": "B.7.AAG.PKDVH.M.*.Baocaotonghop.xlsx",
-    "sheet": {
-      "chua": "BC Tổng Hợp PKDVH"
-    }
+    "file_glob": "B.7.AAG.PKDVH.M.*.BAOCAOTONGHOP.xlsx",
+    "sheet": {"chua": "BC Tháng PKDVH"}
   },
-  "kiem_tra_o": [
-    {
-      "o": "B4",
-      "bang": "Số lượng nhân viên"
-    },
-    {
-      "o": "B5",
-      "bang": "Sơn Tây"
-    },
-    {
-      "o": "B20",
-      "bang": "Thái Nguyên"
-    }
-  ],
-  "cot": {
-    "ngay": {
-      "cot": "B",
-      "kieu": "thang_cuoi"
-    }
-  },
-  "chieu_co_dinh": {
-    "cong_ty": "AAG"
-  },
+  "header": {"dong": 6},
+  "cot": {"ngay": {"cot": "A", "kieu": "thang_cuoi"}},
+  "chieu_co_dinh": {"cong_ty": "AAG"},
   "ban_ghi": "moi_cot_gia_tri",
+  "cot_gia_tri": [
+    {"cot": "B", "dim1": "NVVP"},
+    {"cot": "C", "dim1": "TXTX"}
+  ],
   "vung": [
     {
-      "ten": "A/I Sơn Tây",
-      "header": {
-        "dong": 6
-      },
-      "dong_bat_dau": 8,
-      "dong_ket_thuc": 19,
-      "chieu_co_dinh": {
-        "cong_ty": "AAG",
-        "cost_center": "ST_AT"
-      },
-      "cot_gia_tri": [
-        {
-          "header": "NVVP",
-          "dim1": "NVVP"
-        },
-        {
-          "header": "TXTX",
-          "dim1": "TXTX"
-        }
+      "ten": "I Depot Sơn Tây",
+      "dong_bat_dau": 10,
+      "dong_ket_thuc": 21,
+      "chieu_co_dinh": {"cong_ty": "AAG", "cost_center": "ST_AT"},
+      "kiem_tra_o": [
+        {"o": "A4", "bang": "Danh mục"}, {"o": "B4", "bang": "Nhân viên"},
+        {"o": "B6", "bang": "NVVP"}, {"o": "C6", "bang": "TXTX"},
+        {"o": "A6", "bang": "Tháng"}, {"o": "B9", "bang": "Depot Sơn Tây"}
       ]
     },
     {
-      "ten": "A/II Thái Nguyên",
-      "header": {
-        "dong": 21
-      },
-      "dong_bat_dau": 23,
-      "dong_ket_thuc": 34,
-      "chieu_co_dinh": {
-        "cong_ty": "AAG",
-        "cost_center": "TN_AT"
-      },
-      "cot_gia_tri": [
-        {
-          "header": "NVVP",
-          "dim1": "NVVP"
-        },
-        {
-          "header": "TXTX",
-          "dim1": "TXTX"
-        }
+      "ten": "II Depot Thái Nguyên",
+      "dong_bat_dau": 30,
+      "dong_ket_thuc": 41,
+      "chieu_co_dinh": {"cong_ty": "AAG", "cost_center": "TN_AT"},
+      "kiem_tra_o": [
+        {"o": "B6", "bang": "NVVP"}, {"o": "C6", "bang": "TXTX"},
+        {"o": "B29", "bang": "Depot Thái Nguyên"}
       ]
     },
     {
-      "ten": "A/III Tổng 2 depot",
-      "header": {
-        "dong": 7
-      },
-      "dong_bat_dau": 8,
-      "dong_ket_thuc": 19,
-      "cot_gia_tri": [
-        {
-          "header": "NVVP",
-          "dim1": "NVVP"
-        },
-        {
-          "header": "TXTX",
-          "dim1": "TXTX"
-        }
+      "ten": "III Tổng 2 depot",
+      "dong_bat_dau": 50,
+      "dong_ket_thuc": 61,
+      "chieu_co_dinh": {"cong_ty": "AAG"},
+      "kiem_tra_o": [
+        {"o": "B6", "bang": "NVVP"}, {"o": "C6", "bang": "TXTX"},
+        {"o": "B49", "bang": "Tổng 2 depot"}
       ]
     }
   ],
   "loc": [
-    {
-      "cot": "ngay",
-      "dieu_kien": "khac_rong"
-    },
-    {
-      "cot": "amount",
-      "dieu_kien": "khac_rong"
-    }
+    {"cot": "ngay", "dieu_kien": "khac_rong"},
+    {"cot": "amount", "dieu_kien": "khac_rong"}
   ],
-  "payload_them": {
-    "unit": "nguoi"
-  }
+  "payload_them": {"unit": "nguoi"}
 }
