@@ -3,6 +3,7 @@
   "_mo_ta": "Lệnh sửa chữa tồn theo số ngày tồn, nguồn DMS (mapping XDV #23)",
   "_bay": [
     "Kỳ lấy từ tên file: W.<năm>.<tháng>.<tuần>.<NGÀY BÁO CÁO> — 'W.2026.8.2.10' = bản phát hành thứ Hai 10/08. Báo cáo ra thứ Hai chốt số của TUẦN LIỀN TRƯỚC, nên `ngay` ghi CHỦ NHẬT cuối tuần đó (10/08 -> 2026-08-09; 03/08 -> 2026-08-02), kèm payload tuan_tu/tuan_den/ngay_bao_cao. Trước 12/08/2026 spec chỉ đọc năm+tháng rồi gán cuối tháng (31/08): mọi bản tuần chồng lên nhau, lọc theo tuần không ra gì và phải vứt bớt file. `moi_ky_lay_file_moi_nhat` để 'ngay' -> giữ đủ các tuần; chống cộng đôi khi xem cả tháng là việc của _SNAP_RT ở backend (chỉ lấy tuần mới nhất).",
+    "dong_bat_dau PHẢI là 3, KHÔNG phải 4 (sửa 26/08/2026). File từ tuần 27/07 trở đi có thêm một dòng TRỐNG ở dòng 3 nên xưởng đầu tiên nằm ở dòng 4; mọi file T1-T6 thì xưởng đầu tiên nằm NGAY dòng 3. Đặt 4 là bỏ trọn dòng đầu của 6 file cũ, mà dòng đầu luôn là Ocean Park — xưởng lớn nhất hệ thống. Hệ quả: donut \"Lệnh tồn theo số ngày tồn\" của Ocean Park trống ở T1-T6 (và tổng hệ thống hụt: T6 ra 399 lệnh trong khi dòng Tổng của file ghi 508). Bắt đầu từ 3 an toàn cho CẢ HAI bố cục: dòng 2 là header (\"XDV\") và dòng 3 khi trống đều bị bộ lọc cost_center khac_rong loại; đã đối chiếu 11/11 file — 6 file cũ mỗi file thêm đúng 4 bản ghi và tổng khớp dòng Tổng, 5 file T7-T8 KHÔNG đổi một dòng nào.",
     "Dòng cuối là 'Tổng' — tự bị loại vì không map ra xưởng nào; đừng cộng nó vào.",
     "14 xưởng, khớp master_data.",
     "TÊN SHEET ĐỔI TỪ KỲ 21/08/2026 — `ten` là DANH SÁCH, tên cũ giữ nguyên để file các tuần trước vẫn đọc được, tên mới (Báo cáo LSC) thêm vào sau. Đã so header FULL WIDTH bản 21/08 với bản 10/08: mọi cột spec đọc GIỮ NGUYÊN vị trí, cột mới ('So với tuần trước'…) thêm vào CUỐI nên không đẩy cột nào — vì vậy chỉ cần thêm tên sheet, KHÔNG đổi cot/cot_gia_tri. Đổi tên sheet mà không ai sửa spec thì nạp ra 0 dòng và IM LẶNG: đây là lý do 5 nguồn KSCL đứng ở tuần 09/08 suốt từ 12/08 tới 24/08."
@@ -33,7 +34,7 @@
   "header": {
     "khong_co": true
   },
-  "dong_bat_dau": 4,
+  "dong_bat_dau": 3,
   "ky_tu_ten_file": {
     "regex_nam": "W\\.(\\d{4})\\.",
     "regex_thang": "W\\.\\d{4}\\.(\\d{1,2})\\.",
