@@ -1,0 +1,47 @@
+{
+  "id": "vhkd_kqkd_auto",
+  "_mo_ta": "Bán xe / xuất hoá đơn khối Vinfast - Showroom, NGUỒN TỰ ĐỘNG KD73 (Cyber -> ổ IT\\TESTBAOCAOTUDONG\\1.VINFAST_SR). Cùng report_type KDVH với `vhkd_kqkd` — đây là bản thay thế cho `Xuathoadon_*` do kế toán tự dựng, không phải chỉ tiêu mới.",
+  "_doi_chieu": [
+    "26/08/2026: file mới 53 dòng / 23.992.545.457 — KHỚP TUYỆT ĐỐI với KDVH đang có trong DB test (53 dòng / 23,992545457 tỷ).",
+    "25/08/2026: file mới 19 dòng / 9.795.631.822 vs DB 18 dòng / 9,202904549 tỷ. Chênh ĐÚNG 1 hoá đơn 592.727.273 (cost center 'Vinfast B2B', TVBH Nguyễn Long Hải) mà bản kế toán KHÔNG có -> nguồn tự động ĐẦY ĐỦ HƠN, không phải sai."
+  ],
+  "_bay": [
+    "FILE CÓ HAI KHỐI CHỒNG NHAU, MỖI KHỐI ĐỦ TOÀN BỘ SỐ TIỀN — đây là cái bẫy chính. Ngoài khối CHI TIẾT (mỗi hoá đơn 1 dòng, có 'Ngày hóa đơn') còn một khối TỔNG THEO TƯ VẤN BÁN HÀNG (mỗi TVBH 1 dòng, 'Ngày hóa đơn' và 'Tên DVCS' bỏ trắng, 'Số lượng' đã gộp nên có dòng =2), cộng dòng 'Tổng cộng'. Nạp thẳng cả sheet là ra ĐÚNG GẤP ĐÔI: đo 25/08 tổng các dòng bị loại = 19.591.263.644 = 2 × 9.795.631.822; 26/08 = 47.985.090.914 = 2 × 23.992.545.457.",
+    "DÒNG TỔNG NẰM Ở ĐẦU VÙNG DỮ LIỆU (dòng 9, ngay dưới header), không phải ở cuối như thường lệ. Nhãn 'Tổng cộng' rơi vào cột 'Tư vấn bán hàng'. Chặn bằng 2 lớp: `ngay khac_rong` (đủ để loại cả khối tổng-theo-TVBH lẫn dòng Tổng cộng) + `payload.tvbh_raw khac 'Tổng cộng'` làm phao nếu ngày nào đó cột ngày được điền.",
+    "VÌ VẬY cảnh báo 'bỏ N dòng không qua bộ lọc' ở nguồn này là BÌNH THƯỜNG, N ≈ số dòng giữ + 5. Đừng nới bộ lọc cho hết cảnh báo — nới là cộng đôi. Bằng chứng bộ lọc đúng: tổng khối chi tiết khớp KHÍT dòng 'Tổng cộng' của chính file ở cả 2 ngày.",
+    "KÊNH LẤY TỪ CỘT, KHÔNG TỪ TÊN FILE. Bản cũ tách 3 file Xuathoadon_B2B/B2C/GF nên `vhkd_kqkd` phải đọc kênh từ tên file; bản tự động gộp 1 file, kênh nằm ở cột 'Loại hình hợp đồng'.",
+    "CHƯA THẤY DÒNG GF NÀO (25 + 26/08 chỉ có B2B/B2C). Chưa đủ căn cứ kết luận báo cáo này thiếu kênh GF — GF vốn rất thưa (cả tháng 8 bản cũ chỉ 9 hoá đơn). PHẢI theo dõi thêm vài ngày trước khi cho thay hẳn nguồn cũ.",
+    "'Loại xe' KHÔNG có sẵn, phải suy từ 'Mã kiểu xe' qua hook `sr_loai_xe` (bảng 1-1 dựng từ chính dữ liệu cũ). Xem chú thích ở spec_extract.py.",
+    "MỖI NGÀY MỘT FILE, khác hẳn bản cũ (1 file/kỳ luỹ kế cả tháng). Idempotent theo source_file nên nạp lại 1 file chỉ ảnh hưởng đúng ngày đó, NHƯNG cron phải khai slot theo NGÀY — chế độ `luy_ke` sẽ coi 25 file ngày là 25 bản chốt của một slot rồi xoá 24 cái."
+  ],
+  "report_type": "KDVH",
+  "row_index_base": 8400000,
+  "khoi": "Khối KD Vinfast - Showroom",
+  "nguon": {
+    "folder": "TEST_SR/bangkehoadonbanxe",
+    "file_glob": "*.Bangkehoadonbanxe.xlsx",
+    "sheet": { "so": 0 }
+  },
+  "header": { "dong": 8 },
+  "cot": {
+    "cost_center": { "header": "Tên DVCS", "chuan_hoa": "sr_showroom" },
+    "ngay": { "header": "Ngày hóa đơn", "kieu": "date" },
+    "amount": { "header": "Giá bán", "kieu": "so", "he_so": 1e-9 },
+    "dim1": { "header": "Mã kiểu xe", "chuan_hoa": "sr_loai_xe", "giu_khi_khong_map": true },
+    "dim2": { "header": "Loại hình hợp đồng", "chuan_hoa": "hoa" },
+    "dim3": { "header": "Tên TVBH", "chuan_hoa": "cat" },
+    "payload.san_luong": { "header": "Số lượng", "kieu": "so" },
+    "payload.gia_von": { "header": "Giá vốn xe", "kieu": "so", "he_so": 1e-9 },
+    "payload.tvbh_raw": { "header": "Tư vấn bán hàng", "chuan_hoa": "cat" },
+    "payload.xuat_hd_cho": { "header": "Xuất hóa đơn cho", "chuan_hoa": "cat" }
+  },
+  "ban_ghi": "moi_dong",
+  "dan_xuat": {
+    "payload.lng": "amount - payload_gia_von"
+  },
+  "loc": [
+    { "cot": "ngay", "dieu_kien": "khac_rong" },
+    { "cot": "payload.tvbh_raw", "dieu_kien": "khac", "gia_tri": "Tổng cộng" }
+  ],
+  "payload_them": { "unit": "ty" }
+}

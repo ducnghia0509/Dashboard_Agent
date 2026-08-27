@@ -990,6 +990,51 @@ def _xvp_ma_doanh_thu(v):
     return {"dim1": _XVP_MA_DT[k]} if (k := str(v or "").strip()) in _XVP_MA_DT else {}
 
 
+# "Mã kiểu xe" -> "Loại xe" (dòng xe) cho bán xe Showroom. CẦN vì nguồn tự động KD73
+# (`Bangkehoadonbanxe`, ổ TESTBAOCAOTUDONG) CHỈ có "Mã kiểu xe"; bản kế toán tự dựng
+# (`Xuathoadon_*`) có sẵn cột "Loại xe" và `vhkd_kqkd` đọc thẳng cột đó vào dim1. Không có hook
+# này thì dim1 của nguồn mới là "VF305"/"VF304" đứng lẫn với "VF3" của dữ liệu cũ -> biểu đồ
+# theo dòng xe tách một dòng xe thành nhiều cột, im lặng.
+#
+# BẢNG DỰNG TỪ CHÍNH DỮ LIỆU CŨ, không phải suy luận: quét toàn bộ file `Xuathoadon_*` lấy cặp
+# (Mã kiểu xe, Loại xe) -> 33 mã, 0 mã cho ra 2 loại xe khác nhau (kiểm 27/08/2026). Vì vậy đây
+# là ánh xạ 1-1 tái hiện ĐÚNG cách kế toán đang phân loại, không phải quy ước mới của Dashboard.
+#
+# KHÔNG rút gọn thành một regex: quy tắc của nguồn KHÔNG nhất quán — MNO1 -> MNO và HRO1 -> HRO
+# (bỏ số) nhưng LM1 -> LM1 và LH1 -> LH1 (giữ số). Regex "cắt chữ số cuối" sẽ biến LM1 thành LM,
+# tức đẻ ra một dòng xe không tồn tại.
+_SR_LOAI_XE = {
+    "ECVAN": "ECV", "ECVANNC": "ECV", "ECVANNCCT": "ECV",
+    "HRO": "HRO", "HRO1": "HRO", "LH1": "LH1", "LM1": "LM1",
+    "MNO1": "MNO", "MPV701": "MPV",
+    "VF301": "VF3", "VF302": "VF3", "VF304": "VF3", "VF305": "VF3",
+    "VF501": "VF5", "VF502": "VF5",
+    "VF602": "VF6", "VF604": "VF6",
+    "VF702": "VF7", "VF703": "VF7", "VF708": "VF7", "VF709": "VF7",
+    "VF801": "VF8", "VF802": "VF8", "VF803": "VF8", "VF804": "VF8", "VF805": "VF8",
+    "VF903": "VF9", "VF904": "VF9", "VF905": "VF9", "VF908": "VF9", "VF909": "VF9",
+    "VF910": "VF9", "VF911": "VF9",
+}
+_RE_VF_DONG = re.compile(r"^VF(\d)\d*$")
+
+
+def _sr_loai_xe(v):
+    """'VF305' -> 'VF3'. Mã lạ -> GIỮ nguyên mã + kêu lên (spec khai `giu_khi_khong_map`).
+
+    Đường lùi `VF<số>` cho model VinFast MỚI ra sau bảng này (VF3xx/VF9xx đã có 12 mã, hãng còn
+    thêm): bắt được thì im lặng cho qua, đúng dòng xe. Mã ngoài cả hai -> giữ nguyên để số không
+    hụt, kèm cảnh báo để người bổ sung bảng — thà hiện "MPV702" lạ mắt còn hơn mất doanh thu.
+    """
+    ma = str(v or "").strip().upper()
+    if not ma:
+        return {}
+    if ma in _SR_LOAI_XE:
+        return {"dim1": _SR_LOAI_XE[ma]}
+    if m := _RE_VF_DONG.match(ma):
+        return {"dim1": f"VF{m.group(1)}"}
+    return {"dim1": ma, "_khong_map": ma}
+
+
 _CHUAN_HOA = {
     "cc_qlts": _cc_qlts,
     "khoi_qlts": _khoi_qlts,
@@ -1010,6 +1055,7 @@ _CHUAN_HOA = {
     "xvp_chi_tieu": _xvp_chi_tieu,
     "xvp_ma_doanh_thu": _xvp_ma_doanh_thu,
     "xvp_don_vi": _xvp_don_vi,
+    "sr_loai_xe": _sr_loai_xe,
     "hoa": lambda v: str(v or "").strip().upper() or None,
     "cat": lambda v: str(v or "").strip() or None,
 }
