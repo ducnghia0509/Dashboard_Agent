@@ -83,8 +83,8 @@ Backend chọn `_D` hay bản tháng theo `grain` của request (xem app/metrics
     công thức "E25+E46+E74+E80+E83" của Mapping, cùng 5 nhóm CP y hệt ANTAXI (không có mục
     "phân bổ chung" cấp I riêng — đã nằm lồng trong "Chi phí khác"). Mã cost center Cao Bằng/
     Lạng Sơn/Phú Quốc/Quang Sơn lấy y hệt bản THÁNG (agent_cli._DA_PROJECT_CC: CB_DA/LS_DA/
-    PQ_DA/QS_DA); ⚠ "Tân Thịnh"→YB_DA và "Yên Bình"→TT_DA là NGƯỢC viết tắt đã xác nhận nguồn
-    (xem agent_cli.py dòng ~728, ĐỪNG "sửa cho xuôi"). "Bình phước" CHƯA có trong master_data
+    PQ_DA/QS_DA); "Tân Thịnh"→TT_DA và "Yên Bình"→YB_DA — ĐÃ VỀ XUÔI 28/08/2026, trước đó ngược
+    (xem chú thích ở `agent_cli._DA_PROJECT_CC`). "Bình phước" CHƯA có trong master_data
     (giống Núi Pháo/Quảng Ngãi bản tháng) → mã tự đặt BINHPHUOC_DA, backfill cong_ty qua
     import_filled.
 
@@ -858,8 +858,8 @@ def _xdv_facts(rows):
 # "Yên Bình 3"). Mã CC lấy Y HỆT bản THÁNG (agent_cli._DA_PROJECT_CC) — kể cả quy ước NGƯỢC viết
 # tắt Tân Thịnh<->Yên Bình đã xác nhận nguồn, xem docstring đầu file. "Bình phước" mới, chưa có
 # trong master_data -> mã tự đặt (giống Núi Pháo/Quảng Ngãi bản tháng).
-_CC_DUAN = [("cao bang", "CB_DA"), ("tan thinh", "YB_DA"), ("lang son", "LS_DA"),
-            ("yen binh", "TT_DA"), ("phu quoc", "PQ_DA"), ("quang son", "QS_DA"),
+_CC_DUAN = [("cao bang", "CB_DA"), ("tan thinh", "TT_DA"), ("lang son", "LS_DA"),
+            ("yen binh", "YB_DA"), ("phu quoc", "PQ_DA"), ("quang son", "QS_DA"),
             ("nui phao", "NUIPHAO_DA"), ("quang ngai", "QUANGNGAI_DA"), ("tho chu", "TC_DA"),
             ("binh phuoc", "BINHPHUOC_DA")]
 

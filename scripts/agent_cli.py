@@ -788,14 +788,19 @@ def _derive_kqkd_duan(rows, period, cong_ty, file_path):
     # TỔNG vẫn đúng — lỗi nằm ở NGUỒN, chỉ ô per-dự-án). Tính LẠI: LNTT_dự_án = LN gộp − CP phân bổ
     # HO − Chi phí lãi vay (dòng RIÊNG "Chi phí lãi vay", khác "...lãi vay HO" đã gộp trong CP phân
     # bổ HO; chỉ có ở 1 số tháng) -> verify khớp cột Tổng dự án CẢ 6 THÁNG (kể cả T06).
-    # Mã dự án theo trust_me_bro.xlsx: CB_DA/LS_DA/QS_DA/PQ_DA; ⚠️TT_DA="Yên Bình", YB_DA="Tân Thịnh"
-    # (NGƯỢC viết tắt, xác nhận nguồn — [[audit-fixes-2026-07-09]], ĐỪNG "sửa cho xuôi"). Núi Pháo/
+    # Mã dự án theo danh mục tập đoàn: CB_DA/LS_DA/QS_DA/PQ_DA + TT_DA="Tân Thịnh", YB_DA="Yên Bình".
+    # ⚠️ ĐÃ ĐỔI 28/08/2026: từ 09/07 tới 28/08 hai mã này đặt NGƯỢC (TT_DA="Yên Bình") theo
+    # trust_me_bro.xlsx, nay `Tài liệu/Các khối và công ty.xlsx` sửa về XUÔI. Đổi bảng này PHẢI đi
+    # kèm hoán đổi mã của các dòng đã nạp trong `raw_rows` (28/08 đã hoán 496 dòng/DB) và 3 danh
+    # mục khác: knowledge/cost_centers.yaml, servers/common/org_catalog.json (sinh lại bằng
+    # gen_org.py), app/data/master_data.json — lệch nhịp là nhãn dự án đọc ngược mà tổng vẫn đúng.
+    # Sao lưu CSV trước khi đổi: ~/backups/duan-swap-ttda-ybda-20260828/. Núi Pháo/
     # Quảng Ngãi KHÔNG có trong MD_COSTCENTER -> mã tự đặt NUIPHAO_DA/QUANGNGAI_DA (backfill cong_ty
     # =TC qua import_filled, giống pattern HO_XVP/B2B_SR).
     _DA_PROJECT_CC = [
-        ("cao bang", "CB_DA"), ("tan thinh", "YB_DA"), ("lang son", "LS_DA"),
+        ("cao bang", "CB_DA"), ("tan thinh", "TT_DA"), ("lang son", "LS_DA"),
         ("nui phao", "NUIPHAO_DA"), ("quang son", "QS_DA"), ("quang ngai", "QUANGNGAI_DA"),
-        ("yen binh", "TT_DA"), ("phu quoc", "PQ_DA"),
+        ("yen binh", "YB_DA"), ("phu quoc", "PQ_DA"),
     ]
 
     def _find_da_col(kw):
