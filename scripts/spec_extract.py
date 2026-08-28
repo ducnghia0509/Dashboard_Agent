@@ -745,7 +745,12 @@ _QLTS_ALIAS = {"saigon": "hochiminh", "ocenpark": "oceanpark"}
 # không thể lan sang tên khác, khác hẳn cách nới `hau_to`: có lúc tôi thêm "_GD" vào danh sách hậu
 # tố của tên trơn để bắt "An An Garden", và nó gán luôn "Tài sản Sơn Tây (gồm văn phòng, xưởng,
 # Nhà Xanh...)" — 2.930 tài sản khối văn phòng — vào `ST_GD` khối Dịch vụ An KS.
-_QLTS_CC_TRUC_TIEP = {"anangarden": "ST_GD"}
+# `xelanhdao`: sheet "th XE DEMO" ghi cột "Phân loại" là ĐƠN VỊ GIỮ XE ("SR Hạ Long", "SR Sơn
+# Tây"…), riêng 10 xe của ban lãnh đạo ghi "xe lãnh đạo". Bản đầu cố ý KHÔNG map vì file không nói
+# xe đứng tên đơn vị nào — nhưng cột đó đọc theo đơn vị GIỮ xe chứ không phải bên đứng tên, và
+# danh mục có sẵn `BLĐ` "Ban lãnh đạo". Để trống thì 10 xe rơi khỏi mọi bộ lọc Đơn vị mà mapping
+# QLTS đòi cho nhóm chỉ tiêu bảo trì (#14-#17) — kế toán báo thiếu ngày 26/08/2026.
+_QLTS_CC_TRUC_TIEP = {"anangarden": "ST_GD", "xelanhdao": "BLĐ"}
 _QLTS_CACHE = {}
 
 # 8 khối của file QLTS -> 10 khối chuẩn của master_data. QLTS phân loại theo BẢN CHẤT TÀI SẢN nên

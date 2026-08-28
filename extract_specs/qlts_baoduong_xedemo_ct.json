@@ -3,7 +3,7 @@
   "_mo_ta": "QLTS — BẢO DƯỠNG XE DEMO / XE LÃNH ĐẠO, BẢN CHI TIẾT: sheet 'th XE DEMO' của QLTS/baocaobaoduong/B.9.TC.H5.M.<yyyy>.<m>.BCbaoduongxeDEMO.xlsx, dòng 6 trở xuống (mỗi dòng 1 xe). Mở chiều Công ty/Đơn vị/Khối cho màn ts3. amount = 1, dim2 = tình trạng nguyên văn, cost_center suy từ cột 'Phân loại'.",
   "_bay": [
     "CHI TIẾT TÁI LẬP ĐÚNG KHỐI TỔNG (đã kiểm 08/2026): đã BD trong tháng 0 · chưa làm BD 10 · chưa đến hạn BD 92 = 102 dòng — khớp khối S8:T10 cùng sheet.",
-    "CỘT 'Phân loại' (B) CHÍNH LÀ ĐƠN VỊ GIỮ XE, viết tắt kiểu 'SR Vĩnh Phúc' / 'SR SmartCity'. Hook `cc_qlts` có luật `^sr\\b` nên map hết 9 showroom (92 xe). 10 xe còn lại ghi 'xe lãnh đạo' — KHÔNG map: đó là xe của Ban lãnh đạo, có cost center `BLĐ` trong danh mục nhưng file không nói xe đứng tên đơn vị nào, nên KHÔNG suy. `giu_khi_khong_map` giữ nguyên 10 dòng để tổng không hụt; muốn lọc được thì phải hỏi QLTS ghi rõ đơn vị.",
+    "CỘT 'Phân loại' (B) CHÍNH LÀ ĐƠN VỊ GIỮ XE, viết tắt kiểu 'SR Vĩnh Phúc' / 'SR SmartCity'. Hook `cc_qlts` có luật `^sr\\b` nên map hết 9 showroom (92 xe). 10 xe còn lại ghi 'xe lãnh đạo' -> `BLĐ` (Ban lãnh đạo) qua bảng `_QLTS_CC_TRUC_TIEP`, sửa 28/08/2026 theo log lỗi của kế toán: bản đầu cố ý để trống vì 'file không nói xe đứng tên đơn vị nào', nhưng cột này đọc theo đơn vị GIỮ xe chứ không phải bên ĐỨNG TÊN, mà để trống thì 10 xe rơi khỏi bộ lọc Đơn vị và bảng bảo trì gộp chúng vào một dòng vô danh. Khối của BLĐ là 'Khối hỗ trợ tập đoàn'.",
     "KHÁC HAI FILE MÁY/XE: sheet này KHÔNG có cột 'Cảnh báo' và KHÔNG có 'ngày BD trong tháng' theo ngày — trạng thái nằm ở cột 'tình trạng' (P) và đã gồm luôn 'đã BD trong tháng'. Vì vậy dim2 ở đây phủ đủ 3 trạng thái, không cần suy từ cột ngày.",
     "TIÊU ĐỀ 2 TẦNG (dòng 4-5): dòng 5 chỉ ghi nhãn con SK/SM1/SM2 cho ô gộp 'Thông số kỹ thuật chuẩn' ở F. Gộp theo thứ tự [4, 5] để tên cột thật của dòng 4 thắng.",
     "KHỐI TỔNG NẰM Ở CỘT S..U DÒNG 7-13, tức NGANG với vùng chi tiết — không chồng cột A..P nên không cần `dong_ket_thuc`. Neo dòng theo 'STT' (A).",
@@ -13,7 +13,7 @@
     "Kỳ 2026-08: 102 dòng xe (dòng 6-107).",
     "Phân loại: xe lãnh đạo 10 · SR Hạ Long 11 · SR Sơn Tây 11 · 7 showroom còn lại 10 mỗi nơi.",
     "tình trạng: 'chưa đến hạn BD' 92 · 'chưa làm BD' 10 (khớp T10 = 92, T9 = 10, T8 = 0).",
-    "Đúng 10 dòng 'chưa làm BD' cũng chính là 10 xe lãnh đạo."
+    "Đúng 10 dòng 'chưa làm BD' cũng chính là 10 xe lãnh đạo (nay mang cost_center BLĐ)."
   ],
   "report_type": "QLTS_BD_CT",
   "row_index_base": 7904600,
