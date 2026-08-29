@@ -215,9 +215,21 @@ def _period_of(file_name, in_day_dir=False):
 
 
 def is_daily_report(path):
-    """File này có phải BÁO CÁO NGÀY của đơn vị đã cấu hình không (dùng cho gate ở agent_cli)."""
+    """File này có phải BÁO CÁO NGÀY của đơn vị đã cấu hình không (dùng cho gate ở agent_cli).
+
+    ĐÒI ĐÚNG THƯ MỤC `baocaohqkdngay/`, không chỉ đòi tên có `.D.<YYYYMM>` (siết 29/08/2026).
+    An Taxi có `ANTAXI/baocaoqtvhngay/B.7.AAG.PKDVH.D.202608.Baocaotonghop.xlsx` — báo cáo QTVH
+    theo ngày, do 6 spec `atx_ngay_*` bóc, KHÔNG liên quan HQKD. Chỉ khớp tên thì gate nhận nhầm,
+    `derive()` chạy rồi trả 'không thấy sheet ngày nào khớp kỳ (layout antaxi)' và làm cả lượt
+    autofill mang `ok:false` — trong khi các spec vẫn nạp đúng qua `run_for_path`. Hậu quả không
+    phải mất số mà là MẤT TIN VÀO CẢNH BÁO: cron báo đỏ mỗi lượt cho một nguồn vẫn chạy tốt.
+    Đã rà toàn bộ đĩa 29/08: mọi file `.D.` của 12 đơn vị HQKD đều nằm trong `baocaohqkdngay/`,
+    nên siết ở đây không cắt mất nguồn thật nào.
+    """
     folder = _source_id(path).split("::", 1)[0]
-    return bool(_UNITS.get(folder)) and bool(_period_of(os.path.basename(path), _in_day_dir(path)))
+    if not _in_day_dir(path):
+        return False
+    return bool(_UNITS.get(folder)) and bool(_period_of(os.path.basename(path), True))
 
 
 # ---------------------------------------------------------------------------------------------
