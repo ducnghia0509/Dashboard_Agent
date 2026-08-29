@@ -1685,13 +1685,30 @@ def loc_file_moi_nhat(spec, files):
     if not che_do:
         return files, []
     pat = spec.get("moi_ky_slot_regex")
+    ky_pat = spec.get("moi_ky_ky_regex")
     giu, bo = {}, []
     for f in files:
         ngay, _ = ngay_tu_ten_file(spec, f)
+        tu_ky_pat = False
+        if not ngay and ky_pat:
+            # `moi_ky_ky_regex` — KỲ LẤY TỪ TÊN FILE CHỈ ĐỂ GỘP BẢN CHỐT, không đụng gì tới `ngay`
+            # của từng dòng. Cần cho nguồn suy kỳ từ CỘT NGÀY (`vhkd_kqkd`): `ngay_tu_ten_file`
+            # trả None nên trước đây hàm này giữ nguyên MỌI file, và chạy tay
+            # `spec_extract.py vhkd_kqkd --write` nạp cả 7 bản luỹ kế T8 chồng lên nhau — đúng 7
+            # lần số thật (dính 29/08/2026 trên DB test, phải xoá 3.047 dòng). Cron `LUY_KE` vốn
+            # chặn được, nhưng luật chống trùng nằm ở MỘT đường vào thì đường kia là cửa mở.
+            # Khai `ky_tu_ten_file` để lấp chỗ này thì KHÔNG được: khoá đó đổi luôn cách gán ngày
+            # cho từng dòng, tức đổi số của nguồn đang chạy đúng.
+            m = re.search(ky_pat, os.path.basename(f), re.IGNORECASE)
+            if m:
+                ngay = "|".join(x or "" for x in (m.groups() or (m.group(0),)))
+                tu_ky_pat = True
         if not ngay:
-            giu[f] = f            # không suy được kỳ -> giữ nguyên, đừng im lặng loại
+            giu[f] = (f, "")      # không suy được kỳ -> giữ nguyên, đừng im lặng loại
             continue
-        ky = "" if che_do == "mot_file" else (ngay if che_do == "ngay" else ngay[:7])
+        # `tu_ky_pat`: khoá đã LÀ định danh kỳ rồi (vd "2026|8"), cắt [:7] là băm nát nó.
+        ky = ("" if che_do == "mot_file"
+              else ngay if (che_do == "ngay" or tu_ky_pat) else ngay[:7])
         if pat:
             m = re.search(pat, os.path.basename(f), re.IGNORECASE)
             ky = (ky, tuple(x or "" for x in m.groups()) if m else os.path.basename(f))
@@ -1700,18 +1717,19 @@ def loc_file_moi_nhat(spec, files):
         # tên khác (claim T3-T6: "…7.24. BaocaoClaim_B2C_T3" rồi "…8.11. BaocaoClaim_B2C_T3"),
         # hai tên cùng suy ra một kỳ nên so ngày là hoà. Không phá hoà thì thứ tự sorted() quyết
         # định, mà "7.24" đứng trước "8.11" -> giữ đúng bản CŨ và vứt bản đã sửa.
+        # Giữ KÈM khoá đã suy được (`cu[1]`) chứ không suy lại từ tên file: với `moi_ky_ky_regex`
+        # thì `ngay_tu_ten_file` trả None, suy lại là so `str > None` -> TypeError giữa chừng mẻ.
         if cu is None:
             moi_hon = True
         else:
-            ngay_cu = ngay_tu_ten_file(spec, cu)[0]
-            moi_hon = (ngay, os.path.getmtime(f)) > (ngay_cu, os.path.getmtime(cu))
+            moi_hon = (ngay, os.path.getmtime(f)) > (cu[1], os.path.getmtime(cu[0]))
         if moi_hon:
             if cu is not None:
-                bo.append(os.path.basename(cu))
-            giu[ky] = f
+                bo.append(os.path.basename(cu[0]))
+            giu[ky] = (f, ngay)
         else:
             bo.append(os.path.basename(f))
-    return sorted(giu.values()), bo
+    return sorted(v[0] for v in giu.values()), bo
 
 
 # ─────────────────────────── trích 1 file ───────────────────────────
@@ -2332,11 +2350,53 @@ def _ghi(spec, path, recs):
         conn.close()
 
 
+_W_LECH_THANG = "SỐ TRONG FILE KHÔNG THUỘC THÁNG MÀ TÊN FILE KHAI"
+
+
+def _kiem_thang_ten_file(spec, path, recs):
+    """Tên file khai tháng nào thì file phải CÓ số của tháng đó. Trả cảnh báo, hoặc None.
+
+    VÌ SAO (bắt 29/08/2026, `Xuathoadon_GF_T7.xlsx`): file mang tên T7 nhưng ruột là BẢN SAO của
+    T6 — 11 hoá đơn, 5,5331 tỷ, ngày hoá đơn toàn tháng 6. Kỳ của nguồn này suy từ CỘT NGÀY chứ
+    không từ tên file, nên nó nạp "thành công" và cộng thêm một lần nữa vào tháng 6 (GF tháng 6
+    hiện 11,0662 = đúng gấp đôi), còn tháng 7 thì trống trơn. Không một lớp nào bắt được: tên file
+    khác nhau nên `_ghi` không đè, kỳ suy ra khác nhau nên `moi_ky_lay_file_moi_nhat` coi là hai
+    kỳ độc lập, và `_SNAP_RT` thì KDVH vốn là báo cáo dòng nên không đụng tới.
+
+    Chốt LỎNG có chủ ý — chỉ từ chối khi KHÔNG MỘT DÒNG NÀO rơi vào tháng được khai. Hoá đơn xuất
+    tràn sang đầu tháng sau là chuyện bình thường, siết chặt hơn là chặn nhầm dữ liệu thật; còn
+    "không có lấy một dòng của chính tháng mình" thì chắc chắn là file gửi nhầm.
+    """
+    pat = spec.get("thang_tu_ten_file_regex")
+    if not pat or not recs:
+        return None
+    m = re.search(pat, os.path.basename(path), re.IGNORECASE)
+    if not m:
+        return None
+    try:
+        thang = int(m.group(1))
+    except (ValueError, IndexError):
+        return None
+    co = sorted({(r.get("ngay") or "")[:7] for r in recs if r.get("ngay")})
+    if not co or any(k[5:7] == f"{thang:02d}" for k in co):
+        return None
+    return (f"{_W_LECH_THANG}: tên khai T{thang} nhưng {len(recs)} dòng đọc được đều thuộc "
+            f"{', '.join(co)} -> BỎ QUA cả file. Đây là lỗi FILE NGUỒN (gửi nhầm bản của tháng "
+            f"khác), nạp vào là cộng đôi tháng kia và để trống tháng này. Báo kế toán gửi lại.")
+
+
 def run(spec, path, write=False):
     try:
         recs, warn = extract_file(spec, path)
     finally:
         _dong_wb()          # xong một file thì nhả workbook trong đệm (xem `_mo_wb`)
+    lech = _kiem_thang_ten_file(spec, path, recs)
+    if lech:
+        # Trả rỗng KÈM cảnh báo và KHÔNG có `_W_BO_LOC` -> nhánh ghi ở dưới bỏ qua, dữ liệu cũ của
+        # chính file này (nếu có) giữ nguyên. Xoá là việc của người đọc cảnh báo, không phải của
+        # một chốt tự động: file có thể từng nạp đúng rồi mới bị gửi đè bằng bản nhầm.
+        return {"file": os.path.basename(path), "dong": 0, "ky": {},
+                "canh_bao": [lech, *warn]}
     by_ky = {}
     for r in recs:
         by_ky.setdefault((r.get("ngay") or "?")[:7], []).append(r)
