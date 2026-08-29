@@ -1,6 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""KÉO + NẠP BÁO CÁO NGÀY (HQKD theo ngày, 12 đơn vị) tự động — chạy 13:00 giờ VN mỗi ngày.
+"""KÉO + NẠP BÁO CÁO NGÀY (HQKD theo ngày, 12 đơn vị) tự động — 3 lượt/ngày.
+
+BA LƯỢT/NGÀY: 05:00 · 16:45 · 17:15 giờ VN (đổi 29/08/2026 theo yêu cầu user; trước đó một lượt 17:00 VN, và test/prod ĐỀU ở 10:00 UTC nên đang tranh khoá per-file).
+Lượt PROD chạy sau TEST 5 phút — KHÔNG được bỏ: cùng phút thì hai lượt tranh khoá per-file
+(servers/common/filelock.py), lượt sau bị 'skipped_lock' và MẤT HẲN một lượt nạp.
+MỐC CRONTAB VIẾT THEO UTC (máy TZ=Etc/UTC, cron Ubuntu bỏ qua CRON_TZ khi TÍNH LỊCH — man 5
+crontab, LIMITATIONS): 09:45 · 10:15 · 22:00 UTC. Lượt 05:00 VN nằm ở 22:00 UTC HÔM TRƯỚC.
+
 
 Mirror cron_thuchi_daily.py (cùng thư mục) — xem đó để hiểu khung chung (vì sao POST
 /request-file thay vì sync_orchestrator pull, vì sao chờ mtime/saved_at thay vì sleep cứng, vì sao
@@ -73,7 +80,10 @@ DISABLED_FLAG = ENVIRONMENTS[DEFAULT_ENV]["disabled_flag"]
 DATABASE_URL = ENVIRONMENTS[DEFAULT_ENV]["database_url"]
 VERIFY_API_DIR = ENVIRONMENTS[DEFAULT_ENV]["verify_api_dir"]
 
-SCHEDULE_VN = "17:00"       # ghi vào artifact để agent giám sát không phải hard-code mốc giờ
+SCHEDULE_VN = "05:00 · 16:45 · 17:15"   # 3 lượt/ngày (đổi 29/08/2026). Ghi vào artifact
+# cho agent giám sát khỏi hard-code mốc giờ — KHÔNG ai parse chuỗi này, chỉ hiển thị.
+# Lượt 05:00 sáng gánh các nguồn nộp sau giờ chiều (KSCL của XDV nộp 18:02-18:31 VN).
+# Lượt prod chạy sau test 5 phút; xem khối chú thích trong crontab.
 
 # 12 đơn vị PHẢI có báo cáo ngày — mẫu số của artifact. Lấy từ `_UNITS` của deriver để không có
 # 2 nguồn sự thật; thêm/bớt đơn vị chỉ sửa 1 chỗ. Fallback hard-code cho trường hợp import vỡ

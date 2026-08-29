@@ -1,13 +1,18 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""KÉO + NẠP NGUỒN QTVH SHOWROOM VINFAST (SRVF) — chạy 11:00 giờ VN mỗi ngày.
+"""KÉO + NẠP NGUỒN QTVH SHOWROOM VINFAST (SRVF) — 3 lượt/ngày, xem khối MỐC GIỜ bên dưới.
 
 Nuôi 5 màn `vhkd0..vhkd4` (Quản trị vận hành VHKD). Khung chung + 4 cái bẫy: xem
 `cron_qtvh_core.py`. File này CHỈ khai báo nguồn.
 
-MỐC 11:00 VN lấy từ nhịp nộp thật của nguồn (đo trên `available_metadata.json` 24/08/2026): nhóm
-"OO" (quản trị nội bộ VHKD) nộp 08:20–10:07 giờ VN. Chạy 11:00 là sau bản muộn nhất một tiếng mà
-không đụng 2 job cũ (13:00 dòng tiền / 17:00 báo cáo ngày).
+BA LƯỢT/NGÀY: 05:00 · 16:45 · 17:15 giờ VN (đổi 29/08/2026 theo yêu cầu user; trước đó một lượt 11:00 VN).
+Lượt PROD chạy sau TEST 5 phút — KHÔNG được bỏ: cùng phút thì hai lượt tranh khoá per-file
+(servers/common/filelock.py), lượt sau bị 'skipped_lock' và MẤT HẲN một lượt nạp.
+MỐC CRONTAB VIẾT THEO UTC (máy TZ=Etc/UTC, cron Ubuntu bỏ qua CRON_TZ khi TÍNH LỊCH — man 5
+crontab, LIMITATIONS): 09:45 · 10:15 · 22:00 UTC. Lượt 05:00 VN nằm ở 22:00 UTC HÔM TRƯỚC.
+
+NHỊP NỘP THẬT (đo 24/08/2026): nhóm "OO" (quản trị nội bộ VHKD) nộp 08:20–10:07 giờ VN, nên CẢ BA
+lượt đều nằm sau mốc nộp — lượt 16:45 đã đủ, hai lượt còn lại là dự phòng cho file về muộn/gửi lại.
 MỐC CRONTAB PHẢI VIẾT THEO UTC: máy đặt TZ=Etc/UTC và cron của Ubuntu bỏ qua CRON_TZ khi TÍNH
 LỊCH (man 5 crontab, LIMITATIONS) -> 11:00 VN = 04:00 UTC.
 
@@ -30,7 +35,10 @@ import cron_qtvh_core as core
 
 JOB = "srvf_daily"
 NHAN = "Nguồn QTVH Showroom Vinfast (SRVF)"
-SCHEDULE_VN = "11:00"
+SCHEDULE_VN = "05:00 · 16:45 · 17:15"   # 3 lượt/ngày (đổi 29/08/2026). Ghi vào artifact
+# cho agent giám sát khỏi hard-code mốc giờ — KHÔNG ai parse chuỗi này, chỉ hiển thị.
+# Lượt 05:00 sáng gánh các nguồn nộp sau giờ chiều (KSCL của XDV nộp 18:02-18:31 VN).
+# Lượt prod chạy sau test 5 phút; xem khối chú thích trong crontab.
 
 NGUON = [
     # ── luỹ kế: mỗi kỳ NHIỀU bản chốt, chỉ giữ bản mới nhất rồi xoá rows bản cũ ─────────────
