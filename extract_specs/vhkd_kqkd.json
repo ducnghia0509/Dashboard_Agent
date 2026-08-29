@@ -2,6 +2,9 @@
   "id": "vhkd_kqkd",
   "_mo_ta": "Bán xe / xuất hóa đơn khối Vinfast - Showroom (DASHBOARD 1 chỉ tiêu 7.2, 8, 10-12). Nguồn Nextcloud: 1.VINFAST_SR/QUANTRINOIBO_VHKD/BaocaoKQKD.",
   "_bay": [
+    "GLOB ĐÒI HẬU TỐ `_T<n>` (29/08/2026): thư mục còn `Xuathoadon_B2C.xlsx` KHÔNG có hậu tố tháng — bản xuất sớm của B2C tháng 7, và cả 252/252 dòng của nó đều nằm trong `Xuathoadon_B2C_T7.xlsx` (605 dòng). Không có tháng trong tên nên `moi_ky_ky_regex` không khớp, nó đứng riêng một slot và được nạp song song -> cộng đôi 96,36 tỷ vào tháng 7. Prod đang phải ẩn tay file này trong `hidden_files` từ 21/08; siết glob là chặn từ gốc.",
+    "CHỐNG NẠP CHỒNG BẢN LUỸ KẾ (29/08/2026): thư mục giữ MỌI bản phát hành của cùng một tháng (T8 có 7 bản: 7.4.23 → 8.4.28), mỗi bản luỹ kế cả tháng. Cron `LUY_KE` chặn được, nhưng chạy tay `spec_extract.py vhkd_kqkd --write` thì trước đây nạp CẢ 7 -> đúng 7 lần số thật (đã dính trên DB test, phải xoá 3.047 dòng). `ngay_tu_ten_file` trả None ở nguồn này (kỳ suy từ CỘT NGÀY) nên cờ trần vô dụng -> phải kèm `moi_ky_ky_regex` lấy (năm, tháng) từ tên file CHỈ ĐỂ GỘP BẢN CHỐT, và `moi_ky_slot_regex` tách 3 kênh. ĐỪNG khai `ky_tu_ten_file` thay cho nó: khoá đó đổi luôn cách gán ngày cho từng dòng, tức đổi số của nguồn đang chạy đúng.",
+    "CHỐT THÁNG (29/08/2026): `Xuathoadon_GF_T7.xlsx` là BẢN SAO của T6 — 11 hoá đơn, 5,5331 tỷ, ngày hoá đơn toàn tháng 6. Kỳ ở nguồn này suy từ CỘT NGÀY chứ không từ tên file nên nó nạp 'thành công' và cộng thêm lần nữa vào tháng 6 (GF T6 thành 11,0662 = gấp đôi) còn tháng 7 trống trơn — không lớp chống trùng nào bắt được vì tên file khác và kỳ suy ra cũng khác. `thang_tu_ten_file_regex` bắt hậu tố _T<n> rồi từ chối file nếu KHÔNG MỘT DÒNG NÀO thuộc tháng đó. Lỏng có chủ ý: hoá đơn tràn sang đầu tháng sau là bình thường.",
     "Kênh KHÔNG có trong sheet — phải lấy từ TÊN FILE (Xuathoadon_B2B/B2C/GF).",
     "Mỗi file GF và 2 file B2C có ~594 dòng rác 'B2B_PKD 2: Hạ Hữu Quỳnh' không có Ngày hóa đơn (vùng dán thừa) -> lọc bằng ngay khác rỗng.",
     "Lãi gộp kênh B2C ÂM là ĐÚNG (khớp cột V 'Lãi lỗ xe' của chính file) — phần lỗ thu lại qua Claim A230, đừng đảo dấu."
@@ -11,7 +14,7 @@
   "khoi": "Khối KD Vinfast - Showroom",
   "nguon": {
     "folder": "SRVF/baocaokqkd",
-    "file_glob": "*Xuathoadon_*.xlsx",
+    "file_glob": "*Xuathoadon_*_T*.xlsx",
     "sheet": { "batdau": "CHI TIẾT XHĐ" }
   },
   "header": { "dong": 1 },
@@ -34,5 +37,9 @@
   "loc": [
     { "cot": "ngay", "dieu_kien": "khac_rong" }
   ],
-  "payload_them": { "unit": "ty" }
+  "payload_them": { "unit": "ty" },
+  "thang_tu_ten_file_regex": "_T(\\d{1,2})\\.xlsx$",
+  "moi_ky_lay_file_moi_nhat": true,
+  "moi_ky_ky_regex": "\\.M\\.(20\\d{2})\\..*_T(\\d{1,2})\\.xlsx$",
+  "moi_ky_slot_regex": "Xuathoadon_(B2B|B2C|GF)_"
 }
