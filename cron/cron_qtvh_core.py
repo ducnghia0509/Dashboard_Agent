@@ -354,7 +354,15 @@ def pick_targets(ctx: Ctx, nguon_list: list, meta: list, periods: list):
                 if nguon.get("bo_qua") and re.search(nguon["bo_qua"], fn, re.IGNORECASE):
                     continue
                 thang, nam_ten = ky_cua(ctx, nguon, e)
-                if thang != month:
+                # `ca_nam`: MỘT file mang CẢ NĂM, tên không có tháng ('B.7.AAG.PKDVH.M.2026.
+                # BAOCAOTONGHOP.xlsx' của An Taxi) -> `month` của metadata là None và suy từ tên
+                # cũng None. So `thang != month` thì None != 8 -> file bị loại khỏi MỌI lượt kéo,
+                # im lặng, đúng lớp bug đã làm Dự án đứng số suốt một tháng (xem `ky_cua_entry`).
+                # Nhận ở ĐÚNG kỳ chính, không thì mỗi lượt kéo cùng một file 2 lần (2 kỳ đang xem).
+                if nguon.get("ca_nam"):
+                    if period != periods[0][0]:
+                        continue
+                elif thang != month:
                     continue
                 years = {int(t) for t in re.findall(r"(20\d{2})", fn)}
                 if years and year not in years:
