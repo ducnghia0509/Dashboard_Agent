@@ -1,0 +1,63 @@
+{
+  "id": "xdv_lsc_chuaxhd_v2",
+  "_mo_ta": "Lệnh sửa chữa chưa xuất hoá đơn theo đối tượng × hạn (mapping XDV #24) — BỐ CỤC MỚI từ bản tuần 28/08/2026. Cùng report_type với `xdv_lsc_chuaxhd` (bản cũ); hai spec phân biệt bằng `kiem_tra_o`.",
+  "_bay": [
+    "BẢN 28/08 ĐẢO CHỖ HAI ĐỐI TƯỢNG mà GIỮ NGUYÊN tên sheet: cũ D..G='Bảo hành, Nội bộ' · H..K='Khách hàng' · L..O='Bảo hiểm'; mới D..G='Bảo hành' · H..K='Bảo hiểm' · L..O='Khách hàng' · P..S='Nội bộ' (thêm mới) · T='Tổng'. Nếu spec chỉ dò tên sheet thì file vẫn 'đọc được' và số Bảo hiểm chui vào ô Khách hàng — sai câm. Cái duy nhất bắt được là `kiem_tra_o` ở H2. ĐỪNG BAO GIỜ bỏ chốt này để 'cho hết cảnh báo'.",
+    "'Nội bộ' TÁCH KHỎI 'Bảo hành'. Bản cũ gộp sẵn thành một cột nên `dim2` lịch sử là 'Bảo hành, Nội bộ'. Ở đây ghi HAI dim2 riêng ('Bảo hành', 'Nội bộ') — lưu đủ, không gộp sẵn. Việc gộp về đúng 3 dòng của thiết kế là của `build_xdv_vanhanh` (xem `_GOP_DOI_TUONG` trong xdv.py), nhờ vậy tuần cũ và tuần mới đứng cùng một thang.",
+    "Cột tiền là cột THỨ HAI của mỗi cặp (r4 = 'Số lệnh' | 'Tổng tiền'): E/G/I/K/M/O/Q/S. Cột lẻ là SỐ LỆNH — lấy nhầm thì tiền tụt xuống hàng trăm, không cảnh báo nào bắt.",
+    "File mới thêm sheet 'Danh sách lệnh chưa XHĐ' ở VỊ TRÍ 0, đẩy sheet báo cáo xuống index 1. Spec chọn sheet theo TÊN nên không ảnh hưởng — nhưng đừng đổi sang `sheet.so`.",
+    "Kỳ lấy từ tên file: W.<năm>.<tháng>.<tuần>.<NGÀY BÁO CÁO>, `ngay` = CHỦ NHẬT cuối tuần được phủ. `moi_ky_lay_file_moi_nhat: 'ngay'` giữ đủ mọi tuần, hai bản cùng tuần thì bản sau thắng.",
+    "Dòng cuối là 'Tổng' — `dung_khi` chặn; 14 xưởng khớp master_data."
+  ],
+  "report_type": "XDV_LSC_CHUAXHD",
+  "row_index_base": 7700000,
+  "khoi": "Khối KD Vinfast - XDV",
+  "nguon": {
+    "folder": "XDV/baocaolscchuaxhd",
+    "file_glob": "*.xlsx",
+    "sheet": {
+      "ten": [
+        "Báo cáo lệnh chưa XHĐ"
+      ]
+    }
+  },
+  "kiem_tra_o": [
+    { "o": "C2", "bang": "XDV" },
+    { "o": "D2", "bang": "Bảo hành" },
+    { "o": "H2", "bang": "Bảo hiểm" },
+    { "o": "L2", "bang": "Khách hàng" },
+    { "o": "P2", "bang": "Nội bộ" }
+  ],
+  "header": { "khong_co": true },
+  "dong_bat_dau": 5,
+  "ky_tu_ten_file": {
+    "regex_nam": "W\\.(\\d{4})\\.",
+    "regex_thang": "W\\.\\d{4}\\.(\\d{1,2})\\.",
+    "regex_ngay": "W\\.\\d{4}\\.\\d{1,2}\\.\\d{1,2}\\.(\\d{1,2})\\.",
+    "tuan_truoc_ngay_bao_cao": true
+  },
+  "moi_ky_lay_file_moi_nhat": "ngay",
+  "cot": {
+    "cost_center": { "cot": "C", "chuan_hoa": "xdv" },
+    "payload.don_vi": { "cot": "C" }
+  },
+  "ban_ghi": "moi_cot_gia_tri",
+  "cot_gia_tri": [
+    { "cot": "E", "dim1": "Trong hạn", "dim2": "Bảo hành",   "he_so": 1e-09 },
+    { "cot": "G", "dim1": "Quá hạn",   "dim2": "Bảo hành",   "he_so": 1e-09 },
+    { "cot": "I", "dim1": "Trong hạn", "dim2": "Bảo hiểm",   "he_so": 1e-09 },
+    { "cot": "K", "dim1": "Quá hạn",   "dim2": "Bảo hiểm",   "he_so": 1e-09 },
+    { "cot": "M", "dim1": "Trong hạn", "dim2": "Khách hàng", "he_so": 1e-09 },
+    { "cot": "O", "dim1": "Quá hạn",   "dim2": "Khách hàng", "he_so": 1e-09 },
+    { "cot": "Q", "dim1": "Trong hạn", "dim2": "Nội bộ",     "he_so": 1e-09 },
+    { "cot": "S", "dim1": "Quá hạn",   "dim2": "Nội bộ",     "he_so": 1e-09 }
+  ],
+  "loc": [
+    { "cot": "cost_center", "dieu_kien": "khac_rong" },
+    { "cot": "amount", "dieu_kien": "khac_rong" }
+  ],
+  "payload_them": { "unit": "ty" },
+  "dung_khi": [
+    { "cot": "payload.don_vi", "dieu_kien": "chua", "gia_tri": "Tổng" }
+  ]
+}

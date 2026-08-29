@@ -2,6 +2,7 @@
   "id": "qlts_baoduong_xedemo_th",
   "_mo_ta": "QLTS — BẢO DƯỠNG XE DEMO, khối 3 SỐ TỔNG (S12:U13 của sheet 'th XE DEMO'): tỷ lệ BD đúng kế hoạch, tổng chi phí BD-SC, tổng số yêu cầu sửa chữa. Tách khỏi `qlts_baoduong_xedemo` vì nằm ở dải dòng khác. amount = tổng chi phí (tỷ), amount2 = tỷ lệ BD đúng kế hoạch.",
   "_bay": [
+    "BẬT `moi_ky_lay_file_moi_nhat` 29/08/2026: đây là ẢNH CHỤP TẠI THỜI ĐIỂM (report_type nằm trong `_SNAP_RT` ở backend). Nghiệp vụ gửi lại bản SỬA của cùng một kỳ dưới TÊN KHÁC thì `_ghi` (xoá theo source_file) không chặn được, và `_SNAP_RT` lấy MAX(ngay) cũng không phá được hoà -> cộng đôi im lặng. Đã kiểm trước khi bật: hiện mỗi kỳ của nguồn này đúng 1 file, bật cờ KHÔNG loại file nào đang có.",
     "PHẢI DÙNG report_type RIÊNG (`QLTS_BD_TH`), KHÔNG dùng chung `QLTS_BD` với `qlts_baoduong_xedemo`. Hai spec đọc CÙNG MỘT FILE nên `source_file` giống hệt nhau, mà `_ghi` xoá theo `WHERE report_type=? AND source_file=?` -> spec chạy sau XOÁ SẠCH dòng của spec chạy trước. Đã dính 17/08/2026: 3 dòng tình trạng xe demo biến mất, ts3 báo trễ hạn 8 thay vì 18.",
     "ĐÚNG MỘT DÒNG (13) VÀ KHÔNG CÓ BỘ LỌC. Cố ý để `loc: []`: kỳ 8/2026 cả ba số đều bằng 0, mà `khac_rong` của engine coi 0 LÀ RỖNG -> bất kỳ bộ lọc nào cũng xoá sạch dòng này. 'Chi phí bảo dưỡng xe demo = 0' là một sự thật cần hiển thị, không phải dữ liệu thiếu.",
     "Vì không có bộ lọc, `kiem_tra_o` là chốt an toàn DUY NHẤT. Nếu đơn vị chèn/xoá dòng thì nhãn ở S12/T12/U12 lệch và spec dừng ngay thay vì nạp số của ô khác.",
@@ -72,5 +73,6 @@
   "ky_tu_ten_file": {
     "regex_nam": "\\.[DM]\\.(\\d{4})\\.",
     "regex_thang": "\\.[DM]\\.\\d{4}\\.(\\d{1,2})\\."
-  }
+  },
+  "moi_ky_lay_file_moi_nhat": true
 }

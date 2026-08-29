@@ -2,6 +2,7 @@
   "id": "qlts_dangkiem",
   "_mo_ta": "QLTS — ĐĂNG KIỂM & KIỂM ĐỊNH, sheet 'Đăng kiểm' của QLTS/baocaodangkiem/F.9.TC.H5.M.<yyyy>.<m>.TheodoiDangkiem.xlsx. Mỗi dòng = 1 lượt đăng kiểm/kiểm định. amount = tổng chi phí (tỷ). dim1 = loại kiểm định, dim2 = Thông báo (Chưa đến hạn / Hết hạn), dim3 = số lần thực hiện. Cấp số cho band B màn ts4.",
   "_bay": [
+    "BẬT `moi_ky_lay_file_moi_nhat` 29/08/2026: đây là ẢNH CHỤP TẠI THỜI ĐIỂM (report_type nằm trong `_SNAP_RT` ở backend). Nghiệp vụ gửi lại bản SỬA của cùng một kỳ dưới TÊN KHÁC thì `_ghi` (xoá theo source_file) không chặn được, và `_SNAP_RT` lấy MAX(ngay) cũng không phá được hoà -> cộng đôi im lặng. Đã kiểm trước khi bật: hiện mỗi kỳ của nguồn này đúng 1 file, bật cờ KHÔNG loại file nào đang có.",
     "MAPPING THIẾU HẲN DÒNG STT 37 (nhảy 36 -> 38) nên hai chỉ tiêu 'Tỷ lệ đăng kiểm đúng hạn' và 'Tỷ lệ đạt ngay lần đầu' của thiết kế ts4 không có dòng mapping nào. NGUỒN THÌ CÓ: cột P 'Thông báo' cho đúng hạn/quá hạn, cột W 'Số lần thực hiện' ('1 lần', '2 lần'...) cho đạt-ngay-lần-đầu. Spec này lấy cả hai, không cần chờ mapping bổ sung.",
     "PHẠM VI RẤT HẸP: chỉ ~17 xe/thiết bị, KHÔNG phải toàn bộ phương tiện tập đoàn (riêng 'Xe taxi' đã 1.478 tài sản). Nhãn trên màn ts4 phải nói rõ phạm vi, nếu không lãnh đạo đọc thành 'cả tập đoàn chỉ 17 xe đến hạn'.",
     "HEADER 2 TẦNG (dòng 3-4), gộp theo thứ tự [4,3]: dòng 3 để nhãn nhóm ('Ngày tháng năm' ở L, 'Chi phí' ở Q, 'Thông số' ở J) còn dòng 4 mới là tên cột thật ('Bắt đầu', 'Tổng chi phí', 'Số khung'). Dữ liệu từ dòng 6 (dòng 5 trống).",
@@ -54,5 +55,6 @@
   "ky_tu_ten_file": {
     "regex_nam": "\\.M\\.(\\d{4})\\.",
     "regex_thang": "\\.M\\.\\d{4}\\.(\\d{1,2})\\."
-  }
+  },
+  "moi_ky_lay_file_moi_nhat": true
 }

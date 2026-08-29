@@ -2,6 +2,7 @@
   "id": "qlts_baoduong_xe",
   "_mo_ta": "QLTS — BẢO TRÌ/BẢO DƯỠNG XE KHỐI LƯỢNG, khối tổng hợp của sheet 'th Xe'. Mỗi dòng = 1 tình trạng thiết bị (đã BD / quá hạn / chưa đến hạn / sắp đến hạn). amount = số thiết bị, amount2 = tỷ lệ BD đúng kế hoạch (chỉ có ở dòng 'đã BD'). dim1 = nhóm thiết bị (lấy từ tên file), dim2 = tình trạng. Cấp số cho band A màn ts3.",
   "_bay": [
+    "BẬT `moi_ky_lay_file_moi_nhat` 29/08/2026: đây là ẢNH CHỤP TẠI THỜI ĐIỂM (report_type nằm trong `_SNAP_RT` ở backend). Nghiệp vụ gửi lại bản SỬA của cùng một kỳ dưới TÊN KHÁC thì `_ghi` (xoá theo source_file) không chặn được, và `_SNAP_RT` lấy MAX(ngay) cũng không phá được hoà -> cộng đôi im lặng. Đã kiểm trước khi bật: hiện mỗi kỳ của nguồn này đúng 1 file, bật cờ KHÔNG loại file nào đang có.",
     "SỐ LIỆU NẰM Ở KHỐI TỔNG HỢP NHỎ BÊN PHẢI sheet, KHÔNG phải ở bảng chính. Bảng chính là danh sách từng thiết bị; các chỉ tiêu quản trị (tỷ lệ BD đúng kế hoạch, chi phí, số yêu cầu SC) chỉ xuất hiện một lần trong một ô. Đọc bảng chính là ra hàng trăm dòng nhưng KHÔNG có chỉ tiêu nào.",
     "ĐỌC THEO CHỮ CỘT (`header.khong_co`) vì khối tổng hợp không có dòng tiêu đề chuẩn và vị trí khác nhau ở từng file. Neo cứng dòng — nếu đơn vị chèn dòng thì `kiem_tra_o` sẽ báo sai ngay.",
     "TÊN HEADER LỆCH GIỮA 3 FILE: 'th MÁY' và 'th XE DEMO' ghi 'tổng chi phí BD-SC(VNĐ)', 'th Xe' ghi 'tổng chi phí DB-SC(VNĐ)' (đảo BD thành DB). Mapping chép theo bản 'DB-SC'. Đây là lý do nữa để đọc theo chữ cột thay vì theo tên.",
@@ -80,5 +81,6 @@
     }
   ],
   "dong_bat_dau": 8,
-  "dong_ket_thuc": 11
+  "dong_ket_thuc": 11,
+  "moi_ky_lay_file_moi_nhat": true
 }

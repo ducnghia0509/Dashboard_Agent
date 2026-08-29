@@ -1672,10 +1672,19 @@ def loc_file_moi_nhat(spec, files):
     độ trên không cứu được vì mỗi file suy ra một kỳ KHÁC NHAU nên đều được giữ -> nạp 6 file là
     ghi cùng dữ liệu 6 lần dưới 6 `source_file`, và `_ghi` (xoá theo source_file) không chặn nổi:
     tổng nhân sự phình 6 lần.
+
+    `"moi_ky_slot_regex"` (29/08/2026) — MỘT KỲ CÓ NHIỀU LÁT SONG SONG, mỗi lát vẫn phải giữ bản
+    mới nhất của RIÊNG nó. Không có nó thì cờ trên là con dao hai lưỡi: `vhkd_tonkho_vatly` có
+    3 kênh (B2B/B2C/GF) × nhiều ảnh chụp trong tháng 8, `qlts_dau_bqnl` có 4 trạm cùng kỳ tháng 7
+    — bật cờ trần là giữ ĐÚNG MỘT file rồi vứt 2 kênh / 3 trạm dữ liệu thật, im lặng. Khai regex
+    bắt phần định danh lát (kênh, trạm…); các nhóm bắt được ghép vào khoá gộp. KHÔNG khớp -> lát
+    đứng RIÊNG một mình (theo tên file), không bị gộp vào lát khác: tên lạ mà gộp nhầm là mất
+    nguyên một lát. Cùng quy ước với `slot` của `cron_qtvh_core._slot`.
     """
     che_do = spec.get("moi_ky_lay_file_moi_nhat")
     if not che_do:
         return files, []
+    pat = spec.get("moi_ky_slot_regex")
     giu, bo = {}, []
     for f in files:
         ngay, _ = ngay_tu_ten_file(spec, f)
@@ -1683,6 +1692,9 @@ def loc_file_moi_nhat(spec, files):
             giu[f] = f            # không suy được kỳ -> giữ nguyên, đừng im lặng loại
             continue
         ky = "" if che_do == "mot_file" else (ngay if che_do == "ngay" else ngay[:7])
+        if pat:
+            m = re.search(pat, os.path.basename(f), re.IGNORECASE)
+            ky = (ky, tuple(x or "" for x in m.groups()) if m else os.path.basename(f))
         cu = giu.get(ky)
         # HOÀ ngày chốt -> lấy file VỀ SAU (mtime). Nghiệp vụ gửi lại bản SỬA của cùng một kỳ với
         # tên khác (claim T3-T6: "…7.24. BaocaoClaim_B2C_T3" rồi "…8.11. BaocaoClaim_B2C_T3"),

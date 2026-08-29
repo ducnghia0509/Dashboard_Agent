@@ -2,6 +2,7 @@
   "id": "vhkd_tonkho_vatly",
   "_mo_ta": "Tồn kho xe VẬT LÝ theo SR (DASHBOARD 4 chỉ tiêu 14-15, khối B màn vhkd4). Nguồn: 1.VINFAST_SR/QUANTRINOIBO_VHKD/Baocaotonkhoxevatly.",
   "_bay": [
+    "BẬT `moi_ky_lay_file_moi_nhat` + `moi_ky_slot_regex` 29/08/2026. PHẢI có regex: nguồn này một kỳ có NHIỀU LÁT SONG SONG (3 kênh B2B / B2C / GF) — bật cờ trần là giữ đúng 1 file rồi vứt các lát còn lại, mất dữ liệu thật. Regex tách lát ra, mỗi lát giữ bản mới nhất của riêng nó.",
     "Sheet KHÔNG có dòng tiêu đề — dữ liệu chạy thẳng từ dòng 2, 3 cột: A tên SR, B số VIN, C mã kho. Vì vậy phải khai `header.khong_co` + chỉ đích danh chữ cột.",
     "File KHÔNG có dòng xe và KHÔNG có giá trị -> chỉ đếm được SỐ XE theo SR. Bảng 'Chênh lệch tồn vật lý – hóa đơn theo dòng xe' trong thiết kế hiện CHƯA làm được, cần xin thêm cột Loại xe.",
     "amount = 1 (đếm xe), không phải tiền.",
@@ -23,5 +24,7 @@
   "ban_ghi": "moi_dong",
   "dan_xuat": { "amount": "1" },
   "loc": [ { "cot": "payload.so_vin", "dieu_kien": "khac_rong" } ],
-  "payload_them": { "unit": "xe" }
+  "payload_them": { "unit": "xe" },
+  "moi_ky_lay_file_moi_nhat": true,
+  "moi_ky_slot_regex": "_(B2B|B2C|GF)\\b"
 }

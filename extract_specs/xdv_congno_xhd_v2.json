@@ -1,0 +1,69 @@
+{
+  "id": "xdv_congno_xhd_v2",
+  "_mo_ta": "Công nợ đã xuất hoá đơn theo dải tuổi nợ × đối tượng (mapping XDV #24) — BỐ CỤC MỚI từ bản tuần 28/08/2026. Cùng report_type với `xdv_congno_xhd` (bản cũ), hai spec phân biệt nhau bằng `kiem_tra_o`: file nào không khớp neo thì spec đó trả 0 dòng + cảnh báo và KHÔNG ghi đè gì.",
+  "_bay": [
+    "VÌ SAO TÁCH SPEC CHỨ KHÔNG SỬA TẠI CHỖ: bản 28/08 đổi ĐỒNG THỜI 3 thứ — tên sheet ('Báo cáo CN ' -> 'Báo cáo Công Nợ'), thêm 1 cột STT ở A (đẩy MỌI cột sang phải đúng 1), và TÁCH đối tượng 'Khách hàng ( GSM, GF,….)' thành HAI cột 'GSM, GF' + 'Khách lẻ' (nhóm rộng 8 -> 10 cột). Sửa tại chỗ là 10 tuần file cũ đọc sai câm. Theo đúng tiền lệ `xdv_lsc_cyber_ct` / `xdv_lsc_cyber_ct_cu`.",
+    "ĐỐI TƯỢNG 'Khách hàng' CỦA BẢN CŨ = 'GSM, GF' + 'Khách lẻ' CỦA BẢN MỚI — đọc thẳng từ nhãn cột bản cũ: 'Khách hàng ( GSM, GF,….)'. Ở đây GIỮ NGUYÊN hai cột thành hai `dim2` riêng (lưu đủ dữ liệu), việc gộp lại thành dòng 'Khách hàng' của thiết kế là của builder `build_xdv_phaithu` (xem `_GOP_DOI_TUONG` trong xdv.py). KHÔNG cộng sẵn ở đây: gộp mất rồi thì không tách lại được.",
+    "CỘT TIỀN LÀ CỘT THỨ HAI CỦA MỖI CẶP (r4 = 'Số lệnh' | 'Tổng giá trị'). Bản cũ tiền ở G/I/K…, bản mới ở H/J/L/N… — lệch đúng 1 cột do STT thừa ở A. Lấy nhầm cột lẻ là ra SỐ LỆNH đội lốt tiền, không cảnh báo nào bắt được.",
+    "`kiem_tra_o` neo vào D2='XDV' + E2/O2/Y2 = ba dải. Đây là lớp duy nhất chặn được kiểu lỗi 'đổi thứ tự nhóm mà giữ nguyên tên sheet' — bản 28/08 của file LSCchuaXHD đã đảo Bảo hiểm <-> Khách hàng đúng kiểu đó.",
+    "Kỳ lấy từ tên file: W.<năm>.<tháng>.<tuần>.<NGÀY BÁO CÁO>. Báo cáo ra thứ Hai chốt số TUẦN LIỀN TRƯỚC nên `ngay` = CHỦ NHẬT cuối tuần đó. `moi_ky_lay_file_moi_nhat: 'ngay'` giữ đủ mọi tuần; hai bản cùng một tuần (25/08 và 28/08) thì bản sau thắng.",
+    "24 dòng dữ liệu, dòng cuối là 'Tổng' — `dung_khi` chặn."
+  ],
+  "report_type": "XDV_PTHU",
+  "row_index_base": 7600000,
+  "khoi": "Khối KD Vinfast - XDV",
+  "nguon": {
+    "folder": "XDV/baocaocongnoxhd",
+    "file_glob": "*.xlsx",
+    "sheet": {
+      "ten": [
+        "Báo cáo Công Nợ"
+      ]
+    }
+  },
+  "kiem_tra_o": [
+    { "o": "D2", "bang": "XDV" },
+    { "o": "E2", "bang": "Trong hạn" },
+    { "o": "O2", "bang": "Quá hạn" },
+    { "o": "Y2", "bang": "Nợ xấu" },
+    { "o": "G3", "bang": "Bảo hành" },
+    { "o": "K3", "bang": "GSM, GF" },
+    { "o": "M3", "bang": "Khách lẻ" }
+  ],
+  "header": { "khong_co": true },
+  "dong_bat_dau": 5,
+  "ky_tu_ten_file": {
+    "regex_nam": "W\\.(\\d{4})\\.",
+    "regex_thang": "W\\.\\d{4}\\.(\\d{1,2})\\.",
+    "regex_ngay": "W\\.\\d{4}\\.\\d{1,2}\\.\\d{1,2}\\.(\\d{1,2})\\.",
+    "tuan_truoc_ngay_bao_cao": true
+  },
+  "moi_ky_lay_file_moi_nhat": "ngay",
+  "cot": {
+    "cost_center": { "cot": "D", "chuan_hoa": "xdv" },
+    "payload.don_vi": { "cot": "D" }
+  },
+  "ban_ghi": "moi_cot_gia_tri",
+  "cot_gia_tri": [
+    { "cot": "H",  "dim1": "Trong hạn", "dim2": "Bảo hành", "he_so": 1e-09 },
+    { "cot": "J",  "dim1": "Trong hạn", "dim2": "Bảo hiểm", "he_so": 1e-09 },
+    { "cot": "L",  "dim1": "Trong hạn", "dim2": "GSM, GF",  "he_so": 1e-09 },
+    { "cot": "N",  "dim1": "Trong hạn", "dim2": "Khách lẻ", "he_so": 1e-09 },
+    { "cot": "R",  "dim1": "Quá hạn",   "dim2": "Bảo hành", "he_so": 1e-09 },
+    { "cot": "T",  "dim1": "Quá hạn",   "dim2": "Bảo hiểm", "he_so": 1e-09 },
+    { "cot": "V",  "dim1": "Quá hạn",   "dim2": "GSM, GF",  "he_so": 1e-09 },
+    { "cot": "X",  "dim1": "Quá hạn",   "dim2": "Khách lẻ", "he_so": 1e-09 },
+    { "cot": "AB", "dim1": "Nợ xấu",    "dim2": "Bảo hành", "he_so": 1e-09 },
+    { "cot": "AD", "dim1": "Nợ xấu",    "dim2": "Bảo hiểm", "he_so": 1e-09 },
+    { "cot": "AF", "dim1": "Nợ xấu",    "dim2": "GSM, GF",  "he_so": 1e-09 },
+    { "cot": "AH", "dim1": "Nợ xấu",    "dim2": "Khách lẻ", "he_so": 1e-09 }
+  ],
+  "loc": [
+    { "cot": "cost_center", "dieu_kien": "khac_rong" },
+    { "cot": "amount", "dieu_kien": "khac_rong" }
+  ],
+  "payload_them": { "unit": "ty" },
+  "dung_khi": [
+    { "cot": "payload.don_vi", "dieu_kien": "chua", "gia_tri": "Tổng" }
+  ]
+}

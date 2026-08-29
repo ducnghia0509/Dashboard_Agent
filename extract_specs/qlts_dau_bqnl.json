@@ -2,6 +2,7 @@
   "id": "qlts_dau_bqnl",
   "_mo_ta": "QLTS — MỨC TIÊU HAO NHIÊN LIỆU BÌNH QUÂN theo từng xe/máy, sheet 'BQ-NL' của 4 file dầu. Mỗi dòng = 1 phương tiện. amount = MỨC THBQ. dim1 = dự án (tên file), dim2 = mã xe/máy, payload.dvt = đơn vị tính. Cấp số cho chỉ tiêu 'Mức tiêu hao nhiên liệu' (mapping #32) ở màn ts5.",
   "_bay": [
+    "BẬT `moi_ky_lay_file_moi_nhat` + `moi_ky_slot_regex` 29/08/2026. PHẢI có regex: nguồn này một kỳ có NHIỀU LÁT SONG SONG (4 trạm Cao Bằng / Quang Sơn / Tân Thịnh / Thọ Chu) — bật cờ trần là giữ đúng 1 file rồi vứt các lát còn lại, mất dữ liệu thật. Regex tách lát ra, mỗi lát giữ bản mới nhất của riêng nó.",
     "⚠️ KỲ TRONG FILE MÂU THUẪN VỚI TÊN FILE. Cả 4 file đều tên `.M.2026.7.` nhưng ô tiêu đề ghi: Cao Bằng 'THÁNG 6-2026', Quang Sơn 'THÁNG 7-2025' (lệch HẲN 1 NĂM), Tân Thịnh 'THÁNG 7-2026' ở BC NXT nhưng 'T6/2026' ở BQ-NL, chỉ Thổ Chu nhất quán. Ô tiêu đề là ô GÕ TAY không cập nhật khi copy file sang tháng mới -> LẤY KỲ THEO TÊN FILE, đúng quy ước mọi nguồn khác. Vẫn phải hỏi đơn vị xác nhận riêng file Quang Sơn có đúng là số T7/2026 không.",
     "MAPPING GHI 'dòng lấy màu vàng' — KHÔNG CẦN ĐỌC MÀU, và engine cũng không đọc được màu ô. Sheet xếp MỖI PHƯƠNG TIỆN 3 DÒNG: dòng 1 mã ở cột C (ĐVT 'Lít'), dòng 2 mã ở cột B (ĐVT 'Km'), dòng 3 mã ở cột A (ĐVT 'Lít/km') — dòng 3 mới là dòng tỷ lệ và là 'dòng màu vàng' kia. Vì CHỈ dòng 3 có giá trị ở cột A nên lọc `dim2 khac_rong` chọn đúng nó, không cần biết màu.",
     "⚠️ ĐƠN VỊ ĐO KHÁC NHAU GIỮA CÁC DỰ ÁN: Cao Bằng ghi 'Lít/km' (đội xe), Tân Thịnh ghi 'Lít/giờ' và Thổ Chu ghi 'Lít/Giờ' (máy thi công — lệch cả hoa thường). Vì vậy TUYỆT ĐỐI không cộng hay bình quân mức tiêu hao GIỮA các dự án; chỉ bình quân trong một dự án và luôn hiển thị kèm `payload.dvt`. Thiết kế ts5 gộp chung một cột 'lít/giờ máy' kèm định mức gõ cứng 18,0 là sai ở cả đơn vị lẫn việc gộp — nguồn KHÔNG có bảng định mức nào.",
@@ -69,5 +70,7 @@
   "ky_tu_ten_file": {
     "regex_nam": "\\.M\\.(\\d{4})\\.",
     "regex_thang": "\\.M\\.\\d{4}\\.(\\d{1,2})\\."
-  }
+  },
+  "moi_ky_lay_file_moi_nhat": true,
+  "moi_ky_slot_regex": "BCDau([A-Za-zÀ-ỹ]+)"
 }

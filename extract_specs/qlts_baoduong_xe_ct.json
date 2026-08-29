@@ -2,6 +2,7 @@
   "id": "qlts_baoduong_xe_ct",
   "_mo_ta": "QLTS — BẢO DƯỠNG XE KHỐI LƯỢNG, BẢN CHI TIẾT: sheet 'th Xe' của QLTS/baocaobaoduong/B.9.TC.H5.D.<yyyy>.<m>.BCbaoduongxe.xlsx, dòng 5 trở xuống (mỗi dòng 1 xe). Cùng vai trò với `qlts_baoduong_may_ct`: mở chiều Công ty/Đơn vị/Khối cho màn ts3. amount = 1, dim2 = Cảnh báo nguyên văn, cost_center suy từ 'Vị Trí Thiết bị'.",
   "_bay": [
+    "BẬT `moi_ky_lay_file_moi_nhat` 29/08/2026: đây là ẢNH CHỤP TẠI THỜI ĐIỂM (report_type nằm trong `_SNAP_RT` ở backend). Nghiệp vụ gửi lại bản SỬA của cùng một kỳ dưới TÊN KHÁC thì `_ghi` (xoá theo source_file) không chặn được, và `_SNAP_RT` lấy MAX(ngay) cũng không phá được hoà -> cộng đôi im lặng. Đã kiểm trước khi bật: hiện mỗi kỳ của nguồn này đúng 1 file, bật cờ KHÔNG loại file nào đang có.",
     "CHI TIẾT TÁI LẬP ĐÚNG KHỐI TỔNG (đã kiểm 08/2026): quá hạn 2 · đã BD trong tháng 6 · chưa đến hạn 105 · sắp đến hạn 9 · Σ chi phí 0 · Σ yêu cầu SC 8 — khớp từng số với khối T8:X11 cùng sheet.",
     "KHỐI TỔNG CỦA FILE XE NẰM Ở CỘT T..X (không phải M..R như file máy) và BẮT ĐẦU TỪ DÒNG 8, tức NẰM NGANG với vùng chi tiết. Vì thế spec này KHÔNG cần `dong_ket_thuc`: dải chi tiết A..Q và khối tổng T..X không chồng cột. Nhưng cũng vì thế ĐỪNG lọc dòng theo 'có giá trị ở cột nào đó' — phải neo vào 'Mã thiết bị' (A).",
     "TIÊU ĐỀ Ở DÒNG 4 (file máy là dòng 7) — hai file cùng bộ nhưng bố cục lệch 3 dòng. Đừng dùng chung một spec.",
@@ -52,5 +53,6 @@
   "ky_tu_ten_file": {
     "regex_nam": "\\.[DM]\\.(\\d{4})\\.",
     "regex_thang": "\\.[DM]\\.\\d{4}\\.(\\d{1,2})\\."
-  }
+  },
+  "moi_ky_lay_file_moi_nhat": true
 }

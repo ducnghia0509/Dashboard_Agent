@@ -299,10 +299,43 @@ def _slot(nguon: dict, e: dict, period: str) -> tuple:
     return (nguon["rt"], period) + tuple(s.upper() for s in extra)
 
 
+def ngay_vao_db(nguon: dict, e: dict):
+    """NGÀY CHỐT MÀ ENGINE TRÍCH XUẤT SẼ GHI cho file này ('YYYY-MM-DD'), hoặc None.
+
+    KHÁC `ngay_chot()`: cái đó đọc NGÀY PHÁT HÀNH từ tên file, còn cái này trả về ngày mà dòng
+    THỰC SỰ mang trong `raw_rows`. Với báo cáo TUẦN của KSCL hai thứ đó lệch nhau và chính chỗ
+    lệch là nơi đẻ ra cộng đôi: `W.2026.8.5.25.LSCCyber` và `W.2026.8.5.28.LSCCyber` phát hành
+    25/08 và 28/08 (khác nhau) nhưng CÙNG phủ tuần 17-23/08 nên cùng rơi vào `ngay = 2026-08-23`.
+    Gom slot theo ngày phát hành là hai bản vẫn đứng riêng, y như cũ.
+
+    HỎI THẲNG `spec_extract` chứ KHÔNG chép lại luật lịch (lùi ngày phát hành về thứ Hai của tuần
+    chứa nó rồi lấy 7 ngày trước đó): chép là hai nơi tự trôi khỏi nhau, và cron sẽ xoá nhầm hoặc
+    bỏ sót đúng vào lúc luật đổi. Đọc được thì cron và tầng trích xuất luôn cùng một định nghĩa
+    "cùng một kỳ".
+
+    Không spec nào phụ trách / không suy được kỳ -> None, và `_slot` tự lùi về hành vi cũ.
+    """
+    sys.path.insert(0, f"{AGENT}/scripts")
+    try:
+        from spec_extract import ngay_tu_ten_file, specs_for_path
+    except Exception:                                            # noqa: BLE001
+        return None                     # engine đổi/không import được -> giữ nguyên hành vi cũ
+    path = os.path.join(RECEIVED_DIR, nguon["company"], nguon["rt"], e.get("fileName") or "")
+    for sp in specs_for_path(path):
+        try:
+            ngay, _w = ngay_tu_ten_file(sp, path)
+        except Exception:                                        # noqa: BLE001
+            continue
+        if ngay:
+            return ngay
+    return None
+
+
 def pick_targets(ctx: Ctx, nguon_list: list, meta: list, periods: list):
     """Trả (targets, losers). `targets` = bản sẽ nạp; `losers` = bản cũ cùng slot sẽ xoá rows.
 
-    Chỉ chế độ `luy_ke` sinh `losers`. `anh_chup_ky` giữ hết, `thang` mỗi kỳ vốn 1 file.
+    `luy_ke` và `anh_chup_ky` đều sinh `losers`, chỉ khác cách định nghĩa slot; `thang` mỗi kỳ
+    vốn 1 file nên không sinh.
     """
     by_key = {}
     for nguon in nguon_list:
@@ -343,6 +376,33 @@ def pick_targets(ctx: Ctx, nguon_list: list, meta: list, periods: list):
             ds = _xep_slot(ds)
             for e in ds[:-GIU_MOI_NHAT]:
                 e["_bo_qua_neu_co_roi"] = True
+            # PHÁT HÀNH LẠI CÙNG MỘT TUẦN -> bản sau THAY THẾ bản trước (sửa 29/08/2026).
+            # Trước đây mỗi file là một slot riêng nên hai bản của CÙNG tuần cùng nằm trong DB với
+            # CÙNG `ngay`; `_SNAP_RT` lấy MAX(ngay) thì cả hai đều bằng MAX -> cộng cả hai. Đo trên
+            # prod: lệnh tồn Cyber tuần 17-23/08 ra 1.618 = 735 (bản 25/08) + 893 (bản 28/08).
+            # Ở đây gom theo NGÀY VÀO DB (xem `ngay_vao_db`) rồi để bản sau thắng — TUẦN KHÁC NHAU
+            # vẫn là slot khác nhau nên KHÔNG mất bản tuần cũ, đúng tinh thần `anh_chup_ky`.
+            # Không đọc được ngày (không spec nào phụ trách) -> mỗi file một slot, y như trước.
+            theo_tuan = {}
+            for e in ds:
+                nv = ngay_vao_db(e["_nguon"], e)
+                theo_tuan.setdefault(nv or f"?{e['fileName']}", []).append(e)
+            for tuan, ban in sorted(theo_tuan.items()):
+                # `_slot_key` phải hẹp tới TỪNG TUẦN, không phải (rt, tháng): `xoa_ban_cu` chỉ xoá
+                # bản cũ khi bản mới CÙNG SLOT đã nạp OK, mà khoá theo tháng thì bất kỳ tuần nào
+                # của tháng nạp xong cũng mở khoá xoá cho mọi tuần khác — mất bảo hiểm.
+                for e in ban:
+                    e["_slot_key"] = (e["_nguon"]["rt"], tuan)
+                if len(ban) == 1:
+                    continue
+                ban = _xep_slot(ban)
+                for o in ban[:-1]:
+                    o["_thay_the_boi"] = ban[-1]["fileName"]
+                losers.extend(ban[:-1])
+                ctx.log(f"  PHÁT HÀNH LẠI [{key[0]} tuần {tuan}]: {len(ban)} bản"
+                        f" -> giữ {ban[-1]['fileName'][:46]}")
+                for o in ban[:-1]:
+                    ctx.log(f"      thay thế {o['fileName'][:46]} (xoá rows sau khi bản mới nạp OK)")
             targets.extend(ds)
             continue
         if mode != LUY_KE or len(ds) == 1:
@@ -894,10 +954,13 @@ def run(job: str, nhan: str, nguon_list: list, schedule_vn: str, argv=None) -> i
         return done(cron_status.RUN_DUNG_SOM, "không đọc được available_metadata.json", 1)
 
     targets, losers = pick_targets(ctx, nguon_list, meta, periods)
+    # `setdefault`: chế độ `anh_chup_ky` đã tự gán khoá HẸP TỚI TỪNG TUẦN trong `pick_targets`
+    # (xem chú thích "PHÁT HÀNH LẠI CÙNG MỘT TUẦN"). Gán đè ở đây là kéo khoá trở về (rt, tháng)
+    # và làm hỏng bảo hiểm của `xoa_ban_cu`.
     for t in targets:
-        t["_slot_key"] = _slot(t["_nguon"], t, t["_period"])
+        t.setdefault("_slot_key", _slot(t["_nguon"], t, t["_period"]))
     for o in losers:
-        o["_slot_key"] = _slot(o["_nguon"], o, o["_period"])
+        o.setdefault("_slot_key", _slot(o["_nguon"], o, o["_period"]))
 
     ky_chinh = periods[0][0]
     thay = {f"{t.get('company')}/{t.get('report_type')}" for t in targets}
