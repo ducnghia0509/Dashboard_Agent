@@ -2,6 +2,7 @@
   "id": "qlts_baoduong_may_ct",
   "_mo_ta": "QLTS — BẢO DƯỠNG MÁY THI CÔNG, BẢN CHI TIẾT: sheet 'th MÁY' của QLTS/baocaobaoduong/B.9.TC.H5.D.<yyyy>.<m>.BCbaoduongmay.xlsx, dòng 8 trở xuống (mỗi dòng 1 thiết bị). Sinh ra để màn ts3 LỌC ĐƯỢC theo Công ty/Đơn vị/Khối — khối tổng 4 dòng ở trên (spec `qlts_baoduong_may`, report_type QLTS_BD) đã gộp sẵn nên không mang chiều nào. amount = 1 (mỗi dòng 1 thiết bị), dim2 = Cảnh báo nguyên văn, cost_center suy từ cột 'Vị Trí Thiết bị'.",
   "_bay": [
+    "BẬT `moi_ky_lay_file_moi_nhat` 29/08/2026: đây là ẢNH CHỤP TẠI THỜI ĐIỂM (report_type nằm trong `_SNAP_RT` ở backend). Nghiệp vụ gửi lại bản SỬA của cùng một kỳ dưới TÊN KHÁC thì `_ghi` (xoá theo source_file) không chặn được, và `_SNAP_RT` lấy MAX(ngay) cũng không phá được hoà -> cộng đôi im lặng. Đã kiểm trước khi bật: hiện mỗi kỳ của nguồn này đúng 1 file, bật cờ KHÔNG loại file nào đang có.",
     "CHI TIẾT TÁI LẬP ĐÚNG KHỐI TỔNG (đã kiểm 08/2026): Chưa đến hạn 66 · Sắp đến hạn 7 · Quá hạn 6 · Σ chi phí BD-SC 6.100.000 đ · Σ SL yêu cầu sửa chữa 10 — khớp từng số với dòng 3-6 cùng sheet. Vì vậy đổi nền màn ts3 sang spec này KHÔNG đổi một con số nào.",
     "⚠️ 'ĐÃ BD TRONG THÁNG' KHÔNG PHẢI MỘT GIÁ TRỊ CỦA CỘT 'Cảnh báo'. Cột M chỉ có 3 trạng thái tồn (Chưa đến hạn / Sắp đến hạn / Quá hạn); 'đã BD trong tháng' = dòng có ô 'ngày BD trong tháng' (O) khác rỗng — và cả 4 dòng đó đều đang mang cảnh báo 'Chưa đến hạn'. HAI TẬP GIAO NHAU. Khối tổng của chính file cũng liệt kê chúng thành 4 dòng riêng, nên builder cứ theo file: đừng cộng 66+7+6+4 rồi coi là tổng thiết bị.",
     "CỘT 'Vị Trí Thiết bị' (B) LÀ TÊN CÔNG TRƯỜNG, không phải tên đơn vị chuẩn. Hook `cc_qlts` map được Quang Sơn->QS_DA, Cao Bằng->CB_DA, Tân Thịnh->TT_DA, Phú Quốc->PQ_DA, 'Yên Bình 3'->YB_DA (luật cắt số thứ tự khu ở cuối tên). ⚠️ TT_DA/YB_DA ĐỔI NGHĨA 28/08/2026 (trước đó danh mục đặt ngược viết tắt) — số cũ trong dump trước ngày đó khoá theo mã ngược. KHÔNG map được 'Sơn Tây' (28 TS — Sơn Tây có tới 5 cost center ST_SR/ST_XDV/ST_AT/ST_GD/ST_SR_61, đoán là gán bừa) và 'Bình Phước' (4 TS — công trường này KHÔNG có trong danh mục cost center của tập đoàn). `giu_khi_khong_map` giữ dòng để tổng không hụt.",
@@ -53,5 +54,6 @@
   "ky_tu_ten_file": {
     "regex_nam": "\\.[DM]\\.(\\d{4})\\.",
     "regex_thang": "\\.[DM]\\.\\d{4}\\.(\\d{1,2})\\."
-  }
+  },
+  "moi_ky_lay_file_moi_nhat": true
 }

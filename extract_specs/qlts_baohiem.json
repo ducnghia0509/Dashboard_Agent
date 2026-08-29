@@ -2,6 +2,7 @@
   "id": "qlts_baohiem",
   "_mo_ta": "QLTS — BẢO HIỂM TÀI SẢN, sheet 'Tổng hợp' của QLTS/baocaobaohiem/F.9.TC.H5.M.<yyyy>.<m>.TheodoiBaohiem.xlsx. Mỗi dòng = 1 hợp đồng bảo hiểm cho 1 tài sản. amount = giá trị bảo hiểm tài sản (tỷ), amount2 = bồi thường (tỷ). dim1 = loại bảo hiểm, dim2 = Thông báo (trạng thái hiệu lực), dim3 = nhà bảo hiểm. Cấp số cho band A màn ts4.",
   "_bay": [
+    "BẬT `moi_ky_lay_file_moi_nhat` 29/08/2026: đây là ẢNH CHỤP TẠI THỜI ĐIỂM (report_type nằm trong `_SNAP_RT` ở backend). Nghiệp vụ gửi lại bản SỬA của cùng một kỳ dưới TÊN KHÁC thì `_ghi` (xoá theo source_file) không chặn được, và `_SNAP_RT` lấy MAX(ngay) cũng không phá được hoà -> cộng đôi im lặng. Đã kiểm trước khi bật: hiện mỗi kỳ của nguồn này đúng 1 file, bật cờ KHÔNG loại file nào đang có.",
     "⚠️ KHÔNG CÓ MẪU SỐ 'TÀI SẢN THUỘC DIỆN PHẢI MUA BẢO HIỂM'. File chỉ liệt kê tài sản ĐÃ mua (~134 dòng). Vì vậy chỉ tiêu 'Tỷ lệ tài sản tham gia bảo hiểm' (mapping #23) KHÔNG lên được số — màn ts4 chỉ hiện số tuyệt đối (số TS đã BH, giá trị BH). Đừng lấy 21.212 làm mẫu số: phần lớn tài sản là CCDC không thuộc diện bảo hiểm, tỷ lệ sẽ ra 0,6% và vô nghĩa.",
     "HEADER Ở DÒNG 9-10, DỮ LIỆU TỪ DÒNG 12 — phía trên (dòng 3-7) là một bảng NHỎ KHÁC: tổng phí theo 4 loại bảo hiểm (BHCN/BHMMTB/BHVC/BHTNDS). Nếu khai `header.dong: 3` thì bắt trúng bảng phụ đó và ra 4 dòng vô nghĩa.",
     "PHẢI GỘP HEADER THEO THỨ TỰ [10, 9]: dòng 9 ghi nhãn nhóm ('Giá trị' ở P, 'Tổng giá trị' ở S, 'Ngày tháng năm' ở K) còn dòng 10 mới là tên cột thật ('Giá trị bảo hiểm tài sản', 'Tổng phí phải nộp', 'Bắt đầu'). Khai [9,10] là cột P thành 'Giá trị' -> vẫn chạy nhưng lệch nghĩa.",
@@ -57,5 +58,6 @@
   "ky_tu_ten_file": {
     "regex_nam": "\\.M\\.(\\d{4})\\.",
     "regex_thang": "\\.M\\.\\d{4}\\.(\\d{1,2})\\."
-  }
+  },
+  "moi_ky_lay_file_moi_nhat": true
 }

@@ -5235,6 +5235,46 @@ def cmd_spec_superseded(args):
     _out({"ok": True, "superseded": ra})
 
 
+def cmd_rows_orphan(args):
+    """Liệt kê SOURCE_FILE CÒN DÒNG TRONG DB MÀ FILE NGUỒN ĐÃ BIẾN MẤT KHỎI ĐĨA.
+
+    Lỗ hổng cuối cùng của chuỗi chống-trùng, và là lỗ duy nhất KHÔNG nút nào trên giao diện nhìn
+    thấy: `spec-superseded` chỉ so các file ĐANG CÓ với nhau, nên file bị đổi tên/xoá khỏi đĩa mà
+    dòng còn nằm lại thì không ai báo. Ca thật (DB test, bắt 29/08/2026): An Taxi có
+    `…Baocaotaichinhrieng..xlsx` (HAI dấu chấm, gõ nhầm) nạp song song bản tên đúng —
+    661 khoá trùng ở PNLT_D / CHIPHI_D / HQKD_D / DTHU_D, cộng đôi trọn tháng 8. Đổi lại tên file
+    trên đĩa là hết dấu vết, còn dòng cũ thì sống mãi vì `_ghi` chỉ xoá theo ĐÚNG source_file.
+
+    CHỈ BÁO, KHÔNG XOÁ: dòng mồ côi chưa chắc là rác — nguồn kỳ cũ có thể đã được dọn khỏi đĩa
+    một cách CÓ CHỦ Ý mà số vẫn cần giữ. Người đọc quyết định, `--json` để ghép vào bảng nguồn.
+
+    Bỏ qua source_file KHÔNG có tiền tố '<thư_mục>::' (khoá legacy, không suy ra được đường dẫn).
+    """
+    from servers.common import be_bridge as bb
+    received = os.path.join(_ROOT, "..", "Connect_VPS", "received_reports")
+    received = os.path.abspath(received)
+    db = bb.db.get_db()
+    rows = db.execute(
+        "SELECT source_file, COUNT(*) n, COUNT(DISTINCT report_type) nrt, "
+        "MIN(ngay) d1, MAX(ngay) d2 FROM raw_rows GROUP BY source_file").fetchall()
+    ra = []
+    for r in rows:
+        sid = r["source_file"] or ""
+        if "::" not in sid:
+            continue
+        cty, ten = sid.split("::", 1)
+        thu_muc = os.path.join(received, cty)
+        if not os.path.isdir(thu_muc):
+            continue          # cả thư mục công ty không còn -> không kết luận, tránh báo ầm
+        # file nằm trong <cty>/<loại báo cáo>/<tên> nên phải quét các thư mục con
+        if any(os.path.exists(os.path.join(dp, ten)) for dp, _, _ in os.walk(thu_muc)):
+            continue
+        ra.append({"source_file": sid, "dong": r["n"], "so_report_type": r["nrt"],
+                   "tu_ngay": r["d1"], "den_ngay": r["d2"]})
+    ra.sort(key=lambda x: -x["dong"])
+    _out({"ok": True, "mo_coi": ra, "tong_dong": sum(x["dong"] for x in ra)})
+
+
 def cmd_forget_file(args):
     """QUÊN dấu vết import của các file (theo content_hash = sha1 bytes file) khỏi imports_ledger,
     để cho phép PHÂN TÍCH LẠI đường generic/GEN_* (dedup chặn theo content_hash). Dùng khi XOÁ HẲN
@@ -5259,6 +5299,7 @@ def main():
     sub = ap.add_subparsers(dest="cmd", required=True)
     p = sub.add_parser("reset-learning"); p.set_defaults(fn=cmd_reset_learning)
     p = sub.add_parser("spec-superseded"); p.set_defaults(fn=cmd_spec_superseded)
+    p = sub.add_parser("rows-orphan"); p.set_defaults(fn=cmd_rows_orphan)
     p = sub.add_parser("forget-file"); p.add_argument("--path", nargs="+", required=True); p.set_defaults(fn=cmd_forget_file)
 
     p = sub.add_parser("profile"); p.add_argument("file"); p.set_defaults(fn=cmd_profile)
