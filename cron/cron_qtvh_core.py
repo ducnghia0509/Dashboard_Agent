@@ -331,6 +331,22 @@ def ngay_vao_db(nguon: dict, e: dict):
     return None
 
 
+def muc_cua(nguon: dict) -> str:
+    r"""KHOÁ TRẠNG THÁI của một nguồn — '<company>/<rt>', kèm lát khi thư mục bị chia `chi_lay`.
+
+    Không kèm lát thì HAI KHAI BÁO CÙNG (company, rt) đè nhau: job An Taxi + Xanh Vĩnh Phúc khai
+    `KEHOACH/baocaokehoachthang` hai lần (lát `^7\.AnTX\.` và `^6\.XVP\.`), `expected` đếm 5
+    nhưng `records` chỉ còn 4 -> artifact lệch 1 VĨNH VIỄN, bên giám sát đọc thành "một nguồn chưa
+    báo cáo" mỗi lượt, và nhãn của lát trước bị nhãn lát sau ghi đè nên lát An Taxi biến mất khỏi
+    bảng trạng thái. Bắt được 29/08/2026 ngay lượt chạy đầu của job đó.
+
+    Job SRVF và XDV cũng đều khai `KEHOACH/baocaokehoachthang` nhưng ở HAI job khác nhau nên mỗi
+    bên có artifact riêng — chỉ đụng khi hai lát nằm CHUNG một job.
+    """
+    m = f"{nguon['company']}/{nguon['rt']}"
+    return f"{m} [{nguon['chi_lay']}]" if nguon.get("chi_lay") else m
+
+
 def pick_targets(ctx: Ctx, nguon_list: list, meta: list, periods: list):
     """Trả (targets, losers). `targets` = bản sẽ nạp; `losers` = bản cũ cùng slot sẽ xoá rows.
 
@@ -924,9 +940,8 @@ def run(job: str, nhan: str, nguon_list: list, schedule_vn: str, argv=None) -> i
 
     # Mẫu số của artifact = DANH SÁCH KHAI BÁO, không phải số file tìm thấy: thư mục vắng mặt hoàn
     # toàn khỏi metadata không để lại dấu vết nào trong log (bài học DUAN 22/08/2026).
-    expected = [f"{n['company']}/{n['rt']}" for n in nguon_list]
-    ten = {f"{n['company']}/{n['rt']}": n.get("ten") or f"{n['company']}/{n['rt']}"
-           for n in nguon_list}
+    expected = [muc_cua(n) for n in nguon_list]
+    ten = {muc_cua(n): n.get("ten") or muc_cua(n) for n in nguon_list}
     st = None if args.dry_run else cron_status.StatusWriter(
         job=job, env=args.env, json_path=cfg["status_json"], jsonl_path=cfg["status_jsonl"],
         schedule_vn=schedule_vn, expected=sorted(expected), names=ten)
@@ -971,16 +986,14 @@ def run(job: str, nhan: str, nguon_list: list, schedule_vn: str, argv=None) -> i
         o.setdefault("_slot_key", _slot(o["_nguon"], o, o["_period"]))
 
     ky_chinh = periods[0][0]
-    thay = {f"{t.get('company')}/{t.get('report_type')}" for t in targets}
+    thay = {muc_cua(t["_nguon"]) for t in targets}
     # PHÂN BIỆT "KHÔNG CÓ FILE NÀO" VỚI "CHƯA CÓ FILE KỲ NÀY". Bản đầu ghi chung một câu "chưa
     # thấy file báo cáo ở nguồn" cho cả hai, nên 4 mục (claim B2B, công nợ phải thu, nhập xe
     # B2B/B2C) hiện y như thể nguồn trống trơn — trong khi chúng CÓ file, chỉ là mới tới T07.
     # Câu này đi thẳng vào tin gửi lãnh đạo nên sai nghĩa là họ đi hỏi kế toán sai chỗ.
-    thay_ky_chinh = {f"{t.get('company')}/{t.get('report_type')}"
-                     for t in targets if t["_period"] == ky_chinh}
+    thay_ky_chinh = {muc_cua(t["_nguon"]) for t in targets if t["_period"] == ky_chinh}
     for muc in sorted(set(expected) - thay_ky_chinh):
-        ky_khac = sorted({t["_period"] for t in targets
-                          if f"{t.get('company')}/{t.get('report_type')}" == muc})
+        ky_khac = sorted({t["_period"] for t in targets if muc_cua(t["_nguon"]) == muc})
         if muc in thay:
             ctx.log(f"  CHUA CO FILE KY {ky_chinh}: {muc} (nguồn mới có kỳ {', '.join(ky_khac)})")
         else:
@@ -1019,7 +1032,7 @@ def run(job: str, nhan: str, nguon_list: list, schedule_vn: str, argv=None) -> i
     today = datetime.now(VN).strftime("%Y-%m-%d")
     ok, da_nap_ok = 0, set()
     for e in sorted(targets, key=lambda x: (x["_period"], x.get("report_type") or "")):
-        muc = f"{e.get('company')}/{e.get('report_type')}"
+        muc = muc_cua(e["_nguon"])
         rec = st.record if (st and e["_period"] == ky_chinh) else (lambda *a, **k: None)
         if not os.path.exists(xlsx_path(e)):
             ctx.log(f"  BỎ QUA [{muc}] {e['_period']}: không có file trên đĩa")
