@@ -1,14 +1,20 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""KÉO + NẠP NGUỒN QTVH XƯỞNG DỊCH VỤ VINFAST (XDV) — chạy 19:00 giờ VN mỗi ngày.
+"""KÉO + NẠP NGUỒN QTVH XƯỞNG DỊCH VỤ VINFAST (XDV) — 3 lượt/ngày, xem khối MỐC GIỜ bên dưới.
 
 Nuôi 5 màn `xdv0..xdv4` (Quản trị vận hành xưởng dịch vụ). Khung chung + 4 cái bẫy: xem
 `cron_qtvh_core.py`. File này CHỈ khai báo nguồn.
 
-MỐC 19:00 VN — MUỘN HƠN JOB SRVF (11:00) LÀ CỐ Ý, theo nhịp nộp thật (đo trên
-`available_metadata.json` 24/08/2026): 5 nguồn KSCL tuần nộp 18:02–18:31 giờ VN, doanh thu ngày nộp
-16:04. Chạy 11:00 như bên SRVF thì mỗi lượt đều trượt bản của chính ngày hôm đó.
-MỐC CRONTAB THEO UTC (máy TZ=Etc/UTC, cron Ubuntu bỏ qua CRON_TZ khi tính lịch): 19:00 VN = 12:00 UTC.
+BA LƯỢT/NGÀY: 05:00 · 16:45 · 17:15 giờ VN (đổi 29/08/2026 theo yêu cầu user; trước đó một lượt 19:00 VN).
+Lượt PROD chạy sau TEST 5 phút — KHÔNG được bỏ: cùng phút thì hai lượt tranh khoá per-file
+(servers/common/filelock.py), lượt sau bị 'skipped_lock' và MẤT HẲN một lượt nạp.
+MỐC CRONTAB VIẾT THEO UTC (máy TZ=Etc/UTC, cron Ubuntu bỏ qua CRON_TZ khi TÍNH LỊCH — man 5
+crontab, LIMITATIONS): 09:45 · 10:15 · 22:00 UTC. Lượt 05:00 VN nằm ở 22:00 UTC HÔM TRƯỚC.
+
+NHỊP NỘP THẬT (đo trên `available_metadata.json` 24/08/2026): doanh thu ngày nộp 16:04 giờ VN — hai
+lượt chiều bắt được. Nhưng 5 NGUỒN KSCL TUẦN NỘP 18:02–18:31 VN, tức SAU CẢ HAI LƯỢT CHIỀU: bản của
+ngày hôm nay chỉ vào DB ở LƯỢT 05:00 SÁNG HÔM SAU. Đó là lý do lượt sáng tồn tại — bỏ nó đi thì mỗi
+bản KSCL trễ đúng một ngày, và đây cũng là điều PHẢI nói rõ khi ai đó hỏi "sao số KSCL chưa lên".
 
 Chạy tay: Dashboard_Agent/.venv/bin/python cron/cron_xdv_daily.py [--dry-run] [--env test|prod]
 
@@ -26,7 +32,10 @@ import cron_qtvh_core as core
 
 JOB = "xdv_daily"
 NHAN = "Nguồn QTVH Xưởng dịch vụ Vinfast (XDV)"
-SCHEDULE_VN = "19:00"
+SCHEDULE_VN = "05:00 · 16:45 · 17:15"   # 3 lượt/ngày (đổi 29/08/2026). Ghi vào artifact
+# cho agent giám sát khỏi hard-code mốc giờ — KHÔNG ai parse chuỗi này, chỉ hiển thị.
+# Lượt 05:00 sáng gánh các nguồn nộp sau giờ chiều (KSCL của XDV nộp 18:02-18:31 VN).
+# Lượt prod chạy sau test 5 phút; xem khối chú thích trong crontab.
 
 NGUON = [
     # ── ảnh chụp tuần (KSCL): nạp MỌI bản chưa có, KHÔNG xoá bản nào ────────────────────────
