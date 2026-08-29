@@ -3,10 +3,14 @@
 """KÉO + NẠP BÁO CÁO NGÀY (HQKD theo ngày, 12 đơn vị) tự động — 3 lượt/ngày.
 
 BA LƯỢT/NGÀY: 05:00 · 16:45 · 17:15 giờ VN (đổi 29/08/2026 theo yêu cầu user; trước đó một lượt 17:00 VN, và test/prod ĐỀU ở 10:00 UTC nên đang tranh khoá per-file).
-Lượt PROD chạy sau TEST 5 phút — KHÔNG được bỏ: cùng phút thì hai lượt tranh khoá per-file
-(servers/common/filelock.py), lượt sau bị 'skipped_lock' và MẤT HẲN một lượt nạp.
+Lượt PROD chạy TRƯỚC TEST đúng 10 phút (04:50 · 16:35 · 17:05 VN; đổi 29/08/2026 theo yêu cầu
+user, trước đó prod chạy SAU test 5 phút). KHOẢNG CÁCH là bắt buộc, chiều nào cũng được miễn khác
+phút: cùng phút thì hai lượt tranh khoá per-file (servers/common/filelock.py), lượt sau bị
+'skipped_lock' và MẤT HẲN một lượt nạp. Đánh đổi: test hết vai 'chim báo bão' — nguồn hỏng nay
+prod vấp TRƯỚC, nên khi một khối im số thì đọc log PROD trước.
 MỐC CRONTAB VIẾT THEO UTC (máy TZ=Etc/UTC, cron Ubuntu bỏ qua CRON_TZ khi TÍNH LỊCH — man 5
-crontab, LIMITATIONS): 09:45 · 10:15 · 22:00 UTC. Lượt 05:00 VN nằm ở 22:00 UTC HÔM TRƯỚC.
+crontab, LIMITATIONS): TEST 09:45 · 10:15 · 22:00 UTC, PROD 09:35 · 10:05 · 21:50 UTC. Lượt sáng
+(05:00 VN test / 04:50 VN prod) nằm ở 22:00 và 21:50 UTC HÔM TRƯỚC.
 
 
 Mirror cron_thuchi_daily.py (cùng thư mục) — xem đó để hiểu khung chung (vì sao POST
@@ -80,7 +84,7 @@ DISABLED_FLAG = ENVIRONMENTS[DEFAULT_ENV]["disabled_flag"]
 DATABASE_URL = ENVIRONMENTS[DEFAULT_ENV]["database_url"]
 VERIFY_API_DIR = ENVIRONMENTS[DEFAULT_ENV]["verify_api_dir"]
 
-SCHEDULE_VN = "05:00 · 16:45 · 17:15"   # 3 lượt/ngày (đổi 29/08/2026). Ghi vào artifact
+SCHEDULE_VN = "05:00 · 16:45 · 17:15 (prod sớm hơn 10')"   # 3 lượt/ngày (đổi 29/08/2026). Ghi vào artifact
 # cho agent giám sát khỏi hard-code mốc giờ — KHÔNG ai parse chuỗi này, chỉ hiển thị.
 # Lượt 05:00 sáng gánh các nguồn nộp sau giờ chiều (KSCL của XDV nộp 18:02-18:31 VN).
 # Lượt prod chạy sau test 5 phút; xem khối chú thích trong crontab.
