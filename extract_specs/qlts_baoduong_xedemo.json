@@ -9,12 +9,14 @@
     "'th XE DEMO' dùng từ 'chưa làm BD' thay cho 'quá hạn' — khi gộp 3 file phải quy về cùng một bộ trạng thái, nếu không màn ts3 sẽ đẻ thêm một cột trạng thái lạ.",
     "⚠️ CHI PHÍ BẢO TRÌ CẢ TẬP ĐOÀN 1 THÁNG CHỈ 6,1 TRIỆU, trong khi sheet 'Tài sản' của mapping ghi 6 tháng đầu năm là 1.775.387.777 đ — lệch 2 bậc độ lớn. Nguồn bảo dưỡng mới ghi nhận một phần rất nhỏ chi phí. PHẢI hỏi đơn vị trước khi đưa KPI 'Chi phí bảo trì' lên màn cho lãnh đạo.",
     "'Tỷ lệ BD đúng kế hoạch' file tự tính = đã BD / (đã BD + quá hạn), KHÔNG tính 'chưa đến hạn' và 'sắp đến hạn' vào mẫu số. Giữ nguyên cách đó khi cộng 3 file, đừng đổi sang chia cho tổng thiết bị.",
-    "KHỐI 3 SỐ TỔNG (tỷ lệ / chi phí / yêu cầu SC) của file DEMO KHÔNG nằm chung dòng với tình trạng như 2 file kia mà tách hẳn xuống S12:U13 -> tách sang spec `qlts_baoduong_xedemo_th`. ĐỪNG gộp bằng `vung`: `chieu_co_dinh` bị `cot` của spec ghi đè (spec_extract.py dòng 1450 rồi 1456), nên dim2 quay về ô S13 = 0 và bộ lọc `khac_rong` (coi 0 là rỗng) nuốt mất cả dòng — đã dính đúng lỗi này 17/08/2026."
+    "KHỐI 3 SỐ TỔNG (tỷ lệ / chi phí / yêu cầu SC) của file DEMO KHÔNG nằm chung dòng với tình trạng như 2 file kia mà tách hẳn xuống S12:U13 -> tách sang spec `qlts_baoduong_xedemo_th`. ĐỪNG gộp bằng `vung`: `chieu_co_dinh` bị `cot` của spec ghi đè (spec_extract.py dòng 1450 rồi 1456), nên dim2 quay về ô S13 = 0 và bộ lọc `khac_rong` (coi 0 là rỗng) nuốt mất cả dòng — đã dính đúng lỗi này 17/08/2026.",
+    "BỐ CỤC ĐỔI 31/08/2026 — CHÈN 3 CỘT ĐƠN VỊ: kế toán thêm pháp nhân / khối / cost center vào cả 3 file bảo dưỡng, mọi cột từ B (xe, máy) hoặc C (xe demo) trở đi DỊCH PHẢI 3 cột; dòng không đổi. `kiem_tra_o` bắt được nên 7 spec bảo dưỡng cùng trả 0 dòng và engine KHÔNG ghi đè — DB giữ nguyên bản 13:44 cùng ngày, dashboard không sai, chỉ không cập nhật. Đây là bản đã dịch cột theo bố cục mới."
   ],
   "_kiem_chung": [
     "T8/2026: đã BD 0 · chưa làm BD 10 · chưa đến hạn BD 92 (tổng 102 xe).",
     "Tỷ lệ BD đúng kế hoạch 0 · chi phí 0 đ · 0 yêu cầu sửa chữa.",
-    "Khác 2 file kia: khối 3 số tổng KHÔNG nằm chung dòng với tình trạng mà tách xuống dòng 13, nên spec này phải dùng 2 `vung`."
+    "Khác 2 file kia: khối 3 số tổng KHÔNG nằm chung dòng với tình trạng mà tách xuống dòng 13, nên spec này phải dùng 2 `vung`.",
+    "SAU KHI DỊCH CỘT (31/08/2026, bố cục mới): 3 dòng — đã BD trong tháng 6 · chưa làm BD 3 · chưa đến hạn BD 93. Khớp V7:W10 của file và bản DB 13:44 cùng ngày."
   ],
   "report_type": "QLTS_BD",
   "row_index_base": 7904400,
@@ -35,10 +37,10 @@
   },
   "cot": {
     "dim2": {
-      "cot": "S"
+      "cot": "V"
     },
     "amount": {
-      "cot": "T",
+      "cot": "W",
       "kieu": "so"
     }
   },
@@ -57,11 +59,11 @@
   },
   "kiem_tra_o": [
     {
-      "o": "S7",
+      "o": "V7",
       "bang": "tình trạng xe"
     },
     {
-      "o": "T7",
+      "o": "W7",
       "bang": "số lượng xe ( chiếc )"
     }
   ],

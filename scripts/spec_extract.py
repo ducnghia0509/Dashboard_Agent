@@ -770,6 +770,12 @@ _QLTS_KHOI = {
     "khoitaxi": "Khối KD Vận tải Taxi Xanh",
     # "Bất động sản" (5 tài sản) KHÔNG có khối chuẩn tương ứng -> để trống, không nhét bừa vào
     # "Khối hỗ trợ tập đoàn" cho đủ.
+    # BA FILE BẢO DƯỠNG (31/08/2026) ghi khối theo CÁCH KHÁC sheet tài sản — phải khai riêng,
+    # KHÔNG lấy nguyên văn: "Khối KD Dự án" tình cờ đã đúng tên chuẩn, nhưng "Khối KD xe điện
+    # Vinfast - SR" thì KHÔNG (chuẩn là "Khối KD Vinfast - Showroom"). Lấy nguyên văn là đẻ thêm
+    # một tên khối thứ 11 trong DB, bộ lọc Khối tách làm hai dòng cho cùng một khối.
+    "khoikdduan": "Khối KD Dự án",
+    "khoikdxedienvinfastsr": "Khối KD Vinfast - Showroom",
 }
 
 

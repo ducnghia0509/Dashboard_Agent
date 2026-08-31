@@ -8,48 +8,119 @@
     "KHÁC HAI FILE MÁY/XE: sheet này KHÔNG có cột 'Cảnh báo' và KHÔNG có 'ngày BD trong tháng' theo ngày — trạng thái nằm ở cột 'tình trạng' (P) và đã gồm luôn 'đã BD trong tháng'. Vì vậy dim2 ở đây phủ đủ 3 trạng thái, không cần suy từ cột ngày.",
     "TIÊU ĐỀ 2 TẦNG (dòng 4-5): dòng 5 chỉ ghi nhãn con SK/SM1/SM2 cho ô gộp 'Thông số kỹ thuật chuẩn' ở F. Gộp theo thứ tự [4, 5] để tên cột thật của dòng 4 thắng.",
     "KHỐI TỔNG NẰM Ở CỘT S..U DÒNG 7-13, tức NGANG với vùng chi tiết — không chồng cột A..P nên không cần `dong_ket_thuc`. Neo dòng theo 'STT' (A).",
-    "report_type `QLTS_BD_CT` dùng chung với 2 spec máy/xe (khác file nên không xoá nhau). TUYỆT ĐỐI không đặt trùng `QLTS_BD` hay `QLTS_BD_TH` — hai spec đó đọc CÙNG file này."
+    "report_type `QLTS_BD_CT` dùng chung với 2 spec máy/xe (khác file nên không xoá nhau). TUYỆT ĐỐI không đặt trùng `QLTS_BD` hay `QLTS_BD_TH` — hai spec đó đọc CÙNG file này.",
+    "BỐ CỤC ĐỔI 31/08/2026 — CHÈN 3 CỘT ĐƠN VỊ: kế toán thêm pháp nhân / khối / cost center vào cả 3 file bảo dưỡng, mọi cột từ B (xe, máy) hoặc C (xe demo) trở đi DỊCH PHẢI 3 cột; dòng không đổi. `kiem_tra_o` bắt được nên 7 spec bảo dưỡng cùng trả 0 dòng và engine KHÔNG ghi đè — DB giữ nguyên bản 13:44 cùng ngày, dashboard không sai, chỉ không cập nhật. Đây là bản đã dịch cột theo bố cục mới.",
+    "CHIỀU ĐƠN VỊ NAY CÓ SẴN TRONG FILE (31/08/2026): 3 cột mới pháp nhân / khối / cost center. Khai `khoi` -> `cong_ty` -> `cost_center` THEO ĐÚNG THỨ TỰ ĐÓ: `_cc_qlts` trả dict nên nó GHI ĐÈ hai cột khai trước, giữ luật 'cost center thắng' (pháp nhân VẬN HÀNH, không phải bên ĐỨNG TÊN). Nhờ vậy những dòng `_cc_qlts` chưa map được vẫn có khối + công ty thay vì rơi khỏi mọi bộ lọc. TUYỆT ĐỐI KHÔNG lấy nguyên văn chữ khối trong file: file xe demo ghi 'Khối KD xe điện Vinfast - SR', không phải tên khối chuẩn -> phải qua hook `khoi_qlts`."
   ],
   "_kiem_chung": [
     "Kỳ 2026-08: 102 dòng xe (dòng 6-107).",
     "Phân loại: xe lãnh đạo 10 · SR Hạ Long 11 · SR Sơn Tây 11 · 7 showroom còn lại 10 mỗi nơi.",
     "tình trạng: 'chưa đến hạn BD' 92 · 'chưa làm BD' 10 (khớp T10 = 92, T9 = 10, T8 = 0).",
-    "Đúng 10 dòng 'chưa làm BD' cũng chính là 10 xe lãnh đạo (nay mang cost_center BLĐ)."
+    "Đúng 10 dòng 'chưa làm BD' cũng chính là 10 xe lãnh đạo (nay mang cost_center BLĐ).",
+    "SAU KHI DỊCH CỘT + THÊM CHIỀU (31/08/2026): 102 dòng, PHỦ ĐỦ CẢ BA CHIỀU 102/102. khoi = 'Khối KD Vinfast - Showroom' 92 + 'Khối hỗ trợ tập đoàn' 10 (xe lãnh đạo) — đúng vì `_cc_qlts` của cost_center ghi đè khối 'SR' mà file gán cho cả 102 dòng."
   ],
   "report_type": "QLTS_BD_CT",
   "row_index_base": 7904600,
   "nguon": {
     "folder": "QLTS/baocaobaoduong",
     "file_glob": "*.BCbaoduongxeDEMO.xlsx",
-    "sheet": { "ten": "th XE DEMO" }
+    "sheet": {
+      "ten": "th XE DEMO"
+    }
   },
-  "header": { "dong": [4, 5] },
+  "header": {
+    "dong": [
+      4,
+      5
+    ]
+  },
   "dong_bat_dau": 6,
   "kiem_tra_o": [
-    { "o": "B4", "bang": "Phân loại" },
-    { "o": "P4", "bang": "tình trạng" },
-    { "o": "S7", "bang": "tình trạng xe" }
+    {
+      "o": "B4",
+      "bang": "Phân loại"
+    },
+    {
+      "o": "S4",
+      "bang": "tình trạng"
+    },
+    {
+      "o": "V7",
+      "bang": "tình trạng xe"
+    }
   ],
-  "chieu_co_dinh": { "amount": 1 },
-  "chieu_tu_ten_file": { "dim1": { "regex": "BCbaoduong(\\w+)" } },
+  "chieu_co_dinh": {
+    "amount": 1
+  },
+  "chieu_tu_ten_file": {
+    "dim1": {
+      "regex": "BCbaoduong(\\w+)"
+    }
+  },
   "cot": {
-    "dim2": { "header": "tình trạng" },
-    "dim3": { "header": "TÊN", "bat_buoc": false },
-    "cost_center": { "header": "Phân loại", "chuan_hoa": "cc_qlts", "giu_khi_khong_map": true },
-
-    "payload.maThietBi":  { "header": "Biển kiểm soát" },
-    "payload.viTri":      { "header": "Phân loại" },
-    "payload.model":      { "header": "Loại", "bat_buoc": false },
-    "payload.chuXe":      { "header": "Tên chủ xe", "bat_buoc": false },
-    "payload.kmHienTai":  { "header": "số KM hiện tại", "kieu": "so", "bat_buoc": false },
-    "payload.mocBDTiep":  { "header": "Mốc BD tiếp", "kieu": "so", "bat_buoc": false },
-    "payload.soLanSC":    { "header": "số lần sửa chữa", "kieu": "so", "bat_buoc": false },
-    "payload.danhMucBD":  { "header": "danh mục BD trong tháng", "bat_buoc": false }
+    "khoi": {
+      "header": "khối",
+      "chuan_hoa": "khoi_qlts"
+    },
+    "cong_ty": {
+      "header": "pháp nhân",
+      "chuan_hoa": "cty_qlts"
+    },
+    "dim2": {
+      "header": "tình trạng"
+    },
+    "dim3": {
+      "header": "TÊN",
+      "bat_buoc": false
+    },
+    "cost_center": {
+      "header": "Phân loại",
+      "chuan_hoa": "cc_qlts",
+      "giu_khi_khong_map": true
+    },
+    "payload.maThietBi": {
+      "header": "Biển kiểm soát"
+    },
+    "payload.viTri": {
+      "header": "Phân loại"
+    },
+    "payload.model": {
+      "header": "Loại",
+      "bat_buoc": false
+    },
+    "payload.chuXe": {
+      "header": "Tên chủ xe",
+      "bat_buoc": false
+    },
+    "payload.kmHienTai": {
+      "header": "số KM hiện tại",
+      "kieu": "so",
+      "bat_buoc": false
+    },
+    "payload.mocBDTiep": {
+      "header": "Mốc BD tiếp",
+      "kieu": "so",
+      "bat_buoc": false
+    },
+    "payload.soLanSC": {
+      "header": "số lần sửa chữa",
+      "kieu": "so",
+      "bat_buoc": false
+    },
+    "payload.danhMucBD": {
+      "header": "danh mục BD trong tháng",
+      "bat_buoc": false
+    }
   },
   "loc": [
-    { "cot": "payload.maThietBi", "dieu_kien": "khac_rong" }
+    {
+      "cot": "payload.maThietBi",
+      "dieu_kien": "khac_rong"
+    }
   ],
-  "payload_them": { "unit": "thietbi" },
+  "payload_them": {
+    "unit": "thietbi"
+  },
   "ky_tu_ten_file": {
     "regex_nam": "\\.[DM]\\.(\\d{4})\\.",
     "regex_thang": "\\.[DM]\\.\\d{4}\\.(\\d{1,2})\\."
