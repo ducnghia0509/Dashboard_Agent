@@ -9,7 +9,8 @@
     "Cột C = Kế hoạch tháng (ghi vào amount2), D = luỹ kế thực hiện, G..AK = 31 ngày. Ở đây lấy MỖI NGÀY 1 bản ghi để dùng được cả biểu đồ theo ngày lẫn cộng thành tháng.",
     "dong_bat_dau phải là 8 (KHÔNG phải 10): dòng tiêu đề khối I nằm ở dòng 8, bắt đầu từ 10 thì cả khối Tổng mất ngữ cảnh loại lệnh và ra 0.",
     "File ghi 14 xưởng — khớp master_data. Mapping ghi '13 XDV' và thiết kế ghi '9 xưởng' đều là số cũ.",
-    "LỌC BỎ dim1='Mã số': dòng TIÊU ĐỀ của mỗi khối lọt vào dữ liệu (cột 'Mã số' có chữ nên qua bộ lọc khac_rong) và nó có mặt ở ĐỦ 31 ngày với giá trị ~0. Số tiền không sai (các KPI đều lọc theo mã) nhưng ĐẾM NGÀY thì sai: 'ngày có phát sinh' ra 31 trong khi mới có số 9 ngày, làm doanh thu bình quân/ngày thấp đi 3,4 lần. Phát hiện 10/08/2026."
+    "LỌC BỎ dim1='Mã số': dòng TIÊU ĐỀ của mỗi khối lọt vào dữ liệu (cột 'Mã số' có chữ nên qua bộ lọc khac_rong) và nó có mặt ở ĐỦ 31 ngày với giá trị ~0. Số tiền không sai (các KPI đều lọc theo mã) nhưng ĐẾM NGÀY thì sai: 'ngày có phát sinh' ra 31 trong khi mới có số 9 ngày, làm doanh thu bình quân/ngày thấp đi 3,4 lần. Phát hiện 10/08/2026.",
+    "KHỐI I ĐỔI BỐ CỤC 31/08/2026: dòng tên xưởng của khối I nay MANG LUÔN mã B100 ở cột A (trước là cột A = loại xưởng '3S có đồng sơn', không mã). Hệ quả nếu không xử: (1) quy tắc 'dòng tên xưởng' không nổ vì cột A khớp ^B\\d+$ -> toàn khối I mất cost_center; (2) dòng đó lọt vào dữ liệu -> mọi mã của dim2='Tổng' bị CỘNG ĐÔI đúng 2 lần (khối + Σ14 xưởng, hai vế bằng nhau tuyệt đối) — doanh thu XDV T8 ra 85,098 tỷ thay vì 42,549 tỷ. -> thêm quy tắc 'dòng tên xưởng KIỂU MỚI'. Khối II..V vẫn bố cục cũ, giữ nguyên quy tắc cũ."
   ],
   "report_type": "XDV_DTHU",
   "row_index_base": 7000000,
@@ -59,6 +60,31 @@
             "NỘI BỘ": "Nội bộ"
           },
           "mac_dinh": "Tổng"
+        }
+      }
+    },
+    {
+      "_vi_sao": "dòng tên xưởng KIỂU MỚI (khối I, file sửa 31/08/2026): tên xưởng nằm ngay trên dòng mã B100",
+      "khi": [
+        {
+          "cot": "A",
+          "dieu_kien": "regex",
+          "gia_tri": "^B100$"
+        },
+        {
+          "cot": "B",
+          "dieu_kien": "khac_rong"
+        },
+        {
+          "cot": "B",
+          "dieu_kien": "khong_regex",
+          "gia_tri": "^TỔNG"
+        }
+      ],
+      "gan": {
+        "cost_center": {
+          "cot": "B",
+          "chuan_hoa": "xdv"
         }
       }
     },

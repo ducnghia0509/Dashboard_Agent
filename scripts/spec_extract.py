@@ -2351,6 +2351,88 @@ def _ghi(spec, path, recs):
 
 
 _W_LECH_THANG = "SỐ TRONG FILE KHÔNG THUỘC THÁNG MÀ TÊN FILE KHAI"
+_W_CONG_DOI = "CỘNG ĐÔI TRONG MỘT FILE"
+_TEN_DON_VI_CACHE = {}
+
+
+def _moi_ten_don_vi():
+    """Khoá tên đã chuẩn hoá của MỌI cost center trong master_data (mọi khối) -> mã.
+
+    Dùng `_bo_tien_to(_nd(...))` đúng như `_cc_theo_khoi` để hai vế cùng một dạng khoá.
+    Hỏng master_data thì trả rỗng -> chốt ở `_kiem_cong_doi` tự tắt, KHÔNG được chặn đường nạp.
+    """
+    if not _TEN_DON_VI_CACHE:
+        _TEN_DON_VI_CACHE["_da_nap"] = ""
+        try:
+            for cc in _master_loader().master_data().get("costCenters", []):
+                k = _bo_tien_to(_nd(cc.get("ten")))
+                if len(k) >= 4:
+                    _TEN_DON_VI_CACHE[k] = str(cc.get("ma") or "").strip()
+        except Exception:                                          # noqa: BLE001
+            pass
+    return _TEN_DON_VI_CACHE
+
+
+def _spec_phan_cap(spec):
+    """Các quy tắc `ngu_canh_dong` GÁN cost_center — tức spec tự khai "file này phân cấp:
+    tên đơn vị nằm ở DÒNG TIÊU ĐỀ riêng, các dòng số bên dưới thuộc về nó"."""
+    nc = spec.get("ngu_canh_dong")
+    return [r for r in ([nc] if isinstance(nc, dict) else (nc or []))
+            if "cost_center" in (r.get("gan") or {})]
+
+
+def _kiem_cong_doi(spec, recs):
+    """Chốt CỘNG ĐÔI TRONG MỘT FILE cho spec phân cấp. Trả cảnh báo, hoặc None.
+
+    VÌ SAO (bắt 31/08/2026, `Baocaodoanhthungay` khối I): kế toán đổi bố cục — dòng tên xưởng
+    trước ở `cột A = "3S có đồng sơn" · cột B = "Ocean Park"` (KHÔNG mã), nay mang luôn mã
+    `B100` ở cột A. Quy tắc "dòng tên xưởng" đòi cột A KHÔNG khớp mẫu mã `^B[0-9]+$` nên nay
+    không nổ nữa:
+    (1) cả khối I mất cost_center, (2) chính dòng đó thành một dòng SỐ, nằm chung xô cấp khối
+    với dòng tổng của file -> doanh thu XDV T8 lên 85,098 tỷ trong khi file ghi 42,549 tỷ,
+    ĐÚNG GẤP ĐÔI vì hai vế bằng nhau tuyệt đối.
+
+    KHÔNG một lớp nào cũ bắt được: `_ghi` xoá theo `source_file` rồi nạp lại nên không phải nạp
+    chồng; `moi_ky_lay_file_moi_nhat` chỉ soi nhiều file cùng kỳ; bước "RÀ SOÁT CỘNG ĐÔI" của cron
+    chỉ hỏi "có 2 file cùng đóng góp một lát không"; `kiem_tra_o` thì ô mốc A9/C9 vẫn nguyên. Sai
+    số 2× sống nửa ngày trên dashboard chủ tịch mà không có một dòng cảnh báo nào.
+
+    HAI BẤT BIẾN, chỉ áp cho spec CÓ khai `ngu_canh_dong` gán cost_center (hôm nay là 3 spec của
+    file doanh thu XDV) — spec phẳng không có khái niệm "dòng tiêu đề đơn vị" nên không đụng tới:
+      1. Đã khai dòng tiêu đề đơn vị thì phải có ÍT NHẤT một dòng nhận được cost_center.
+      2. Dòng ở CẤP KHỐI (cost_center rỗng) KHÔNG được mang nhãn của một đơn vị trong master_data.
+         Ở trạng thái lành, nhãn cấp khối là "TỔNG DOANH THU XDV" / "Doanh thu công việc (XHĐ)" /
+         "Lệnh bảo hành (W)" — không cái nào là tên xưởng.
+    Vi phạm -> `run()` trả rỗng kèm cảnh báo và KHÔNG ghi, tức GIỮ NGUYÊN dữ liệu cũ đang đúng.
+    Cùng triết lý `_kiem_thang_ten_file`: thà đứng lại ở số của hôm qua còn hơn ghi đè bằng số
+    gấp đôi mà không ai biết.
+    """
+    if not recs or not _spec_phan_cap(spec):
+        return None
+    if not any(r.get("cost_center") for r in recs):
+        return (f"{_W_CONG_DOI}: spec khai dòng tiêu đề đơn vị nhưng KHÔNG MỘT dòng nào trong "
+                f"{len(recs)} dòng nhận được cost_center -> file đã đổi bố cục, mọi dòng đang "
+                f"đứng ở cấp khối và sẽ cộng chung với dòng tổng. BỎ QUA cả file: sửa "
+                f"`ngu_canh_dong` của spec cho khớp bố cục mới rồi nạp lại.")
+    ten_dv = _moi_ten_don_vi()
+    if len(ten_dv) <= 1:
+        return None           # không đọc được master_data -> không chấm, đừng chặn đường nạp
+    lac = {}
+    for r in recs:
+        if r.get("cost_center"):
+            continue
+        for k in ("dim1", "dim2", "dim3"):
+            v = r.get(k)
+            if v and _bo_tien_to(_nd(v)) in ten_dv:
+                lac[f"{k}={v}"] = lac.get(f"{k}={v}", 0) + 1
+                break
+    if not lac:
+        return None
+    top = ", ".join(f"{k!r} ({v} dòng)" for k, v in sorted(lac.items(), key=lambda x: -x[1])[:6])
+    return (f"{_W_CONG_DOI}: {sum(lac.values())} dòng ở CẤP KHỐI (cost_center rỗng) lại mang nhãn "
+            f"của một ĐƠN VỊ — {top}. Dòng tiêu đề đơn vị đã lọt vào dữ liệu, cộng nó cùng dòng "
+            f"tổng của file là gấp đôi. BỎ QUA cả file: sửa `ngu_canh_dong` của spec cho khớp bố "
+            f"cục mới rồi nạp lại.")
 
 
 def _kiem_thang_ten_file(spec, path, recs):
@@ -2390,7 +2472,7 @@ def run(spec, path, write=False):
         recs, warn = extract_file(spec, path)
     finally:
         _dong_wb()          # xong một file thì nhả workbook trong đệm (xem `_mo_wb`)
-    lech = _kiem_thang_ten_file(spec, path, recs)
+    lech = _kiem_thang_ten_file(spec, path, recs) or _kiem_cong_doi(spec, recs)
     if lech:
         # Trả rỗng KÈM cảnh báo và KHÔNG có `_W_BO_LOC` -> nhánh ghi ở dưới bỏ qua, dữ liệu cũ của
         # chính file này (nếu có) giữ nguyên. Xoá là việc của người đọc cảnh báo, không phải của
