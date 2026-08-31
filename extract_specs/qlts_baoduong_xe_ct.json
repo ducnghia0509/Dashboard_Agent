@@ -7,49 +7,123 @@
     "KHỐI TỔNG CỦA FILE XE NẰM Ở CỘT T..X (không phải M..R như file máy) và BẮT ĐẦU TỪ DÒNG 8, tức NẰM NGANG với vùng chi tiết. Vì thế spec này KHÔNG cần `dong_ket_thuc`: dải chi tiết A..Q và khối tổng T..X không chồng cột. Nhưng cũng vì thế ĐỪNG lọc dòng theo 'có giá trị ở cột nào đó' — phải neo vào 'Mã thiết bị' (A).",
     "TIÊU ĐỀ Ở DÒNG 4 (file máy là dòng 7) — hai file cùng bộ nhưng bố cục lệch 3 dòng. Đừng dùng chung một spec.",
     "'ĐÃ BD TRONG THÁNG' = dòng có ô 'ngày BD trong tháng' (O) khác rỗng, KHÔNG phải một giá trị của cột Cảnh báo — cả 6 dòng đó đang mang cảnh báo 'chưa đến hạn'. Xem `_bay` của `qlts_baoduong_may_ct`.",
-    "CỘT 'Cảnh báo' VIẾT THƯỜNG ở file xe ('chưa đến hạn') nhưng HOA ở file máy ('Chưa đến hạn') — giữ nguyên văn ở dim2, builder ts3 so theo nghĩa (`_la_da_bd`/`_la_tre`), đừng chuẩn hoá ở đây kẻo mất dấu vết về file."
+    "CỘT 'Cảnh báo' VIẾT THƯỜNG ở file xe ('chưa đến hạn') nhưng HOA ở file máy ('Chưa đến hạn') — giữ nguyên văn ở dim2, builder ts3 so theo nghĩa (`_la_da_bd`/`_la_tre`), đừng chuẩn hoá ở đây kẻo mất dấu vết về file.",
+    "BỐ CỤC ĐỔI 31/08/2026 — CHÈN 3 CỘT ĐƠN VỊ: kế toán thêm pháp nhân / khối / cost center vào cả 3 file bảo dưỡng, mọi cột từ B (xe, máy) hoặc C (xe demo) trở đi DỊCH PHẢI 3 cột; dòng không đổi. `kiem_tra_o` bắt được nên 7 spec bảo dưỡng cùng trả 0 dòng và engine KHÔNG ghi đè — DB giữ nguyên bản 13:44 cùng ngày, dashboard không sai, chỉ không cập nhật. Đây là bản đã dịch cột theo bố cục mới.",
+    "CHIỀU ĐƠN VỊ NAY CÓ SẴN TRONG FILE (31/08/2026): 3 cột mới pháp nhân / khối / cost center. Khai `khoi` -> `cong_ty` -> `cost_center` THEO ĐÚNG THỨ TỰ ĐÓ: `_cc_qlts` trả dict nên nó GHI ĐÈ hai cột khai trước, giữ luật 'cost center thắng' (pháp nhân VẬN HÀNH, không phải bên ĐỨNG TÊN). Nhờ vậy những dòng `_cc_qlts` chưa map được vẫn có khối + công ty thay vì rơi khỏi mọi bộ lọc. TUYỆT ĐỐI KHÔNG lấy nguyên văn chữ khối trong file: file xe demo ghi 'Khối KD xe điện Vinfast - SR', không phải tên khối chuẩn -> phải qua hook `khoi_qlts`."
   ],
   "_kiem_chung": [
     "Kỳ 2026-08: 116 dòng xe (dòng 5-120).",
     "Cảnh báo: chưa đến hạn 105 · Sắp đến hạn 9 · Quá hạn 2 = 116 (khớp khối tổng).",
     "Đã BD trong tháng = 6 (DT209/211/214/225 Phú Quốc, DT111 Quang Sơn, DT150 Cao Bằng) — khớp ô U9 = 6.",
-    "Vị trí: Phú Quốc 39 · Quang Sơn 22 · Cao Bằng 21 · Sơn Tây 19 · 'Yên Bình 3' 12 · Tân Thịnh 2 · Bình Phước 1. Map được 96/116; 20 dòng chưa map (Sơn Tây 19 + Bình Phước 1)."
+    "Vị trí: Phú Quốc 39 · Quang Sơn 22 · Cao Bằng 21 · Sơn Tây 19 · 'Yên Bình 3' 12 · Tân Thịnh 2 · Bình Phước 1. Map được 96/116; 20 dòng chưa map (Sơn Tây 19 + Bình Phước 1).",
+    "SAU KHI DỊCH CỘT + THÊM CHIỀU (31/08/2026): 116 dòng. khoi 116/116 · cong_ty 116/116 · cost_center 91/116 — 25 dòng trống là 'HO dự án' 19 + 'Dự án Bình Phước' 6 (ngoài danh mục master_data). Con số 96/116 ở dòng _kiem_chung phía trên là của kỳ trước, khi file mới có 1 dòng Bình Phước."
   ],
   "report_type": "QLTS_BD_CT",
   "row_index_base": 7904400,
   "nguon": {
     "folder": "QLTS/baocaobaoduong",
     "file_glob": "*.BCbaoduongxe.xlsx",
-    "sheet": { "ten": "th Xe" }
+    "sheet": {
+      "ten": "th Xe"
+    }
   },
-  "header": { "dong": 4 },
+  "header": {
+    "dong": 4
+  },
   "dong_bat_dau": 5,
   "kiem_tra_o": [
-    { "o": "B4", "bang": "Vị Trí Thiết bị" },
-    { "o": "M4", "bang": "Cảnh báo" },
-    { "o": "O4", "bang": "ngày BD trong tháng" }
+    {
+      "o": "E4",
+      "bang": "Vị Trí Thiết bị"
+    },
+    {
+      "o": "P4",
+      "bang": "Cảnh báo"
+    },
+    {
+      "o": "R4",
+      "bang": "ngày BD trong tháng"
+    }
   ],
-  "chieu_co_dinh": { "amount": 1 },
-  "chieu_tu_ten_file": { "dim1": { "regex": "BCbaoduong(\\w+)" } },
+  "chieu_co_dinh": {
+    "amount": 1
+  },
+  "chieu_tu_ten_file": {
+    "dim1": {
+      "regex": "BCbaoduong(\\w+)"
+    }
+  },
   "cot": {
-    "dim2": { "header": "Cảnh báo" },
-    "dim3": { "header": "Loại Thiết bị", "bat_buoc": false },
-    "cost_center": { "header": "Vị Trí Thiết bị", "chuan_hoa": "cc_qlts", "giu_khi_khong_map": true },
-
-    "payload.maThietBi":  { "header": "Mã thiết bị" },
-    "payload.viTri":      { "header": "Vị Trí Thiết bị" },
-    "payload.model":      { "header": "Model", "bat_buoc": false },
-    "payload.hang":       { "header": "Hãng sản xuất", "bat_buoc": false },
-    "payload.tieuChuan":  { "header": "Tiêu chuẩn", "kieu": "so", "bat_buoc": false },
-    "payload.gioConLai":  { "header": "Số giờ còn", "kieu": "so", "bat_buoc": false },
-    "payload.ngayBD":     { "header": "ngày BD trong tháng", "kieu": "date", "bat_buoc": false },
-    "payload.chiPhi":     { "header": "chi phí BD sửa chữa", "kieu": "so", "he_so": 1e-9, "bat_buoc": false },
-    "payload.yeuCauSC":   { "header": "số yêu cầu SC-BD", "kieu": "so", "bat_buoc": false }
+    "khoi": {
+      "header": "KHỐI",
+      "chuan_hoa": "khoi_qlts"
+    },
+    "cong_ty": {
+      "header": "Tên Công ty",
+      "chuan_hoa": "cty_qlts"
+    },
+    "dim2": {
+      "header": "Cảnh báo"
+    },
+    "dim3": {
+      "header": "Loại Thiết bị",
+      "bat_buoc": false
+    },
+    "cost_center": {
+      "header": "Tên Cost center/Đơn vị Cơ sở",
+      "chuan_hoa": "cc_qlts",
+      "giu_khi_khong_map": true
+    },
+    "payload.maThietBi": {
+      "header": "Mã thiết bị"
+    },
+    "payload.viTri": {
+      "header": "Vị Trí Thiết bị"
+    },
+    "payload.model": {
+      "header": "Model",
+      "bat_buoc": false
+    },
+    "payload.hang": {
+      "header": "Hãng sản xuất",
+      "bat_buoc": false
+    },
+    "payload.tieuChuan": {
+      "header": "Tiêu chuẩn",
+      "kieu": "so",
+      "bat_buoc": false
+    },
+    "payload.gioConLai": {
+      "header": "Số giờ còn",
+      "kieu": "so",
+      "bat_buoc": false
+    },
+    "payload.ngayBD": {
+      "header": "ngày BD trong tháng",
+      "kieu": "date",
+      "bat_buoc": false
+    },
+    "payload.chiPhi": {
+      "header": "chi phí BD sửa chữa",
+      "kieu": "so",
+      "he_so": 1e-09,
+      "bat_buoc": false
+    },
+    "payload.yeuCauSC": {
+      "header": "số yêu cầu SC-BD",
+      "kieu": "so",
+      "bat_buoc": false
+    }
   },
   "loc": [
-    { "cot": "payload.maThietBi", "dieu_kien": "khac_rong" }
+    {
+      "cot": "payload.maThietBi",
+      "dieu_kien": "khac_rong"
+    }
   ],
-  "payload_them": { "unit": "thietbi" },
+  "payload_them": {
+    "unit": "thietbi"
+  },
   "ky_tu_ten_file": {
     "regex_nam": "\\.[DM]\\.(\\d{4})\\.",
     "regex_thang": "\\.[DM]\\.\\d{4}\\.(\\d{1,2})\\."

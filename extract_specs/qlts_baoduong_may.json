@@ -8,11 +8,13 @@
     "TÊN HEADER LỆCH GIỮA 3 FILE: 'th MÁY' và 'th XE DEMO' ghi 'tổng chi phí BD-SC(VNĐ)', 'th Xe' ghi 'tổng chi phí DB-SC(VNĐ)' (đảo BD thành DB). Mapping chép theo bản 'DB-SC'. Đây là lý do nữa để đọc theo chữ cột thay vì theo tên.",
     "'th XE DEMO' dùng từ 'chưa làm BD' thay cho 'quá hạn' — khi gộp 3 file phải quy về cùng một bộ trạng thái, nếu không màn ts3 sẽ đẻ thêm một cột trạng thái lạ.",
     "⚠️ CHI PHÍ BẢO TRÌ CẢ TẬP ĐOÀN 1 THÁNG CHỈ 6,1 TRIỆU, trong khi sheet 'Tài sản' của mapping ghi 6 tháng đầu năm là 1.775.387.777 đ — lệch 2 bậc độ lớn. Nguồn bảo dưỡng mới ghi nhận một phần rất nhỏ chi phí. PHẢI hỏi đơn vị trước khi đưa KPI 'Chi phí bảo trì' lên màn cho lãnh đạo.",
-    "'Tỷ lệ BD đúng kế hoạch' file tự tính = đã BD / (đã BD + quá hạn), KHÔNG tính 'chưa đến hạn' và 'sắp đến hạn' vào mẫu số. Giữ nguyên cách đó khi cộng 3 file, đừng đổi sang chia cho tổng thiết bị."
+    "'Tỷ lệ BD đúng kế hoạch' file tự tính = đã BD / (đã BD + quá hạn), KHÔNG tính 'chưa đến hạn' và 'sắp đến hạn' vào mẫu số. Giữ nguyên cách đó khi cộng 3 file, đừng đổi sang chia cho tổng thiết bị.",
+    "BỐ CỤC ĐỔI 31/08/2026 — CHÈN 3 CỘT ĐƠN VỊ: kế toán thêm pháp nhân / khối / cost center vào cả 3 file bảo dưỡng, mọi cột từ B (xe, máy) hoặc C (xe demo) trở đi DỊCH PHẢI 3 cột; dòng không đổi. `kiem_tra_o` bắt được nên 7 spec bảo dưỡng cùng trả 0 dòng và engine KHÔNG ghi đè — DB giữ nguyên bản 13:44 cùng ngày, dashboard không sai, chỉ không cập nhật. Đây là bản đã dịch cột theo bố cục mới."
   ],
   "_kiem_chung": [
     "T8/2026: đã BD 4 · Chưa đến hạn 66 · Sắp đến hạn 7 · Quá hạn 6 (tổng 83 thiết bị).",
-    "Tỷ lệ BD đúng kế hoạch 0,40 = 4/(4+6) ✔ · chi phí 6.100.000 đ · 10 yêu cầu sửa chữa."
+    "Tỷ lệ BD đúng kế hoạch 0,40 = 4/(4+6) ✔ · chi phí 6.100.000 đ · 10 yêu cầu sửa chữa.",
+    "SAU KHI DỊCH CỘT (31/08/2026, bố cục mới): 4 dòng — đã BD trong tháng 10 (tỷ lệ 0,625 · ycSC 15 · CP 12.017.000đ) · Chưa đến hạn 64 · Sắp đến hạn 9 · Quá hạn 6. Khớp từng số với P2:U6 của file và với bản DB nạp lúc 13:44 cùng ngày."
   ],
   "report_type": "QLTS_BD",
   "row_index_base": 7904000,
@@ -33,24 +35,24 @@
   },
   "cot": {
     "dim2": {
-      "cot": "M"
+      "cot": "P"
     },
     "amount": {
-      "cot": "O",
+      "cot": "R",
       "kieu": "so"
     },
     "amount2": {
-      "cot": "P",
+      "cot": "S",
       "kieu": "so",
       "bat_buoc": false
     },
     "payload.yeuCauSC": {
-      "cot": "Q",
+      "cot": "T",
       "kieu": "so",
       "bat_buoc": false
     },
     "payload.chiPhi": {
-      "cot": "R",
+      "cot": "U",
       "kieu": "so",
       "he_so": 1e-09,
       "bat_buoc": false
@@ -71,11 +73,11 @@
   },
   "kiem_tra_o": [
     {
-      "o": "M2",
+      "o": "P2",
       "bang": "Tình trạng"
     },
     {
-      "o": "O2",
+      "o": "R2",
       "bang": "Số lượng TS(chiếc)"
     }
   ],
