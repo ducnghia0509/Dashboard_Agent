@@ -57,13 +57,16 @@ CẤU TRÚC SPEC (khoá tiếng Việt cho kế toán/BA đọc được):
                                          // | "moi_cot_thang" (xem dưới)
   "cot_gia_tri": [                       // chỉ dùng khi ban_ghi = "moi_cot_gia_tri":
     {"header": "Công nợ trong hạn", "dim1": "Trong hạn", "he_so": 1e-9},
+    {"header": "XDV Ocean Park", "cost_center": "OCP_XDV", "he_so": 1e-9},
     {"cot": "R", "dim1": "App An", "he_so": 1e-9,
      "amount2": {"cot": "M"}}            // tuỳ chọn — ĐO THỨ HAI của cùng cột giá trị, ghi vào
   ],                                     // amount2 (nhận "cot"/"header"/"he_so" như khai báo cột
                                          // thường). Cần khi một chiều mang HAI số đi liền nhau
                                          // (doanh thu + số cuốc của mỗi kênh An Taxi) và bản
                                          // NGÀY của cùng chiều đó đã dùng amount/amount2.
-                                         // -> mỗi dòng nguồn đẻ N bản ghi, amount lấy từng cột
+                                         // -> mỗi dòng nguồn đẻ N bản ghi, amount lấy từng cột;
+                                         // ngoài dim1..3 còn gán được cost_center/cong_ty/khoi
+                                         // khi CHIỀU ĐƠN VỊ nằm ở cột (mỗi xưởng một cột)
   "loc": [{"cot": "ngay", "dieu_kien": "khac_rong"}],
   "dan_xuat": {"payload.lng": "amount - payload.gia_von"},
   "payload_them": {"unit": "ty"}
@@ -640,6 +643,44 @@ def _xdv_kh_cong(v):
     return {"dim2": "Tổng"} if _nd(v) in ("cong", "tong", "tongcong") else {}
 
 
+_KHO_KENH = {
+    "2001": "B2C",          # Kho ô tô showroom
+    "1010": "B2C",          # Xe ô tô Showroom Quảng Ninh
+    "2006": "GF",           # Kho ô tô cũ
+    "2010": "B2B",          # Kho ô tô (Xe thương quyền)_Vinfast TC
+    "2011": "B2B",          # Kho ô tô (Xe thương quyền)_Xanh Vĩnh Phúc
+    "2013": "B2B",          # Kho ô tô B2B_KD Mạnh
+    "2014": "B2B",          # Kho ô tô B2B_KD Quỳnh
+    "2015": "B2B",          # Kho ô tô B2B_KD Hiếu
+    "2004": "Xe demo",      # Kho ô tô demo      — KHÔNG thuộc 3 kênh bán
+    "2008": "Xe ký gửi",    # Kho ô tô ký gửi    — KHÔNG thuộc 3 kênh bán
+}
+
+
+def _kho_kenh(v):
+    """Mã kho -> kênh bán, cho báo cáo tồn kho xe TỰ ĐỘNG (KD36).
+
+    VÌ SAO CẦN: bản tay `Tonkhoxevatly_T{n}_{kênh}.xlsx` mang kênh trong TÊN FILE (3 file/kỳ);
+    bản tự động gộp một file và KHÔNG có cột kênh nào. Mã kho là thứ duy nhất suy ra được.
+
+    ĐỘ TIN CẬY (đo 03/09/2026, đối chiếu bản tay chốt 28/08 với bản tự động cùng ngày): 1.217 xe
+    khớp VIN -> 1.217 ĐÚNG / 0 SAI. Không mã kho nào chứa hai kênh khác nhau. Toàn bộ 1.214 VIN
+    của bản tay đều có mặt trong bản tự động.
+
+    "Xe demo" (2004) VÀ "Xe ký gửi" (2008) LÀ NHÓM RIÊNG, KHÔNG PHẢI KÊNH BÁN — cùng lý lẽ với
+    `_coc_trang_thai` (ba nhóm chứ không phải hai). Chính chúng là 146 VIN mà bản tay không có:
+    3 file kênh cũ đã lọc chúng ra. Dồn vào B2B/B2C là thổi phồng tồn kênh; bỏ hẳn là hụt tồn
+    tổng. Để riêng thì màn lọc theo 3 kênh vẫn đúng mà tổng tồn vẫn đủ.
+
+    Mã lạ -> "Khác" (nhìn thấy được trên màn), KHÔNG im lặng gán về một kênh: kho mới mở là
+    chuyện bình thường và phải lộ ra để bổ sung vào bảng trên.
+    """
+    s = re.sub(r"\D", "", str(v or ""))
+    if not s:
+        return None
+    return _KHO_KENH.get(s, "Khác")
+
+
 _KENH_TK = [("13111", "B2C"), ("13116", "GF"), ("1316", "B2B")]
 
 
@@ -772,6 +813,7 @@ _QLTS_KHOI = {
     "khoitaxi": "Khối KD Vận tải Taxi Xanh",
     # "Bất động sản" (5 tài sản) KHÔNG có khối chuẩn tương ứng -> để trống, không nhét bừa vào
     # "Khối hỗ trợ tập đoàn" cho đủ.
+    #
     # BA FILE BẢO DƯỠNG (31/08/2026) ghi khối theo CÁCH KHÁC sheet tài sản — phải khai riêng,
     # KHÔNG lấy nguyên văn: "Khối KD Dự án" tình cờ đã đúng tên chuẩn, nhưng "Khối KD xe điện
     # Vinfast - SR" thì KHÔNG (chuẩn là "Khối KD Vinfast - Showroom"). Lấy nguyên văn là đẻ thêm
@@ -1054,6 +1096,7 @@ _CHUAN_HOA = {
     "cty_qlts": _cty_qlts,
     "sr_showroom": _cc_showroom,
     "kenh_tk": _kenh_tk,
+    "kho_kenh": _kho_kenh,
     "qua_han": _qua_han,
     "coc_trang_thai": _coc_trang_thai,
     "xdv": _cc_xdv,
@@ -2266,7 +2309,11 @@ def _extract_vung(spec, path):
                         if j2 is not None:
                             r2["amount2"] = _so(row[j2] if j2 < len(row) else None,
                                                 float(c["amount2"].get("he_so", 1.0)))
-                    for k2 in ("dim1", "dim2", "dim3"):
+                    # `cost_center`/`cong_ty`/`khoi` trong khai báo cột (20/08/2026): báo cáo lợi
+                    # nhuận khối XDV xếp MỖI XƯỞNG MỘT CỘT (I->V) bên phải cột "Kỳ này" của cả
+                    # khối, còn chiều "chỉ tiêu" thì nằm ở CỘT MÃ SỐ của từng dòng. Không có khoá
+                    # này thì phải khai 14 spec gần giống hệt nhau, mỗi spec một xưởng.
+                    for k2 in ("dim1", "dim2", "dim3", "cost_center", "cong_ty", "khoi"):
                         if c.get(k2):
                             r2[k2] = c[k2]
                     outs.append(r2)
