@@ -7,6 +7,7 @@
     "CHỐT THÁNG (29/08/2026): `Xuathoadon_GF_T7.xlsx` là BẢN SAO của T6 — 11 hoá đơn, 5,5331 tỷ, ngày hoá đơn toàn tháng 6. Kỳ ở nguồn này suy từ CỘT NGÀY chứ không từ tên file nên nó nạp 'thành công' và cộng thêm lần nữa vào tháng 6 (GF T6 thành 11,0662 = gấp đôi) còn tháng 7 trống trơn — không lớp chống trùng nào bắt được vì tên file khác và kỳ suy ra cũng khác. `thang_tu_ten_file_regex` bắt hậu tố _T<n> rồi từ chối file nếu KHÔNG MỘT DÒNG NÀO thuộc tháng đó. Lỏng có chủ ý: hoá đơn tràn sang đầu tháng sau là bình thường.",
     "Kênh KHÔNG có trong sheet — phải lấy từ TÊN FILE (Xuathoadon_B2B/B2C/GF).",
     "Mỗi file GF và 2 file B2C có ~594 dòng rác 'B2B_PKD 2: Hạ Hữu Quỳnh' không có Ngày hóa đơn (vùng dán thừa) -> lọc bằng ngay khác rỗng.",
+    "`payload.ma_hd` (03/09/2026) — SỐ HỢP ĐỒNG, khoá DUY NHẤT ghép sang `VHKD_HDONG` (hợp đồng ký mới, KD60) để tính tỷ lệ chuyển đổi \"đã ký -> đã xuất hoá đơn\" cho biểu đồ 3 và 4 của tab Báo cáo kinh doanh. KHÔNG ghép bằng số khung: nguồn KD60 chỉ có số khung ở 23/358 dòng. Cột này vốn nằm sẵn trong file (cột B) từ đầu, chỉ là chưa ai nạp — thêm vào là PHẢI CHẠY LẠI spec cho mọi kỳ, dòng cũ không tự có ma_hd. Chạy lại an toàn: DELETE-trước-INSERT theo source_file nên số dòng không đổi, chỉ thêm khoá.",
     "Lãi gộp kênh B2C ÂM là ĐÚNG (khớp cột V 'Lãi lỗ xe' của chính file) — phần lỗ thu lại qua Claim A230, đừng đảo dấu."
   ],
   "report_type": "KDVH",
@@ -23,6 +24,7 @@
   },
   "cot": {
     "cost_center": { "header": "Tên DVCS", "chuan_hoa": "sr_showroom" },
+    "payload.ma_hd": { "header": "Mã Hợp đồng", "bat_buoc": false },
     "ngay": { "header": "Ngày hóa đơn", "kieu": "date" },
     "amount": { "header": "Giá bán", "kieu": "so", "he_so": 1e-9 },
     "dim1": { "header": "Loại xe", "chuan_hoa": "hoa" },
