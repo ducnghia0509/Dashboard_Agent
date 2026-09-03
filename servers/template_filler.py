@@ -786,12 +786,15 @@ def autofill_file(path: str, period: str = None, cong_ty: str = None, dry_run: b
     _spec_kq = _spec_run_for_path(path, write=not dry_run)
     if _spec_kq:
         _cb = [c for r in _spec_kq for c in (r.get("canh_bao") or [])]
-        _thieu_ds = sorted({k for r in _spec_kq for k in (r.get("bo_qua_chua_co_dataset") or [])})
+        _thieu_ds = sorted({k for r in _spec_kq for k in (r.get("bo_qua_ky_khong_tao_duoc") or [])})
         if _thieu_ds:
             # Nói THẲNG ra UI: sang tháng mới mà chưa ai tạo dataset cho kỳ đó thì spec bỏ qua
             # toàn bộ kỳ — "thành công nhưng 0 dòng" đúng kiểu im lặng vừa phải đi vá.
-            _cb.append(f"CHƯA CÓ dataset cho kỳ {', '.join(_thieu_ds)} — số của (các) kỳ này KHÔNG "
-                       f"được nạp. Tạo dataset kỳ đó rồi nạp lại.")
+            # Từ 03/09/2026 kỳ ĐÃ TỚI được spec tự khai sinh, nên còn đọng lại đây chỉ là kỳ
+            # KHÔNG ĐƯỢC PHÉP tạo: tương lai (file kế hoạch năm), cũ hơn 24 tháng, hoặc sai dạng
+            # do tên file. Xem servers/common/dataset_ky.py.
+            _cb.append(f"KHÔNG TẠO ĐƯỢC kỳ {', '.join(_thieu_ds)} (kỳ chưa tới / quá cũ / sai "
+                       f"dạng) — số của (các) kỳ này KHÔNG được nạp. Kiểm tra kỳ trong tên file.")
         _dong = sum(int(r.get("written") or 0) if not dry_run else int(r.get("dong") or 0)
                     for r in _spec_kq)
         return {"ok": _dong > 0, "file": os.path.basename(path), "dry_run": dry_run,

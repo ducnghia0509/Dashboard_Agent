@@ -115,6 +115,7 @@ import psycopg
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path[:0] = [p for p in (os.path.dirname(_HERE), _HERE) if p not in sys.path]
+from servers.common import dataset_ky as _DSK  # noqa: E402
 from servers.common import source_catalog as _SC  # noqa: E402
 
 DB_URL = (os.environ.get("DATABASE_URL") or os.environ.get("TC_DATABASE_URL")
@@ -1243,14 +1244,18 @@ def derive(path, write=False):
     conn = psycopg.connect(DB_URL)
     try:
         cur = conn.cursor()
-        cur.execute("SELECT id FROM datasets WHERE kind='month' AND period=%s "
-                    "ORDER BY created_at DESC LIMIT 1", (period,))
-        row = cur.fetchone()
-        if not row:
+        # KỲ: báo cáo ngày là SỐ THỰC TẾ của một kỳ ĐÃ TỚI -> được khai sinh kỳ nếu chưa có.
+        # Trước 03/09/2026 chỗ này chỉ SELECT rồi bỏ cả file, nên đầu tháng nào số ngày cũng nằm
+        # chờ tới khi báo cáo THÁNG về mới có kỳ để treo vào (kỳ 2026-08 sinh ngày 04/08; kỳ
+        # 2026-09 làm 5 đơn vị mất số ngày 01-03/09 dù file đã về đĩa từ 16:36 ngày 03/09).
+        # Vì sao được phép tạo, và vì sao KẾ HOẠCH thì không: xem servers/common/dataset_ky.py.
+        dataset_id, _tt = _DSK.lay_hoac_tao_ky(cur, period, nguon=os.path.basename(path))
+        if not dataset_id:
             out["ok"] = False
-            out["error"] = f"chưa có dataset tháng {period} — nạp báo cáo THÁNG trước rồi chạy lại"
+            out["error"] = _DSK.giai_thich(period, _tt)
             return out
-        dataset_id = row[0]
+        if _tt == _DSK.MOI_TAO:
+            out["ky_moi_tao"] = period
         # idempotent: xoá MỌI dòng cũ CÙNG source_file (mỗi file phủ trọn 1 tháng ngày).
         # KHÔNG giới hạn ở REPORT_TYPES nữa (sửa 2026-08-06): file báo cáo ngày của đơn vị CHƯA
         # khai trong `_UNITS` sẽ rơi xuống pipeline THÁNG (gate `is_daily_report` trả False) và để

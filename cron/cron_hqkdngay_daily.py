@@ -274,6 +274,19 @@ def wait_arrival(targets: list, before: dict) -> list:
     return arrived
 
 
+def _ky_moi_tao(js: dict) -> list:
+    """Kỳ vừa được KHAI SINH trong lượt nạp này (servers/common/dataset_ky.py).
+
+    Không phải cảnh báo — là SỰ KIỆN đáng ghi: kỳ mới xuất hiện trong ô chọn kỳ của dashboard,
+    và nếu về sau có tranh cãi "kỳ này ở đâu ra" thì log là chỗ duy nhất trả lời được.
+    """
+    ks = set()
+    for x in [js] + list(js.get("derived") or []) + list(js.get("processed") or []):
+        v = x.get("ky_moi_tao") if isinstance(x, dict) else None
+        ks.update([v] if isinstance(v, str) else (v or []))
+    return sorted(ks)
+
+
 def autofill(entry: dict):
     """agent_cli.py autofill: is_daily_report() gate tự dispatch sang derive_hqkd_ngay.derive()
     (DELETE-then-insert idempotent theo source_file, đọc lại TOÀN BỘ ngày có trong file — xem
@@ -297,6 +310,8 @@ def autofill(entry: dict):
         js = json.loads(last)
     except (json.JSONDecodeError, ValueError):
         return True, None            # không parse được thì để verify quyết định
+    for _k in _ky_moi_tao(js):
+        log(f"  KỲ MỚI: khai sinh kỳ {_k} (chưa từng có dataset; nguồn số thực tế)")
     if js.get("ok"):
         return True, None
     errs = [d.get("error") for d in (js.get("derived") or []) if d.get("error")]
