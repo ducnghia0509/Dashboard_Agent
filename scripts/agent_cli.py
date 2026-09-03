@@ -4368,10 +4368,11 @@ def _cmd_autofill_impl(args):
     _spec_kq = _spec_run_for_path(args.file, write=not args.dry_run)
     _spec_cb = [c for r in _spec_kq for c in (r.get("canh_bao") or [])]
     if _spec_kq:
-        _thieu_ds = sorted({k for r in _spec_kq for k in (r.get("bo_qua_chua_co_dataset") or [])})
+        _thieu_ds = sorted({k for r in _spec_kq for k in (r.get("bo_qua_ky_khong_tao_duoc") or [])})
         if _thieu_ds:
-            _spec_cb.append(f"CHƯA CÓ dataset cho kỳ {', '.join(_thieu_ds)} — số của (các) kỳ này "
-                            f"KHÔNG được nạp. Tạo dataset kỳ đó rồi nạp lại.")
+            # Xem ghi chú cùng nội dung ở template_filler.py + servers/common/dataset_ky.py.
+            _spec_cb.append(f"KHÔNG TẠO ĐƯỢC kỳ {', '.join(_thieu_ds)} (kỳ chưa tới / quá cũ / "
+                            f"sai dạng) — số của (các) kỳ này KHÔNG được nạp.")
     if _spec_kq and _spec_tron(args.file):
         _dong = sum(int(r.get("written") or 0) if not args.dry_run else int(r.get("dong") or 0)
                     for r in _spec_kq)

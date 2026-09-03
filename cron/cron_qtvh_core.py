@@ -480,6 +480,19 @@ def wait_arrival(ctx: Ctx, targets: list, before: dict) -> set:
     return arrived
 
 
+def _ky_moi_tao(js: dict) -> list:
+    """Kỳ vừa được KHAI SINH trong lượt nạp này (servers/common/dataset_ky.py).
+
+    Không phải cảnh báo — là SỰ KIỆN đáng ghi: kỳ mới xuất hiện trong ô chọn kỳ của dashboard,
+    và nếu về sau có tranh cãi "kỳ này ở đâu ra" thì log là chỗ duy nhất trả lời được.
+    """
+    ks = set()
+    for x in [js] + list(js.get("derived") or []) + list(js.get("processed") or []):
+        v = x.get("ky_moi_tao") if isinstance(x, dict) else None
+        ks.update([v] if isinstance(v, str) else (v or []))
+    return sorted(ks)
+
+
 def autofill(ctx: Ctx, entry: dict):
     """`agent_cli.py autofill` — điểm vào DUY NHẤT, tự dispatch: báo cáo ngày -> derive_hqkd_ngay,
     nguồn khai bằng spec JSON (toàn bộ VHKD + XDV) -> spec_extract, còn lại -> đường tất định.
@@ -503,6 +516,8 @@ def autofill(ctx: Ctx, entry: dict):
         js = json.loads(last)
     except (json.JSONDecodeError, ValueError):
         return True, None, []            # không parse được thì để verify quyết định
+    for _k in _ky_moi_tao(js):
+        ctx.log(f"  KỲ MỚI: khai sinh kỳ {_k} (chưa từng có dataset; nguồn số thực tế)")
     cb = list(js.get("canh_bao") or [])
     # KỲ MÀ FILE THỰC SỰ GHI VÀO có thể KHÁC kỳ suy từ tên file — và đó là một lỗi dữ liệu thật,
     # không phải chuyện lý thuyết. Prod 24/08/2026: `Xuathoadon_GF_T7.xlsx` chứa toàn số THÁNG 6

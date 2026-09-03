@@ -105,6 +105,8 @@ sys.path.insert(0, _ROOT)
 
 from dotenv import load_dotenv  # noqa: E402
 
+from servers.common import dataset_ky as _DSK  # noqa: E402
+
 load_dotenv(os.path.join(_ROOT, ".env"))
 
 DB_URL = os.environ.get("DATABASE_URL")
@@ -2329,13 +2331,18 @@ def _ghi(spec, path, recs):
             by_ky.setdefault(r["ngay"][:7], []).append(r)
         rows, skipped, i = [], [], 0
         base_i = int(spec.get("row_index_base", 6500000))
+        ky_moi = []
         for period, items in sorted(by_ky.items()):
-            cur.execute("SELECT id FROM datasets WHERE kind='month' AND period=%s "
-                        "ORDER BY created_at DESC LIMIT 1", (period,))
-            got = cur.fetchone()
-            if not got:
+            # KỲ: nguồn spec là SỐ THỰC TẾ -> được khai sinh kỳ đã tới. Kỳ TƯƠNG LAI vẫn bị chặn
+            # (nguồn KẾ HOẠCH NĂM ghi trọn 12 kỳ trong một lần nạp — cho tạo là hôm nay mọc ngay
+            # 2026-10/11/12 rỗng). Chi tiết 4 chốt: servers/common/dataset_ky.py.
+            ds_ky, _tt = _DSK.lay_hoac_tao_ky(cur, period, nguon=source_file)
+            if not ds_ky:
                 skipped.append(period)
                 continue
+            if _tt == _DSK.MOI_TAO:
+                ky_moi.append(period)
+            got = (ds_ky,)
             for r in items:
                 i += 1
                 rows.append((got[0], spec["report_type"], base_i + i, r.get("ngay"),
@@ -2350,7 +2357,11 @@ def _ghi(spec, path, recs):
                 "source_file) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)", rows)
         conn.commit()
         return {"written": len(rows),
-                **({"bo_qua_chua_co_dataset": skipped} if skipped else {}),
+                **({"ky_moi_tao": ky_moi} if ky_moi else {}),
+                # Sau 03/09/2026 khoá này CHỈ còn chứa kỳ KHÔNG ĐƯỢC PHÉP tự tạo (tương lai / cũ
+                # hơn 24 tháng / sai dạng) — không còn nghĩa "kỳ chưa ai nạp báo cáo tháng" như
+                # tên cũ `bo_qua_chua_co_dataset`. Đổi tên để đọc log không kết luận nhầm.
+                **({"bo_qua_ky_khong_tao_duoc": skipped} if skipped else {}),
                 **({"bo_qua_khong_co_ngay": thieu_ky} if thieu_ky else {})}
     finally:
         conn.close()
