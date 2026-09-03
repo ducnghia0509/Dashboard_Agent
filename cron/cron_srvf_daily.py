@@ -46,37 +46,16 @@ SCHEDULE_VN = "05:00 · 16:45 · 17:15 (prod sớm hơn 10')"   # 3 lượt/ngà
 
 NGUON = [
     # ── luỹ kế: mỗi kỳ NHIỀU bản chốt, chỉ giữ bản mới nhất rồi xoá rows bản cũ ─────────────
-    {
-        "company": "SRVF", "rt": "baocaokqkd", "che_do": core.LUY_KE,
-        "ten": "Xuất hoá đơn bán xe (KDVH)",
-        # `chi_lay`: cùng thư mục còn 'Kymoi_*' (hợp đồng ký mới) — nay ĐÃ CÓ spec
-        # (`vhkd_hopdong_thang`, 03/09/2026) và được khai thành MỘT NGUỒN RIÊNG ngay dưới, không
-        # gộp vào đây. Vì sao tách chứ không nới `chi_lay` thành '(Xuathoadon|Kymoi)_': ba khoá
-        # `slot` / `ky_regex` / `ngay_regex` của mục này đều bám chữ 'Xuathoadon', nới xong thì
-        # file Kymoi không khớp slot nào -> mỗi bản chốt đứng RIÊNG một lát và `luy_ke` không bao
-        # giờ dọn bản cũ. Hai mục cùng (company, rt) phân biệt được nhờ chính `chi_lay` —
-        # xem `core.muc_cua`.
-        "chi_lay": r"Xuathoadon_",
-        # BỎ bản KHÔNG có hậu tố tháng ('Xuathoadon_B2C.xlsx'). Nó là bản cắt CŨ, DỞ của chính kỳ
-        # đó: prod 24/08/2026 có 252 dòng / 96,358 tỷ / 175 VIN và cả 175 VIN đều nằm trong 264 VIN
-        # của `Xuathoadon_B2C_T7.xlsx` (0 VIN riêng) -> doanh thu B2C tháng 7 bị cộng thêm 96,358
-        # tỷ. `luy_ke` KHÔNG dọn được vì `ky_regex` không khớp tên này nên nó đứng thành slot riêng.
-        "bo_qua": r"Xuathoadon_(?:B2B|B2C|GF)\.xlsx$",
-        # 3 KÊNH song song trong cùng kỳ: thiếu `slot` thì B2B/B2C/GF bị coi là 3 bản chốt của
-        # nhau -> giữ 1, XOÁ 2 kênh thật.
-        "slot": r"Xuathoadon_(B2B|B2C|GF)_T(\d+)",
-        # Kỳ THẬT nằm ở hậu tố `_T{n}` của tên file, không phải `month` của metadata — xem
-        # `core.ky_cua`. Riêng thư mục này metadata tình cờ bóc đúng (hậu tố ở cuối tên) nhưng
-        # khai tường minh để không phụ thuộc vào chi tiết cài đặt của bên quét.
-        "ky_regex": r"Xuathoadon_(?:B2B|B2C|GF)_T(\d+)",
-        # NGÀY CHỐT = token cuối của cụm ngày ('...M.2026.8.3.22.Xuathoadon...' -> 22/08). Dạng
-        # năm.tháng.tuần.ngày, đọc chắc chắn vì luôn đủ 4 token trước tên báo cáo.
-        "ngay_regex": r"\.M\.(20\d{2})\.(\d{1,2})\.\d+\.(\d{1,2})\.Xuathoadon",
-    },
+    # NGUỒN TAY 'Xuathoadon_' ĐÃ GỠ 03/09/2026 — `vhkd_kqkd` nghỉ hưu, `KDVH` nay lấy từ
+    # TEST_SR/bangkehoadonbanxe (khai bên dưới). Giữ lại mục này thì mỗi lượt cron vẫn xin file về
+    # rồi nạp 0 dòng (spec đã đổi đuôi .retired) — chỉ tổ đẻ log rác và một dòng "nguồn chưa báo
+    # cáo" trong artifact giám sát.
     {
         # HỢP ĐỒNG KÝ MỚI bản THÁNG (KD60) — nuôi biểu đồ 3 và 4 của tab Báo cáo kinh doanh
-        # (`vhkd1`). Cùng thư mục, cùng dạng tên, cùng 3 kênh với mục 'Xuathoadon_' ở trên, chỉ
-        # khác chữ trong tên file; mọi khoá dưới đây là bản sao đúng luật của mục đó.
+        # (`vhkd1`). Cùng thư mục `SRVF/baocaokqkd` với sổ xuất hoá đơn tay vừa gỡ, cùng dạng tên
+        # và cùng 3 kênh; `chi_lay` là thứ duy nhất tách hai loại file trong thư mục đó.
+        # Mục này CHƯA nghỉ: bản tháng của hợp đồng ký mới vẫn là nguồn chính, nguồn ngày
+        # (TEST_SR/baocaoxuathoadon) chỉ nối thêm phần sau 25/08.
         "company": "SRVF", "rt": "baocaokqkd", "che_do": core.LUY_KE,
         "ten": "Hợp đồng ký mới (VHKD_HDONG)",
         "chi_lay": r"Kymoi_",
@@ -85,9 +64,10 @@ NGUON = [
         "ngay_regex": r"\.M\.(20\d{2})\.(\d{1,2})\.\d+\.(\d{1,2})\.Kymoi",
     },
     # ── ảnh chụp TỪNG NGÀY: mỗi file một ngày rời nhau, GIỮ ĐỦ MỌI BẢN ──────────────────────
-    # Hai thư mục dưới đây là nguồn TỰ ĐỘNG (Cyber -> ổ IT\TESTBAOCAOTUDONG\1.VINFAST_SR). Trước
-    # 03/09/2026 KHÔNG job nào kéo chúng: file chỉ về VPS khi có người chạy tay, nên hai màn đọc
-    # chúng đứng yên mà không ai biết.
+    # BA thư mục dưới đây là nguồn TỰ ĐỘNG (Cyber -> ổ IT\TESTBAOCAOTUDONG\1.VINFAST_SR). Trước
+    # 03/09/2026 KHÔNG job nào kéo chúng: file chỉ về VPS khi có người chạy tay, nên các màn đọc
+    # chúng đứng yên mà không ai biết. Hai trong ba (bán xe KD73, tồn kho KD36) nay là nguồn CHÍNH
+    # của `KDVH` và `VHKD_TONVATLY` — hai nguồn tay tương ứng đã nghỉ hưu.
     #
     # `che_do` PHẢI là ANH_CHUP_KY, không phải LUY_KE: các file là những NGÀY RỜI NHAU chứ không
     # phải nhiều bản chốt của một kỳ. Để LUY_KE thì 9 file ngày bị coi là 9 bản chốt của tháng 8
@@ -100,6 +80,11 @@ NGUON = [
         "ngay_regex": r"\.D\.(20\d{2})(\d{2})(\d{2})\.",
     },
     {
+        "company": "TEST_SR", "rt": "baocaonhapxuattonkhoxe", "che_do": core.ANH_CHUP_KY,
+        "ten": "Tồn kho xe vật lý theo ngày (KD36 tự động)",
+        "ngay_regex": r"\.D\.(20\d{2})(\d{2})(\d{2})\.",
+    },
+    {
         "company": "TEST_SR", "rt": "baocaoxuathoadon", "che_do": core.ANH_CHUP_KY,
         # TÊN THƯ MỤC NGƯỢC NGHĨA: đây KHÔNG phải báo cáo xuất hoá đơn mà là sổ theo dõi HỢP ĐỒNG
         # (KD60) — tiêu đề trong file là 'BẢNG KÊ ĐIỀU KIỆN HỢP ĐỒNG', có Ngày cọc / Hủy HĐ.
@@ -107,23 +92,8 @@ NGUON = [
         "ten": "Hợp đồng ký mới theo ngày (KD60 tự động)",
         "ngay_regex": r"\.D\.(20\d{2})(\d{2})(\d{2})\.",
     },
-    {
-        "company": "SRVF", "rt": "baocaotonkhoxevatly", "che_do": core.LUY_KE,
-        "ten": "Tồn kho xe vật lý",
-        # BẢN GỘP KHÔNG HẬU TỐ KÊNH ('...Tonkhoxevatly_T7.xlsx') PHẢI BỎ, KHÔNG PHẢI GOM SLOT.
-        # Nó KHÔNG phải bản chốt cũ của 3 file kênh mà là một lát khác của cùng kỳ: prod 25/08 có
-        # cả 4 file T7 cùng ngày chốt 31/07, trùng 852 VIN -> tồn kho vật lý T7 phình từ 1.673 lên
-        # 3.123 xe. Để nhóm kênh optional (bản 24/08) KHÔNG cứu được: khớp regex nhưng nhóm kênh
-        # rỗng vẫn là một slot RIÊNG nên chẳng bao giờ có "bản mới cùng slot" để dọn nó đi.
-        # Gộp chung slot với 3 file kênh còn tệ hơn — luy_ke sẽ giữ 1 và xoá oan 2 kênh thật.
-        # Kỳ nào kế toán CHỈ gửi bản gộp thì `ra_soat_mo_coi` sẽ kêu file nằm ngoài DB.
-        "bo_qua": r"Tonkhoxevatly_T\d+\.xlsx$",
-        "slot": r"Tonkhoxevatly_T(\d+)(?:_(B2B|B2C|GF))?",
-        # BẮT BUỘC ở đây: `_T{n}_` nằm GIỮA tên nên bên quét bóc SAI (Tonkhoxevatly_T1_B2B ->
-        # month=7 theo token ngày tạo). Thiếu dòng này thì kỳ 2026-07 gom cả 22 file T1..T7.
-        "ky_regex": r"Tonkhoxevatly_T(\d+)",
-        "ngay_regex": r"\.M\.(20\d{2})\.(\d{1,2})\.\d+\.(\d{1,2})\.Tonkhoxevatly",
-    },
+    # NGUỒN TAY 'baocaotonkhoxevatly' ĐÃ GỠ 03/09/2026 — cùng lý do: `vhkd_tonkho_vatly` nghỉ hưu,
+    # `VHKD_TONVATLY` nay lấy từ TEST_SR/baocaonhapxuattonkhoxe.
     {
         "company": "SRVF", "rt": "baocaokhoxeb2b", "che_do": core.LUY_KE, "ten": "Kho xe B2B",
         # Dạng năm.tháng.ngày ('2026.8.24.KHO XE'), 3 token — KHÔNG cùng dạng với 2 thư mục trên.

@@ -1,4 +1,5 @@
 {
+  "_NGHI_HUU": "NGHỈ TỪ 03/09/2026 — thay bằng `vhkd_tonkho_vatly_auto` (nguồn KD36 tự động, TEST_SR/baocaonhapxuattonkhoxe). Spec này gán cứng `ngay` = CUỐI THÁNG nên kỳ T8 rơi đúng 31/08, TRÙNG ngày một ảnh chụp của nguồn tự động; mà `_SNAP_RT` chọn ngày chốt theo (cong_ty, khoi) chứ không theo source_file, nên hai bản cùng ngày sẽ CỘNG VÀO NHAU (tồn phình 1.214 -> ~2.600). Vì thế khi cutover phải xoá TRỌN kỳ T8 của bản tay, không cắt theo ngày.",
   "id": "vhkd_tonkho_vatly",
   "_mo_ta": "Tồn kho xe VẬT LÝ theo SR (DASHBOARD 4 chỉ tiêu 14-15, khối B màn vhkd4). Nguồn: 1.VINFAST_SR/QUANTRINOIBO_VHKD/Baocaotonkhoxevatly.",
   "_bay": [
@@ -11,20 +12,50 @@
   "report_type": "VHKD_TONVATLY",
   "row_index_base": 6900000,
   "khoi": "Khối KD Vinfast - Showroom",
-  "nguon": { "folder": "SRVF/baocaotonkhoxevatly", "file_glob": "*.xlsx", "sheet": { "ten": "Tồn kho" } },
-  "header": { "khong_co": true },
+  "nguon": {
+    "folder": "SRVF/baocaotonkhoxevatly",
+    "file_glob": "*.xlsx",
+    "sheet": {
+      "ten": "Tồn kho"
+    }
+  },
+  "header": {
+    "khong_co": true
+  },
   "dong_bat_dau": 2,
-  "ky_tu_ten_file": { "regex_nam": "M\\.(\\d{4})", "regex_thang": "_T(\\d{1,2})" },
+  "ky_tu_ten_file": {
+    "regex_nam": "M\\.(\\d{4})",
+    "regex_thang": "_T(\\d{1,2})"
+  },
   "cot": {
-    "cost_center": { "cot": "A", "chuan_hoa": "sr_showroom", "giu_khi_khong_map": true },
-    "payload.don_vi": { "cot": "A" },
-    "payload.so_vin": { "cot": "B" },
-    "payload.ma_kho": { "cot": "C" }
+    "cost_center": {
+      "cot": "A",
+      "chuan_hoa": "sr_showroom",
+      "giu_khi_khong_map": true
+    },
+    "payload.don_vi": {
+      "cot": "A"
+    },
+    "payload.so_vin": {
+      "cot": "B"
+    },
+    "payload.ma_kho": {
+      "cot": "C"
+    }
   },
   "ban_ghi": "moi_dong",
-  "dan_xuat": { "amount": "1" },
-  "loc": [ { "cot": "payload.so_vin", "dieu_kien": "khac_rong" } ],
-  "payload_them": { "unit": "xe" },
+  "dan_xuat": {
+    "amount": "1"
+  },
+  "loc": [
+    {
+      "cot": "payload.so_vin",
+      "dieu_kien": "khac_rong"
+    }
+  ],
+  "payload_them": {
+    "unit": "xe"
+  },
   "moi_ky_lay_file_moi_nhat": true,
   "moi_ky_slot_regex": "_(B2B|B2C|GF)\\b"
 }

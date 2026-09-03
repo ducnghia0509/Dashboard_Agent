@@ -1,4 +1,5 @@
 {
+  "_NGHI_HUU": "NGHỈ TỪ 03/09/2026 — thay bằng `vhkd_kqkd_auto` (nguồn KD73 tự động, TEST_SR/bangkehoadonbanxe). Ranh giới chuyển nguồn: đến hết 24/08/2026 là dòng của spec này (đóng băng trong DB), từ 25/08 là nguồn tự động. PHẢI đổi đuôi .retired chứ không chỉ gỡ khỏi cron: engine glob `*.json` nên còn đuôi .json là còn bị quét, và chạy lại nó sẽ dựng lại các ngày 25-27/08 -> cộng đôi với nguồn tự động.",
   "id": "vhkd_kqkd",
   "_mo_ta": "Bán xe / xuất hóa đơn khối Vinfast - Showroom (DASHBOARD 1 chỉ tiêu 7.2, 8, 10-12). Nguồn Nextcloud: 1.VINFAST_SR/QUANTRINOIBO_VHKD/BaocaoKQKD.",
   "_bay": [
@@ -16,30 +17,68 @@
   "nguon": {
     "folder": "SRVF/baocaokqkd",
     "file_glob": "*Xuathoadon_*_T*.xlsx",
-    "sheet": { "batdau": "CHI TIẾT XHĐ" }
+    "sheet": {
+      "batdau": "CHI TIẾT XHĐ"
+    }
   },
-  "header": { "dong": 1 },
+  "header": {
+    "dong": 1
+  },
   "chieu_tu_ten_file": {
-    "dim2": { "regex": "Xuathoadon_(B2B|B2C|GF)", "hoa": true }
+    "dim2": {
+      "regex": "Xuathoadon_(B2B|B2C|GF)",
+      "hoa": true
+    }
   },
   "cot": {
-    "cost_center": { "header": "Tên DVCS", "chuan_hoa": "sr_showroom" },
-    "payload.ma_hd": { "header": "Mã Hợp đồng", "bat_buoc": false },
-    "ngay": { "header": "Ngày hóa đơn", "kieu": "date" },
-    "amount": { "header": "Giá bán", "kieu": "so", "he_so": 1e-9 },
-    "dim1": { "header": "Loại xe", "chuan_hoa": "hoa" },
-    "dim3": { "header": "Tên TVBH", "chuan_hoa": "cat" },
-    "payload.san_luong": { "header": "Số lượng", "kieu": "so" },
-    "payload.gia_von": { "header": "Giá vốn xe", "kieu": "so", "he_so": 1e-9 }
+    "cost_center": {
+      "header": "Tên DVCS",
+      "chuan_hoa": "sr_showroom"
+    },
+    "payload.ma_hd": {
+      "header": "Mã Hợp đồng",
+      "bat_buoc": false
+    },
+    "ngay": {
+      "header": "Ngày hóa đơn",
+      "kieu": "date"
+    },
+    "amount": {
+      "header": "Giá bán",
+      "kieu": "so",
+      "he_so": 1e-09
+    },
+    "dim1": {
+      "header": "Loại xe",
+      "chuan_hoa": "hoa"
+    },
+    "dim3": {
+      "header": "Tên TVBH",
+      "chuan_hoa": "cat"
+    },
+    "payload.san_luong": {
+      "header": "Số lượng",
+      "kieu": "so"
+    },
+    "payload.gia_von": {
+      "header": "Giá vốn xe",
+      "kieu": "so",
+      "he_so": 1e-09
+    }
   },
   "ban_ghi": "moi_dong",
   "dan_xuat": {
     "payload.lng": "amount - payload_gia_von"
   },
   "loc": [
-    { "cot": "ngay", "dieu_kien": "khac_rong" }
+    {
+      "cot": "ngay",
+      "dieu_kien": "khac_rong"
+    }
   ],
-  "payload_them": { "unit": "ty" },
+  "payload_them": {
+    "unit": "ty"
+  },
   "thang_tu_ten_file_regex": "_T(\\d{1,2})\\.xlsx$",
   "moi_ky_lay_file_moi_nhat": true,
   "moi_ky_ky_regex": "\\.M\\.(20\\d{2})\\..*_T(\\d{1,2})\\.xlsx$",
