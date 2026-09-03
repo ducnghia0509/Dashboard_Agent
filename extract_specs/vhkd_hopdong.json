@@ -1,0 +1,63 @@
+{
+  "id": "vhkd_hopdong",
+  "_mo_ta": "HỢP ĐỒNG KÝ MỚI khối Vinfast - Showroom (KD60: Báo cáo → BC quản trị bán xe → BC theo dõi hợp đồng). Nguồn báo cáo NGÀY, mỗi file một ngày, mỗi dòng một hợp đồng. Dựng biểu đồ 3 và 4 của tab 'Báo cáo kinh doanh' theo 'Mô tả 6 biểu đồ BCKD VHKD.docx'.",
+  "_bay": [
+    "TÊN THƯ MỤC NGƯỢC NGHĨA — `TEST_SR/baocaoxuathoadon` KHÔNG phải báo cáo xuất hoá đơn. Tiêu đề trong file là 'BẢNG KÊ ĐIỀU KIỆN HỢP ĐỒNG' và nó có đúng bộ cột của KD60 (Ngày cọc / Hủy HĐ / Đã xuất HĐ / Ghi chú). Báo cáo XUẤT HOÁ ĐƠN (KD73) nằm ở thư mục `TEST_SR/bangkehoadonbanxe` ('BẢNG KÊ HÓA ĐƠN BÁN XE'), và bản THÁNG của nó là `SRVF/baocaokqkd` -> report_type `KDVH`. Lấy nhầm thư mục là hai biểu đồ đo cùng một thứ.",
+    "`ngay` LẤY TỪ 'Ngày hợp đồng', KHÔNG PHẢI 'Ngày cọc' — dù mô tả nghiệp vụ ghi 'đếm theo Ngày cọc'. Lý do: file ngày được DMS cắt theo Ngày hợp đồng (mọi dòng trong file 31/08 đều có Ngày hợp đồng = 31/08), còn Ngày cọc trống ~40% và rải sang các ngày trước (file 31/08: 32 dòng cọc 31/08, 11 dòng cọc 30/08, 7 dòng cọc 29/08, 18 dòng trống; file 30/08, 01/09, 02/09 trống 100%). Theo đúng chữ mô tả ('bỏ Ngày cọc: Blank') thì ba ngày đó ra 0 hợp đồng — sai hẳn. Ngày cọc vẫn được giữ nguyên văn ở `payload.ngay_coc` để đổi cách đếm mà KHÔNG phải nạp lại, khi nghiệp vụ chốt.",
+    "MỖI FILE MỘT NGÀY, KHÔNG LUỸ KẾ — nên `moi_ky_lay_file_moi_nhat` phải là \"ngay\" (giữ đủ 9 ngày, chỉ chống phát hành lại CÙNG một ngày), KHÔNG phải `true` (gộp theo tháng, giữ đúng 1 ngày và vứt 8 ngày còn lại). Và report_type này TUYỆT ĐỐI không được thêm vào `_SNAP_RT` bên tầng đọc: các ngày rời nhau, không phải ảnh chụp chồng lên nhau — đưa vào đó là chỉ còn ngày chốt cuối cùng.",
+    "DÒNG TỔNG VÀ DÒNG NHÓM NẰM LẪN TRONG BẢNG: dòng 'Tổng số HĐ: 69' và 'Tổng số HĐ của 09 : 15' mang cả Tên đơn vị lẫn số tiền nhưng KHÔNG có 'Số HĐ'. Lọc bằng `payload.so_hd khac_rong`; bỏ lọc là cộng đôi đúng phần tổng.",
+    "'Vinfast B2B' LÀ ĐƠN VỊ THỨ 10 — mô tả và thiết kế chỉ vẽ 09 showroom. Hook `sr_showroom` quy nó về `B2B_SR` (đúng như `KDVH` đang làm), tầng đọc quyết định gộp hay tách; đừng lọc bỏ ở đây, mất dữ liệu thật.",
+    "CỘT 'Ghi chú' HẦU NHƯ RỖNG (9 ngày chỉ 6 dòng có giá trị, lại viết tay lộn xộn: 'SR Cẩm Phả' / 'VF Hạ Long' / 'VFHL' / 'VF UÔNG BÍ'). Mô tả nghiệp vụ ghi 'đã chỉnh Ghi chú khớp tên SR' — CHƯA làm trong các file này. Đơn vị lấy từ 'Tên đơn vị' (đã chuẩn, đủ 9 SR), Ghi chú chỉ lưu nguyên văn ở payload để đối chiếu.",
+    "'Mã KX' là mã CHI TIẾT (VF305, MPV701, ECVANNCCT) còn `KDVH.dim1` là mã DÒNG XE (VF3, MPV, ECV) — phải dùng chung hook `sr_loai_xe`, nếu không biểu đồ 4 (hợp đồng theo dòng xe) và biểu đồ 2 (xuất hoá đơn theo dòng xe) có hai danh mục trục X khác nhau và không so được. Toàn bộ 20 mã của nguồn này đều nằm trong bảng `_SR_LOAI_XE`.",
+    "KHOÁ ĐỐI CHIẾU SANG XUẤT HOÁ ĐƠN LÀ SỐ HỢP ĐỒNG, KHÔNG PHẢI SỐ KHUNG: `payload.so_hd` ở đây = `payload.ma_hd` của `KDVH`. Số khung chỉ có ở 23/358 dòng của nguồn này (KDVH có đủ), dùng nó làm khoá là tỷ lệ chuyển đổi hụt 94%.",
+    "CỜ 'Đã xuất HĐ' TRONG CHÍNH FILE NÀY KHÔNG DÙNG ĐƯỢC để tính tỷ lệ chuyển đổi: file là ảnh chụp tại NGÀY KÝ hợp đồng nên gần như mọi dòng đều 'Unchecked' — xe ký hôm nay chưa thể xuất hoá đơn hôm nay. Vẫn lưu ở `payload.da_xhd` để đối chiếu, nhưng tỷ lệ chuyển đổi phải tính bằng cách ghép `so_hd` sang `KDVH`.",
+    "Hợp đồng HUỶ bị loại ngay tại spec (`Hủy HĐ` khác 'Checked') theo đúng mô tả nghiệp vụ. Trong 9 ngày hiện có đúng 1 dòng bị loại (file 25/08)."
+  ],
+  "_kiem_chung": [
+    "31/08/2026: 69 hợp đồng (khớp dòng 'Tổng số HĐ: 69' của chính file), chia Uông Bí 15 · Long Biên 13 · Hạ Long 8 · Xuân Mai 8 · OceanPark 7 · Vinfast B2B 5 · Sơn Tây 5 · Vĩnh Phúc 4 · Smart City 3 · Cẩm Phả 1.",
+    "25/08/2026: 56 dòng có Số HĐ, 1 dòng 'Hủy HĐ: Checked' -> nạp 55."
+  ],
+  "report_type": "VHKD_HDONG",
+  "row_index_base": 8500000,
+  "khoi": "Khối KD Vinfast - Showroom",
+  "nguon": {
+    "folder": "TEST_SR/baocaoxuathoadon",
+    "file_glob": "*.Xuathoadon.xlsx",
+    "sheet": { "so": 0 }
+  },
+  "kiem_tra_o": [
+    { "o": "A8", "bang": "Tên đơn vị" },
+    { "o": "I8", "bang": "Số HĐ" },
+    { "o": "AM8", "bang": "Ngày cọc" }
+  ],
+  "header": { "dong": 8 },
+  "dong_bat_dau": 9,
+  "ngay_tu_ten_file": { "regex": "\\.D\\.(\\d{4})(\\d{2})(\\d{2})\\.", "thu_tu": "ymd" },
+  "moi_ky_lay_file_moi_nhat": "ngay",
+  "cot": {
+    "cost_center": { "header": "Tên đơn vị", "chuan_hoa": "sr_showroom" },
+    "ngay": { "header": "Ngày hợp đồng", "kieu": "date" },
+    "dim1": { "header": "Mã KX", "chuan_hoa": "sr_loai_xe" },
+    "amount": { "header": "Phải thanh toán", "kieu": "so_co_rong", "he_so": 1e-9 },
+    "payload.so_hd": { "header": "Số HĐ" },
+    "payload.ngay_coc": { "header": "Ngày cọc", "bat_buoc": false },
+    "payload.trang_thai": { "header": "Trạng thái HĐ", "bat_buoc": false },
+    "payload.ma_kx": { "header": "Mã KX", "bat_buoc": false },
+    "payload.ten_kx": { "header": "Tên KX", "bat_buoc": false },
+    "payload.gia_ban": { "header": "Giá bán", "kieu": "so_co_rong", "he_so": 1e-9, "bat_buoc": false },
+    "payload.da_xhd": { "header": "Đã xuất HĐ", "bat_buoc": false },
+    "payload.huy_hd": { "header": "Hủy HĐ", "bat_buoc": false },
+    "payload.hd_b2b": { "header": "HD B2B", "bat_buoc": false },
+    "payload.hd_gf": { "header": "HD Xe GF", "bat_buoc": false },
+    "payload.ghi_chu": { "header": "Ghi chú", "bat_buoc": false },
+    "payload.loai_kh": { "header": "Loại hình KH", "bat_buoc": false }
+  },
+  "ban_ghi": "moi_dong",
+  "dan_xuat": { "amount2": "1" },
+  "loc": [
+    { "cot": "payload.so_hd", "dieu_kien": "khac_rong" },
+    { "cot": "ngay", "dieu_kien": "khac_rong" },
+    { "cot": "payload.huy_hd", "dieu_kien": "khac", "gia_tri": "Checked" }
+  ],
+  "payload_them": { "unit": "ty", "dvt2": "hop_dong" }
+}

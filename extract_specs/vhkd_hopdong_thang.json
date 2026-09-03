@@ -1,0 +1,59 @@
+{
+  "id": "vhkd_hopdong_thang",
+  "_mo_ta": "HỢP ĐỒNG KÝ MỚI khối Vinfast - Showroom, bản THÁNG (KD60). Nguồn `SRVF/baocaokqkd/*Kymoi_<kênh>_T<n>.xlsx` — cùng thư mục với sổ xuất hoá đơn, mỗi kênh một file, luỹ kế cả tháng. CÙNG report_type `VHKD_HDONG` với bản NGÀY (`vhkd_hopdong`); phần chồng nhau do tầng đọc khử, xem _bay.",
+  "_bay": [
+    "CHỒNG LẤN VỚI BẢN NGÀY LÀ CÓ THẬT VÀ ĐÃ ĐO: bản tháng T8 phủ 01→25/08 (1.285 HĐ), bản ngày phủ 25/08→02/09 (358 HĐ), giao nhau ĐÚNG 47 số hợp đồng và tất cả đều ở ngày 25/08. KHÔNG khử ở tầng nạp bằng cách chặt ngày hay xoá tay: chạy lại spec là 47 dòng đó quay về, đúng cái bẫy đã làm `vhkd_kqkd.json` phải cho nghỉ. Khử ở TẦNG ĐỌC bằng `payload.so_hd` (khoá duy nhất của hợp đồng) — xem `_hop_dong_rows` bên `app/metrics/vhkd_bckd.py`. Cách đó tự lành sau mọi lần nạp lại.",
+    "BẢN NGÀY THẮNG Ở PHẦN CHỒNG: ngày 25/08 bản tháng có 48 hợp đồng còn bản ngày có 56 — bản ngày xuất sau nên gồm cả hợp đồng nhập muộn. Quy tắc chọn nằm ở tầng đọc, không ở đây.",
+    "KHÔNG CÓ CỘT 'Hủy HĐ' — bản tháng đã lọc sẵn hợp đồng huỷ ở khâu xuất. Đừng thêm bộ lọc huỷ vào spec này rồi tưởng nó đang chạy: cột không tồn tại thì `loc` sẽ loại SẠCH mọi dòng.",
+    "NGÀY CỌC ĐỦ 100% ở nguồn này (1.285/1.285), khác hẳn bản ngày (trống ~40%). Dù vậy `ngay` vẫn lấy 'Ngày hợp đồng' cho ĐỒNG BỘ với bản ngày — hai nguồn cùng một report_type mà đo bằng hai loại ngày thì mọi biểu đồ theo ngày đều gãy ở chỗ nối. Ngày cọc lưu ở `payload.ngay_coc`; muốn chuyển sang đếm theo Ngày cọc (đúng nguyên văn mô tả nghiệp vụ) thì phải chuyển CẢ HAI nguồn cùng lúc.",
+    "CHỐNG NẠP CHỒNG BẢN LUỸ KẾ: thư mục giữ MỌI bản phát hành của cùng tháng (T8 có 4 bản: 8.3.21 → 8.4.26), mỗi bản luỹ kế cả tháng. Bắt buộc `moi_ky_lay_file_moi_nhat` + `moi_ky_ky_regex` + `moi_ky_slot_regex` — y hệt bộ ba của `vhkd_kqkd` cũ. Thiếu `slot` là 3 kênh bị coi là 3 bản chốt của nhau, giữ 1 và xoá 2 kênh thật.",
+    "Kỳ suy từ CỘT NGÀY chứ không từ tên file, nên `ngay_tu_ten_file` không dùng được để gộp bản chốt -> phải là `moi_ky_ky_regex` (chỉ để gộp, không đụng tới `ngay` của từng dòng).",
+    "`thang_tu_ten_file_regex` từ chối file nếu KHÔNG dòng nào thuộc tháng ghi ở hậu tố `_T<n>` — chặn ca 'bản T7 thực chất là bản sao của T6' đã từng xảy ra với `Xuathoadon_GF_T7`.",
+    "Sheet mỗi kênh một tên ('Chi tiết Ký mới B2C ' — có dấu cách thừa ở cuối) -> chọn bằng `batdau`.",
+    "'Mã KX' là mã CHI TIẾT, phải qua hook `sr_loai_xe` cho khớp `KDVH.dim1` — nếu không biểu đồ 2 và 4 có hai danh mục dòng xe khác nhau và không so được."
+  ],
+  "_kiem_chung": [
+    "Bản chốt 8.4.26 của T8: B2C 1.014 HĐ · B2B 248 · GF 23 = 1.285 hợp đồng, ngày 01/08→25/08.",
+    "Giao với bản ngày: 47 số hợp đồng, toàn bộ ở 25/08. Sau khử trùng ở tầng đọc, T8 + đầu T9 còn 1.285 + 358 − 47 = 1.596 hợp đồng."
+  ],
+  "report_type": "VHKD_HDONG",
+  "row_index_base": 8520000,
+  "khoi": "Khối KD Vinfast - Showroom",
+  "nguon": {
+    "folder": "SRVF/baocaokqkd",
+    "file_glob": "*Kymoi_*_T*.xlsx",
+    "sheet": { "batdau": "Chi tiết Ký mới" }
+  },
+  "header": { "dong": 1 },
+  "chieu_tu_ten_file": {
+    "dim2": { "regex": "Kymoi_(B2B|B2C|GF)", "hoa": true }
+  },
+  "cot": {
+    "cost_center": { "header": "Tên đơn vị", "chuan_hoa": "sr_showroom" },
+    "ngay": { "header": "Ngày hợp đồng", "kieu": "date" },
+    "dim1": { "header": "Mã KX", "chuan_hoa": "sr_loai_xe" },
+    "amount": { "header": "Phải thanh toán", "kieu": "so_co_rong", "he_so": 1e-9 },
+    "payload.so_hd": { "header": "Số HĐ" },
+    "payload.ngay_coc": { "header": "Ngày cọc", "bat_buoc": false },
+    "payload.trang_thai": { "header": "Trạng thái HĐ", "bat_buoc": false },
+    "payload.ma_kx": { "header": "Mã KX", "bat_buoc": false },
+    "payload.ten_kx": { "header": "Tên KX", "bat_buoc": false },
+    "payload.gia_ban": { "header": "Giá bán", "kieu": "so_co_rong", "he_so": 1e-9, "bat_buoc": false },
+    "payload.da_xhd": { "header": "Đã xuất HĐ", "bat_buoc": false },
+    "payload.hd_b2b": { "header": "HD B2B", "bat_buoc": false },
+    "payload.hd_gf": { "header": "HD Xe GF", "bat_buoc": false },
+    "payload.ghi_chu": { "header": "Ghi chú", "bat_buoc": false },
+    "payload.loai_kh": { "header": "Loại hình KH", "bat_buoc": false }
+  },
+  "ban_ghi": "moi_dong",
+  "dan_xuat": { "amount2": "1" },
+  "loc": [
+    { "cot": "payload.so_hd", "dieu_kien": "khac_rong" },
+    { "cot": "ngay", "dieu_kien": "khac_rong" }
+  ],
+  "payload_them": { "unit": "ty", "dvt2": "hop_dong", "ban": "thang" },
+  "thang_tu_ten_file_regex": "_T(\\d{1,2})\\.xlsx$",
+  "moi_ky_lay_file_moi_nhat": true,
+  "moi_ky_ky_regex": "\\.M\\.(20\\d{2})\\..*_T(\\d{1,2})\\.xlsx$",
+  "moi_ky_slot_regex": "Kymoi_(B2B|B2C|GF)_"
+}
