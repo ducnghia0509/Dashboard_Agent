@@ -49,8 +49,13 @@ NGUON = [
     {
         "company": "SRVF", "rt": "baocaokqkd", "che_do": core.LUY_KE,
         "ten": "Xuất hoá đơn bán xe (KDVH)",
-        # `chi_lay`: cùng thư mục còn 'Kymoi_*' (hợp đồng ký mới) — CHƯA CÓ SPEC nào bóc, kéo về
-        # chỉ thêm file rác + một dòng "nạp 0 dòng" mỗi lượt. Có spec thì bỏ dòng này.
+        # `chi_lay`: cùng thư mục còn 'Kymoi_*' (hợp đồng ký mới) — nay ĐÃ CÓ spec
+        # (`vhkd_hopdong_thang`, 03/09/2026) và được khai thành MỘT NGUỒN RIÊNG ngay dưới, không
+        # gộp vào đây. Vì sao tách chứ không nới `chi_lay` thành '(Xuathoadon|Kymoi)_': ba khoá
+        # `slot` / `ky_regex` / `ngay_regex` của mục này đều bám chữ 'Xuathoadon', nới xong thì
+        # file Kymoi không khớp slot nào -> mỗi bản chốt đứng RIÊNG một lát và `luy_ke` không bao
+        # giờ dọn bản cũ. Hai mục cùng (company, rt) phân biệt được nhờ chính `chi_lay` —
+        # xem `core.muc_cua`.
         "chi_lay": r"Xuathoadon_",
         # BỎ bản KHÔNG có hậu tố tháng ('Xuathoadon_B2C.xlsx'). Nó là bản cắt CŨ, DỞ của chính kỳ
         # đó: prod 24/08/2026 có 252 dòng / 96,358 tỷ / 175 VIN và cả 175 VIN đều nằm trong 264 VIN
@@ -67,6 +72,40 @@ NGUON = [
         # NGÀY CHỐT = token cuối của cụm ngày ('...M.2026.8.3.22.Xuathoadon...' -> 22/08). Dạng
         # năm.tháng.tuần.ngày, đọc chắc chắn vì luôn đủ 4 token trước tên báo cáo.
         "ngay_regex": r"\.M\.(20\d{2})\.(\d{1,2})\.\d+\.(\d{1,2})\.Xuathoadon",
+    },
+    {
+        # HỢP ĐỒNG KÝ MỚI bản THÁNG (KD60) — nuôi biểu đồ 3 và 4 của tab Báo cáo kinh doanh
+        # (`vhkd1`). Cùng thư mục, cùng dạng tên, cùng 3 kênh với mục 'Xuathoadon_' ở trên, chỉ
+        # khác chữ trong tên file; mọi khoá dưới đây là bản sao đúng luật của mục đó.
+        "company": "SRVF", "rt": "baocaokqkd", "che_do": core.LUY_KE,
+        "ten": "Hợp đồng ký mới (VHKD_HDONG)",
+        "chi_lay": r"Kymoi_",
+        "slot": r"Kymoi_(B2B|B2C|GF)_T(\d+)",
+        "ky_regex": r"Kymoi_(?:B2B|B2C|GF)_T(\d+)",
+        "ngay_regex": r"\.M\.(20\d{2})\.(\d{1,2})\.\d+\.(\d{1,2})\.Kymoi",
+    },
+    # ── ảnh chụp TỪNG NGÀY: mỗi file một ngày rời nhau, GIỮ ĐỦ MỌI BẢN ──────────────────────
+    # Hai thư mục dưới đây là nguồn TỰ ĐỘNG (Cyber -> ổ IT\TESTBAOCAOTUDONG\1.VINFAST_SR). Trước
+    # 03/09/2026 KHÔNG job nào kéo chúng: file chỉ về VPS khi có người chạy tay, nên hai màn đọc
+    # chúng đứng yên mà không ai biết.
+    #
+    # `che_do` PHẢI là ANH_CHUP_KY, không phải LUY_KE: các file là những NGÀY RỜI NHAU chứ không
+    # phải nhiều bản chốt của một kỳ. Để LUY_KE thì 9 file ngày bị coi là 9 bản chốt của tháng 8
+    # rồi XOÁ 8 cái — đúng cảnh báo đã ghi sẵn trong `_bay` của hai spec tương ứng.
+    {
+        "company": "TEST_SR", "rt": "bangkehoadonbanxe", "che_do": core.ANH_CHUP_KY,
+        "ten": "Xuất hoá đơn bán xe theo ngày (KD73 tự động)",
+        # Tên file có HAI dạng tiền tố: 'B1.TC.TCKT.D.' (25-28/08) và 'B.1.TC.TCKT.D.' (từ 29/08)
+        # -> regex cố ý bắt từ '.D.' trở đi, không bám tiền tố.
+        "ngay_regex": r"\.D\.(20\d{2})(\d{2})(\d{2})\.",
+    },
+    {
+        "company": "TEST_SR", "rt": "baocaoxuathoadon", "che_do": core.ANH_CHUP_KY,
+        # TÊN THƯ MỤC NGƯỢC NGHĨA: đây KHÔNG phải báo cáo xuất hoá đơn mà là sổ theo dõi HỢP ĐỒNG
+        # (KD60) — tiêu đề trong file là 'BẢNG KÊ ĐIỀU KIỆN HỢP ĐỒNG', có Ngày cọc / Hủy HĐ.
+        # Sổ xuất hoá đơn là thư mục 'bangkehoadonbanxe' ngay trên.
+        "ten": "Hợp đồng ký mới theo ngày (KD60 tự động)",
+        "ngay_regex": r"\.D\.(20\d{2})(\d{2})(\d{2})\.",
     },
     {
         "company": "SRVF", "rt": "baocaotonkhoxevatly", "che_do": core.LUY_KE,
