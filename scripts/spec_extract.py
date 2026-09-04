@@ -48,6 +48,8 @@ CẤU TRÚC SPEC (khoá tiếng Việt cho kế toán/BA đọc được):
     "amount": {"header": "Giá bán", "kieu": "so", "he_so": 1e-9}
   },                                     // `kieu` khác: "thang_cuoi" (ô là SỐ THÁNG 1..12, năm
                                          // lấy từ tên file -> ngày cuối tháng) · "ngay_trong_thang"
+                                         // · "ngay_dd_mm" (ô ghi "01/09 (Thứ 3)" — năm từ tên
+                                         // file, tháng trong ô phải khớp tháng của file)
                                          // (ô là SỐ NGÀY, năm+tháng từ tên file). Hai kiểu này cho
                                          // báo cáo xếp mỗi kỳ MỘT DÒNG thay vì một cột.
   "cot_thang": {"tu": "E", "den": "J", "he_so": 1.0,
@@ -1347,6 +1349,28 @@ def _ngay_trong_thang(v, ky):
         return None
 
 
+def _ngay_dd_mm(v, ky):
+    """Ô ghi 'dd/mm' CÓ ĐUÔI -> 'YYYY-MM-DD'. Năm lấy từ tên file (`_ky_thang`); THÁNG trong ô
+    phải khớp tháng của file, lệch thì trả None.
+
+    Anh em theo-DÒNG của phần `moi_cot_ngay` đọc tiêu đề 'dd/mm (thứ)': kế hoạch xuất hoá đơn 15
+    ngày xếp mỗi ngày một DÒNG ở sheet tổng hợp ('01/09 (Thứ 3)', '05/09 (Thứ 7 - Cao điểm)') và
+    mỗi dòng xe một CỘT, nên chiều ngày nằm ở cột A chứ không ở tiêu đề.
+
+    Khác `ngay_trong_thang` ở chỗ ô có SẴN tháng: phải kiểm nó, vì một file kế hoạch tràn sang
+    tháng sau mà vẫn nạp theo tháng của tên file là gán số vào sai kỳ, im lặng.
+    """
+    if not ky:
+        return None
+    m = re.match(r"^\s*(\d{1,2})\s*/\s*(\d{1,2})\b", str(v if v is not None else "").strip())
+    if not m or int(m.group(2)) != ky[1]:
+        return None
+    try:
+        return dt.date(ky[0], ky[1], int(m.group(1))).isoformat()
+    except ValueError:
+        return None
+
+
 def _lay_o(row, j, cfg, dem_loi=None):
     v = row[j] if j < len(row) else None
     if _o_loi(v):
@@ -1365,6 +1389,8 @@ def _lay_o(row, j, cfg, dem_loi=None):
         return _thang_cuoi(v, cfg.get("_nam"))
     if kieu == "ngay_trong_thang":
         return _ngay_trong_thang(v, cfg.get("_ky"))
+    if kieu == "ngay_dd_mm":
+        return _ngay_dd_mm(v, cfg.get("_ky"))
     s = str(v).strip() if v is not None else None
     return s or None
 
@@ -1557,6 +1583,13 @@ def _ky_thang(spec, path):
     m = re.search(c["regex"], os.path.basename(path))
     if not m:
         return None, [f"không dò được kỳ (năm/tháng) từ tên file: {os.path.basename(path)}"]
+    # NHÓM CÓ TÊN `nam`/`thang` (04/09/2026) — cho nguồn ghi THÁNG TRƯỚC NĂM trong tên file
+    # ('Kế hoạch xhđ 15 ngày T9.2026.xlsx'). Mặc định vẫn là nhóm 1 = năm, nhóm 2 = tháng, nên
+    # mọi spec cũ không đổi một ly. Không có đường nào khác: thứ tự nhóm của regex là thứ tự
+    # xuất hiện trong chuỗi, không đảo được.
+    g = m.groupdict()
+    if g.get("nam") and g.get("thang"):
+        return (int(g["nam"]), int(g["thang"])), []
     return (int(m.group(1)), int(m.group(2))), []
 
 
@@ -1983,13 +2016,13 @@ def _extract_vung(spec, path):
                 _nam = int(mn.group(1))
             else:
                 warn.append(f"không dò được NĂM từ tên file: {os.path.basename(path)}")
-        if any(c.get("kieu") == "ngay_trong_thang" for _, c in cot.values()):
+        if any(c.get("kieu") in ("ngay_trong_thang", "ngay_dd_mm") for _, c in cot.values()):
             _ky_ngay, w5 = _ky_thang(spec, path)
             warn.extend(w5)
         for dich, (j, c) in list(cot.items()):
             if c.get("kieu") == "thang_cuoi":
                 cot[dich] = (j, {**c, "_nam": _nam})
-            elif c.get("kieu") == "ngay_trong_thang":
+            elif c.get("kieu") in ("ngay_trong_thang", "ngay_dd_mm"):
                 cot[dich] = (j, {**c, "_ky": _ky_ngay})
 
         chieu = {}
@@ -2103,13 +2136,33 @@ def _extract_vung(spec, path):
                     else:
                         # Chấp cả "01" lẫn "Ngày 01": bản kế hoạch ngày của Showroom ghi tiêu
                         # đề cột là "Ngày 01".."Ngày 31" chứ không phải số trần.
+                        txt = str(raw or "")
                         m = None if ky_tu_o else \
-                            re.match(r"^\s*(?:ng[àa]y\s*)?(\d{1,2})\s*$", str(raw or ""), re.I)
+                            re.match(r"^\s*(?:ng[àa]y\s*)?(\d{1,2})\s*$", txt, re.I)
+                        thang_cot = None
+                        if m is None and not ky_tu_o:
+                            # DẠNG "dd/mm" CÓ ĐUÔI (04/09/2026): kế hoạch xuất hoá đơn 15 ngày ghi
+                            # tiêu đề cột là "01/09 (T3)", "05/09 (T7)*" — có cả thứ trong tuần và
+                            # dấu * đánh dấu ngày cao điểm. Mẫu cũ neo `$` nên không khớp, và cột
+                            # ngày không dựng được thì spec BỎ QUA CẢ FILE.
+                            # Bắt buộc có dấu `/`: KHÔNG nới mẫu cũ thành "số + rác phía sau", vì
+                            # thế là mọi tiêu đề bắt đầu bằng chữ số ("15 Ngày", "9 Showroom")
+                            # đều thành một cột ngày và bảng đẻ ra ngày không có thật.
+                            m = re.match(r"^\s*(\d{1,2})\s*/\s*(\d{1,2})\b", txt)
+                            if m:
+                                thang_cot = int(m.group(2))
                         if m:
-                            try:
-                                ngay_cot = dt.date(y, mo, int(m.group(1))).isoformat()
-                            except ValueError:
-                                ngay_cot = None   # ngày 30/31 ở tháng ngắn -> cột thừa, bỏ qua
+                            # Có tháng trong chính tiêu đề thì PHẢI khớp tháng của file — cùng
+                            # phép kiểm mà nhánh ô-ngày-thật ở trên đang làm. Bỏ qua bước này là
+                            # cột của tháng khác lặng lẽ rơi vào kỳ này.
+                            if thang_cot is not None and thang_cot != mo:
+                                warn.append(f"cột {get_column_letter(j + 1)} ghi {txt.strip()!r} "
+                                            f"không thuộc tháng {mo:02d} của file -> bỏ cột")
+                            else:
+                                try:
+                                    ngay_cot = dt.date(y, mo, int(m.group(1))).isoformat()
+                                except ValueError:
+                                    ngay_cot = None   # ngày 30/31 ở tháng ngắn -> cột thừa, bỏ
                     if ngay_cot:
                         ngay_theo_cot.append((j, ngay_cot))
             if not ngay_theo_cot:

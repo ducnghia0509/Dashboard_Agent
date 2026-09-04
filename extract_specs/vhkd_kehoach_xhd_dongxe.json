@@ -1,0 +1,48 @@
+{
+  "id": "vhkd_kehoach_xhd_dongxe",
+  "_mo_ta": "CHỈ TIÊU XUẤT HOÁ ĐƠN theo DÒNG XE × NGÀY, mức TOÀN HỆ THỐNG — sheet 'Tổng Hợp Hệ Thống 14 Ngày'. Mở khoá cột 'Chỉ tiêu' + 'Chênh lệch' + '%HT' của biểu đồ 2 và bảng chi tiết của biểu đồ 4.",
+  "_bay": [
+    "ĐỌC SHEET 'Tổng Hợp Hệ Thống', KHÔNG đọc 'Chi Tiết Hạng B/C'. Hai sheet hạng là kế hoạch của MỘT showroom hạng đó (dòng cuối ghi rõ 'TỔNG 14 NGÀY (1 SR HẠNG…)' = 72 và 40) — muốn ra toàn hệ thống phải nhân 5 và 4 rồi cộng. Sheet tổng hợp đã làm sẵn phép đó (Σ = 520, khớp 5×72 + 4×40). Tự nhân lại ở tầng nạp là mở đường cho lệch khi nghiệp vụ đổi số SR mỗi hạng mà quên sửa hệ số.",
+    "DANH MỤC DÒNG XE CỦA KẾ HOẠCH KHÔNG KHỚP THỰC HIỆN — đây là cái bẫy lớn nhất của nguồn này. Kế hoạch chỉ có 5 dòng 'mũi nhọn' (VF2, VF3, VF5, VF6, VF MPV 7) + một ô gộp 'Dòng Khác'. Trong khi thực hiện (`KDVH.dim1`) tách 12 dòng, và **Limo Green (LM1) — dòng BÁN CHẠY NHẤT (327 xe tháng 8) — nằm trong 'Dòng Khác'**. Hệ quả BẮT BUỘC phải xử ở tầng đọc: chỉ so kế hoạch với thực hiện ở 5 dòng mũi nhọn; các dòng còn lại gộp về 'Dòng Khác' rồi mới so, hoặc để %HT = None. Ghép thẳng theo mã dòng xe là LM1 có thực hiện mà không có chỉ tiêu (%HT vô cực) còn 'Dòng Khác' có chỉ tiêu mà không có thực hiện (0%).",
+    "'VF MPV 7' -> mã `MPV` và 'VF2' -> `VF2`: chuẩn hoá qua hook `sr_loai_xe` để trùng đúng `KDVH.dim1`. Không có bước này thì trục X của biểu đồ có hai nhãn cho cùng một dòng xe.",
+    "'Dòng Khác' KHÔNG phải một dòng xe — giữ nguyên văn làm dim1, tầng đọc nhận ra nó bằng chính cái tên. Ép nó vào hook mã xe là ra một mã rác.",
+    "CHỈ 14 NGÀY (01→15/09, bỏ 02/09 nghỉ lễ), không phải cả tháng — cùng giới hạn với `vhkd_kehoach_xhd_ngay`.",
+    "BA CỘT CUỐI LÀ SỐ DẪN XUẤT, KHÔNG NẠP: 'Tổng Giao / Ngày' (= Σ 6 cột dòng xe), 'Lũy Kế Hệ Thống' (cộng dồn) và 'Tiến Độ Đạt 60%' (%). Nạp là cộng đôi 2-3 lần cùng một số. Dải cột giá trị vì thế dừng ở G.",
+    "DÒNG 19 'TỔNG TOÀN HỆ THỐNG (14 NGÀY)' bị chặn bằng `dong_ket_thuc: 18`."
+  ],
+  "_kiem_chung": [
+    "T9/2026: 14 ngày × 6 dòng xe = tối đa 84 dòng (ô 0 bị bỏ). Σ = 520 xe, khớp dòng 19 cột 'Tổng Giao / Ngày' và khớp Σ của `vhkd_kehoach_xhd_ngay`.",
+    "Theo dòng xe: VF2 130 · VF3 125 · VF5 70 · VF6 65 · MPV 74 · Dòng Khác 56 = 520."
+  ],
+  "report_type": "VHKD_KH_XHD_DX",
+  "row_index_base": 8540000,
+  "khoi": "Khối KD Vinfast - Showroom",
+  "nguon": {
+    "folder": "SRVF/kehoach15ngay",
+    "file_glob": "*.xlsx",
+    "sheet": { "batdau": "Tổng Hợp Hệ Thống" }
+  },
+  "kiem_tra_o": [
+    { "o": "A4", "bang": "Ngày Làm Việc" },
+    { "o": "H4", "bang": "Tổng Giao / Ngày" }
+  ],
+  "header": { "dong": 4 },
+  "dong_bat_dau": 5,
+  "dong_ket_thuc": 18,
+  "ky_thang_tu_ten_file": { "regex": "T(?P<thang>\\d{1,2})\\.(?P<nam>\\d{4})" },
+  "cot": {
+    "ngay": { "cot": "A", "kieu": "ngay_dd_mm" }
+  },
+  "ban_ghi": "moi_cot_gia_tri",
+  "cot_gia_tri": [
+    { "header": "Toàn HT VF2", "dim1": "VF2" },
+    { "header": "Toàn HT VF3", "dim1": "VF3" },
+    { "header": "Toàn HT VF5", "dim1": "VF5" },
+    { "header": "Toàn HT VF6", "dim1": "VF6" },
+    { "header": "Toàn HT MPV 7", "dim1": "MPV" },
+    { "header": "Dòng Khác", "dim1": "Dòng Khác" }
+  ],
+  "chieu_co_dinh": { "dim2": "XHD" },
+  "loc": [ { "cot": "ngay", "dieu_kien": "khac_rong" } ],
+  "payload_them": { "unit": "xe", "nguon": "kehoach_xhd_15ngay", "pham_vi": "toan_he_thong" }
+}

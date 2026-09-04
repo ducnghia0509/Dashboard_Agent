@@ -1,0 +1,77 @@
+{
+  "id": "vhkd_kehoach_xhd_ngay",
+  "_mo_ta": "KẾ HOẠCH XUẤT HOÁ ĐƠN theo NGÀY × SHOWROOM — sheet 'Tiến Độ Hàng Ngày 9 Showroom' của file 'Kế hoạch xhđ <n> ngày T<m>.<yyyy>.xlsx'. Đây chính là nguồn mà 'Mô tả 6 biểu đồ BCKD VHKD.docx' gọi là 'File kế hoạch xuất hóa đơn'; nó mở khoá cột KẾ HOẠCH + cột CHÊNH LỆCH + đường %HT của biểu đồ 1.",
+  "_bay": [
+    "KHÔNG PHỦ CẢ THÁNG — chỉ 14 ngày đầu (01→15/09, bỏ 02/09 nghỉ lễ). Cột 'Chỉ Tiêu Tháng' là 864 xe còn 'Mục Tiêu 14 Ngày' là 520 (=60%). Vì thế %HT theo ngày CHỈ dựng được cho nửa đầu tháng; nửa sau không có kế hoạch ngày, và đó là THIẾU NGUỒN chứ không phải kế hoạch bằng 0. Tầng đọc phải phân biệt hai chuyện đó.",
+    "NGÀY 02/09 KHÔNG CÓ CỘT (nghỉ lễ Quốc khánh). Đừng sinh dải ngày liên tục rồi điền 0 vào chỗ trống — ngày nghỉ mà chấm 0 kế hoạch thì mọi phép '%HT ngày 02/09' đều vô nghĩa, và biểu đồ mọc một cột rỗng giữa tháng.",
+    "TIÊU ĐỀ CỘT NGÀY GHI 'dd/mm (thứ)', có cả dấu * cho ngày cao điểm: '01/09 (T3)', '05/09 (T7)*'. Engine trước 04/09/2026 chỉ nhận ô ngày THẬT hoặc số trần ('01'/'Ngày 01') nên không dựng được cột nào và BỎ QUA CẢ FILE — đã nới `moi_cot_ngay` để nhận thêm dạng này (bắt buộc có dấu '/', xem chú thích trong spec_extract.py).",
+    "MỌI SHOWROOM CÙNG HẠNG CÓ KẾ HOẠCH NGÀY GIỐNG HỆT NHAU: 5 SR hạng B đều 120 xe/tháng và cùng chuỗi 5-4-5-8-7…; 4 SR hạng C đều 66 xe/tháng. Đây là cách LẬP kế hoạch (rải theo hạng), KHÔNG phải lỗi sao chép — đừng 'sửa' cho khác nhau. Hệ quả cần nói ra trên giao diện: %HT giữa các showroom so trên cùng một mẫu số phẳng, nên nó đo chênh lệch NĂNG LỰC THỰC HIỆN chứ không đo mức độ khó của chỉ tiêu.",
+    "CHỈ 9 SHOWROOM, KHÔNG CÓ 'Vinfast B2B'. Đơn vị thứ 10 này có thật trong sổ bán xe (799 xe ở KDVH) nhưng không được giao chỉ tiêu ở đây -> %HT của nó là KHÔNG CÓ MẪU SỐ (None), tuyệt đối không phải 0%.",
+    "DÒNG 14 LÀ 'TỔNG GIAO TOÀN HỆ THỐNG' — lọc bằng `cost_center khac_rong` sau khi `sr_showroom` không map được ô đó. Nạp cả dòng tổng là kế hoạch nhân đôi.",
+    "HAI CỘT 'Chỉ Tiêu Tháng' và 'Mục Tiêu 14 Ngày' KHÔNG nạp ở spec này: chúng là số THÁNG, không thuộc một ngày nào; nạp chung report_type theo ngày là mọi phép cộng theo ngày bị cộng thêm 2 con số tháng. Chúng đi riêng ở `vhkd_kehoach_xhd_thang`.",
+    "Kỳ suy từ TÊN FILE ('T9.2026') qua `ky_thang_tu_ten_file`, vì tiêu đề cột chỉ có dd/mm. Tên file đổi dạng là spec dừng có cảnh báo, không đoán bừa.",
+    "Đừng khai `kiem_tra_o` bằng khoá `chua`/`regex` — engine CHỈ đọc khoá `bang` (so chứa, đã bỏ dấu). Khai khoá khác là chốt không bao giờ chạy mà nhìn vẫn như có bảo vệ."
+  ],
+  "_kiem_chung": [
+    "T9/2026: 9 showroom × 14 ngày = 126 dòng. Σ = 520 xe, khớp ô 'TỔNG GIAO TOÀN HỆ THỐNG' cột 'Mục Tiêu 14 Ngày'.",
+    "Hạng B (OceanPark, Long Biên, Smart City, Sơn Tây, Xuân Mai): mỗi SR 72 xe/14 ngày. Hạng C (Hạ Long, Vĩnh Phúc, Uông Bí, Cẩm Phả): mỗi SR 40. 5×72 + 4×40 = 520."
+  ],
+  "report_type": "VHKD_KH_XHD_NGAY",
+  "row_index_base": 8530000,
+  "khoi": "Khối KD Vinfast - Showroom",
+  "nguon": {
+    "folder": "SRVF/kehoach15ngay",
+    "file_glob": "*.xlsx",
+    "sheet": {
+      "batdau": "Tiến Độ Hàng Ngày"
+    }
+  },
+  "kiem_tra_o": [
+    {
+      "o": "B4",
+      "bang": "Tên Showroom / NPP"
+    },
+    {
+      "o": "C4",
+      "bang": "Hạng ĐK"
+    }
+  ],
+  "header": {
+    "dong": 4
+  },
+  "dong_bat_dau": 5,
+  "dong_ket_thuc": 13,
+  "ky_thang_tu_ten_file": {
+    "regex": "T(?P<thang>\\d{1,2})\\.(?P<nam>\\d{4})"
+  },
+  "ban_ghi": "moi_cot_ngay",
+  "cot_ngay": {
+    "dong": 4,
+    "tu": "F",
+    "den": "S",
+    "he_so": 1.0
+  },
+  "cot": {
+    "cost_center": {
+      "header": "Tên Showroom / NPP",
+      "chuan_hoa": "sr_showroom"
+    },
+    "dim1": {
+      "header": "Hạng ĐK",
+      "chuan_hoa": "cat"
+    }
+  },
+  "chieu_co_dinh": {
+    "dim2": "XHD"
+  },
+  "loc": [
+    {
+      "cot": "cost_center",
+      "dieu_kien": "khac_rong"
+    }
+  ],
+  "payload_them": {
+    "unit": "xe",
+    "nguon": "kehoach_xhd_15ngay"
+  }
+}
