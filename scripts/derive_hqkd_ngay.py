@@ -841,6 +841,17 @@ def _xdv_facts(rows):
                 (RT_HQKD, MA_CP, vsum(_XDV_CP_CODES, j)),
                 (RT_HQKD, MA_LNTT, v("B840", j)),
                 (RT_PNLT, "Doanh thu thuần", dt),
+                # "Doanh thu HH, DV" = KPI #1 của bảng 50 chỉ tiêu (overview.py dò
+                # dim1_ilike "doanh thu hh%") và cột DT GỘP của màn Doanh thu (revenue.py
+                # `_gross_of`). Bản NGÀY của XDV trước đây không ghi dòng này nên ô #1 ở
+                # "CHỈ TIÊU TÀI CHÍNH" tab Ngày để trống, còn ô #2 "Doanh thu thuần" thì có
+                # số — cạnh nhau mà một bên trắng.
+                # GHI CÙNG GIÁ TRỊ `dt` (không phải B100 trần) là ĐÚNG bản THÁNG chứ không
+                # phải suy diễn: verify DB kỳ 2025-01..2026-07, PNLT "Doanh thu HH, DV" của
+                # XDV = 633,117 tỷ = ĐÚNG BẰNG DTHU "Doanh thu thuần" 633,117 tỷ. XDV không
+                # có khoản giảm trừ tách dòng nên gộp = thuần ở chính nguồn.
+                # KHÔNG cộng đôi: hai dim1 khác nhau, mọi consumer PNLT đều lọc theo dim1.
+                (RT_PNLT, "Doanh thu HH, DV", dt),
                 (RT_PNLT, "Giá vốn hàng bán", v("B300", j)),
                 (RT_PNLT, "Lợi nhuận gộp", v("B410", j)),
                 (RT_PNLT, "Lợi nhuận sau thuế", v("B900", j))):
