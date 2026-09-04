@@ -331,6 +331,50 @@ def ngay_vao_db(nguon: dict, e: dict):
     return None
 
 
+# Tên file báo cáo NGÀY: '….D.YYYYMMDD.….xlsx'. Dấu ngăn sau ngày có thể là '.' hoặc '_'
+# (`B.1.TC.OO.D.20260903_Baocaocongnophaithu.xlsx` — kế toán đặt tên lệch quy ước ở đúng một
+# thư mục). Bắt buộc phải có '.D.' phía trước: '.M.202609.' là báo cáo THÁNG, không phải ngày.
+_RE_NGAY_FILE = re.compile(r"\.D\.(\d{8})[._]", re.IGNORECASE)
+
+
+def thieu_ngay_truoc(ctx, nguon_list: list) -> bool:
+    """Còn thư mục nguồn THEO NGÀY nào chưa có file của HÔM QUA (giờ VN) không?
+
+    Dùng cho lượt chạy lại 01:15: lượt 01:00 đã kéo đủ thì lượt sau chỉ tổ xin lại cả chục file,
+    chờ metadata rồi nạp lại y nguyên — mỗi đêm tốn một lượt vô ích và đẻ một loạt log "nạp 0
+    dòng mới" khó phân biệt với hỏng thật.
+
+    ĐO TRÊN ĐĨA, không đo DB, vì câu hỏi ở đây đúng là "kéo về chưa" chứ không phải "nạp chưa";
+    hai chuyện đó có job khác lo (`ra_soat`). File về mà nạp hỏng thì lượt 01:15 chạy lại cũng
+    không cứu được — nó sẽ vấp đúng chỗ cũ.
+
+    Thư mục KHÔNG đặt tên theo ngày (nguồn tháng/tuần) bị BỎ QUA hẳn: chúng không có khái niệm
+    "file của hôm qua", tính vào là lượt chạy lại không bao giờ được bỏ. Hệ quả cố ý: job toàn
+    nguồn tháng (QLTS, Xanh VP) thì hàm này luôn trả False -> lượt 01:15 của chúng luôn bỏ qua,
+    đúng như mong muốn.
+    """
+    hom_qua = (datetime.now(VN) - timedelta(days=1)).strftime("%Y%m%d")
+    thieu, co_thu_muc_ngay = [], False
+    for n in nguon_list:
+        thu_muc = os.path.join(RECEIVED_DIR, n["company"], n["rt"])
+        try:
+            ds = os.listdir(thu_muc)
+        except OSError:
+            continue                     # thư mục chưa từng có file -> chưa phải nguồn theo ngày
+        co_ngay = {m.group(1) for f in ds for m in [_RE_NGAY_FILE.search(f)] if m}
+        if not co_ngay:
+            continue
+        co_thu_muc_ngay = True
+        if hom_qua not in co_ngay:
+            thieu.append(muc_cua(n))
+    if not co_thu_muc_ngay:
+        ctx.log(f"Không có thư mục nguồn nào đặt tên theo ngày -> không có gì để đợi ({hom_qua}).")
+        return False
+    if thieu:
+        ctx.log(f"CHƯA CÓ file ngày {hom_qua} ở {len(thieu)} thư mục: {', '.join(thieu)}")
+    return bool(thieu)
+
+
 def muc_cua(nguon: dict) -> str:
     r"""KHOÁ TRẠNG THÁI của một nguồn — '<company>/<rt>', kèm lát khi thư mục bị chia `chi_lay`.
 
@@ -937,6 +981,9 @@ def run(job: str, nhan: str, nguon_list: list, schedule_vn: str, argv=None) -> i
     ap.add_argument("--dry-run", action="store_true",
                     help="chỉ in bản sẽ chọn / bản sẽ loại, KHÔNG xin file, KHÔNG nạp, KHÔNG xoá")
     ap.add_argument("--env", choices=("test", "prod"), default="test")
+    ap.add_argument("--neu-thieu-ngay-truoc", action="store_true",
+                    help="CHỈ chạy khi còn thư mục nguồn theo ngày thiếu file của HÔM QUA;"
+                         " đủ rồi thì thoát ngay. Dùng cho lượt chạy lại 01:15.")
     ap.add_argument("--chi-ra-soat", action="store_true",
                     help="CHỈ rà soát DB (file mồ côi + lát bị cộng đôi) rồi thoát — không xin"
                          " file, không nạp, không xoá, không ghi artifact trạng thái")
@@ -946,6 +993,13 @@ def run(job: str, nhan: str, nguon_list: list, schedule_vn: str, argv=None) -> i
     ctx = Ctx(job, args.env, cfg, args.dry_run)
     ctx.log("=" * 70)
     ctx.log(f"{nhan} — MOI TRUONG: {args.env} (DB {cfg['database_url'].rsplit('@', 1)[-1]})")
+
+    if args.neu_thieu_ngay_truoc and not thieu_ngay_truoc(ctx, nguon_list):
+        # KHÔNG ghi artifact trạng thái ở nhánh này. Ghi là báo với agent gửi tin lãnh đạo rằng
+        # "job vừa chạy xong", trong khi thực tế nó không kéo gì — lượt 01:00 mới là lượt làm
+        # việc và đã ghi artifact của nó rồi. Ghi đè lên đó là xoá mất dấu vết lượt thật.
+        ctx.log("BỎ LƯỢT: mọi thư mục nguồn theo ngày đã có file của hôm qua.")
+        return 0
 
     if args.chi_ra_soat:
         # Cố ý KHÔNG dựng StatusWriter ở nhánh này: ghi artifact là báo với agent gửi tin lãnh đạo
