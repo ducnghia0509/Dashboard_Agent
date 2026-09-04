@@ -1025,7 +1025,25 @@ def _derive_kqkd_xdv(rows, period, cong_ty, file_path):
         add("Lợi nhuận sau thuế", v("B900"))                    # -> PNLT (nuôi thẻ LNST)
     add("Doanh thu HH, DV", v("B100"))                     # -> PNLT (#1 bảng 50: B100 'DOANH THU XDV', trước giảm trừ B200; giữ TỔNG, chưa tách CC)
     add("Doanh thu tài chính", v("B821"))                  # -> PNLT (DT tài chính XDV = B821)
-    add("Thu nhập khác", vsum("B831", "B832"))             # -> PNLT (thu nhập HĐ khác = DT chiến dịch B831 + thu nhập khác B832; user chốt 2026-07-21)
+    # THU NHẬP KHÁC = B832 **MỘT MÌNH** (sửa 04/09/2026, review DB của KT XDV). Trước đó gộp
+    # B831+B832 theo chốt 2026-07-21, nhưng B831 là TK **511124** — doanh thu bán hàng, không phải
+    # thu nhập khác — nên gộp vào làm thẻ "Thu nhập khác" của XDV phồng lên gấp ~2 lần (T07/2026:
+    # 5,06 tỷ thay vì 2,74 tỷ) và giấu mất một dòng doanh thu có tên riêng.
+    add("Thu nhập khác", v("B832"))                        # -> PNLT (X.1 = B832, TK 511125/71121/71122)
+    add("Doanh thu chiến dịch", v("B831"))                 # -> PNLT (B831, TK 511124 — thẻ riêng ở màn Hiệu quả KD khi lọc khối XDV)
+    # ---- CẤU TRÚC DOANH THU XDV (review DB 04/09/2026, bảng B100→B210) ----
+    # 5 cấu phần của B100 + khoản giảm trừ B200, ghi thẳng dim1 = TÊN NGUYÊN VĂN của nguồn để bảng
+    # "Cấu trúc Doanh thu" (revenue.py) trải đủ chi tiết thay vì chỉ 1 dòng gộp.
+    # VERIFY T07/2026: B110 11,370 + B120 30,347 + B130 1,165 + B140 0,441 + B150 0,841 =
+    # 44.163.439.195 = ĐÚNG BẰNG B100 (cột "Công thức" của file ghi thiếu B150 — nhãn sai, số đúng).
+    # B200 emit kể cả khi = 0: "có khoản mục, kỳ này không phát sinh" khác hẳn "không có nguồn".
+    for _ma, _ten in (("B110", "Doanh thu công việc (XHĐ)"),
+                      ("B120", "Doanh thu phụ tùng (XHĐ)"),
+                      ("B130", "Chiết khấu phụ tùng bảo hành (XHĐ)"),
+                      ("B140", "Doanh thu cứu hộ 247"),
+                      ("B150", "Doanh thu Sửa chữa động cơ"),
+                      ("B200", "Các khoản giảm trừ doanh thu")):
+        add(_ten, v(_ma))
     out = os.path.join(tf.FILLED_DIR, f"KQKD_{period}_{cong_ty or 'NA'}_01_HQKD.xlsx")
     tf.fill("01_HQKD", records, out)
     imp = tf.import_filled(out, cong_ty=cong_ty, khoi=_khoi_of(file_path), source_file=_source_id(file_path))
@@ -1072,43 +1090,60 @@ def _chiphi_recs_xdv(rows, code, name_j, val_j, period):
                 continue
             v = r[val_j] if val_j < len(r) else None
             if isinstance(v, (int, float)) and v:
-                out.append((nm(cd_, cd_), v))
+                out.append((cd_, nm(cd_, cd_), v))
         return out
 
-    def emit(recs, cd, label, pat, force_yeuto=None):
+    def emit(recs, cd, label, pat, force_yeuto=None, yeuto_map=None):
         v = val(cd)
         if v is None or v == 0:
             return
         kids = children(cd, pat) if pat is not None else []
         if kids:
-            ksum = sum(x[1] for x in kids)
+            ksum = sum(x[2] for x in kids)
             if abs(ksum - v) > abs(v) * 0.01:
                 kids = []
-        if force_yeuto:
-            recs.append({"Kỳ (yyyy-mm)": period, "Nhóm CP (chuẩn mực KT)": label,
-                         "Khoản mục chi tiết": nm(cd, label), "Yếu tố chi phí": force_yeuto,
-                         "Thực hiện (tỷ)": round(v * 1e-9, 9)})
-        elif kids:
-            for kn, kv in kids:
+
+        def _yt(cd_, ten_):
+            """Yếu tố chi phí của 1 dòng: bảng theo MÃ > ép cả cụm > phân loại theo từ khoá."""
+            if yeuto_map and cd_ in yeuto_map:
+                return yeuto_map[cd_]
+            return force_yeuto or _yeuto_cp(ten_)
+        if kids:
+            for kc, kn, kv in kids:
                 recs.append({"Kỳ (yyyy-mm)": period, "Nhóm CP (chuẩn mực KT)": label,
-                             "Khoản mục chi tiết": kn, "Yếu tố chi phí": _yeuto_cp(kn),
+                             "Khoản mục chi tiết": kn, "Yếu tố chi phí": _yt(kc, kn),
                              "Thực hiện (tỷ)": round(kv * 1e-9, 9)})
         else:
             recs.append({"Kỳ (yyyy-mm)": period, "Nhóm CP (chuẩn mực KT)": label,
-                         "Khoản mục chi tiết": nm(cd, label), "Yếu tố chi phí": _yeuto_cp(nm(cd, label)),
+                         "Khoản mục chi tiết": nm(cd, label), "Yếu tố chi phí": _yt(cd, nm(cd, label)),
                          "Thực hiện (tỷ)": round(v * 1e-9, 9)})
 
     b500, b600, b700 = val("B500"), val("B600"), val("B700")
     recs = []
+    # ---- YẾU TỐ CHI PHÍ (dim2) THEO ĐÚNG 6 NỘI DUNG XDV — review DB 04/09/2026 ----
+    # Trước đó dim2 để `_yeuto_cp` đoán theo từ khoá nhãn, ra 5 rổ CHUNG toàn tập đoàn: B811 (mặt
+    # bằng) rơi vào "CP DV mua ngoài", B822 (lãi vay) và B700 (hoạt động xưởng) rơi lẫn vào "Hoạt
+    # động khác" — KT XDV không đọc được cơ cấu chi phí của chính mình.
+    # Nay ÉP dim2 theo MÃ cho riêng XDV. Chỉ đụng dòng của XDV, khối khác giữ nguyên `_yeuto_cp`.
+    # dim1 (Nhóm CP) và dim3 (Khoản mục chi tiết) GIỮ NGUYÊN -> tổng theo nhóm & tab chi tiết
+    # không đổi một số nào.
+    # VERIFY T07/2026: B300 28,205 + B600 9,618 + B811 2,832 + B812 1,381 + B822 0,921 +
+    # (B700 3,046 + B833 0,154) = 46,157 tỷ = ĐÚNG thẻ "Chi phí" (1047) 46,16 tỷ.
+    _YT_MB, _YT_LV = "CP mặt bằng", "CP lãi vay"
+    _YT_KHAC_XDV = "CP hoạt động khác XDV"
     emit(recs, "B300", "Giá vốn hàng bán", None, force_yeuto="CP Giá vốn")
     if b500 is not None and b600 is not None and b700 is not None and abs((b600 + b700) - b500) < 1000:
-        emit(recs, "B600", "Chi phí nhân sự", _re.compile(r"B6\d{2}"))
-        emit(recs, "B700", "Chi phí hoạt động xưởng", _re.compile(r"B7\d{2}"))
+        emit(recs, "B600", "Chi phí nhân sự", _re.compile(r"B6\d{2}"), force_yeuto="CP nhân sự")
+        emit(recs, "B700", "Chi phí hoạt động xưởng", _re.compile(r"B7\d{2}"), force_yeuto=_YT_KHAC_XDV)
     else:
-        emit(recs, "B500", "Chi phí xưởng dịch vụ", None)
-    emit(recs, "B810", "Chi phí cố định", _re.compile(r"B81\d"))
-    emit(recs, "B822", "Chi phí tài chính", None)
-    emit(recs, "B833", "Chi phí khác", None)
+        emit(recs, "B500", "Chi phí xưởng dịch vụ", None, force_yeuto=_YT_KHAC_XDV)
+    # B810 tách 2 yếu tố KHÁC NHAU ở 2 mã con -> bảng theo mã, không ép cả cụm.
+    # "CP khấu hao TSCĐ" dùng lại ĐÚNG nhãn rổ chung (khối khác cũng có) để so sánh chéo được;
+    # nguyên văn "Chi phí khấu hao TSCĐ, phân bổ CCDC" vẫn nằm ở dim3.
+    emit(recs, "B810", "Chi phí cố định", _re.compile(r"B81\d"),
+         yeuto_map={"B811": _YT_MB, "B812": "CP khấu hao TSCĐ"})
+    emit(recs, "B822", "Chi phí tài chính", None, force_yeuto=_YT_LV)
+    emit(recs, "B833", "Chi phí khác", None, force_yeuto=_YT_KHAC_XDV)
     return recs
 
 
