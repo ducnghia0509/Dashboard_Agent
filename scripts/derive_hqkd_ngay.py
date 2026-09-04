@@ -846,17 +846,45 @@ def _xdv_facts(rows):
                 # `_gross_of`). Bản NGÀY của XDV trước đây không ghi dòng này nên ô #1 ở
                 # "CHỈ TIÊU TÀI CHÍNH" tab Ngày để trống, còn ô #2 "Doanh thu thuần" thì có
                 # số — cạnh nhau mà một bên trắng.
-                # GHI CÙNG GIÁ TRỊ `dt` (không phải B100 trần) là ĐÚNG bản THÁNG chứ không
-                # phải suy diễn: verify DB kỳ 2025-01..2026-07, PNLT "Doanh thu HH, DV" của
-                # XDV = 633,117 tỷ = ĐÚNG BẰNG DTHU "Doanh thu thuần" 633,117 tỷ. XDV không
-                # có khoản giảm trừ tách dòng nên gộp = thuần ở chính nguồn.
+                # LẤY B100 (doanh thu GỘP, trước giảm trừ B200) — ĐÚNG như bản THÁNG dùng cho
+                # chỉ tiêu này, rơi về `dt` nếu sheet ngày thiếu B100. Bản đầu (03/09) ghi thẳng
+                # `dt` cho nhanh; giá trị không đổi vì B200 = 0 ở **mọi** sheet ngày T08/2026 (đã
+                # đếm: 0/32 ngày có giảm trừ), nhưng B100 mới là mã của chỉ tiêu — ngày nào XDV
+                # thật sự có giảm trừ thì gộp phải khác thuần, không được bằng nhau vì code ép.
                 # KHÔNG cộng đôi: hai dim1 khác nhau, mọi consumer PNLT đều lọc theo dim1.
-                (RT_PNLT, "Doanh thu HH, DV", dt),
+                (RT_PNLT, "Doanh thu HH, DV", v("B100", j) if v("B100", j) is not None else dt),
                 (RT_PNLT, "Giá vốn hàng bán", v("B300", j)),
                 (RT_PNLT, "Lợi nhuận gộp", v("B410", j)),
-                (RT_PNLT, "Lợi nhuận sau thuế", v("B900", j))):
+                (RT_PNLT, "Lợi nhuận sau thuế", v("B900", j)),
+                # HOẠT ĐỘNG KHÁC/TÀI CHÍNH — cho tab Ngày của màn Hiệu quả kinh doanh có số như
+                # tab Tháng. B831 là TK 511124 (doanh thu chiến dịch), KHÔNG gộp vào thu nhập
+                # khác — xem `agent_cli._derive_kqkd_xdv`, cùng quy ước.
+                (RT_PNLT, "Doanh thu chiến dịch", v("B831", j)),
+                (RT_PNLT, "Thu nhập khác", v("B832", j)),
+                (RT_PNLT, "Doanh thu tài chính", v("B821", j))):
             if val:
                 facts.append((cc, rt, dim1, dim1, val))
+        # ---- CẤU TRÚC DOANH THU theo NGÀY (04/09/2026) ----
+        # Không có mấy dòng này thì bảng "Cấu trúc Doanh thu" ở tab Ngày chỉ còn ĐÚNG HAI dòng
+        # "Doanh thu bán hàng & CCDV" và "Doanh thu thuần", mà XDV lại không có giảm trừ nên hai
+        # dòng đó bằng nhau y hệt — nhìn như bảng lỗi lặp dòng, trong khi phần chi tiết giải thích
+        # con số thì file NGÀY có sẵn (B110-B140 nằm ở cả 32/32 sheet ngày, verify T08/2026).
+        # B150 "Doanh thu Sửa chữa động cơ" CHƯA có ở bản ngày (0/32 sheet) -> tự khuyết, không ép.
+        # Verify T08/2026: Σ B110..B140 = ĐÚNG BẰNG B100 từng ngày.
+        for _ma, _ten in (("B110", "Doanh thu công việc (XHĐ)"),
+                          ("B120", "Doanh thu phụ tùng (XHĐ)"),
+                          ("B130", "Chiết khấu phụ tùng bảo hành (XHĐ)"),
+                          ("B140", "Doanh thu cứu hộ 247"),
+                          ("B150", "Doanh thu Sửa chữa động cơ")):
+            _x = v(_ma, j)
+            if _x:
+                facts.append((cc, RT_PNLT, _ten, _ten, _x))
+        # B200 ghi CẢ KHI = 0 (khác vòng trên dùng `if val`): "có khoản mục, hôm nay không phát
+        # sinh" là thông tin khác hẳn "không có nguồn" — FE tự gom vào nhóm ẩn kèm nhãn đếm.
+        _gt = v("B200", j)
+        if _gt is not None:
+            facts.append((cc, RT_PNLT, "Các khoản giảm trừ doanh thu",
+                          "Các khoản giảm trừ doanh thu", _gt))
         # Cơ cấu chi phí (spec #10) — tách B500 -> B600 nhân sự + B700 hoạt động NẾU cộng khớp,
         # y hệt `agent_cli._chiphi_recs_xdv`; không khớp thì để nguyên B500.
         b500, b600, b700 = v("B500", j), v("B600", j), v("B700", j)
