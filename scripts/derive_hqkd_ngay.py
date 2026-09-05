@@ -154,7 +154,17 @@ _UNITS = {
     # XE TẢI HƯNG THỊNH (spec user 2026-08-06) — layout "ht", xem `_ht_facts`.
     "HUNGTHINH": {"layout": "ht", "cong_ty": "HT", "khoi": "Khối KD Xe tải"},
     # XƯỞNG DỊCH VỤ VINFAST (spec user 2026-08-06) — layout "xdv", xem `_xdv_facts`.
-    "XDV": {"layout": "xdv", "cong_ty": "TC", "khoi": "Khối KD Vinfast - XDV"},
+    # `bo_tu_ngay` = MỐC CUTOVER SANG NGUỒN TỰ ĐỘNG. Mapping XDV ('Báo cáo API_XDV' dòng 12) chốt:
+    # `\\PHONGKETOANXUONGDICHVU\\BAOCAOHQKDNGAY` (file tay này) BỊ THAY bởi bản Cyber tự động
+    # `B.2.TC.TCKT.D.2026mmdd.Baocaotaichinhrieng-HQKD` -> từ 01/09/2026 số ngày của khối XDV do bộ
+    # bốn spec `xdv_hqkd_ngay` / `xdv_dthu_ngay` / `xdv_pnlt_ngay` / `xdv_chiphi_ngay` ghi.
+    # Hai nguồn cùng ghi HQKD_D/DTHU_D/PNLT_D/CHIPHI_D + cùng khối + cùng 14 cost center, chồng
+    # một ngày là GẤP ĐÔI (`_resolve_per_file` chỉ khử trùng TRONG một file, không khử xuyên file).
+    # Mốc này phải TRÙNG `chi_nap_tu_ngay` của cả bốn spec — sửa một bên là hỏng.
+    # Vì sao phải thay: bản tay `D.202609` sang tháng 9 chỉ có sheet 03.09 có số, 04.09 trở đi để
+    # trắng, nên màn Tổng quan lọc khối XDV ngày 04/09 hiện 0 dù nguồn tự động đã đủ số.
+    "XDV": {"layout": "xdv", "cong_ty": "TC", "khoi": "Khối KD Vinfast - XDV",
+            "bo_tu_ngay": "2026-09-01"},
 }
 
 # Cost center theo TỪ KHOÁ trong tên cột (dò theo tên, không theo vị trí — xem docstring).
@@ -1249,7 +1259,18 @@ def derive(path, write=False):
     finally:
         wb.close()
 
-    if not per_day:
+    # CUTOVER SANG NGUỒN TỰ ĐỘNG (xem `bo_tu_ngay` trong `_UNITS`): cắt TRƯỚC nhánh báo lỗi bên
+    # dưới và TRƯỚC lệnh ghi, để file vẫn đi trọn đường xuống `DELETE ... WHERE source_file=%s`.
+    # Bỏ sớm bằng `return` là những ngày đã nạp trước mốc còn nằm lại trong DB và cộng đôi với
+    # nguồn mới — đúng cái bẫy mốc cutover sinh ra để chặn.
+    moc, bo_cutover = unit.get("bo_tu_ngay"), None
+    if moc:
+        cat = sorted(n for n, _ in per_day if n >= moc)
+        if cat:
+            per_day = [(n, f) for n, f in per_day if n < moc]
+            bo_cutover = {"tu_ngay": moc, "so_ngay_bo": len(cat), "dau": cat[0], "cuoi": cat[-1]}
+
+    if not per_day and not bo_cutover:
         # PHÂN BIỆT 2 nguyên nhân — bản cũ gộp chung 1 câu "không đọc được sheet ngày nào" khiến
         # chẩn đoán đi nhầm hướng (2026-08-06, Trạm sạc/GA/HO kỳ 08: tưởng hỏng dò sheet, hoá ra
         # sheet đọc tốt nhưng file nguồn ghi 0 CỨNG ở mọi mã tổng — xem `sheets_ngay` trả kèm).
@@ -1265,6 +1286,7 @@ def derive(path, write=False):
 
     out = {"ok": True, "file": os.path.basename(path), "period": period, "cong_ty": unit["cong_ty"],
            "layout": unit["layout"], "days": len(per_day),
+           **({"bo_qua_cutover": bo_cutover} if bo_cutover else {}),
            "tong_theo_ngay": {
                # `x[:5]` chứ không giải nén cứng 5 phần tử: fact của layout "srvf" có thêm
                # dim2 (kênh bán) ở vị trí thứ 6.
