@@ -137,7 +137,17 @@ REPORT_TYPES = (RT_HQKD, RT_PNLT, RT_CHIPHI, RT_DTHU, RT_KDVH, RT_LN_KENH)
 MA_DT, MA_CP, MA_LNTT = "1000", "1047", "1112"
 
 _UNITS = {
-    "SRVF": {"layout": "srvf", "cong_ty": "TC", "khoi": "Khối KD Vinfast - Showroom"},
+    # `bo_tu_ngay` — CÙNG LÝ DO VỚI XDV bên dưới, xem chú thích ở đó. Showroom đã chuyển HQKD
+    # ngày sang nguồn tự động `TEST_SR/baocaotaichinhrienghqkd` từ 01/09/2026 (bộ 4 spec
+    # `vhkd_hqkd_ngay` / `vhkd_dthu_ngay` / `vhkd_pnlt_ngay` / `vhkd_chiphi_ngay`).
+    # HÔM NAY MỐC NÀY KHÔNG ĐỔI GÌ, và đó chính là vấn đề: file tay đang mang tên
+    # `D.202608` trong khi ruột nó CÓ sheet 01.09/02.09/03.09. Kỳ lấy từ TÊN FILE nên các sheet
+    # tháng 9 bị bỏ qua — Showroom đang an toàn NHỜ MỘT CÁI TÊN SAI, không phải nhờ luật nào.
+    # Kế toán Showroom đổi tên thành `D.202609` (đúng thứ IT đang đề nghị họ làm) là ngay hôm đó
+    # nguồn tay bắt đầu ghi tháng 9 song song với nguồn tự động -> doanh thu/chi phí/LNST
+    # Showroom GẤP ĐÔI, không có cảnh báo nào. Khai sẵn mốc để cái tên đúng không phá gì.
+    "SRVF": {"layout": "srvf", "cong_ty": "TC", "khoi": "Khối KD Vinfast - Showroom",
+             "bo_tu_ngay": "2026-09-01"},
     "XANHVINHPHUC": {"layout": "kqkd", "cong_ty": "XVP", "khoi": "Khối KD Vận tải Taxi Xanh"},
     "HTXXANHTUYENQUANG": {"layout": "kqkd", "cong_ty": "HTX_XTQ", "khoi": "Khối KD Vận tải Taxi Xanh"},
     "HTXXANHVINHPHUC": {"layout": "kqkd", "cong_ty": "HTX_XVP", "khoi": "Khối KD Vận tải Taxi Xanh"},
