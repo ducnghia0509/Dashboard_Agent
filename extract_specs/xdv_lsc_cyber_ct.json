@@ -6,7 +6,8 @@
     "KỲ CỦA DÒNG LÀ TUẦN BÁO CÁO, ngày tạo lệnh nằm ở dim3. Bản đầu thử đặt `ngay` = ngày tạo lệnh thì hỏng hai đường: (1) dải ngày trải từ 1900-01 (rác) và 2025-05 tới 2026-08, kỳ nào chưa có dataset là dòng bị bỏ; (2) một lệnh tồn lâu xuất hiện ở MỌI ảnh chụp tuần nên đếm theo ngày tạo sẽ CỘNG ĐÔI qua các tuần. Giữ `ngay` = chủ nhật tuần báo cáo (như 4 spec KSCL còn lại) thì mỗi ảnh chụp một mốc, không chồng nhau.",
     "Trạng thái lệnh thực tế: 'Xe đã sửa chữa xong', 'Lập lệnh sửa chữa', 'Đang xuất kho', 'Xe đang đưa vào khoang'. KHÔNG trùng bộ trạng thái RO của báo cáo DMS ('Nghiệm thu đã XHĐ' / 'Nghiệm thu chưa XHĐ' / 'Đang sửa chữa') — hai hệ khác vòng đời, đừng map cưỡng bức sang nhau.",
     "Cột B là tên xưởng thường ('Ocean Park'), cột C là 'XDV Ocean Park'. Dùng B cho cost_center như bản tổng `xdv_lsc_cyber` để hai spec ra cùng một mã xưởng.",
-    "KHÔNG có cột tiền ở sheet chi tiết — giá trị lệnh tồn phải lấy từ bản tổng `xdv_lsc_cyber` (sheet 'CYBER-BC LSC')."
+    "KHÔNG có cột tiền ở sheet chi tiết — giá trị lệnh tồn phải lấy từ bản tổng `xdv_lsc_cyber` (sheet 'CYBER-BC LSC').",
+    "TÊN SHEET ĐỔI GIỮA CHỪNG: T1–T6/2026 file ghi 'DS LSC CYBER', từ tuần 27/07 (T7) là 'CYBER-DS LSC'. Khai CẢ HAI tên nên T3–T6 (bố cục cột y hệt bản mới) nạp được luôn. T1–T2 bố cục KHÁC (thiếu 'Ngày tạo lệnh'/'Đơn vị') nên `kiem_tra_o` ở đây cố ý loại chúng ra — chúng do spec `xdv_lsc_cyber_ct_cu` đọc, dùng 'Ngày R/O' thay cho 'Ngày tạo lệnh'."
   ],
   "report_type": "XDV_LSC_CYBER_CT",
   "row_index_base": 7770000,
@@ -15,7 +16,10 @@
     "folder": "XDV/baocaolsccyber",
     "file_glob": "*.xlsx",
     "sheet": {
-      "ten": "CYBER-DS LSC"
+      "ten": [
+        "CYBER-DS LSC",
+        "DS LSC CYBER"
+      ]
     }
   },
   "kiem_tra_o": [

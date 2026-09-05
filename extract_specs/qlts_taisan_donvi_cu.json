@@ -17,7 +17,7 @@
   "row_index_base": 7900500,
   "nguon": {
     "folder": "QLTS/baocaotaisanqlts",
-    "file_glob": "*.Taisan.xlsb",
+    "file_glob": "*.Taisan.xls*",
     "sheet": { "ten": "TH theo ĐVSD" }
   },
   "header": { "khong_co": true },
