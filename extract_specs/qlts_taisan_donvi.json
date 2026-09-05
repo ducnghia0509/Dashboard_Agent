@@ -20,7 +20,7 @@
   "row_index_base": 7900000,
   "nguon": {
     "folder": "QLTS/baocaotaisanqlts",
-    "file_glob": "*.Taisan.xlsb",
+    "file_glob": "*.Taisan.xls*",
     "sheet": { "ten": "ĐƠN VỊ" }
   },
   "header": { "dong": [4, 3, 2] },

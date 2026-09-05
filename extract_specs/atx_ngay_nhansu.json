@@ -1,0 +1,161 @@
+{
+  "id": "atx_ngay_nhansu",
+  "report_type": "ATX_NS_D",
+  "row_index_base": 7855000,
+  "_mo_ta": "NHÂN SỰ THEO NGÀY của An Taxi — cột F NVVP (gián tiếp) · G TXTX (lái xe). BỐ CỤC MỚI mới có hai cột này; trước đây nhân sự chỉ có ở bản THÁNG nên 'Doanh thu/nhân viên' và 'Doanh thu/lái xe' trống ở mọi kỳ chưa chốt tháng (log KT 28/08 mục 27/37/38).",
+  "_bay": [
+    "BỐ CỤC MỚI (file về VPS 28/08/2026, 103×60): ba khối xếp DỌC — I Sơn Tây 9-39 · II Thái Nguyên 41-71 · III Tổng 2 depot 73-103. Bản CŨ mỗi ngày một dòng, ST/TN ở cột riêng; đừng bê spec cũ sang, cột lệch hoàn toàn.",
+    "GHIM CHỮ CỘT: nhãn dòng 4/5 lặp cho nhiều nhóm nên `header` không phân biệt được. Mỗi vùng `kiem_tra_o` khoá cả nhãn VÀ ô mốc khối (B8/B40/B72) — cột xê dịch thì BỎ QUA kèm cảnh báo.",
+    "Σ 2 depot = khối III, ba khối cùng report_type -> mọi phép cộng ở backend phải chọn MỘT lát (`cost_center` rỗng = tổng). Xem `antaxi.py` quy tắc 3.",
+    "KHÔNG nạp cột H ('Tổng' = F+G): cộng hai dòng là ra, nạp thêm dòng tổng chỉ tạo cơ hội đếm đôi — y như bản THÁNG (`atx_nhansu` cũng chỉ lấy B/C)."
+  ],
+  "_kiem_chung": [
+    "01/08/2026 Sơn Tây: 20 NVVP + 88 TXTX = 108 (=H9)."
+  ],
+  "khoi": "Khối KD Dịch vụ An Taxi",
+  "nguon": {
+    "folder": "ANTAXI/baocaoqtvhngay",
+    "file_glob": "B.7.AAG.PKDVH.D.*.Baocaotonghop.xlsx",
+    "sheet": {
+      "chua": "BC Ngày PKDVH"
+    }
+  },
+  "header": {
+    "dong": 5
+  },
+  "cot": {
+    "ngay": {
+      "cot": "A",
+      "kieu": "ngay_trong_thang"
+    }
+  },
+  "chieu_co_dinh": {
+    "cong_ty": "AAG"
+  },
+  "ban_ghi": "moi_cot_gia_tri",
+  "vung": [
+    {
+      "ten": "I Depot Sơn Tây",
+      "dong_bat_dau": 9,
+      "dong_ket_thuc": 39,
+      "chieu_co_dinh": {
+        "cong_ty": "AAG",
+        "cost_center": "ST_AT"
+      },
+      "kiem_tra_o": [
+        {
+          "o": "B8",
+          "bang": "Depot Sơn Tây"
+        },
+        {
+          "o": "F4",
+          "bang": "Nhân viên"
+        },
+        {
+          "o": "F5",
+          "bang": "NVVP"
+        },
+        {
+          "o": "G5",
+          "bang": "TXTX"
+        }
+      ],
+      "cot_gia_tri": [
+        {
+          "cot": "F",
+          "dim1": "NVVP"
+        },
+        {
+          "cot": "G",
+          "dim1": "TXTX"
+        }
+      ]
+    },
+    {
+      "ten": "II Depot Thái Nguyên",
+      "dong_bat_dau": 41,
+      "dong_ket_thuc": 71,
+      "chieu_co_dinh": {
+        "cong_ty": "AAG",
+        "cost_center": "TN_AT"
+      },
+      "kiem_tra_o": [
+        {
+          "o": "B40",
+          "bang": "Depot Thái Nguyên"
+        },
+        {
+          "o": "F4",
+          "bang": "Nhân viên"
+        },
+        {
+          "o": "F5",
+          "bang": "NVVP"
+        },
+        {
+          "o": "G5",
+          "bang": "TXTX"
+        }
+      ],
+      "cot_gia_tri": [
+        {
+          "cot": "F",
+          "dim1": "NVVP"
+        },
+        {
+          "cot": "G",
+          "dim1": "TXTX"
+        }
+      ]
+    },
+    {
+      "ten": "III Tổng 2 depot",
+      "dong_bat_dau": 73,
+      "dong_ket_thuc": 103,
+      "chieu_co_dinh": {
+        "cong_ty": "AAG"
+      },
+      "kiem_tra_o": [
+        {
+          "o": "B72",
+          "bang": "Tổng 2 depot"
+        },
+        {
+          "o": "F4",
+          "bang": "Nhân viên"
+        },
+        {
+          "o": "F5",
+          "bang": "NVVP"
+        },
+        {
+          "o": "G5",
+          "bang": "TXTX"
+        }
+      ],
+      "cot_gia_tri": [
+        {
+          "cot": "F",
+          "dim1": "NVVP"
+        },
+        {
+          "cot": "G",
+          "dim1": "TXTX"
+        }
+      ]
+    }
+  ],
+  "loc": [
+    {
+      "cot": "ngay",
+      "dieu_kien": "khac_rong"
+    },
+    {
+      "cot": "amount",
+      "dieu_kien": "khac_rong"
+    }
+  ],
+  "payload_them": {
+    "unit": "nguoi"
+  }
+}

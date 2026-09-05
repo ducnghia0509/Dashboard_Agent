@@ -27,7 +27,7 @@
   "row_index_base": 7902000,
   "nguon": {
     "folder": "QLTS/baocaotaisanqlts",
-    "file_glob": "*.Taisan.xlsb",
+    "file_glob": "*.Taisan.xls*",
     "sheet": {
       "ten": "CHI TIẾT"
     }

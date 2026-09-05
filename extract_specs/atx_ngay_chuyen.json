@@ -1,0 +1,174 @@
+{
+  "id": "atx_ngay_chuyen",
+  "report_type": "ATX_CHUYEN_D",
+  "row_index_base": 7845000,
+  "_mo_ta": "SẢN LƯỢNG CUỐC THEO NGÀY của An Taxi — cột AE tổng cuốc · AF tổng cuốc hoàn thành · AG tổng cuốc hủy. BỐ CỤC MỚI mới có hai cột hoàn thành/hủy; bản cũ chỉ có 'Số cuốc' nên tỷ lệ hoàn thành và tỷ lệ hủy trống ở chế độ Ngày (log KT 28/08 mục 24/26/28/29).",
+  "_bay": [
+    "BỐ CỤC MỚI (file về VPS 28/08/2026, 103×60): ba khối xếp DỌC — I Sơn Tây 9-39 · II Thái Nguyên 41-71 · III Tổng 2 depot 73-103. Bản CŨ mỗi ngày một dòng, ST/TN ở cột riêng; đừng bê spec cũ sang, cột lệch hoàn toàn.",
+    "GHIM CHỮ CỘT: nhãn dòng 4/5 lặp cho nhiều nhóm nên `header` không phân biệt được. Mỗi vùng `kiem_tra_o` khoá cả nhãn VÀ ô mốc khối (B8/B40/B72) — cột xê dịch thì BỎ QUA kèm cảnh báo.",
+    "Σ 2 depot = khối III, ba khối cùng report_type -> mọi phép cộng ở backend phải chọn MỘT lát (`cost_center` rỗng = tổng). Xem `antaxi.py` quy tắc 3.",
+    "dim1 TRÙNG TÊN với bản THÁNG (`atx_chuyen`: Tổng chuyến · Chuyến hoàn thành · Chuyến hủy) là CỐ Ý — `antaxi._chon_nguon` ưu tiên bản tháng, chỉ lấy bản ngày ở kỳ chưa chốt tháng. Đổi tên là backend không nhận ra hai vế của cùng một chỉ tiêu.",
+    "AE = Σ 4 nguồn thu (I+O+U+AA) nên KHÔNG cộng cả `ATX_DTHU_D.amount2` lẫn `ATX_CHUYEN_D` — chọn một nguồn cho 'tổng cuốc'."
+  ],
+  "_kiem_chung": [
+    "01/08/2026 Sơn Tây: 979 tổng · 739 hoàn thành · 240 hủy (739+240 = 979)."
+  ],
+  "khoi": "Khối KD Dịch vụ An Taxi",
+  "nguon": {
+    "folder": "ANTAXI/baocaoqtvhngay",
+    "file_glob": "B.7.AAG.PKDVH.D.*.Baocaotonghop.xlsx",
+    "sheet": {
+      "chua": "BC Ngày PKDVH"
+    }
+  },
+  "header": {
+    "dong": 5
+  },
+  "cot": {
+    "ngay": {
+      "cot": "A",
+      "kieu": "ngay_trong_thang"
+    }
+  },
+  "chieu_co_dinh": {
+    "cong_ty": "AAG"
+  },
+  "ban_ghi": "moi_cot_gia_tri",
+  "vung": [
+    {
+      "ten": "I Depot Sơn Tây",
+      "dong_bat_dau": 9,
+      "dong_ket_thuc": 39,
+      "chieu_co_dinh": {
+        "cong_ty": "AAG",
+        "cost_center": "ST_AT"
+      },
+      "kiem_tra_o": [
+        {
+          "o": "B8",
+          "bang": "Depot Sơn Tây"
+        },
+        {
+          "o": "AE4",
+          "bang": "Tổng cuốc"
+        },
+        {
+          "o": "AF4",
+          "bang": "Tổng cuốc hoàn thành"
+        },
+        {
+          "o": "AG4",
+          "bang": "Tổng cuốc hủy"
+        }
+      ],
+      "cot_gia_tri": [
+        {
+          "cot": "AE",
+          "dim1": "Tổng chuyến"
+        },
+        {
+          "cot": "AF",
+          "dim1": "Chuyến hoàn thành"
+        },
+        {
+          "cot": "AG",
+          "dim1": "Chuyến hủy"
+        }
+      ]
+    },
+    {
+      "ten": "II Depot Thái Nguyên",
+      "dong_bat_dau": 41,
+      "dong_ket_thuc": 71,
+      "chieu_co_dinh": {
+        "cong_ty": "AAG",
+        "cost_center": "TN_AT"
+      },
+      "kiem_tra_o": [
+        {
+          "o": "B40",
+          "bang": "Depot Thái Nguyên"
+        },
+        {
+          "o": "AE4",
+          "bang": "Tổng cuốc"
+        },
+        {
+          "o": "AF4",
+          "bang": "Tổng cuốc hoàn thành"
+        },
+        {
+          "o": "AG4",
+          "bang": "Tổng cuốc hủy"
+        }
+      ],
+      "cot_gia_tri": [
+        {
+          "cot": "AE",
+          "dim1": "Tổng chuyến"
+        },
+        {
+          "cot": "AF",
+          "dim1": "Chuyến hoàn thành"
+        },
+        {
+          "cot": "AG",
+          "dim1": "Chuyến hủy"
+        }
+      ]
+    },
+    {
+      "ten": "III Tổng 2 depot",
+      "dong_bat_dau": 73,
+      "dong_ket_thuc": 103,
+      "chieu_co_dinh": {
+        "cong_ty": "AAG"
+      },
+      "kiem_tra_o": [
+        {
+          "o": "B72",
+          "bang": "Tổng 2 depot"
+        },
+        {
+          "o": "AE4",
+          "bang": "Tổng cuốc"
+        },
+        {
+          "o": "AF4",
+          "bang": "Tổng cuốc hoàn thành"
+        },
+        {
+          "o": "AG4",
+          "bang": "Tổng cuốc hủy"
+        }
+      ],
+      "cot_gia_tri": [
+        {
+          "cot": "AE",
+          "dim1": "Tổng chuyến"
+        },
+        {
+          "cot": "AF",
+          "dim1": "Chuyến hoàn thành"
+        },
+        {
+          "cot": "AG",
+          "dim1": "Chuyến hủy"
+        }
+      ]
+    }
+  ],
+  "loc": [
+    {
+      "cot": "ngay",
+      "dieu_kien": "khac_rong"
+    },
+    {
+      "cot": "amount",
+      "dieu_kien": "khac_rong"
+    }
+  ],
+  "payload_them": {
+    "unit": "chuyen"
+  }
+}
