@@ -36,7 +36,14 @@ STATE_CHAM = "cham"                   # có số liệu nhưng thiếu ngày c�
 STATE_KHONG_XAC_NHAN = "khong_xac_nhan"  # có ngày cần nhưng file dựng sẵn cả tháng (max_ngay > hôm nay)
 STATE_LOI_NAP = "loi_nap"             # kéo được nhưng không ra dòng nào       -> "Có file, không có dữ liệu"
 STATE_CHUA_CO_FILE = "chua_co_file"    # không có ở nguồn / xin mà không về    -> "Chưa có file báo cáo"
-STATES = (STATE_DU, STATE_CHAM, STATE_KHONG_XAC_NHAN, STATE_LOI_NAP, STATE_CHUA_CO_FILE)
+# ĐƠN VỊ ĐÃ CHUYỂN SANG NGUỒN TỰ ĐỘNG (05/09/2026). File tay vẫn về, vẫn nạp, nhưng deriver CỐ Ý
+# bỏ mọi ngày từ mốc cutover (`_UNITS[...]["bo_tu_ngay"]`) vì số của những ngày đó do spec khác
+# ghi. Không có state riêng thì mỗi lượt chạy nó rơi vào `loi_nap` = "có file, không có dữ liệu"
+# — một ô đỏ ĐỨNG MÃI trên bảng giám sát cho một tình huống hoàn toàn bình thường, đúng loại cảnh
+# báo giả làm người ta thôi tin cả bảng. Đây là trạng thái LÀNH, không phải lỗi.
+STATE_DA_CHUYEN_NGUON = "da_chuyen_nguon"
+STATES = (STATE_DU, STATE_CHAM, STATE_KHONG_XAC_NHAN, STATE_LOI_NAP, STATE_CHUA_CO_FILE,
+          STATE_DA_CHUYEN_NGUON)
 
 # Trạng thái của CẢ LƯỢT chạy.
 RUN_OK = "ok"
@@ -135,6 +142,10 @@ def state_from_verify(verify: dict, autofill_ok: bool, today: str, van_tay_cu: s
     max_ngay = (verify or {}).get("max_ngay") or ""
     van_tay = (verify or {}).get("van_tay")
     doi_luc = today if (van_tay and van_tay_cu and van_tay != van_tay_cu) else doi_luc_cu
+    # Cutover: kiểm tra TRƯỚC mọi mã khác — nguồn tay đã thôi là nguồn của kỳ này, mọi kết luận
+    # "thiếu ngày hôm qua" / "không có dòng nào" trên nó đều vô nghĩa.
+    if code == "DA_CHUYEN_NGUON":
+        return STATE_DA_CHUYEN_NGUON, doi_luc
     if code == "THIEU_NGAY_HOM_QUA":
         return STATE_CHAM, doi_luc
     if code == "OK_CO_NGAY_HOM_QUA":

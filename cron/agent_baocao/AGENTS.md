@@ -52,6 +52,7 @@ không đoán nguyên nhân. Trường `ly_do_ky_thuat` (nếu có) là câu l�
 | `khong_xac_nhan` | **Đã lên số liệu** |
 | `loi_nap` | **Có file báo cáo, nhưng không có dữ liệu** |
 | `chua_co_file` | **Chưa có file báo cáo** |
+| `da_chuyen_nguon` | **Đã update file báo cáo** (nguồn tự động thay nguồn tay — KHÔNG phải lỗi) |
 
 Cron đã lo phần khó, đừng làm lại: mẫu số là danh sách đơn vị kỳ vọng (không phải số file tìm thấy), đơn vị vắng
 mặt hoàn toàn ở nguồn vẫn có bản ghi `chua_co_file`, và ca "file dựng sẵn cột cả tháng" đã được tách riêng
