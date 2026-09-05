@@ -1335,9 +1335,19 @@ def derive(path, write=False):
                 cc, rt, dim1, dim3, v = f[:5]
                 dim2 = f[5] if len(f) > 5 else None
                 i += 1
+                # GHI FULL PRECISION — `round(v * 1e-9, 9)` là làm tròn tới ĐỒNG (9 chữ số thập
+                # phân của TỶ = 1 đồng), tức làm tròn TỪNG Ô trước khi dashboard cộng lại. Đúng
+                # cái quy ước 30/07/2026 cấm: kế toán đối chiếu tới từng đồng, mà "làm tròn từng
+                # phần rồi mới cộng" luôn lệch so với "cộng rồi làm tròn một lần".
+                # Bắt được 04/09/2026 qua log kiểm soát Xanh Taxi: LNST khối luỹ kế 14 ngày, số
+                # thật −1.674.139.469,54 -> làm tròn một lần ra −1.674.139.470 (đúng số kế toán),
+                # còn cộng 84 ô đã tròn ra −1.674.139.468. File nguồn có phần lẻ thật (01/08 Phú
+                # Thọ = −31.628.830,804), làm tròn từng ô là vứt phần lẻ đó đi.
+                # Làm tròn chỉ ở TẦNG HIỂN THỊ. Các `round(sum(...) * 1e-9, 9)` ở phần tóm tắt
+                # dry-run bên trên thì ĐÚNG: cộng trước, làm tròn một lần.
                 recs.append((dataset_id, rt, 6200000 + i, ngay,
                              _CC_CONGTY.get(cc) or unit["cong_ty"], unit["khoi"], cc, period,
-                             round(v * 1e-9, 9), None, dim1, dim2, dim3, payload, source_file))
+                             v * 1e-9, None, dim1, dim2, dim3, payload, source_file))
         cur.executemany(
             "INSERT INTO raw_rows (dataset_id, report_type, row_index, ngay, cong_ty, khoi, "
             "cost_center, period_month, amount, amount2, dim1, dim2, dim3, payload, source_file) "
