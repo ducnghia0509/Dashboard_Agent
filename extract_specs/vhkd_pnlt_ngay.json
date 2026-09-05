@@ -1,0 +1,92 @@
+{
+  "id": "vhkd_pnlt_ngay",
+  "_mo_ta": "P&L SHOWROOM theo NGÀY — bản THAY THẾ tự động. Bốn dòng đúng như deriver cũ sinh ra: Giá vốn hàng bán (A310) · Doanh thu HH, DV (A100) · Lợi nhuận trước thuế (A600) · Lợi nhuận sau thuế (U302).",
+  "_kiem_chung": [
+    "Header dòng 8: Mã số · Chỉ tiêu · Lũy kế · Kỳ này · TK nợ · TK có · Mã phí · Mã NS · Công thức, rồi 27 cột đơn vị.",
+    "Hiệu luỹ kế theo mốc ngày (tỷ): 30/08 A100 10,8552 · A300 14,2215 · U302 −3,3663; 31/08 0,0350 / 22,2412 / −22,2062; 01/09 0,0350 / 21,0903 / −21,0553; 03/09 99,7654 / 3,2279 / 96,5375."
+  ],
+  "_bay": [
+    "ĐỔI NGUỒN, GIỮ NGUYÊN HÌNH DẠNG BẢN GHI. Mapping VHKD 'Báo cáo API_VHKD' dòng 11 chốt: `\\PHONGKETOANSHOWROOM\\BAOCAOHQKDNGAY` (file KT làm tay) BỊ THAY bởi `B.1.TC.TCKT.D.2026mmdd.Baocaotaichinhrieng-HQKD` (Cyber tự động). Vì vậy spec này ghi thẳng vào report_type/dim1 CŨ để mọi màn đang đọc không phải sửa một dòng nào; mã riêng của file mới (A-series) đổi sang mã cũ bằng khoá `doi_gia_tri`.",
+    "LẤY CỘT 'LŨY KẾ', KHÔNG PHẢI 'KỲ NÀY' — theo bản mapping cập nhật 05/09/2026 (sheet '2. Mapping chỉ tiêu', ô L5 · L34 · L36 · L37 · L39: 'Lấy mã số ... - Cột \"Lũy kế\": Báo cáo ngày sau - báo cáo ngày hôm trước').",
+    "'Lũy kế' là luỹ kế TỪ KHI THÀNH LẬP, KHÔNG reset đầu tháng (A300 chạy liền 4.344,02 → 4.358,24 → 4.380,48 → 4.401,57 → 4.404,80 tỷ) -> BẮT BUỘC `tru_ngay_truoc: \"lien_thang\"`. Để `true` (chỉ trừ trong cùng tháng) là ngày 01 mỗi tháng nạp thẳng mấy nghìn tỷ vào một ngày.",
+    "MỨC KHỐI, KHÔNG CÓ COST CENTER — cột 'Lũy kế' không có bản tách theo showroom (27 cột đơn vị của file chạy theo gốc 'Kỳ này': đo 03/09 A300 Kỳ này 3,1632 tỷ ≈ Σ10 showroom 3,1629 tỷ, còn Lũy kế 4.404,80 tỷ). Phần theo từng showroom nằm ở `vhkd_pnl_ngay_cc` (report_type `VHKD_PNL_CC_D`, chưa lên màn). ĐỪNG khai thêm cột đơn vị vào spec này: `flow_by_khoi` cộng MỌI dòng cùng khối nên dòng khối + 10 dòng showroom là đếm đôi.",
+    "RANH GIỚI 01/09/2026 (`chi_nap_tu_ngay`). Tháng 8 đã có đủ từ nguồn TAY `SRVF/baocaohqkdngay`; nạp chồng là hai nguồn cùng khối cùng ngày. Bản 31/08 vẫn được ĐỌC để làm số trừ cho 01/09 — mốc chỉ chặn NẠP.",
+    "SỐ RA CHƯA KHỚP FILE KT, ĐÂY LÀ KHUYẾT TẬT CỦA NGUỒN (đo 05/09/2026): 01/09 chi phí 21,09 tỷ vs 0,110 · 03/09 chi phí 3,23 tỷ vs 1,908 · 03/09 doanh thu 99,77 tỷ vs 1,827. Cú nhảy 03/09 là TEMPLATE ĐƯỢC VÁ: các dòng A210/A211/A211A/A213/A214 KHÔNG tồn tại trong file 29/08→02/09, chỉ có từ bản 03/09, nên A200 đứng yên đúng 145,7345 tỷ (= một mình A212) suốt 5 ngày rồi vọt lên 244,55. Ngày nào Cyber vá template thì ngày đó phải soi tay.",
+    "MAPPING VIẾT VÍ DỤ LỆCH MỘT NGÀY ('doanh thu ngày 25/8 = báo cáo 26/8 − báo cáo 25/8'), spec KHÔNG gán như vậy: file `.D.20260831.` phủ TỚI HẾT 31/08 — đã đối chứng ở XDV (cột 'Kỳ này' bản 31/08 = 44.257.186.721 đ, khớp tuyệt đối tháng 8 trong DB). Hiệu gán cho ngày của file SAU.",
+    "BẢN 02/09 LÀ BẢN SAO Y CỦA 01/09 (mọi ô bằng nhau) -> hiệu ra 0 dòng, đúng, không phải nạp hỏng.",
+    "Deriver cũ lấy LNST = U302, THIẾU thì lùi về A600. Ở đây không có đường lùi đó (`doi_gia_tri` là bản đồ tĩnh): file tự động luôn có dòng U302, nếu một ngày nào đó mất thì PNLT_D chỉ thiếu dòng 'Lợi nhuận sau thuế' chứ không sai số — kiểm bằng cảnh báo 'bỏ N dòng không qua bộ lọc' tăng bất thường.",
+    "A310 của file là 'TỔNG GIÁ VỐN NHẬP XE' — deriver cũ cũng map đúng dòng này vào 'Giá vốn hàng bán', giữ nguyên để không lệch với tháng 8."
+  ],
+  "report_type": "PNLT_D",
+  "row_index_base": 8710000,
+  "khoi": "Khối KD Vinfast - Showroom",
+  "cong_ty": "TC",
+  "nguon": {
+    "folder": "TEST_SR/baocaotaichinhrienghqkd",
+    "file_glob": "*.Baocaotaichinhrieng-HQKD.xlsx",
+    "sheet": {
+      "so": 0
+    }
+  },
+  "kiem_tra_o": [
+    {
+      "o": "A8",
+      "bang": "Mã số"
+    },
+    {
+      "o": "C8",
+      "bang": "Lũy kế"
+    }
+  ],
+  "header": {
+    "dong": 8
+  },
+  "dong_bat_dau": 9,
+  "ngay_tu_ten_file": {
+    "regex": "\\.D\\.(\\d{4})(\\d{2})(\\d{2})\\.",
+    "thu_tu": "ymd"
+  },
+  "moi_ky_lay_file_moi_nhat": "ngay",
+  "tru_ngay_truoc": "lien_thang",
+  "chi_nap_tu_ngay": "2026-09-01",
+  "cot": {
+    "dim1": {
+      "header": "Mã số"
+    },
+    "payload.chi_tieu": {
+      "header": "Chỉ tiêu"
+    }
+  },
+  "ban_ghi": "moi_cot_gia_tri",
+  "cot_gia_tri": [
+    {
+      "header": "Lũy kế",
+      "he_so": 1e-09
+    }
+  ],
+  "doi_gia_tri": {
+    "dim1": {
+      "A310": "Giá vốn hàng bán",
+      "A100": "Doanh thu HH, DV",
+      "A600": "Lợi nhuận trước thuế",
+      "U302": "Lợi nhuận sau thuế"
+    }
+  },
+  "loc": [
+    {
+      "cot": "dim1",
+      "dieu_kien": "thuoc",
+      "gia_tri": [
+        "Giá vốn hàng bán",
+        "Doanh thu HH, DV",
+        "Lợi nhuận trước thuế",
+        "Lợi nhuận sau thuế"
+      ]
+    }
+  ],
+  "payload_them": {
+    "unit": "ty",
+    "goc_so": "luy_ke_lien_thang",
+    "nguon_he": "HQKD ngày Showroom (Cyber tự động)"
+  }
+}
