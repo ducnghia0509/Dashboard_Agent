@@ -1,0 +1,67 @@
+{
+  "id": "xdv_hoadon_dv",
+  "_mo_ta": "BẢNG KÊ HOÁ ĐƠN DỊCH VỤ (DV01) — nguồn TỰ ĐỘNG Cyber (ổ IT\\TESTBAOCAOTUDONG\\2.VINFAST_XDV -> VPS `TEST_XDV/bangkehoadondv`), mỗi ngày một file. Mỗi dòng = một hoá đơn dịch vụ đã xuất, có xưởng / Loại TT (W bảo hành · N nội bộ · I bảo hiểm · C khách lẻ) / doanh thu công / doanh thu phụ tùng. Nuôi chỉ tiêu #20 của mapping XDV (biểu đồ 'Doanh thu kế hoạch và thực tế theo từng hình thức thanh toán'): 'Cột Đơn vị: từng cost center, filter cột Loại TT, mỗi loại sum cột Tổng doanh thu'.",
+  "_kiem_chung": [
+    "29/08/2026: tổng cột 'Tổng doanh thu' của khối chi tiết phải khớp KHÍT dòng 'Tổng cộng' (r9) của chính file = 3.961.308.180 đ; 'Doanh thu công' 835.775.126 + 'Doanh thu PT' 3.125.533.054 = đúng số đó.",
+    "29/08/2026: 989 dòng, 12 đơn vị (Việt Trì 315 · Cẩm Phả 283 · Xuân Mai 57 · Ocean Park 52 · Smart City 52 · Vĩnh Phúc 47 · Hà Khánh 47 · Đài Tư 34 …), 987/989 dòng có 'Ngày hóa đơn' = đúng ngày của tên file."
+  ],
+  "_bay": [
+    "DÒNG 'Tổng cộng' NẰM Ở ĐẦU VÙNG DỮ LIỆU (dòng 9, ngay dưới header) chứ không phải cuối — nhãn rơi vào cột O 'Tên khách hàng', còn cột A 'Đơn vị' bỏ trắng.",
+    "HOÁ ĐƠN GỘP NHIỀU LỆNH ĐẺ THÊM MỘT DÒNG TỔNG CẤP HOÁ ĐƠN — đây là bẫy cộng đôi chính của nguồn này. Hoá đơn gộp (một khách nhiều R/O) có 1 dòng mang TỔNG của cả hoá đơn rồi N dòng chi tiết từng R/O; dòng tổng đó BỎ TRẮNG cột A 'Đơn vị' còn dòng chi tiết thì có. Đo 26/08: HDS.2608.0350 có dòng tổng 218.307.386 đ đúng bằng phần chênh giữa 'cộng mọi dòng' (1.355.259.325) và dòng 'Tổng cộng' của file (1.136.951.939). Chặn bằng `cost_center khac_rong` — lớp lọc BẮT BUỘC, đừng gỡ. Sau khi chặn, cả 9/9 file khớp KHÍT dòng 'Tổng cộng' của chính nó.",
+    "Cảnh báo 'bỏ N dòng không qua bộ lọc' là BÌNH THƯỜNG ở nguồn này: N = 5 dòng khung + số hoá đơn gộp trong ngày. Đừng nới bộ lọc cho hết cảnh báo — nới là cộng đôi.",
+    "FILE CHO LẪN SANG NGÀY HÔM SAU -> CỘNG ĐÔI, chặn bằng `chi_lay_ngay_cua_file`. Bản 26/08 chứa 61 hoá đơn ghi 'Ngày hóa đơn' = 27/08, mà bản 27/08 cũng có đủ 61 cái đó (đã đối chiếu từng số hoá đơn) -> trước khi vá, ngày 27/08 trong DB là 909.172.433 đ thay vì 730.918.484 đ của chính file. Dòng bị bỏ luôn xuất hiện lại ở file đúng ngày nó nên không mất số. Hệ quả phải biết: tổng theo FILE không còn khớp dòng 'Tổng cộng' của file đó khi file lẫn ngày — đối chiếu phải làm theo NGÀY, lấy file của đúng ngày ấy.",
+    "MỖI NGÀY MỘT FILE, KHÔNG LUỸ KẾ — `moi_ky_lay_file_moi_nhat: \"ngay\"` là bắt buộc, và bên cron phải khai `ANH_CHUP_KY`. Để `luy_ke` thì N file ngày bị coi là N bản chốt của một tháng rồi xoá hết trừ một.",
+    "Xưởng HCM ghi đủ pháp nhân ('Chi nhánh Vinfast Hồ Chí Minh- Công ty CP Thịnh Cường'), là tên gọi thứ TƯ của xưởng này — đã khai alias trong hook `xdv` ngày 04/09/2026. Đừng bỏ alias đó khi dọn hook.",
+    "File 01/09 và 02/09 chỉ có dòng tổng, 0 hoá đơn (nghỉ lễ Quốc khánh) — đúng theo file, không phải nạp hỏng.",
+    "'Tổng doanh thu' là số TRƯỚC thuế (= Doanh thu công + Doanh thu PT). Cột 'Tổng tiền' mới là sau thuế; mapping chỉ định lấy 'Tổng doanh thu', đừng đổi sang 'Tổng tiền'."
+  ],
+  "report_type": "XDV_HDON_DV",
+  "row_index_base": 8600000,
+  "khoi": "Khối KD Vinfast - XDV",
+  "nguon": {
+    "folder": "TEST_XDV/bangkehoadondv",
+    "file_glob": "*.BangkehoadonDV.xlsx",
+    "sheet": {"so": 0}
+  },
+  "kiem_tra_o": [
+    {"o": "A8", "bang": "Đơn vị"},
+    {"o": "J8", "bang": "Loại TT"},
+    {"o": "V8", "bang": "Tổng doanh thu"}
+  ],
+  "header": {"dong": 8},
+  "dong_bat_dau": 9,
+  "ngay_tu_ten_file": {"regex": "\\.D\\.(\\d{4})(\\d{2})(\\d{2})\\.", "thu_tu": "ymd"},
+  "moi_ky_lay_file_moi_nhat": "ngay",
+  "cot": {
+    "cost_center": {"header": "Đơn vị", "chuan_hoa": "xdv"},
+    "ngay": {"header": "Ngày hóa đơn", "kieu": "date"},
+    "amount": {"header": "Tổng doanh thu", "kieu": "so_co_rong", "he_so": 1e-09},
+    "dim1": {"header": "Loại TT", "chuan_hoa": "hoa", "bat_buoc": false},
+    "dim2": {"header": "Loại HD", "bat_buoc": false},
+    "payload.so_hd": {"header": "Số hóa đơn"},
+    "payload.ten_kh": {"header": "Tên khách hàng", "bat_buoc": false},
+    "payload.so_ro": {"header": "Số RO", "bat_buoc": false},
+    "payload.so_ro_hang": {"header": "Số RO Hãng", "bat_buoc": false},
+    "payload.bks": {"header": "BKS", "bat_buoc": false},
+    "payload.model_xe": {"header": "Model xe", "bat_buoc": false},
+    "payload.ngay_nt": {"header": "Ngày nghiệm thu", "bat_buoc": false},
+    "payload.dt_cong": {"header": "Doanh thu công", "kieu": "so_co_rong", "he_so": 1e-09, "bat_buoc": false},
+    "payload.dt_pt": {"header": "Doanh thu PT", "kieu": "so_co_rong", "he_so": 1e-09, "bat_buoc": false},
+    "payload.thue": {"header": "Thuế", "kieu": "so_co_rong", "he_so": 1e-09, "bat_buoc": false},
+    "payload.tong_tien": {"header": "Tổng tiền", "kieu": "so_co_rong", "he_so": 1e-09, "bat_buoc": false},
+    "payload.da_thu": {"header": "Đã thu", "kieu": "so_co_rong", "he_so": 1e-09, "bat_buoc": false},
+    "payload.con_lai": {"header": "Còn lại", "kieu": "so_co_rong", "he_so": 1e-09, "bat_buoc": false},
+    "payload.cvdv": {"header": "CVDV", "bat_buoc": false},
+    "payload.trang_thai_hd": {"header": "Trạng thái hóa đơn", "bat_buoc": false}
+  },
+  "chi_lay_ngay_cua_file": true,
+  "ban_ghi": "moi_dong",
+  "dan_xuat": {"amount2": "1"},
+  "loc": [
+    {"cot": "payload.so_hd", "dieu_kien": "khac_rong"},
+    {"cot": "cost_center", "dieu_kien": "khac_rong"},
+    {"cot": "payload.ten_kh", "dieu_kien": "khac", "gia_tri": "Tổng cộng"},
+    {"cot": "ngay", "dieu_kien": "khac_rong"}
+  ],
+  "payload_them": {"unit": "ty", "dvt2": "hoa_don"}
+}

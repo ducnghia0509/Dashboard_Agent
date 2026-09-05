@@ -1,0 +1,165 @@
+{
+  "id": "xdv_pnl_ngay",
+  "_mo_ta": "BÁO CÁO LỢI NHUẬN KHỐI XDV theo NGÀY (HQKD) — nguồn TỰ ĐỘNG Cyber (ổ IT\\\\TESTBAOCAOTUDONG\\\\2.VINFAST_XDV -> VPS `TEST_XDV/baocaotaichinhrienghqkd`), mỗi ngày một file. Cùng 47 mã chỉ tiêu B100..B900 và cùng bảng 14 xưởng với bản THÁNG `xdv_pnl_thang`, khác ở chỗ mỗi file là một ảnh chụp LUỸ KẾ TỪ ĐẦU THÁNG tới ngày báo cáo -> spec bật `tru_ngay_truoc` để ra số phát sinh CỦA RIÊNG NGÀY. Đây là nguồn mà mapping XDV (sheet 'QTVH_Cách lấy XDV', cột 'Mô tả cách lấy API từ Cyber') chỉ định cho: doanh thu tổng B100 · doanh thu công việc B110 · doanh thu phụ tùng B120+B130 · doanh thu khác B140+B150 · lợi nhuận gộp B410 — tất cả đều ghi 'Báo cáo ngày sau - báo cáo ngày hôm trước'.",
+  "_kiem_chung": [
+    "30/08 -> 31/08/2026: hiệu luỹ kế = hiệu cột 'Kỳ này', LỆCH 0 ở cả B100 (1.511.125.015), B110 (509.340.391), B120 (956.008.605), B130 (45.776.019) và B410 (361.513.449).",
+    "Tách được tới từng xưởng: cùng phép hiệu 30->31/08 cho Ocean Park 97.597.775 · Cẩm Phả 249.680.656 · Sơn Tây 202.743.559 · HCM 461.485.324 …",
+    "Cột 'Kỳ này' của bản 31/08 = 44.257.186.721 đ, khớp tuyệt đối số tháng 8 trong DB (rà 03/09/2026)."
+  ],
+  "_bay": [
+    "MỖI FILE LÀ LUỸ KẾ, KHÔNG PHẢI SỐ CỦA NGÀY. Bỏ `tru_ngay_truoc` là nạp thẳng luỹ kế vào `raw_rows` — mà mọi màn đều SUM theo kỳ, nên chọn vài ngày rồi cộng là ra gấp mấy lần số thật.",
+    "Dải ngày trong tiêu đề file KHÔNG phải ngày báo cáo: bản 03/09 ghi 'TỪ NGÀY 01/09/2026 ĐẾN NGÀY 30/09/2026'. Ngày của bản ghi lấy từ TÊN FILE (`.D.20260903.`), không lấy từ ô tiêu đề.",
+    "Hai bản 25/08 và 26/08 có dải 'TỪ NGÀY 25/08 ĐẾN NGÀY 25/08' (kéo 1 ngày) rồi từ 29/08 mới đổi sang dải cả tháng — hai bản đó KHÔNG phải luỹ kế nên hiệu với chúng vô nghĩa. Vì vậy chuỗi ngày chỉ đáng tin TỪ 29/08/2026 trở đi; nạp phần trước đó phải soi lại từng ngày.",
+    "CHỈ NẠP TỪ 30/08/2026 (`chi_nap_tu_ngay`). Bản 25 và 26/08 kéo dải MỘT NGÀY nên cột 'Kỳ này' = 0 — không phải luỹ kế, lấy hiệu với chúng là vô nghĩa. Bản 29/08 là bản luỹ kế ĐẦU TIÊN, nhưng không có bản luỹ kế nào trước nó trong tháng để trừ, nên nếu nạp thì nó ôm trọn 01→29/08 dồn vào một ngày. Mốc 30/08 làm ngày đầu tiên có hiệu đúng một ngày (trừ với bản 29/08, bản này vẫn đọc được vì mốc chỉ chặn NẠP). Phần 01→29/08 của tháng 8 đã có từ nguồn tay `XDV_DTHU`.",
+    "`dim2` tách 'Khối' (cột 'Kỳ này') và 'Xưởng' (14 cột đơn vị) — ĐỪNG cộng cả hai, sẽ đếm đôi. Tổng 14 xưởng cũng KHÔNG bằng cột Khối: file còn các cột showroom (Showroom Long Biên, Showroom OceanPark…) và cột pháp nhân tổng, cố ý không khai vì mapping chỉ yêu cầu 14 XDV.",
+    "Bản SR (`TEST_SR/baocaotaichinhrienghqkd`) DÙNG CHUNG cách này được, NHƯNG template bên SR hỏng từ 29/08/2026 (mất 3 dòng doanh thu A210/A211/A213) nên chưa làm — xem mapping VHKD dòng 11."
+  ],
+  "report_type": "XDV_PNL_D",
+  "row_index_base": 8650000,
+  "khoi": "Khối KD Vinfast - XDV",
+  "nguon": {
+    "folder": "TEST_XDV/baocaotaichinhrienghqkd",
+    "file_glob": "*.Baocaotaichinhrieng-HQKD.xlsx",
+    "sheet": {
+      "so": 0
+    }
+  },
+  "kiem_tra_o": [
+    {
+      "o": "A8",
+      "bang": "Mã số"
+    },
+    {
+      "o": "D8",
+      "bang": "Kỳ này"
+    },
+    {
+      "o": "J8",
+      "bang": "XDV Ocean Park"
+    }
+  ],
+  "header": {
+    "dong": 8
+  },
+  "dong_bat_dau": 9,
+  "ngay_tu_ten_file": {
+    "regex": "\\.D\\.(\\d{4})(\\d{2})(\\d{2})\\.",
+    "thu_tu": "ymd"
+  },
+  "moi_ky_lay_file_moi_nhat": "ngay",
+  "tru_ngay_truoc": true,
+  "cot": {
+    "dim1": {
+      "header": "Mã số"
+    },
+    "payload.chi_tieu": {
+      "header": "Chỉ tiêu"
+    }
+  },
+  "ban_ghi": "moi_cot_gia_tri",
+  "cot_gia_tri": [
+    {
+      "header": "Kỳ này",
+      "dim2": "Khối",
+      "he_so": 1e-09
+    },
+    {
+      "header": "XDV Ocean Park",
+      "dim2": "Xưởng",
+      "cost_center": "OCP_XDV",
+      "he_so": 1e-09
+    },
+    {
+      "header": "XDV Long Biên",
+      "dim2": "Xưởng",
+      "cost_center": "LB_XDV",
+      "he_so": 1e-09
+    },
+    {
+      "header": "XDV Smart City",
+      "dim2": "Xưởng",
+      "cost_center": "SMC_XDV",
+      "he_so": 1e-09
+    },
+    {
+      "header": "XDV Hạ Long",
+      "dim2": "Xưởng",
+      "cost_center": "HL_XDV",
+      "he_so": 1e-09
+    },
+    {
+      "header": "XDV Cẩm Phả",
+      "dim2": "Xưởng",
+      "cost_center": "CP_XDV",
+      "he_so": 1e-09
+    },
+    {
+      "header": "VF Xuân Mai",
+      "dim2": "Xưởng",
+      "cost_center": "XM_XDV",
+      "he_so": 1e-09
+    },
+    {
+      "header": "VF Uông Bí",
+      "dim2": "Xưởng",
+      "cost_center": "UB_XDV",
+      "he_so": 1e-09
+    },
+    {
+      "header": "VF Tuyên Quang",
+      "dim2": "Xưởng",
+      "cost_center": "TQ_XDV",
+      "he_so": 1e-09
+    },
+    {
+      "header": "XDV Vĩnh Phúc",
+      "dim2": "Xưởng",
+      "cost_center": "VP_XDV",
+      "he_so": 1e-09
+    },
+    {
+      "header": "XDV Sơn Tây",
+      "dim2": "Xưởng",
+      "cost_center": "ST_XDV",
+      "he_so": 1e-09
+    },
+    {
+      "header": "XDV Đài Tư",
+      "dim2": "Xưởng",
+      "cost_center": "ĐT_XDV",
+      "he_so": 1e-09
+    },
+    {
+      "header": "XDV Việt Trì",
+      "dim2": "Xưởng",
+      "cost_center": "VT_XDV",
+      "he_so": 1e-09
+    },
+    {
+      "header": "XDV Hà Khánh",
+      "dim2": "Xưởng",
+      "cost_center": "HK_XDV",
+      "he_so": 1e-09
+    },
+    {
+      "header": [
+        "Chi nhánh Vinfast Hồ Chí Minh- Công ty CP Thịnh Cường",
+        "Chi nhánh Vinfast Hồ Chí Minh"
+      ],
+      "dim2": "Xưởng",
+      "cost_center": "HCM_XDV",
+      "he_so": 1e-09
+    }
+  ],
+  "loc": [
+    {
+      "cot": "dim1",
+      "dieu_kien": "khac_rong"
+    }
+  ],
+  "payload_them": {
+    "unit": "ty",
+    "nguon_he": "HQKD ngày XDV (Cyber tự động)"
+  },
+  "chi_nap_tu_ngay": "2026-08-30"
+}

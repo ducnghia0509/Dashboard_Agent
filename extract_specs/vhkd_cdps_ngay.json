@@ -1,0 +1,47 @@
+{
+  "id": "vhkd_cdps_ngay",
+  "_mo_ta": "BẢNG CÂN ĐỐI PHÁT SINH theo NGÀY của Showroom — nguồn TỰ ĐỘNG Cyber (ổ IT\\TESTBAOCAOTUDONG\\1.VINFAST_SR -> VPS `TEST_SR/baocaotaichinhriengcdps`), mỗi ngày một file. Mapping VHKD 'Báo cáo API_VHKD' DÒNG 3 — bảng CĐPS các tiểu khoản của TK 511 (doanh thu), 632 (giá vốn), 635/811, 641/642 (chi phí bán hàng / QLDN) theo ngày. NẠP ĐỂ SẴN, CHƯA LÊN MÀN NÀO: mapping có nhưng thiết kế chưa khai ô đích — Dashboard hiện lấy các số này từ BCTC THÁNG (`SRVF/baocaotaichinhrieng` -> PNLT/CHIPHI).",
+  "_kiem_chung": [
+    "03/09/2026: 426 dòng, header dòng 8 = Tài khoản · Tên tài khoản · Nợ đầu kỳ · Có đầu kỳ · Phát sinh nợ · Phát sinh có · Dư nợ cuối kỳ · Dư có cuối kỳ. Dòng 'Tổng cộng' (r9) ghi phát sinh nợ = phát sinh có = 76.970.023.834 đ.",
+    "03/09/2026: lọc `dim2 = Cấp 1` ra PHÁT SINH CÓ 76,970023834 tỷ — KHỚP TUYỆT ĐỐI dòng 'Tổng cộng' của chính file. Phát sinh NỢ cấp 1 ra 76,670024 tỷ, thiếu đúng 0,3 tỷ: file có một dòng phát sinh nợ 300.000.000 đ BỎ TRẮNG cột 'Tài khoản' (dòng 11), bị `loc dim1 khac_rong` cắt. Đây là thiếu của FILE, cần báo kế toán — đừng nới bộ lọc để bù, nới là kéo theo cả dòng tổng."
+  ],
+  "_bay": [
+    "CHƯA CÓ Ô ĐÍCH TRÊN MÀN HÌNH. Theo quy ước 'thiết kế quyết định cái gì hiện lên': mapping có mà thiết kế chưa có thì LƯU dữ liệu, KHÔNG hiện. Đừng nối vào màn Doanh thu / Chi phí trước khi chốt CĐPS ngày thay hay bổ sung cho số tháng — nối bừa là cộng đôi với PNLT/CHIPHI của BCTC tháng.",
+    "FILE LIỆT KÊ CẢ CÂY TÀI KHOẢN: 111 -> 1111 -> 11114, mỗi cấp đã bao trọn cấp dưới. SUM cả cột là gấp 3-4 lần. `dim2` giữ 'Cấp 1'..'Cấp 4' (suy từ số chữ số) để màn hình lọc được; ai đọc report_type này BẮT BUỘC lọc theo một cấp.",
+    "MỚI CÓ 2 NGÀY (02 và 03/09/2026) — chưa đủ chuỗi để đối chiếu tổng phát sinh với BCTC tháng. Cần ít nhất một tuần trước khi tin số.",
+    "amount = 'Phát sinh nợ', amount2 = 'Phát sinh có' — đây là báo cáo DÒNG (phát sinh trong ngày), KHÔNG phải ảnh chụp: cộng qua nhiều ngày là ĐÚNG, đừng đưa vào `_SNAP_RT`. Số dư đầu/cuối kỳ vẫn giữ trong payload (đó mới là ảnh chụp — dùng thì phải lấy ngày cuối).",
+    "Dòng 'Tổng cộng' ở ĐẦU vùng (r9) bỏ trắng cột 'Tài khoản' -> chặn bằng `loc dim1 khac_rong`, cùng lớp lọc đó chặn luôn 2 dòng trống kế bên.",
+    "MỖI NGÀY MỘT FILE, KHÔNG LUỸ KẾ — `moi_ky_lay_file_moi_nhat: \"ngay\"`, bên cron khai `ANH_CHUP_KY`."
+  ],
+  "report_type": "VHKD_CDPS_D",
+  "row_index_base": 8680000,
+  "khoi": "Khối KD Vinfast - Showroom",
+  "nguon": {
+    "folder": "TEST_SR/baocaotaichinhriengcdps",
+    "file_glob": "*.Baocaotaichinhrieng-CDPS.xlsx",
+    "sheet": {"so": 0}
+  },
+  "kiem_tra_o": [
+    {"o": "A8", "bang": "Tài khoản"},
+    {"o": "E8", "bang": "Phát sinh nợ"},
+    {"o": "G8", "bang": "Dư nợ cuối kỳ"}
+  ],
+  "header": {"dong": 8},
+  "dong_bat_dau": 9,
+  "ngay_tu_ten_file": {"regex": "\\.D\\.(\\d{4})(\\d{2})(\\d{2})\\.", "thu_tu": "ymd"},
+  "moi_ky_lay_file_moi_nhat": "ngay",
+  "cot": {
+    "dim1": {"header": "Tài khoản"},
+    "dim2": {"header": "Tài khoản", "chuan_hoa": "tk_cap"},
+    "amount": {"header": "Phát sinh nợ", "kieu": "so_co_rong", "he_so": 1e-09},
+    "amount2": {"header": "Phát sinh có", "kieu": "so_co_rong", "he_so": 1e-09},
+    "payload.ten_tk": {"header": "Tên tài khoản", "bat_buoc": false},
+    "payload.no_dau_ky": {"header": "Nợ đầu kỳ", "kieu": "so_co_rong", "he_so": 1e-09, "bat_buoc": false},
+    "payload.co_dau_ky": {"header": "Có đầu kỳ", "kieu": "so_co_rong", "he_so": 1e-09, "bat_buoc": false},
+    "payload.du_no_cuoi": {"header": "Dư nợ cuối kỳ", "kieu": "so_co_rong", "he_so": 1e-09, "bat_buoc": false},
+    "payload.du_co_cuoi": {"header": "Dư có cuối kỳ", "kieu": "so_co_rong", "he_so": 1e-09, "bat_buoc": false}
+  },
+  "ban_ghi": "moi_dong",
+  "loc": [{"cot": "dim1", "dieu_kien": "khac_rong"}],
+  "payload_them": {"unit": "ty", "nguon_he": "CĐPS ngày Showroom (Cyber tự động)", "chua_len_man": "1"}
+}

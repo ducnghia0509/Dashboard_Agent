@@ -1,0 +1,71 @@
+{
+  "id": "vhkd_pthu_hopdong_ngay",
+  "_mo_ta": "CÂN ĐỐI PHÁT SINH CÔNG NỢ THEO HỢP ĐỒNG — nguồn TỰ ĐỘNG Cyber (ổ IT\\TESTBAOCAOTUDONG\\1.VINFAST_SR -> VPS `TEST_SR/baocaocongnophaithungay`), mỗi ngày một file. Mapping VHKD 'Báo cáo API_VHKD' dòng 17. Mỗi dòng = một HỢP ĐỒNG: dư Nợ/Có đầu kỳ, phát sinh, dư cuối kỳ, kèm số hoá đơn / ngày hoá đơn / số khung / ngày nhập COC / ngày giao xe. Giữ NGUYÊN hình dạng bản ghi của `vhkd_pthu_coc` (nguồn tay) để sau này đổi nguồn chỉ phải sửa một dòng ở backend.",
+  "_kiem_chung": [
+    "31/08/2026: 3.242 dòng có 'Tên đơn vị'; 329 dòng có dư Nợ cuối kỳ, tổng 68,6335 tỷ; 2.894 dòng có dư Có (tiền khách đặt cọc), tổng 42,4036 tỷ.",
+    "'đến hạn' = Ngày hoá đơn + 15 ngày — quy ước đã đối chiếu 03/09/2026 với bản tay, khớp 472/472 dòng. Tính trong engine bằng khoá `tinh_han_no`."
+  ],
+  "_bay": [
+    "KHÔNG PHẢI BẢN THAY THẾ 1-1 CỦA `VHKD_PTHU_COC` — CỐ Ý ĐỂ REPORT_TYPE RIÊNG. Nguồn tự động THIẾU TOÀN BỘ TÀI KHOẢN B2B: 10/10 file (25/08→03/09) chỉ có 13111 · 13112 · 13115 · 13116, không có 13161/13163 nào. Bản tay cùng ngày 31/08 có 13163 (104 HĐ · 35,66 tỷ) + 13161 (73 HĐ · 21,75 tỷ) = 57,41 tỷ B2B. Ghi đè `VHKD_PTHU_COC` bằng nguồn này là làm bốc hơi 57 tỷ công nợ B2B mà màn hình vẫn hiện số trông bình thường. Chỉ đổi sang khi Cyber bổ sung 1316* và hai bên khớp 2-3 ngày liên tiếp.",
+    "Chiều 13111 cũng KHÔNG khớp: tự động 287 dòng, bản tay 58 dòng cùng ngày. Bản tay là danh sách kế toán đã lọc, bản tự động là trọn sổ. Đừng kết luận bên nào sai trước khi hỏi kế toán tiêu chí lọc.",
+    "amount = 'Nợ cuối kỳ' (khách còn nợ mình), GIỮ NGUYÊN quy ước của bản tay. Phần lớn dòng lại nằm ở 'Có cuối kỳ' (tiền khách đặt trước) nên `loc amount khac_rong` cắt còn ~330/3.242 dòng — ĐÚNG, không phải mất dữ liệu. Số dư Có vẫn lưu trong payload để dựng chỉ tiêu khác.",
+    "DÒNG TỔNG THEO TÀI KHOẢN NẰM Ở ĐẦU VÙNG (ngay dưới header, 'Tổng cộng' + các dòng 13111/13112/13115/13116): chúng BỎ TRẮNG cột 'Đơn vị' và 'Tên đơn vị' -> chặn bằng `loc payload.don_vi khac_rong`. Gỡ lớp lọc đó là cộng đôi toàn bộ.",
+    "MỖI NGÀY MỘT FILE, KHÔNG LUỸ KẾ — `moi_ky_lay_file_moi_nhat: \"ngay\"`, bên cron khai `ANH_CHUP_KY`.",
+    "Là ẢNH CHỤP DƯ NỢ: report_type phải nằm trong `_SNAP_RT` ở backend trước khi đưa lên màn, nếu không xem nhiều kỳ sẽ cộng chồng cùng một hợp đồng."
+  ],
+  "report_type": "VHKD_PTHU_HD",
+  "row_index_base": 8660000,
+  "khoi": "Khối KD Vinfast - Showroom",
+  "nguon": {
+    "folder": "TEST_SR/baocaocongnophaithungay",
+    "file_glob": "*_Baocaocongnophaithu.xlsx",
+    "sheet": {"so": 0}
+  },
+  "kiem_tra_o": [
+    {"o": "A8", "bang": "Đơn vị"},
+    {"o": "C8", "bang": "Mã Hợp đồng"},
+    {"o": "M8", "bang": "Nợ cuối kỳ"}
+  ],
+  "header": {"dong": 8},
+  "dong_bat_dau": 9,
+  "ngay_tu_ten_file": {"regex": "\\.D\\.(\\d{4})(\\d{2})(\\d{2})_", "thu_tu": "ymd"},
+  "moi_ky_lay_file_moi_nhat": "ngay",
+  "cot": {
+    "cost_center": {"header": "Tên đơn vị", "chuan_hoa": "sr_showroom", "giu_khi_khong_map": true},
+    "amount": {"header": "Nợ cuối kỳ", "kieu": "so", "he_so": 1e-09},
+    "amount2": {"header": "Có cuối kỳ", "kieu": "so_co_rong", "he_so": 1e-09},
+    "dim2": {"header": "Tài khoản", "chuan_hoa": "kenh_tk", "bat_buoc": false},
+    "dim3": {"header": "Ngày nhập COC", "chuan_hoa": "coc_ngay", "chuan_hoa_khi_rong": true, "bat_buoc": false},
+    "payload.don_vi": {"header": "Tên đơn vị"},
+    "payload.ma_don_vi": {"header": "Đơn vị", "bat_buoc": false},
+    "payload.ten_khach": {"header": "Tên kh", "bat_buoc": false},
+    "payload.ma_khach": {"header": "Mã khách", "bat_buoc": false},
+    "payload.ma_hop_dong": {"header": "Mã Hợp đồng"},
+    "payload.tai_khoan": {"header": "Tài khoản"},
+    "payload.no_dau_ky": {"header": "Nợ đầu kỳ", "kieu": "so_co_rong", "he_so": 1e-09, "bat_buoc": false},
+    "payload.co_dau_ky": {"header": "Có đầu kỳ", "kieu": "so_co_rong", "he_so": 1e-09, "bat_buoc": false},
+    "payload.ps_no": {"header": "Phát sinh nợ", "kieu": "so_co_rong", "he_so": 1e-09, "bat_buoc": false},
+    "payload.ps_co": {"header": "Phát sinh có", "kieu": "so_co_rong", "he_so": 1e-09, "bat_buoc": false},
+    "payload.co_cuoi_ky": {"header": "Có cuối kỳ", "kieu": "so_co_rong", "he_so": 1e-09, "bat_buoc": false},
+    "payload.so_hoa_don": {"header": "Số hóa đơn", "bat_buoc": false},
+    "payload.ngay_hoa_don": {"header": "Ngày hóa đơn", "kieu": "date", "bat_buoc": false},
+    "payload.so_khung": {"header": "Số khung", "bat_buoc": false},
+    "payload.ten_kieu_xe": {"header": "Tên kiểu xe", "bat_buoc": false},
+    "payload.coc_tho": {"header": "Ngày nhập COC", "kieu": "date", "bat_buoc": false},
+    "payload.ngay_giao_xe": {"header": "Ngày giao xe", "kieu": "date", "bat_buoc": false},
+    "payload.ten_nhan_vien": {"header": "Tên nhân viên", "bat_buoc": false}
+  },
+  "tinh_han_no": {
+    "ngay_hoa_don": "payload.ngay_hoa_don",
+    "cong_ngay": 15,
+    "den_han": "payload.den_han",
+    "so_ngay_qua_han": "payload.so_ngay_qua_han",
+    "phan_loai": "dim1"
+  },
+  "ban_ghi": "moi_dong",
+  "loc": [
+    {"cot": "amount", "dieu_kien": "khac_rong"},
+    {"cot": "payload.don_vi", "dieu_kien": "khac_rong"}
+  ],
+  "payload_them": {"unit": "ty", "nguon": "cdps_cong_no_theo_hop_dong_tu_dong"}
+}

@@ -1,0 +1,64 @@
+{
+  "id": "xdv_lsc_ngay",
+  "_mo_ta": "BẢNG KÊ LỆNH SỬA CHỮA (DV41) — nguồn TỰ ĐỘNG Cyber (ổ IT\\TESTBAOCAOTUDONG\\2.VINFAST_XDV -> VPS `TEST_XDV/bangkelenhsuachua`), mỗi ngày một file. Một bản ghi = MỘT LỆNH SỬA CHỮA (R/O) tạo trong ngày, kèm trạng thái, ngày lệnh, ngày nghiệm thu, doanh thu và giá vốn. Chỉ tiêu MỚI của mapping XDV (Báo cáo API_XDV dòng 15).",
+  "_kiem_chung": [
+    "25/08/2026: 649 lệnh (BOLD=1), tổng cột 'Doanh thu' = 1.847.448.382,82 đ — KHỚP TUYỆT ĐỐI dòng 'Tổng cộng' (r9) của chính file. 649 số R/O khác nhau, tức mỗi lệnh đúng một dòng.",
+    "25/08/2026: 12 đơn vị (Smart City 517 · Xuân Mai 329 · Ocean Park 327 … tính theo dòng chi tiết), 3.003/3.005 dòng có 'Ngày lệnh' = ngày trong tên file."
+  ],
+  "_bay": [
+    "CỘT 'BOLD' PHÂN HAI TẦNG CHỒNG NHAU, MỖI TẦNG ĐỦ TOÀN BỘ SỐ TIỀN: BOLD=1 là dòng TỔNG THEO LỆNH (649 dòng), BOLD=0 là dòng CHI TIẾT từng vật tư/công việc (2.354 dòng). Đo 25/08: cả hai tầng đều tổng ra đúng 1.847.448.382,82 đ. Nạp cả hai là ĐÚNG GẤP ĐÔI. Spec này lấy tầng BOLD=1 (`loc` bang '1').",
+    "DÒNG 'Tổng cộng' NẰM Ở ĐẦU VÙNG (dòng 9) và MANG LUÔN BOLD=1 nên bộ lọc BOLD không chặn nó — nhãn 'Tổng cộng' rơi vào cột Y 'Tên', cột A 'Đơn vị cơ sở' bỏ trắng. Chặn thêm bằng `payload.so_lenh khac_rong` + `cost_center khac_rong`.",
+    "FILE CHỈ CHỨA LỆNH CỦA MỘT NGÀY (mọi dòng có 'Ngày lệnh' = ngày trong tên file). Vì vậy chỉ tiêu #10 của mapping ('số lệnh >10 ngày chưa nghiệm thu') KHÔNG tính được từ một file: lệnh cũ không xuất hiện lại và trạng thái của chúng không được cập nhật. Cần Cyber kéo LUỸ KẾ đến ngày báo cáo, như đã đề nghị cho DV42/DV44. Từ nguồn hiện tại chỉ đo được: số lệnh tạo trong ngày, doanh thu/giá vốn theo lệnh, cơ cấu trạng thái tại thời điểm tạo.",
+    "MỖI NGÀY MỘT FILE, KHÔNG LUỸ KẾ — `moi_ky_lay_file_moi_nhat: \"ngay\"`, bên cron khai `ANH_CHUP_KY`.",
+    "'Giá vốn' của tầng BOLD=1 thường bằng 0 (giá vốn nằm ở tầng chi tiết BOLD=0). Đừng dựng biên lợi nhuận từ report_type này."
+  ],
+  "report_type": "XDV_LSC_D",
+  "row_index_base": 8620000,
+  "khoi": "Khối KD Vinfast - XDV",
+  "nguon": {
+    "folder": "TEST_XDV/bangkelenhsuachua",
+    "file_glob": "*.Bangkelenhsuachua.xlsx",
+    "sheet": {"so": 0}
+  },
+  "kiem_tra_o": [
+    {"o": "A8", "bang": "Đơn vị cơ sở"},
+    {"o": "B8", "bang": "BOLD"},
+    {"o": "AL8", "bang": "Doanh thu"}
+  ],
+  "header": {"dong": 8},
+  "dong_bat_dau": 9,
+  "ngay_tu_ten_file": {"regex": "\\.D\\.(\\d{4})(\\d{2})(\\d{2})\\.", "thu_tu": "ymd"},
+  "moi_ky_lay_file_moi_nhat": "ngay",
+  "cot": {
+    "cost_center": {"header": "Đơn vị cơ sở", "chuan_hoa": "xdv"},
+    "ngay": {"header": "Ngày lệnh", "kieu": "date"},
+    "amount": {"header": "Doanh thu", "kieu": "so_co_rong", "he_so": 1e-09},
+    "dim1": {"header": "Trạng thái", "bat_buoc": false},
+    "dim2": {"header": "Mã kiểu xe", "bat_buoc": false},
+    "payload.bold": {"header": "BOLD"},
+    "payload.so_lenh": {"header": "Số lệnh(R/O)"},
+    "payload.so_lenh_hang": {"header": "Số lệnh hãng", "bat_buoc": false},
+    "payload.ma_trang_thai": {"header": "Mã trạng thái", "bat_buoc": false},
+    "payload.ngay_nt": {"header": "Ngày NT", "bat_buoc": false},
+    "payload.so_khung": {"header": "Số khung", "bat_buoc": false},
+    "payload.khach_hang": {"header": "Khách hàng", "bat_buoc": false},
+    "payload.so_hd": {"header": "Số hóa đơn", "bat_buoc": false},
+    "payload.tien_ban": {"header": "Tiền bán", "kieu": "so_co_rong", "he_so": 1e-09, "bat_buoc": false},
+    "payload.chiet_khau": {"header": "Chiế khấu", "kieu": "so_co_rong", "he_so": 1e-09, "bat_buoc": false},
+    "payload.thue": {"header": "Thuế", "kieu": "so_co_rong", "he_so": 1e-09, "bat_buoc": false},
+    "payload.gia_von": {"header": "Giá vốn", "kieu": "so_co_rong", "he_so": 1e-09, "bat_buoc": false},
+    "payload.ho_tro_bh": {"header": "Hỗ trợ BH", "bat_buoc": false},
+    "payload.ma_thanh_toan": {"header": "Mã thanh toán", "bat_buoc": false},
+    "payload.cvdv": {"header": "Cố vấn dịch vụ", "bat_buoc": false},
+    "payload.ttcp": {"header": "TTCP", "bat_buoc": false}
+  },
+  "ban_ghi": "moi_dong",
+  "dan_xuat": {"amount2": "1"},
+  "loc": [
+    {"cot": "payload.bold", "dieu_kien": "bang", "gia_tri": "1"},
+    {"cot": "payload.so_lenh", "dieu_kien": "khac_rong"},
+    {"cot": "cost_center", "dieu_kien": "khac_rong"},
+    {"cot": "ngay", "dieu_kien": "khac_rong"}
+  ],
+  "payload_them": {"unit": "ty", "dvt2": "lenh"}
+}

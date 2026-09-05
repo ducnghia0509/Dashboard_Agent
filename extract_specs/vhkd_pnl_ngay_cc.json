@@ -1,0 +1,50 @@
+{
+  "id": "vhkd_pnl_ngay_cc",
+  "_mo_ta": "BÁO CÁO LỢI NHUẬN TOÀN KHỐI SHOWROOM theo NGÀY — mức TỪNG SHOWROOM. Cùng file với `vhkd_pnl_ngay` (`TEST_SR/baocaotaichinhrienghqkd`) nhưng report_type RIÊNG `VHKD_PNL_CC_D`, đọc 10 CỘT ĐƠN VỊ + Vinfast B2B thay cho cột tổng. Mapping VHKD ô H5/H36 yêu cầu 'lấy dữ liệu và lọc của từng costcenter: 9 SR'.",
+  "_kiem_chung": [
+    "27 cột đơn vị chạy theo gốc 'Kỳ này' (luỹ kế TỪ ĐẦU THÁNG), không theo 'Lũy kế'. Đo 03/09: A300 cột 'Kỳ này' = 3,1632 tỷ, tổng 10 cột showroom = 3,1629 tỷ (chênh 0,0003 là cost center ngoài 10 cột khai ở đây); cột 'Lũy kế' cùng dòng là 4.404,80 tỷ."
+  ],
+  "_bay": [
+    "TÁCH SPEC LÀ BẮT BUỘC, KHÔNG PHẢI CHO GỌN. Cột tổng dùng 'Lũy kế' (liên tháng) nên spec kia khai `tru_ngay_truoc: \"lien_thang\"`; cột đơn vị lại reset đầu tháng nên phải `tru_ngay_truoc: true`. Gộp một spec thì ngày 01 mỗi tháng các showroom bị trừ với bản cuối tháng trước và ra ÂM cả trăm tỷ.",
+    "REPORT_TYPE PHẢI KHÁC SPEC KIA. Engine xoá theo cặp (report_type, source_file) — hai spec đọc CÙNG MỘT FILE mà để chung report_type thì spec chạy sau XOÁ SẠCH rows của spec chạy trước, và tuỳ thứ tự glob mà mỗi lần nạp lại mất một nửa. Đã tách: khối = `VHKD_PNL_D`, showroom = `VHKD_PNL_CC_D`. ĐỪNG cộng hai report_type này với nhau, sẽ đếm đôi. Tổng 10 showroom cũng KHÔNG bằng dòng Khối: file còn 14 cột XDV (thuộc khối khác, đã có `xdv_pnl_ngay`) và cột pháp nhân 'CHI NHÁNH VINFAST HÀ NỘI…' là tổng của cả hai khối — cố ý không khai cả ba nhóm đó.",
+    "Doanh thu của các cột showroom cũng = 0 trong tháng 9 y như cột tổng — cùng một khuyết tật nguồn, xem `_bay` của `vhkd_pnl_ngay`.",
+    "MỐC `chi_nap_tu_ngay` = 30/08/2026 giống spec kia, nhưng lý do khác: ở đây cột reset theo tháng nên bản 01 của tháng tự nó đã là số của ngày; mốc chỉ để tránh nạp chồng tháng 8 vốn đã có đủ từ nguồn tay `HQKD_D`."
+  ],
+  "report_type": "VHKD_PNL_CC_D",
+  "row_index_base": 8690000,
+  "khoi": "Khối KD Vinfast - Showroom",
+  "nguon": {
+    "folder": "TEST_SR/baocaotaichinhrienghqkd",
+    "file_glob": "*.Baocaotaichinhrieng-HQKD.xlsx",
+    "sheet": {"so": 0}
+  },
+  "kiem_tra_o": [
+    {"o": "A8", "bang": "Mã số"},
+    {"o": "AB8", "bang": "Showroom OceanPark"}
+  ],
+  "header": {"dong": 8},
+  "dong_bat_dau": 9,
+  "ngay_tu_ten_file": {"regex": "\\.D\\.(\\d{4})(\\d{2})(\\d{2})\\.", "thu_tu": "ymd"},
+  "moi_ky_lay_file_moi_nhat": "ngay",
+  "tru_ngay_truoc": true,
+  "chi_nap_tu_ngay": "2026-08-30",
+  "cot": {
+    "dim1": {"header": "Mã số"},
+    "payload.chi_tieu": {"header": "Chỉ tiêu"}
+  },
+  "ban_ghi": "moi_cot_gia_tri",
+  "cot_gia_tri": [
+    {"header": "Showroom OceanPark", "dim2": "Showroom", "cost_center": "OCP_SR", "he_so": 1e-09},
+    {"header": "Showroom Long Biên", "dim2": "Showroom", "cost_center": "LB_SR", "he_so": 1e-09},
+    {"header": "Showroom Smart City", "dim2": "Showroom", "cost_center": "SMC_SR", "he_so": 1e-09},
+    {"header": "Showroom Hạ Long", "dim2": "Showroom", "cost_center": "HL_SR", "he_so": 1e-09},
+    {"header": "Showroom Cẩm Phả", "dim2": "Showroom", "cost_center": "CP_SR", "he_so": 1e-09},
+    {"header": "Showroom Vĩnh Phúc", "dim2": "Showroom", "cost_center": "VP_SR", "he_so": 1e-09},
+    {"header": "Showroom Sơn Tây", "dim2": "Showroom", "cost_center": "ST_SR", "he_so": 1e-09},
+    {"header": "Showroom Xuân Mai", "dim2": "Showroom", "cost_center": "XM_SR", "he_so": 1e-09},
+    {"header": "Showroom Uông Bí", "dim2": "Showroom", "cost_center": "UB_SR", "cong_ty": "VFQN", "he_so": 1e-09},
+    {"header": "Vinfast B2B", "dim2": "Showroom", "cost_center": "B2B_SR", "he_so": 1e-09}
+  ],
+  "loc": [{"cot": "dim1", "dieu_kien": "khac_rong"}],
+  "payload_them": {"unit": "ty", "goc_so": "luy_ke_trong_thang", "nguon_he": "HQKD ngày Showroom (Cyber tự động)"}
+}

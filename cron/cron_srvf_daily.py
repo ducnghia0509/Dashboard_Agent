@@ -39,10 +39,12 @@ import cron_qtvh_core as core
 
 JOB = "srvf_daily"
 NHAN = "Nguồn QTVH Showroom Vinfast (SRVF)"
-SCHEDULE_VN = "05:00 · 16:45 · 17:15 (prod sớm hơn 10')"   # 3 lượt/ngày (đổi 29/08/2026). Ghi vào artifact
+SCHEDULE_VN = "05:00 · 13:15 · 16:45 · 17:15 (prod sớm hơn)"  # 4 lượt/ngày (thêm lượt chiều 04/09/2026). Ghi vào artifact
 # cho agent giám sát khỏi hard-code mốc giờ — KHÔNG ai parse chuỗi này, chỉ hiển thị.
 # Lượt 05:00 sáng gánh các nguồn nộp sau giờ chiều (KSCL của XDV nộp 18:02-18:31 VN).
-# Lượt prod chạy sau test 5 phút; xem khối chú thích trong crontab.
+# Lượt prod chạy TRƯỚC test; xem khối chú thích trong crontab.
+# LƯỢT CHIỀU 13:00 (prod) / 13:15 (test) thêm 04/09/2026: bộ nguồn tự động Cyber về VPS quanh
+# trưa — bản 03/09 về lúc 12:14-12:19 VN — nên ba lượt cũ đều hụt, file phải đợi tới 16:45.
 
 NGUON = [
     # ── luỹ kế: mỗi kỳ NHIỀU bản chốt, chỉ giữ bản mới nhất rồi xoá rows bản cũ ─────────────
@@ -90,6 +92,52 @@ NGUON = [
         # (KD60) — tiêu đề trong file là 'BẢNG KÊ ĐIỀU KIỆN HỢP ĐỒNG', có Ngày cọc / Hủy HĐ.
         # Sổ xuất hoá đơn là thư mục 'bangkehoadonbanxe' ngay trên.
         "ten": "Hợp đồng ký mới theo ngày (KD60 tự động)",
+        "ngay_regex": r"\.D\.(20\d{2})(\d{2})(\d{2})\.",
+    },
+    {
+        # KD66 — bảng tổng hợp bán xe theo showroom (đã cọc / TT đủ đã giao / TT đủ chưa giao).
+        # Khai 04/09/2026 cùng lượt với KD25; cả hai là "chỉ tiêu mới", không đụng report_type nào
+        # đang sống nên không cần ranh giới cutover như KD73.
+        "company": "TEST_SR", "rt": "baocaotonghopbanxe", "che_do": core.ANH_CHUP_KY,
+        "ten": "Tổng hợp bán xe theo ngày (KD66 tự động)",
+        "ngay_regex": r"\.D\.(20\d{2})(\d{2})(\d{2})\.",
+    },
+    {
+        # KD25 — nhập xuất tồn HỒ SƠ xe (giấy tờ/COC), khác KD36 là tồn kho xe VẬT LÝ.
+        "company": "TEST_SR", "rt": "baocaonhapxuattonhosoxe", "che_do": core.ANH_CHUP_KY,
+        "ten": "Tồn hồ sơ xe theo ngày (KD25 tự động)",
+        "ngay_regex": r"\.D\.(20\d{2})(\d{2})(\d{2})\.",
+    },
+    # BA thư mục TEST_SR còn lại KHAI NỐT 05/09/2026. Cả ba đều ĐỔI NGUỒN CHỨ KHÔNG ĐỔI CÁCH TÍNH,
+    # và cả ba đều để REPORT_TYPE RIÊNG chứ không ghi đè nguồn tay — nguồn nào cũng đang có một
+    # khuyết tật ở phía FILE, nên nạp để đối chiếu song song trước, đổi sang sau khi khớp:
+    #   · baocaocongnophaithungay -> `VHKD_PTHU_HD` (không phải `VHKD_PTHU_COC`): file THIẾU TRỌN
+    #     tài khoản B2B 1316* ở cả 10/10 ngày, ghi đè là bốc hơi 57,41 tỷ công nợ B2B.
+    #   · baocaotaichinhrienghqkd -> `VHKD_PNL_D` (không phải `HQKD_D`): cột doanh thu "Kỳ này"
+    #     của file = 0 ở cả 3 ngày tháng 9, ghi đè là doanh thu Showroom về 0.
+    #   · baocaotaichinhriengcdps -> `VHKD_CDPS_D`: NẠP ĐỂ SẴN, chưa nối màn nào (mapping có,
+    #     thiết kế chưa khai ô đích).
+    {
+        # Cân đối PS công nợ theo hợp đồng (mapping VHKD dòng 17). Mỗi ngày một file, không luỹ kế.
+        "company": "TEST_SR", "rt": "baocaocongnophaithungay", "che_do": core.ANH_CHUP_KY,
+        "ten": "Công nợ theo hợp đồng theo ngày (tự động)",
+        # Tên file dùng GẠCH DƯỚI trước 'Baocaocongnophaithu' chứ không phải dấu chấm như 5 thư mục
+        # trên -> regex phải kết bằng '_', khớp '.' là không bắt được ngày nào.
+        "ngay_regex": r"\.D\.(20\d{2})(\d{2})(\d{2})_",
+    },
+    {
+        # Báo cáo lợi nhuận toàn khối Showroom theo ngày (mapping VHKD dòng 11) — nguồn LUỸ KẾ
+        # TỪ ĐẦU THÁNG, spec `vhkd_pnl_ngay` lấy HIỆU với bản ngày trước (`tru_ngay_truoc`), y hệt
+        # cách đã làm cho XDV. PHẢI để ANH_CHUP_KY và phải giữ ĐỦ CHUỖI NGÀY trên đĩa: phép hiệu
+        # cần bản liền trước, bản nào về muộn thì ngày kế tiếp thành số GỘP của cả quãng.
+        "company": "TEST_SR", "rt": "baocaotaichinhrienghqkd", "che_do": core.ANH_CHUP_KY,
+        "ten": "Lợi nhuận khối Showroom theo ngày (HQKD tự động, hiệu luỹ kế)",
+        "ngay_regex": r"\.D\.(20\d{2})(\d{2})(\d{2})\.",
+    },
+    {
+        # Bảng CĐPS theo ngày (mapping VHKD dòng 3). Báo cáo DÒNG (phát sinh trong ngày).
+        "company": "TEST_SR", "rt": "baocaotaichinhriengcdps", "che_do": core.ANH_CHUP_KY,
+        "ten": "Cân đối phát sinh theo ngày (tự động)",
         "ngay_regex": r"\.D\.(20\d{2})(\d{2})(\d{2})\.",
     },
     # NGUỒN TAY 'baocaotonkhoxevatly' ĐÃ GỠ 03/09/2026 — cùng lý do: `vhkd_tonkho_vatly` nghỉ hưu,
