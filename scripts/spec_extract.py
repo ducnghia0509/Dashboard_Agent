@@ -55,6 +55,9 @@ CẤU TRÚC SPEC (khoá tiếng Việt cho kế toán/BA đọc được):
   "cot_thang": {"tu": "E", "den": "J", "he_so": 1.0,
                 "kieu": "nguong"},       // tuỳ chọn — ô là ngưỡng có toán tử ("≥95%", "<4%"):
                                          // amount = số, payload.toan_tu = '>='/'<='/'<'/'='
+  "khong_tru_lien_thang_dim2": ["Xưởng"],  // các dim2 giữ nguyên khi bản trước KHÁC THÁNG
+                                        // (dùng khi một spec trộn cột luỹ kế liên tháng với
+                                        //  cột reset theo tháng)
   "cot_ngay_dau_thang": "Kỳ này",       // bản ĐẦU THÁNG không có gì để trừ -> đọc cột này thay
                                         // (chỉ có nghĩa khi đi kèm `tru_ngay_truoc`)
   "doi_gia_tri": {"dim1": {"A100": "1000", "A300": "1047"}},   // đổi TÊN giá trị khi đổi nguồn
@@ -2099,7 +2102,24 @@ def _tru_ngay_truoc(spec, path, recs):
                     " — VỚI CỘT LUỸ KẾ LIÊN THÁNG ĐÂY LÀ SỐ RÁC (luỹ kế từ khi thành lập), "
                     "đặt `chi_nap_tu_ngay` sau bản này để bỏ nó")])
     ngay_truoc, file_truoc = max(ung_vien)
+    # MỘT SPEC CÓ THỂ TRỘN HAI GỐC SỐ. `xdv_pnl_ngay` khai 15 cột giá trị: cột "Lũy kế" của KHỐI
+    # (luỹ kế từ khi thành lập, phải trừ vắt tháng) và 14 cột ĐƠN VỊ (chạy theo gốc "Kỳ này",
+    # reset đầu tháng, KHÔNG được trừ vắt tháng). Trừ tất bằng một luật là ngày 01 mỗi tháng các
+    # xưởng bị trừ với bản cuối tháng trước và ra ÂM cả chục tỷ — đã xảy ra 05/09/2026, ngày 01/09
+    # ra −44,2572 tỷ. `khong_tru_lien_thang_dim2` liệt kê các `dim2` giữ nguyên giá trị của chính
+    # mình khi bản liền trước thuộc THÁNG KHÁC; trong cùng tháng thì mọi dòng vẫn trừ như nhau.
+    mien = set(spec.get("khong_tru_lien_thang_dim2") or ())
+    vat_thang = mien and ngay_truoc[:7] != ngay_nay[:7]
+    if vat_thang:
+        giu = [r for r in recs if r.get("dim2") in mien]
+        recs = [r for r in recs if r.get("dim2") not in mien]
+        warn.append(f"tru_ngay_truoc: bản liền trước ({ngay_truoc}) khác tháng -> giữ nguyên "
+                    f"{len(giu)} dòng có dim2 thuộc {sorted(mien)} (gốc số reset theo tháng)")
+    else:
+        giu = []
     truoc, _w = extract_file({**spec, "_dang_doc_ngay_truoc": True}, file_truoc)
+    if vat_thang:
+        truoc = [r for r in truoc if r.get("dim2") not in mien]
     if (dt.date.fromisoformat(ngay_nay) - dt.date.fromisoformat(ngay_truoc)).days > 1:
         warn.append(f"tru_ngay_truoc: bản liền trước là {ngay_truoc}, cách {ngay_nay} hơn 1 ngày "
                     f"-> số ghi vào {ngay_nay} là GỘP của cả quãng")
@@ -2110,7 +2130,7 @@ def _tru_ngay_truoc(spec, path, recs):
     cu = {}
     for r in truoc:
         cu[khoa(r)] = cu.get(khoa(r), 0.0) + (r.get("amount") or 0.0)
-    ra, EPS = [], 1e-9
+    ra, EPS = [r for r in giu if abs(r.get("amount") or 0) > 1e-9], 1e-9
     for r in recs:
         k = khoa(r)
         r["amount"] = (r.get("amount") or 0.0) - cu.pop(k, 0.0)
