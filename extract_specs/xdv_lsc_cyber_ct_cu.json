@@ -1,0 +1,92 @@
+{
+  "id": "xdv_lsc_cyber_ct_cu",
+  "_mo_ta": "BẢN CŨ (T1–T6/2026) của chi tiết lệnh sửa chữa còn tồn trên Cyber. Cùng report_type XDV_LSC_CYBER_CT với spec `xdv_lsc_cyber_ct`, chỉ khác BỐ CỤC FILE — tách spec thay vì nới spec chính để mỗi bố cục giữ được `kiem_tra_o` của riêng nó.",
+  "_bay": [
+    "TÊN SHEET ĐỔI GIỮA CHỪNG: T1–T6/2026 là 'DS LSC CYBER', từ tuần 27/07 (T7) đổi thành 'CYBER-DS LSC'. Spec chính khai tên mới nên 6 file cũ nằm im trong thư mục, không ai báo lỗi — chỉ thấy XDV_LSC_CYBER_CT trống T1–T6 trong khi XDV_LSC_CYBER (sheet 'CYBER-BC LSC', tên KHÔNG đổi) lại đủ 8 kỳ.",
+    "BỐ CỤC CŨ KHÔNG CÓ CỘT 'Ngày tạo lệnh' (cũng không có 'Đơn vị'/'TTCP'/'Mã chiến dịch'). Dùng 'Ngày R/O' làm dim3 — ở bố cục mới hai cột này trỏ cùng một ngày (kiểm trên file T7: 'Ngày tạo lệnh' 2025-05-08 08:58 vs 'Ngày R/O' 08/05/2025). payload.ngay_nguon ghi rõ cột đã dùng để sau này truy được.",
+    "Mọi bẫy của bản mới giữ nguyên: đây là ẢNH CHỤP LỆNH CÒN TỒN nên 'RO tạo mới' đếm ra luôn ≤ số thật; kỳ của dòng là TUẦN BÁO CÁO, không phải ngày tạo lệnh."
+  ],
+  "report_type": "XDV_LSC_CYBER_CT",
+  "row_index_base": 7780000,
+  "khoi": "Khối KD Vinfast - XDV",
+  "nguon": {
+    "folder": "XDV/baocaolsccyber",
+    "file_glob": "*.xlsx",
+    "sheet": {
+      "ten": "DS LSC CYBER"
+    }
+  },
+  "kiem_tra_o": [
+    {
+      "o": "A2",
+      "bang": "Số ngày tồn"
+    },
+    {
+      "o": "C2",
+      "bang": "Trạng thái lệnh"
+    },
+    {
+      "o": "D2",
+      "bang": "Ngày R/O"
+    }
+  ],
+  "header": {
+    "dong": 2
+  },
+  "dong_bat_dau": 3,
+  "cot": {
+    "cost_center": {
+      "header": "XDV",
+      "chuan_hoa": "xdv"
+    },
+    "dim1": {
+      "header": "Trạng thái lệnh",
+      "chuan_hoa": "cat"
+    },
+    "dim2": {
+      "header": "Loại hình TT",
+      "chuan_hoa": "cat",
+      "bat_buoc": false
+    },
+    "dim3": {
+      "header": "Ngày R/O",
+      "kieu": "date"
+    },
+    "amount": {
+      "header": "Số ngày tồn",
+      "kieu": "so",
+      "he_so": 1
+    },
+    "payload.khach_hang": {
+      "header": "Khách hàng",
+      "bat_buoc": false
+    },
+    "payload.ngay_ro": {
+      "header": "Ngày R/O",
+      "bat_buoc": false
+    }
+  },
+  "ban_ghi": "moi_dong",
+  "loc": [
+    {
+      "cot": "cost_center",
+      "dieu_kien": "khac_rong"
+    },
+    {
+      "cot": "dim3",
+      "dieu_kien": "khac_rong"
+    }
+  ],
+  "payload_them": {
+    "nguon_he": "Cyber",
+    "unit": "ngay_ton",
+    "ngay_nguon": "Ngày R/O"
+  },
+  "ky_tu_ten_file": {
+    "regex_nam": "W\\.(\\d{4})\\.",
+    "regex_thang": "W\\.\\d{4}\\.(\\d{1,2})\\.",
+    "regex_ngay": "W\\.\\d{4}\\.\\d{1,2}\\.\\d{1,2}\\.(\\d{1,2})\\.",
+    "tuan_truoc_ngay_bao_cao": true
+  },
+  "moi_ky_lay_file_moi_nhat": "ngay"
+}
