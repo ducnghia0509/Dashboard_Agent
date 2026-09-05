@@ -1,0 +1,53 @@
+{
+  "id": "vhkd_ton_hosoxe",
+  "_mo_ta": "BÁO CÁO NHẬP XUẤT TỒN HỒ SƠ XE (KD25) — nguồn TỰ ĐỘNG Cyber (ổ IT\\TESTBAOCAOTUDONG\\1.VINFAST_SR -> VPS `TEST_SR/baocaonhapxuattonhosoxe`), mỗi ngày một file. Một bản ghi = MỘT SỐ KHUNG: tồn đầu / nhập / xuất / tồn cuối của HỒ SƠ xe (giấy tờ, COC) — khác `VHKD_TONVATLY` (KD36) là tồn kho xe VẬT LÝ. Chỉ tiêu MỚI của mapping VHKD (Báo cáo API_VHKD dòng 16).",
+  "_kiem_chung": [
+    "03/09/2026: 8.213 dòng có Số khung — Tồn đầu 1.658 · SL Nhập 34 · SL Xuất 138 · Tồn cuối 1.554, KHỚP TUYỆT ĐỐI dòng 'Tổng cộng' (r9) của chính file ở cả bốn chỉ tiêu.",
+    "11 đơn vị (Long Biên 1.247 · Sơn Tây 1.124 · Hạ Long 1.103 · Smart City 1.071 · Vĩnh Phúc 995 · Cẩm Phả 783 · Xuân Mai 763 · OceanPark 481 · Vinfast B2B 420 · Uông Bí 210) + 16 dòng của pháp nhân 'CHI NHÁNH VINFAST HÀ NỘI - CÔNG TY CỔ PHẦN THỊNH CƯỜNG'."
+  ],
+  "_bay": [
+    "FILE CÓ HAI TẦNG CHỒNG NHAU, MỖI TẦNG ĐỦ TOÀN BỘ SỐ LƯỢNG: 8.213 dòng CHI TIẾT (có Số khung) và 260 dòng TỔNG PHỤ theo từng kiểu xe (Số khung bỏ trắng, cột 'Kiểu xe - Màu xe' ghi 'Tổng cộng <tên kiểu xe>'). Đo 03/09: cả hai tầng đều ra 1.658/34/138/1.554. Nạp cả hai là ĐÚNG GẤP ĐÔI -> `loc` bắt buộc `payload.so_khung khac_rong`, lớp này cũng chặn luôn dòng 'Tổng cộng' r9 và dòng chân trang 'Người lập biểu'.",
+    "`amount` = 'Tồn cuối' chứ không phải 1: file liệt kê CẢ xe đã xuất trong kỳ (tồn cuối = 0), đếm dòng là ra số hồ sơ từng đi qua kho chứ không phải số hồ sơ đang tồn. Bốn số tồn đầu/nhập/xuất/cuối đều giữ trong payload để dựng chỉ tiêu khác.",
+    "Là ẢNH CHỤP TỒN: cộng qua nhiều ngày là đếm đôi, hiển thị nhiều kỳ phải lấy ngày CUỐI.",
+    "CHỈ NẠP DÒNG CÓ SỐ: file liệt kê MỌI số khung từng đi qua kho (8.213 dòng ngày 03/09) trong khi chỉ ~1.700 xe thực sự tồn hoặc có nhập/xuất trong kỳ. Nạp trọn là mỗi ngày thêm 8.200 dòng (10 ngày đầu đã 81.591 dòng — nhiều nhất bảng `raw_rows`) mà 80% là xe tồn 0 không phát sinh. `dan_xuat` tính `payload.hoat_dong = ton_cuoi + sl_nhap + sl_xuat` rồi `loc khac_rong` (điều kiện này loại cả giá trị 0). Xe đã xuất trong kỳ VẪN GIỮ vì sl_xuat > 0. Nếu sau này cần cả xe tồn 0 thì gỡ lớp lọc đó — nhưng phải tính lại chi phí bảng.",
+    "MỖI NGÀY MỘT FILE, KHÔNG LUỸ KẾ — `moi_ky_lay_file_moi_nhat: \"ngay\"`, bên cron khai `ANH_CHUP_KY`.",
+    "Đơn vị 'CHI NHÁNH VINFAST HÀ NỘI - CÔNG TY CỔ PHẦN THỊNH CƯỜNG' không có trong danh mục cost center — `giu_khi_khong_map: true` để tổng khối vẫn đúng (dòng vẫn vào DB, chỉ không lên được biểu đồ theo đơn vị), giống KD36."
+  ],
+  "report_type": "VHKD_TON_HSX",
+  "row_index_base": 8640000,
+  "khoi": "Khối KD Vinfast - Showroom",
+  "nguon": {
+    "folder": "TEST_SR/baocaonhapxuattonhosoxe",
+    "file_glob": "*.Baocaonhapxuattonhosoxe.xlsx",
+    "sheet": {"so": 0}
+  },
+  "kiem_tra_o": [
+    {"o": "A8", "bang": "Đơn vị"},
+    {"o": "C8", "bang": "Số khung"},
+    {"o": "I8", "bang": "Tồn cuối"}
+  ],
+  "header": {"dong": 8},
+  "dong_bat_dau": 9,
+  "ngay_tu_ten_file": {"regex": "\\.D\\.(\\d{4})(\\d{2})(\\d{2})\\.", "thu_tu": "ymd"},
+  "moi_ky_lay_file_moi_nhat": "ngay",
+  "cot": {
+    "cost_center": {"header": "Đơn vị", "chuan_hoa": "sr_showroom", "giu_khi_khong_map": true},
+    "amount": {"header": "Tồn cuối", "kieu": "so_co_rong"},
+    "dim1": {"header": "Kiểu xe", "chuan_hoa": "cat"},
+    "dim2": {"header": "Kiểu xe - Màu xe", "chuan_hoa": "cat"},
+    "payload.don_vi": {"header": "Đơn vị"},
+    "payload.so_khung": {"header": "Số khung"},
+    "payload.nam_sx": {"header": "Năm SX", "kieu": "so_co_rong", "bat_buoc": false},
+    "payload.ton_dau": {"header": "Tồn đầu", "kieu": "so_co_rong"},
+    "payload.sl_nhap": {"header": "SL Nhập", "kieu": "so_co_rong"},
+    "payload.sl_xuat": {"header": "SL Xuất", "kieu": "so_co_rong"},
+    "payload.ton_cuoi": {"header": "Tồn cuối", "kieu": "so_co_rong"}
+  },
+  "ban_ghi": "moi_dong",
+  "dan_xuat": {"payload.hoat_dong": "payload.ton_cuoi + payload.sl_nhap + payload.sl_xuat"},
+  "loc": [
+    {"cot": "payload.so_khung", "dieu_kien": "khac_rong"},
+    {"cot": "payload.hoat_dong", "dieu_kien": "khac_rong"}
+  ],
+  "payload_them": {"unit": "ho_so"}
+}

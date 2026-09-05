@@ -55,6 +55,13 @@ CẤU TRÚC SPEC (khoá tiếng Việt cho kế toán/BA đọc được):
   "cot_thang": {"tu": "E", "den": "J", "he_so": 1.0,
                 "kieu": "nguong"},       // tuỳ chọn — ô là ngưỡng có toán tử ("≥95%", "<4%"):
                                          // amount = số, payload.toan_tu = '>='/'<='/'<'/'='
+  "tinh_han_no": {"ngay_hoa_don": "payload.ngay_hoa_don", "cong_ngay": 15,   // suy đến hạn +
+                  "den_han": "payload.den_han",            // số ngày quá hạn cho nguồn công nợ
+                  "so_ngay_qua_han": "payload.so_ngay_qua_han", "phan_loai": "dim1"},
+  "chi_lay_ngay_cua_file": true,         // bỏ dòng có `ngay` khác ngày suy từ TÊN FILE — cho nguồn
+                                         // ngày cho lẫn sang hôm sau (xem chỗ dùng bên dưới)
+  "tru_ngay_truoc": true,                // ô nguồn là LUỸ KẾ từ đầu tháng -> lấy hiệu với file
+                                         // ngày trước để ra số CỦA RIÊNG NGÀY (xem `_tru_ngay_truoc`)
   "ban_ghi": "moi_dong",                 // | "moi_cot_gia_tri" | "moi_cot_ngay"
                                          // | "moi_cot_thang" (xem dưới)
   "cot_gia_tri": [                       // chỉ dùng khi ban_ghi = "moi_cot_gia_tri":
@@ -294,9 +301,14 @@ def _cc_xdv(ten):
     # "Chi tiết") gọi nó là "Trung tâm Sửa chữa Pin, Động cơ Thành phố Hồ Chí Minh". Không khai
     # thì đúng 1 trong 14 xưởng rơi và mẫu số "nhân sự xưởng" hụt 35 người (~6,7%) — kiểu thiếu
     # vừa đủ nhỏ để không ai thấy.
+    # Alias thứ TƯ (04/09/2026): bộ nguồn TỰ ĐỘNG của Cyber (TEST_XDV/DV01, DV02, DV41, DV42,
+    # DV44) ghi đủ pháp nhân — "Chi nhánh Vinfast Hồ Chí Minh- Công ty CP Thịnh Cường" (chú ý
+    # thiếu dấu cách trước gạch nối). Thiếu alias thì HCM là xưởng DUY NHẤT rơi khỏi mọi nguồn
+    # ngày mới, mà tổng khối vẫn trông hợp lý nên rất khó thấy.
     return _cc_theo_khoi(ten, "Khối KD Vinfast - XDV",
                          {"hcm": ("HCM_XDV", "TC"), "quan12": ("HCM_XDV", "TC"),
-                          "trungtamsuachuapindongcothanhphohochiminh": ("HCM_XDV", "TC")})
+                          "trungtamsuachuapindongcothanhphohochiminh": ("HCM_XDV", "TC"),
+                          "chinhanhvinfasthochiminhcongtycpthinhcuong": ("HCM_XDV", "TC")})
 
 
 def _master_loader():
@@ -712,6 +724,37 @@ def _qua_han(v):
     return "Quá hạn" if n is not None and n > 0 else "Trong hạn"
 
 
+def _tk_cap(v):
+    """Số hiệu tài khoản -> "Cấp 1".."Cấp 4" theo SỐ CHỮ SỐ (111 -> Cấp 1, 1111 -> Cấp 2…).
+
+    Bảng CĐPS liệt kê CẢ CÂY tài khoản: dòng 111 rồi 1111 rồi 11114, mỗi cấp đã bao trọn cấp
+    dưới. Cộng hết là gấp 3-4 lần. File phân cấp bằng ĐỘ THỤT ĐẦU DÒNG, mà engine `strip()` ô
+    text trước khi tới hook nên không đọc được thụt lề — dùng số chữ số thay, quy tắc hệ thống
+    tài khoản Việt Nam là cố định nên tương đương. Màn hình phải lọc theo cấp, đừng SUM cả cột.
+    """
+    s = re.sub(r"\D", "", str(v or ""))
+    if not s:
+        return None
+    return f"Cấp {max(1, len(s) - 2)}"
+
+
+def _coc_ngay(v):
+    """Cột "Ngày nhập COC" của nguồn TỰ ĐỘNG -> "Đã có COC" / "Chưa có COC".
+
+    Khác `_coc_trang_thai`: bên bản TAY cột COC là ô TỰ DO (kế toán gõ đủ kiểu chữ) nên phải đoán
+    qua 15 biến thể; bản tự động của Cyber là một cột NGÀY sạch, có ngày = đã nhập COC, bỏ trắng =
+    chưa. Đưa ô trắng vào `_coc_trang_thai` sẽ ra "Không xác định" (nhánh cuối) — đúng cho bản tay
+    (ô trắng ở đó thật sự là không biết) nhưng SAI cho bản tự động, và sẽ dồn gần hết dòng vào một
+    nhóm vô nghĩa.
+    """
+    if isinstance(v, (dt.datetime, dt.date)):
+        return "Đã có COC"
+    s = str(v if v is not None else "").strip()
+    if not s:
+        return "Chưa có COC"
+    return "Đã có COC" if _date(s) else _coc_trang_thai(v)
+
+
 _COC_CHUA = ("chuacococ", "chuave", "cocchuave", "chuaco", "chua", "xechuacococ",
              "dangst", "chohsgf", "chuacohosogf", "chuacohoso")
 _COC_DA = ("dacococ", "dave", "dacohoso")
@@ -1101,6 +1144,8 @@ _CHUAN_HOA = {
     "kho_kenh": _kho_kenh,
     "qua_han": _qua_han,
     "coc_trang_thai": _coc_trang_thai,
+    "coc_ngay": _coc_ngay,
+    "tk_cap": _tk_cap,
     "xdv": _cc_xdv,
     "hcns_xdv": _cc_hcns_xdv,
     "kh_dong": _kh_dong,
@@ -1484,6 +1529,49 @@ def _dan_xuat(rec, cong_thuc):
         except Exception as ex:                                    # noqa: BLE001
             _dat(rec, dich, None)
             rec.setdefault("_loi", []).append(f"{dich}: {ex}")
+
+
+def _tinh_han_no(rec, cfg, ngay_file):
+    """Suy `đến hạn` + `số ngày quá hạn` cho nguồn công nợ KHÔNG có sẵn hai cột đó.
+
+    Bản công nợ TAY (`SRVF/baocaocongnophaithu`) do kế toán tính sẵn hai cột này trong sheet chi
+    tiết. Bản TỰ ĐỘNG của Cyber (`TEST_SR/baocaocongnophaithungay`) chỉ có `Ngày hóa đơn` — đúng
+    quy ước nghiệp vụ đã đối chiếu 03/09/2026: `đến hạn` = Ngày hoá đơn + 15 ngày (khớp 472/472
+    dòng của bản tay), `số ngày quá hạn` = ngày chốt của FILE − đến hạn.
+
+    Vì sao là một khoá riêng chứ không phải `dan_xuat`: `dan_xuat` chạy `eval` trên môi trường
+    CHỈ CÓ SỐ (`isinstance(v, (int, float))`) nên không đụng được vào ngày, và nó cũng không biết
+    ngày chốt của file. Hai thứ đó đều bắt buộc ở đây.
+
+    Chưa tới hạn -> `so_ngay_qua_han` ÂM (giữ nguyên dấu, không kẹp về 0): hook `qua_han` phân loại
+    theo `> 0` nên số âm ra "Trong hạn", đúng như ô rỗng của bản tay; giữ dấu để sau này dựng được
+    "còn mấy ngày tới hạn" mà không phải đọc lại nguồn.
+    """
+    if not cfg:
+        return
+    hd = _lay(rec, cfg.get("ngay_hoa_don", "payload.ngay_hoa_don"))
+    d_hd = _date(hd)
+    dich_dh = cfg.get("den_han", "payload.den_han")
+    dich_qh = cfg.get("so_ngay_qua_han", "payload.so_ngay_qua_han")
+    if not d_hd:
+        # Không có ngày hoá đơn -> để trống chứ KHÔNG đoán. Dòng vẫn vào DB (số dư vẫn đúng),
+        # chỉ mất chiều tuổi nợ — giống hệt cách bản tay xử ô "đến hạn" bỏ trắng.
+        _dat(rec, dich_dh, None)
+        _dat(rec, dich_qh, None)
+        if cfg.get("phan_loai"):
+            _dat(rec, cfg["phan_loai"], _qua_han(None))
+        return
+    y, mo, d = (int(x) for x in d_hd.split("-"))
+    den_han = dt.date(y, mo, d) + dt.timedelta(days=int(cfg.get("cong_ngay", 15)))
+    _dat(rec, dich_dh, den_han.isoformat())
+    moc = _date(cfg.get("_moc") or ngay_file)
+    so_ngay = None
+    if moc:
+        ym, mm, dd = (int(x) for x in moc.split("-"))
+        so_ngay = (dt.date(ym, mm, dd) - den_han).days
+    _dat(rec, dich_qh, so_ngay)
+    if cfg.get("phan_loai"):
+        _dat(rec, cfg["phan_loai"], _qua_han(so_ngay))
 
 
 def _tuan_truoc(bc):
@@ -1893,15 +1981,117 @@ def extract_file(spec, path):
             warn += [f"[sheet {ten}] {x}" for x in w2]
         return recs, _gop_canh_bao(warn)
 
+    # `chi_nap_tu_ngay`: chặn NẠP các bản cũ hơn mốc, nhưng KHÔNG chặn khi đang được
+    # `_tru_ngay_truoc` đọc làm mốc trừ — bản ngay trước mốc vẫn phải đọc được, nếu không thì
+    # ngày đầu tiên sau mốc mất số trừ và ôm trọn phần luỹ kế từ đầu tháng.
+    if spec.get("chi_nap_tu_ngay") and not spec.get("_dang_doc_ngay_truoc"):
+        _nf, _ = ngay_tu_ten_file(spec, path)
+        if _nf and _nf < spec["chi_nap_tu_ngay"]:
+            return [], [f"BỎ QUA — bản {_nf} cũ hơn mốc `chi_nap_tu_ngay` "
+                        f"{spec['chi_nap_tu_ngay']}"]
+
     vung = spec.get("vung")
     if not vung:
-        return _extract_vung(spec, path)
-    recs, warn = [], []
-    for i, v in enumerate(vung, 1):
-        r, w = _extract_vung(_tron_vung(spec, v), path)
-        recs += r
-        warn += [f"[vùng {v.get('ten') or i}] {x}" for x in w]
+        recs, warn = _extract_vung(spec, path)
+    else:
+        recs, warn = [], []
+        for i, v in enumerate(vung, 1):
+            r, w = _extract_vung(_tron_vung(spec, v), path)
+            recs += r
+            warn += [f"[vùng {v.get('ten') or i}] {x}" for x in w]
+    if spec.get("tru_ngay_truoc") and not spec.get("_dang_doc_ngay_truoc"):
+        recs, w3 = _tru_ngay_truoc(spec, path, recs)
+        warn += w3
     return recs, warn
+
+
+def _tru_ngay_truoc(spec, path, recs):
+    """Ô nguồn là LUỸ KẾ TỪ ĐẦU THÁNG -> đổi thành số CỦA RIÊNG NGÀY bằng hiệu hai file liên tiếp.
+
+    Vì sao phải làm ở tầng nạp chứ không để tầng đọc trừ: `raw_rows` là sổ CỘNG ĐƯỢC — mọi màn đều
+    SUM theo kỳ/đơn vị. Nạp thẳng luỹ kế vào là chọn 3 ngày bất kỳ rồi cộng lại ra gấp mấy lần số
+    thật, và không có chỗ nào chặn được. Trừ ngay lúc nạp thì DB chứa đúng "số phát sinh trong
+    ngày", cộng bao nhiêu ngày cũng đúng.
+
+    Đây chính là cách kế toán chốt trong mapping XDV/VHKD (cột "Mô tả cách lấy API từ Cyber"):
+    "Lấy mã số B100: Báo cáo ngày sau - báo cáo ngày hôm trước". Đã đối chứng 30->31/08/2026 trên
+    báo cáo lợi nhuận khối XDV: hiệu luỹ kế = hiệu cột 'Kỳ này', LỆCH 0 ở cả B100/B110/B120/B130/
+    B410, và tách được tới từng xưởng.
+
+    BA QUY TẮC, đừng bỏ cái nào:
+      1. CHỈ TRỪ TRONG CÙNG MỘT THÁNG khi `tru_ngay_truoc: true`. Cột luỹ kế reset về 0 đầu mỗi
+         tháng, nên file ngày 01 phải giữ nguyên giá trị (nó ĐÃ là số của ngày), trừ với ngày 31
+         tháng trước là ra số âm khổng lồ.
+         NGOẠI LỆ `tru_ngay_truoc: "lien_thang"` — cho cột luỹ kế KHÔNG reset theo tháng (cột
+         "Lũy kế" của báo cáo LN toàn khối, luỹ kế từ khi thành lập). Ở đó CHÍNH ngày 01 mới cần
+         trừ với bản cuối tháng trước, còn giữ nguyên là nạp cả nghìn tỷ vào một ngày. Khai nhầm
+         khoá này cho cột reset theo tháng thì ngày 01 ra số ÂM bằng cả tháng trước — kiểm bằng
+         cách xem giá trị bản ngày 01 có nhỏ hơn bản ngày 31 tháng trước hay không.
+      2. FILE TRƯỚC = file có ngày LỚN NHẤT còn nhỏ hơn ngày đang nạp, KHÔNG phải "hôm qua".
+         Nguồn nghỉ cuối tuần/lễ nên chuỗi ngày đứt quãng; lấy cứng d-1 là mất trắng phần phát
+         sinh giữa hai lần nộp. Khi khoảng cách > 1 ngày thì hiệu là số GỘP của cả quãng, gán vào
+         ngày cuối quãng — có cảnh báo để người soi biết, vì phân bố theo ngày lúc đó không thật.
+      3. DÒNG BIẾN MẤT so với file trước vẫn phải đẻ bản ghi ÂM: nếu kỳ trước một xưởng có số mà
+         kỳ này hết (bị điều chỉnh giảm về 0), bỏ qua là để lại phần dôi vĩnh viễn trong DB.
+    """
+    warn = []
+    ngay_nay, _ = ngay_tu_ten_file(spec, path)
+    if not ngay_nay:
+        return recs, ["tru_ngay_truoc: không đọc được ngày từ tên file -> giữ nguyên luỹ kế"]
+    nguon = spec.get("nguon") or {}
+    thu_muc = os.path.dirname(path)
+    ung_vien = []
+    for f in glob.glob(os.path.join(thu_muc, nguon.get("file_glob") or "*.xlsx")):
+        d, _ = ngay_tu_ten_file(spec, f)
+        cung_thang = spec.get("tru_ngay_truoc") != "lien_thang"
+        if d and d < ngay_nay and (d[:7] == ngay_nay[:7] or not cung_thang):
+            ung_vien.append((d, f))
+    if not ung_vien:
+        # Vẫn phải vứt dòng 0: bản ngày 01 của tháng đang dở có đủ 47 mã x 15 cột nhưng hầu hết
+        # bằng 0 (chưa phát sinh) — giữ lại là mỗi ngày đầu tháng đẻ ~700 dòng rác vào `raw_rows`.
+        return ([r for r in recs if abs(r.get("amount") or 0) > 1e-9],
+                [f"tru_ngay_truoc: {ngay_nay} là bản đầu tiên "
+                 + ("có trong thư mục" if spec.get("tru_ngay_truoc") == "lien_thang"
+                    else "có trong tháng")
+                 + " -> giữ nguyên luỹ kế"
+                 + ("" if spec.get("tru_ngay_truoc") != "lien_thang" else
+                    " — VỚI CỘT LUỸ KẾ LIÊN THÁNG ĐÂY LÀ SỐ RÁC (luỹ kế từ khi thành lập), "
+                    "đặt `chi_nap_tu_ngay` sau bản này để bỏ nó")])
+    ngay_truoc, file_truoc = max(ung_vien)
+    truoc, _w = extract_file({**spec, "_dang_doc_ngay_truoc": True}, file_truoc)
+    if (dt.date.fromisoformat(ngay_nay) - dt.date.fromisoformat(ngay_truoc)).days > 1:
+        warn.append(f"tru_ngay_truoc: bản liền trước là {ngay_truoc}, cách {ngay_nay} hơn 1 ngày "
+                    f"-> số ghi vào {ngay_nay} là GỘP của cả quãng")
+
+    def khoa(r):
+        return (r.get("cost_center"), r.get("cong_ty"), r.get("khoi"),
+                r.get("dim1"), r.get("dim2"), r.get("dim3"))
+    cu = {}
+    for r in truoc:
+        cu[khoa(r)] = cu.get(khoa(r), 0.0) + (r.get("amount") or 0.0)
+    ra, EPS = [], 1e-9
+    for r in recs:
+        k = khoa(r)
+        r["amount"] = (r.get("amount") or 0.0) - cu.pop(k, 0.0)
+        if abs(r["amount"]) > EPS:
+            ra.append(r)
+    # Khoá còn sót trong `cu` = có ở file trước, mất ở file này -> phần giảm, phải ghi âm (quy tắc 3)
+    mat = 0
+    for k, v in cu.items():
+        if abs(v) <= EPS:
+            continue
+        mau = dict(recs[0]) if recs else {}
+        mau.pop("payload", None)
+        r = {**mau, "cost_center": k[0], "cong_ty": k[1], "khoi": k[2],
+             "dim1": k[3], "dim2": k[4], "dim3": k[5], "amount": -v,
+             "payload": {**(spec.get("payload_them") or {}), "chi_con_o_ban_truoc": True}}
+        r["ngay"] = ngay_nay
+        ra.append(r)
+        mat += 1
+    if mat:
+        warn.append(f"tru_ngay_truoc: {mat} chỉ tiêu có ở bản {ngay_truoc} nhưng mất ở bản "
+                    f"{ngay_nay} -> ghi bản ghi ÂM để tổng luỹ kế vẫn khớp")
+    return ra, warn
 
 
 # Bộ nhớ đệm MỘT workbook (19/08/2026). `vung` và hai chế độ `moi_sheet_*` đọc CÙNG một file
@@ -2202,6 +2392,7 @@ def _extract_vung(spec, path):
                 return [], [*warn, "BỎ QUA — không dựng được dải cột theo tháng"]
 
         khong_map, khong_map_giu, bo_loc, o_loi = {}, {}, 0, {}
+        bo_khac_ngay = 0       # xem `chi_lay_ngay_cua_file`
         ngu_canh = {}          # ngữ cảnh mang từ dòng tiêu đề xuống, xem `ngu_canh_dong`
         lap_lai_cuoi = {}      # giá trị gần nhất của cột khai `lap_lai`, xem ngay dưới
         nc_cfg = spec.get("ngu_canh_dong")
@@ -2373,6 +2564,7 @@ def _extract_vung(spec, path):
             else:
                 outs.append(base)
             for r2 in outs:
+                _tinh_han_no(r2, spec.get("tinh_han_no"), ngay_file)
                 _dan_xuat(r2, spec.get("dan_xuat"))
                 hong = r2.pop("_khong_map", None)
                 giu = r2.pop("_khong_map_giu", None)
@@ -2387,10 +2579,24 @@ def _extract_vung(spec, path):
                     khong_map[hong] = khong_map.get(hong, 0) + 1
                 elif hong or not _qua_loc(r2, spec.get("loc")):
                     bo_loc += 1
+                elif (spec.get("chi_lay_ngay_cua_file") and ngay_file
+                        and r2.get("ngay") and r2["ngay"] != ngay_file):
+                    # CHỈ GIỮ DÒNG THUỘC ĐÚNG NGÀY CỦA FILE (04/09/2026). Vài nguồn ngày của Cyber
+                    # cho lẫn sang ngày HÔM SAU: `TEST_XDV/bangkehoadondv` bản 26/08 chứa 61 hoá
+                    # đơn ghi ngày 27/08, mà bản 27/08 cũng có đủ 61 cái đó -> ngày 27/08 bị cộng
+                    # đôi 178.253.949 đ. Không khử được bằng `loc` vì `loc` không biết ngày file.
+                    # Dòng bị bỏ ở đây LUÔN xuất hiện lại trong file của đúng ngày nó, nên không
+                    # mất số; đã kiểm 61/61 số hoá đơn đều có trong bản 27/08.
+                    bo_khac_ngay += 1
                 else:
                     recs.append(r2)
         if bo_loc:
             warn.append(f"bỏ {bo_loc} {_W_BO_LOC}")
+        if bo_khac_ngay:
+            # Đếm RIÊNG chứ không gộp vào `bo_loc`: đây là dòng ĐÚNG dữ liệu nhưng thuộc file
+            # khác, số phải nhìn thấy được để biết nguồn đang lẫn ngày tới mức nào.
+            warn.append(f"bỏ {bo_khac_ngay} dòng thuộc ngày khác ngày của file "
+                        f"(chi_lay_ngay_cua_file, ngày file = {ngay_file})")
         if o_loi:
             # Ô lỗi Excel đã bị coi là trống ở trên — báo ra để biết FILE NGUỒN chưa cập nhật
             # xong, đừng đi tìm lỗi ở spec/deriver.
