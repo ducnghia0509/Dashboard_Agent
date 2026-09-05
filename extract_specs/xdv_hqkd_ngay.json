@@ -1,0 +1,163 @@
+{
+  "id": "xdv_hqkd_ngay",
+  "_mo_ta": "HIỆU QUẢ KINH DOANH XDV theo NGÀY — bản THAY THẾ tự động cho `XDV/baocaohqkdngay` (file KT làm tay). Nuôi thẳng màn 'Tổng quan' và 'Hiệu quả kinh doanh' ở chế độ Ngày: mã 1000 doanh thu (B210) · 1047 tổng chi phí (B300+B500+B810+B822+B833) · 1112 lợi nhuận trước thuế (B840). Ghi THEO 14 XƯỞNG (cost center), y hệt hình dạng bản ghi mà `derive_hqkd_ngay._xdv_facts` vẫn sinh ra, nên không màn nào phải sửa.",
+  "_kiem_chung": [
+    "Bộ mã 1047 lấy Y HỆT `derive_hqkd_ngay._XDV_CP_CODES` = B300 + B500 + B810 + B822 + B833 (GỒM giá vốn B300 — chốt 17/07/2026, khớp bản THÁNG và audit BCHN Tập đoàn). Đối chứng trên chính file TAY sheet 03.09: 6.127.150.660 + 371.177.212 + 138.815.740 + 30.684.546 + 0 = 6.667.828.158 đ, khớp tuyệt đối Σ mã 1047 trong DB (6,6678 tỷ).",
+    "1000 = B210 'DOANH THU THUẦN' (bằng B100 ở cả hai nguồn vì B200 = 0). 1112 = B840 'LỢI NHUẬN XDV TRƯỚC THUẾ' — KHÔNG phải B900 (sau thuế).",
+    "14 cột xưởng của file TỰ ĐỘNG chạy theo gốc 'Kỳ này' (reset đầu tháng): Σ14 xưởng ngày 04/09 = 5,9505 tỷ, khớp đúng hiệu cột 'Lũy kế' của dòng Khối cùng ngày."
+  ],
+  "_bay": [
+    "ĐỪNG KHAI THÊM CỘT 'Lũy kế' VÀO SPEC NÀY. `flow_by_khoi` cộng MỌI dòng cùng khối, nên dòng Khối + 14 dòng xưởng trong cùng một report_type là ĐẾM ĐÔI. Bản theo Khối đã có ở `xdv_pnl_ngay` (report_type `XDV_PNL_D`, dim2 'Khối'), màn QTVH đọc bản đó.",
+    "`tru_ngay_truoc: true` (CHỈ TRỪ TRONG CÙNG THÁNG) LÀ ĐÚNG Ở ĐÂY, ĐỪNG ĐỔI SANG \"lien_thang\". Khác `xdv_pnl_ngay`: spec kia đọc cột 'Lũy kế' (luỹ kế TỪ KHI THÀNH LẬP, phải trừ vắt tháng), còn spec này đọc 14 cột ĐƠN VỊ vốn RESET đầu tháng. Trừ vắt tháng ở đây là ngày 01 mỗi tháng ra âm hàng chục tỷ — đúng lỗi đã xảy ra 05/09/2026 (−44,2572 tỷ), xem `_bay` của `xdv_pnl_ngay` và khoá `khong_tru_lien_thang_dim2`.",
+    "NGÀY 01 CỦA THÁNG KHÔNG BỊ MẤT: không có bản nào cùng tháng để trừ -> engine giữ nguyên ô của chính nó, mà ô cột đơn vị bản ngày 01 CHÍNH LÀ luỹ kế trong tháng tới ngày 01 = số của riêng ngày đó. Đúng theo thiết kế, không phải bỏ sót.",
+    "CUTOVER 01/09/2026 — HAI NGUỒN KHÔNG ĐƯỢC CHỒNG NGÀY. Mapping XDV 'Báo cáo API_XDV' dòng 12 chốt: `\\PHONGKETOANXUONGDICHVU\\BAOCAOHQKDNGAY` (file tay) BỊ THAY bởi `B.2.TC.TCKT.D.2026mmdd.Baocaotaichinhrieng-HQKD` (Cyber tự động). Vì cả hai cùng ghi vào `HQKD_D` + cùng khối + cùng 14 cost center, chồng một ngày là số GẤP ĐÔI (`_resolve_per_file` chỉ khử trùng TRONG một file, không khử xuyên file). Chặn bằng cặp khoá: spec này `chi_nap_tu_ngay: \"2026-09-01\"`, còn `derive_hqkd_ngay._UNITS[\"XDV\"][\"bo_tu_ngay\"] = \"2026-09-01\"` cắt phía nguồn tay. SỬA MỘT BÊN LÀ HỎNG — đổi mốc thì phải đổi cả hai.",
+    "VÌ SAO PHẢI THAY: file tay `B.2.TC.TCKT.D.202609.BaocaoHQKD.xlsx` sang tháng 9 chỉ có sheet 03.09 có số (7,63 tỷ), sheet 04.09 trở đi để trắng, nên màn Tổng quan lọc khối XDV ngày 04/09 hiện 0 trong khi nguồn tự động đã có đủ.",
+    "MÃ ĐÍCH PHẢI ĐÚNG BỘ CŨ: '1000'/'1047'/'1112' (`MA_DT/MA_CP/MA_LNTT` trong `derive_hqkd_ngay.py`). Đổi một ký tự là màn im số mà không báo lỗi.",
+    "MỘT MÃ ĐÍCH NHẬN NHIỀU MÃ NGUỒN: 5 mã chi phí cùng đổi thành '1047' rồi nằm ở 5 DÒNG RIÊNG — đúng ý đồ, vì mọi màn đều CỘNG các dòng cùng dim1. Đừng 'gộp cho gọn', engine không có phép cộng trong spec."
+  ],
+  "report_type": "HQKD_D",
+  "row_index_base": 8740000,
+  "khoi": "Khối KD Vinfast - XDV",
+  "chieu_co_dinh": {
+    "cong_ty": "TC"
+  },
+  "nguon": {
+    "folder": "TEST_XDV/baocaotaichinhrienghqkd",
+    "file_glob": "*.Baocaotaichinhrieng-HQKD.xlsx",
+    "sheet": {
+      "so": 0
+    }
+  },
+  "kiem_tra_o": [
+    {
+      "o": "A8",
+      "bang": "Mã số"
+    },
+    {
+      "o": "J8",
+      "bang": "XDV Ocean Park"
+    }
+  ],
+  "header": {
+    "dong": 8
+  },
+  "dong_bat_dau": 9,
+  "ngay_tu_ten_file": {
+    "regex": "\\.D\\.(\\d{4})(\\d{2})(\\d{2})\\.",
+    "thu_tu": "ymd"
+  },
+  "moi_ky_lay_file_moi_nhat": "ngay",
+  "tru_ngay_truoc": true,
+  "chi_nap_tu_ngay": "2026-09-01",
+  "cot": {
+    "dim1": {
+      "header": "Mã số"
+    },
+    "payload.chi_tieu": {
+      "header": "Chỉ tiêu"
+    }
+  },
+  "ban_ghi": "moi_cot_gia_tri",
+  "cot_gia_tri": [
+    {
+      "header": "XDV Ocean Park",
+      "cost_center": "OCP_XDV",
+      "he_so": 1e-09
+    },
+    {
+      "header": "XDV Long Biên",
+      "cost_center": "LB_XDV",
+      "he_so": 1e-09
+    },
+    {
+      "header": "XDV Smart City",
+      "cost_center": "SMC_XDV",
+      "he_so": 1e-09
+    },
+    {
+      "header": "XDV Hạ Long",
+      "cost_center": "HL_XDV",
+      "he_so": 1e-09
+    },
+    {
+      "header": "XDV Cẩm Phả",
+      "cost_center": "CP_XDV",
+      "he_so": 1e-09
+    },
+    {
+      "header": "VF Xuân Mai",
+      "cost_center": "XM_XDV",
+      "he_so": 1e-09
+    },
+    {
+      "header": "VF Uông Bí",
+      "cost_center": "UB_XDV",
+      "he_so": 1e-09
+    },
+    {
+      "header": "VF Tuyên Quang",
+      "cost_center": "TQ_XDV",
+      "he_so": 1e-09
+    },
+    {
+      "header": "XDV Vĩnh Phúc",
+      "cost_center": "VP_XDV",
+      "he_so": 1e-09
+    },
+    {
+      "header": "XDV Sơn Tây",
+      "cost_center": "ST_XDV",
+      "he_so": 1e-09
+    },
+    {
+      "header": "XDV Đài Tư",
+      "cost_center": "ĐT_XDV",
+      "he_so": 1e-09
+    },
+    {
+      "header": "XDV Việt Trì",
+      "cost_center": "VT_XDV",
+      "he_so": 1e-09
+    },
+    {
+      "header": "XDV Hà Khánh",
+      "cost_center": "HK_XDV",
+      "he_so": 1e-09
+    },
+    {
+      "header": [
+        "Chi nhánh Vinfast Hồ Chí Minh- Công ty CP Thịnh Cường",
+        "Chi nhánh Vinfast Hồ Chí Minh"
+      ],
+      "cost_center": "HCM_XDV",
+      "he_so": 1e-09
+    }
+  ],
+  "doi_gia_tri": {
+    "dim1": {
+      "B210": "1000",
+      "B300": "1047",
+      "B500": "1047",
+      "B810": "1047",
+      "B822": "1047",
+      "B833": "1047",
+      "B840": "1112"
+    }
+  },
+  "loc": [
+    {
+      "cot": "dim1",
+      "dieu_kien": "thuoc",
+      "gia_tri": [
+        "1000",
+        "1047",
+        "1112"
+      ]
+    }
+  ],
+  "payload_them": {
+    "unit": "ty",
+    "grain": "day",
+    "nguon_he": "HQKD ngày XDV (Cyber tự động)"
+  }
+}

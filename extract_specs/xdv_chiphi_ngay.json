@@ -1,0 +1,166 @@
+{
+  "id": "xdv_chiphi_ngay",
+  "_mo_ta": "CƠ CẤU CHI PHÍ XDV theo NGÀY — bản THAY THẾ tự động cho `XDV/baocaohqkdngay`. Sáu nhóm chi phí của màn Chi phí ở chế độ Ngày.",
+  "_kiem_chung": [
+    "Nhóm lấy Y HỆT `derive_hqkd_ngay._xdv_facts` nhánh TÁCH ĐƯỢC (B600 + B700 = B500).",
+    "Đã đo trên bản 04/09/2026: 14/14 cột xưởng đều có B600 + B700 = B500 khớp tới đồng (vd Đài Tư 46.481.130 = 46.481.130), nên nhánh tách luôn đúng ở nguồn này."
+  ],
+  "_bay": [
+    "ANH EM VỚI `xdv_hqkd_ngay` — BỐN SPEC CÙNG ĐỌC MỘT FILE, CÙNG MỘT CUTOVER. Đổi cột / đổi `chi_nap_tu_ngay` ở một cái là bốn cái lệch nhau; mốc 01/09/2026 phải khớp cả với `derive_hqkd_ngay._UNITS[\"XDV\"][\"bo_tu_ngay\"]` (nguồn tay). Sửa một bên là cộng đôi.",
+    "`tru_ngay_truoc: true` (CHỈ TRONG CÙNG THÁNG) LÀ ĐÚNG: spec đọc 14 cột ĐƠN VỊ, vốn chạy theo gốc 'Kỳ này' và RESET đầu tháng. Đổi sang \"lien_thang\" là ngày 01 mỗi tháng ra âm hàng chục tỷ — xem `_bay` của `xdv_pnl_ngay` (đo 05/09/2026: −44,2572 tỷ).",
+    "ĐỪNG KHAI THÊM CỘT 'Lũy kế'. Dòng Khối + 14 dòng xưởng trong cùng report_type là ĐẾM ĐÔI vì `flow_by_khoi` cộng mọi dòng cùng khối.",
+    "File còn 13 cột KHÁC ngoài 14 xưởng XDV (Showroom OceanPark/Long Biên…, Vinfast B2B, cột pháp nhân tổng). CỐ Ý không khai: đó là số của khối Showroom, khai vào là gán nhầm khối.",
+    "`_xdv_facts` có NHÁNH LÙI: nếu B600 + B700 ≠ B500 thì gộp lại thành một nhóm 'Chi phí xưởng dịch vụ' mang B500. Spec KHÔNG diễn đạt được điều kiện đó — nếu ngày nào Cyber đổi cách tổng hợp làm hai vế lệch, spec này vẫn tách và tổng chi phí sẽ SAI. Kiểm lại phép cộng B600+B700=B500 trước khi kết luận số chi phí XDV bất thường.",
+    "TỔNG CHI PHÍ CỦA THẺ 'Chi phí' KHÔNG lấy ở đây mà ở HQKD mã 1047 (`xdv_hqkd_ngay`), và 1047 = B300+B500+B810+B822+B833. Sáu nhóm ở đây cộng lại BẰNG 1047 vì B600+B700 = B500 — nếu một ngày hai con số đó lệch nhau thì lỗi nằm ở nhánh lùi nói trên."
+  ],
+  "report_type": "CHIPHI_D",
+  "row_index_base": 8770000,
+  "khoi": "Khối KD Vinfast - XDV",
+  "chieu_co_dinh": {
+    "cong_ty": "TC"
+  },
+  "nguon": {
+    "folder": "TEST_XDV/baocaotaichinhrienghqkd",
+    "file_glob": "*.Baocaotaichinhrieng-HQKD.xlsx",
+    "sheet": {
+      "so": 0
+    }
+  },
+  "kiem_tra_o": [
+    {
+      "o": "A8",
+      "bang": "Mã số"
+    },
+    {
+      "o": "J8",
+      "bang": "XDV Ocean Park"
+    }
+  ],
+  "header": {
+    "dong": 8
+  },
+  "dong_bat_dau": 9,
+  "ngay_tu_ten_file": {
+    "regex": "\\.D\\.(\\d{4})(\\d{2})(\\d{2})\\.",
+    "thu_tu": "ymd"
+  },
+  "moi_ky_lay_file_moi_nhat": "ngay",
+  "tru_ngay_truoc": true,
+  "chi_nap_tu_ngay": "2026-09-01",
+  "cot": {
+    "dim1": {
+      "header": "Mã số"
+    },
+    "dim3": {
+      "header": "Chỉ tiêu"
+    },
+    "payload.ma_goc": {
+      "header": "Mã số"
+    }
+  },
+  "ban_ghi": "moi_cot_gia_tri",
+  "cot_gia_tri": [
+    {
+      "header": "XDV Ocean Park",
+      "cost_center": "OCP_XDV",
+      "he_so": 1e-09
+    },
+    {
+      "header": "XDV Long Biên",
+      "cost_center": "LB_XDV",
+      "he_so": 1e-09
+    },
+    {
+      "header": "XDV Smart City",
+      "cost_center": "SMC_XDV",
+      "he_so": 1e-09
+    },
+    {
+      "header": "XDV Hạ Long",
+      "cost_center": "HL_XDV",
+      "he_so": 1e-09
+    },
+    {
+      "header": "XDV Cẩm Phả",
+      "cost_center": "CP_XDV",
+      "he_so": 1e-09
+    },
+    {
+      "header": "VF Xuân Mai",
+      "cost_center": "XM_XDV",
+      "he_so": 1e-09
+    },
+    {
+      "header": "VF Uông Bí",
+      "cost_center": "UB_XDV",
+      "he_so": 1e-09
+    },
+    {
+      "header": "VF Tuyên Quang",
+      "cost_center": "TQ_XDV",
+      "he_so": 1e-09
+    },
+    {
+      "header": "XDV Vĩnh Phúc",
+      "cost_center": "VP_XDV",
+      "he_so": 1e-09
+    },
+    {
+      "header": "XDV Sơn Tây",
+      "cost_center": "ST_XDV",
+      "he_so": 1e-09
+    },
+    {
+      "header": "XDV Đài Tư",
+      "cost_center": "ĐT_XDV",
+      "he_so": 1e-09
+    },
+    {
+      "header": "XDV Việt Trì",
+      "cost_center": "VT_XDV",
+      "he_so": 1e-09
+    },
+    {
+      "header": "XDV Hà Khánh",
+      "cost_center": "HK_XDV",
+      "he_so": 1e-09
+    },
+    {
+      "header": [
+        "Chi nhánh Vinfast Hồ Chí Minh- Công ty CP Thịnh Cường",
+        "Chi nhánh Vinfast Hồ Chí Minh"
+      ],
+      "cost_center": "HCM_XDV",
+      "he_so": 1e-09
+    }
+  ],
+  "doi_gia_tri": {
+    "dim1": {
+      "B300": "Giá vốn hàng bán",
+      "B600": "Chi phí nhân sự",
+      "B700": "Chi phí hoạt động xưởng",
+      "B810": "Chi phí cố định",
+      "B822": "Chi phí tài chính",
+      "B833": "Chi phí khác"
+    }
+  },
+  "loc": [
+    {
+      "cot": "dim1",
+      "dieu_kien": "thuoc",
+      "gia_tri": [
+        "Chi phí cố định",
+        "Chi phí hoạt động xưởng",
+        "Chi phí khác",
+        "Chi phí nhân sự",
+        "Chi phí tài chính",
+        "Giá vốn hàng bán"
+      ]
+    }
+  ],
+  "payload_them": {
+    "unit": "ty",
+    "grain": "day",
+    "nguon_he": "HQKD ngày XDV (Cyber tự động)"
+  }
+}
