@@ -1173,7 +1173,11 @@ def _derive_kqkd_srvf(rows, period, cong_ty, file_path):
     def code(r):
         return str(r[ma_j]).strip().upper() if ma_j < len(r) and r[ma_j] not in (None, "") else ""
     codes = {code(r) for r in rows}
-    if not ({"A100", "A300", "A600"} <= codes):
+    # MÃ LỢI NHUẬN đổi theo niên độ: bản 2026 (T{mm}BC) có 'A600 LỢI NHUẬN SHOW ROOM'; bản 2025
+    # (sheet T{mm}) KHÔNG có A600 mà dùng 'U300 LỢI NHUẬN VINFAST' (+ U301 thuế TNDN, U302 sau thuế
+    # — kiểm 12/12 sheet 2025). Thử theo THỨ TỰ để bản 2026 giữ nguyên hành vi 100%.
+    _profit_cd = next((c for c in ("A600", "U300", "U302") if c in codes), None)
+    if not ({"A100", "A300"} <= codes) or _profit_cd is None:
         return None
 
     def v(*wanted):
@@ -1182,9 +1186,9 @@ def _derive_kqkd_srvf(rows, period, cong_ty, file_path):
                 x = r[val_j] if val_j < len(r) else None
                 return round(x * 1e-9, 9) if isinstance(x, (int, float)) else None
         return None
-    dt, cp, lntt = v("A100"), v("A300"), v("A600")
+    dt, cp, lntt = v("A100"), v("A300"), v(_profit_cd)
     if dt is None or lntt is None:
-        return {"ok": False, "error": "SRVF: thiếu A100/A600 (giá trị)"}
+        return {"ok": False, "error": f"SRVF: thiếu A100/{_profit_cd} (giá trị)"}
     records = []
 
     def add(ten, val):
@@ -1207,9 +1211,19 @@ def _derive_kqkd_srvf(rows, period, cong_ty, file_path):
         ("xuan mai", "XM_SR"),
     ]
 
+    # CHỈ nhận cột có header là SHOWROOM THẬT ('Showroom …') hoặc mảng 'Vinfast B2B' — siết
+    # 2026-08-16. Trước đây khớp substring trên MỌI header nên ở sheet niên độ 2025 (T{mm}, cùng file
+    # liệt kê CẢ cột XƯỞNG DỊCH VỤ và pháp nhân VF: 'XDV Long Biên', 'XDV Hạ Long', 'VF Xuân Mai',
+    # 'Vinfast Xuân Mai'…) thì 7/10 mã showroom bắt trúng cột XDV đứng TRƯỚC -> breakdown theo
+    # cost center ghi số của xưởng dịch vụ vào showroom mà vẫn 'chạy trơn'. Bản 2026 (T{mm}BC) chỉ
+    # có đúng 10 cột 'Showroom …'/'Vinfast B2B' nên luật này KHÔNG đổi gì (đã kiểm T01/T04/T06/T07).
+    def _is_sr_header(c):
+        n = _norm(c)
+        return n.startswith("showroom") or n == "vinfast b2b"
+
     def _find_sr_col(kw):
         return next((j for r in rows[:8] for j, c in enumerate(r)
-                     if isinstance(c, str) and kw in _norm(c)), None)
+                     if isinstance(c, str) and _is_sr_header(c) and kw in _norm(c)), None)
     sr_cols = [(cc, j) for kw, cc in _SR_SHOWROOM_CC for j in [_find_sr_col(kw)] if j is not None]
 
     def vj(wanted, j):
@@ -1471,6 +1485,26 @@ def _bcqt_single_month_total_col(rows, period, header_rows=12):
         return None
     return next((j for r in rows[:header_rows] for j, c in enumerate(r)
                  if _norm(c).startswith("tong cong")), None)
+
+
+def _bcqt_month_col_yy(rows, period, header_rows=12):
+    """Cột giá trị THÁNG dạng 'Tháng {m}/{yy}' — cách ghi header của bản An KS NIÊN ĐỘ 2025
+    ('Tháng 7/25', 'Tháng 10/25'). `_bcqt_month_col` KHÔNG bắt được vì nó chỉ so BẰNG ('thang 7')
+    hoặc tiền tố 'tXX/'; ở đây năm dính ngay sau tháng.
+
+    CỐ Ý neo cả NĂM (2 chữ số cuối, chấp nhận cả dạng 4 chữ số): sheet 2025 liệt kê ĐỦ 12 cột tháng
+    và thứ tự cột KHÔNG theo tháng (file thật: T7,T6,T5,T4,T3,T2,T1,T8,T9,T10,T11,T12) — không neo
+    năm thì một file niên độ khác đặt cùng kiểu header sẽ khớp nhầm im lặng. Trả None nếu không thấy."""
+    from servers.common import be_bridge as bb
+    _norm = lambda v: bb.remove_diacritics("" if v is None else str(v)).strip().lower()  # noqa: E731
+    if not (period and "-" in period):
+        return None
+    yyyy, mm = period.split("-")[0], period.split("-")[1]
+    if not (mm.isdigit() and yyyy.isdigit()):
+        return None
+    pat = _re_bcqt.compile(rf"^thang\s*0?{int(mm)}\s*/\s*(?:{yyyy}|{yyyy[2:]})$")
+    return next((j for r in rows[:header_rows] for j, c in enumerate(r)
+                 if c is not None and pat.match(_norm(c))), None)
 
 
 def _bcqt_antaxi_single_month_col(rows, period, header_rows=12):
@@ -1922,51 +1956,194 @@ def _ankhachsan_cp_recs(rows, name_j, val_j, period, gia_von, cp_chung, cp_luong
     (II.3) tương tự, nằm giữa nó và 'Lợi nhuận'. Guard Σcon≈lump như các đơn vị khác; không khớp ->
     dùng lump (dim2=_yeuto_cp(nhãn Mục) — 'Chi phí lương...' tự rơi đúng 'CP nhân sự' nhờ từ khoá
     'lương' ngay trong tên Mục, không mất thông tin dù guard chặn)."""
-    from servers.common import be_bridge as bb
-    from extract_chiphi import _yeuto_cp
-    _norm = lambda v: bb.remove_diacritics("" if v is None else str(v)).strip().lower()  # noqa: E731
-    labs = [(_norm(r[name_j]) if name_j < len(r) and r[name_j] not in (None, "") else "") for r in rows]
-
-    def _block(start_kw, end_kws):
-        si = next((i for i, k in enumerate(labs) if k.startswith(start_kw)), None)
-        if si is None:
-            return []
-        ei = next((i for i in range(si + 1, len(labs))
-                   if any(labs[i].startswith(e) for e in end_kws)), len(labs))
-        out = []
-        for i in range(si + 1, ei):
-            r = rows[i]
-            ten = str(r[name_j]).strip() if name_j < len(r) and r[name_j] not in (None, "") else ""
-            v = r[val_j] if val_j < len(r) else None
-            if ten and isinstance(v, (int, float)) and v:
-                out.append((ten, round(v * 1e-9, 9)))
-        return out
-
-    def _group(label, val, children):
-        if children:
-            _csum = round(sum(v for _, v in children), 9)
-            if val and abs(_csum - val) > abs(val) * 0.01:
-                children = []
-        out = []
-        if children:
-            for ten, v in children:
-                out.append({"Kỳ (yyyy-mm)": period, "Nhóm CP (chuẩn mực KT)": label,
-                            "Khoản mục chi tiết": ten, "Yếu tố chi phí": _yeuto_cp(ten),
-                            "Thực hiện (tỷ)": v})
-        elif val:
-            out.append({"Kỳ (yyyy-mm)": period, "Nhóm CP (chuẩn mực KT)": label,
-                        "Khoản mục chi tiết": label, "Yếu tố chi phí": _yeuto_cp(label),
-                        "Thực hiện (tỷ)": val})
-        return out
-
     recs = []
     if gia_von:
         recs.append({"Kỳ (yyyy-mm)": period, "Nhóm CP (chuẩn mực KT)": "Giá vốn hàng bán",
                      "Khoản mục chi tiết": "Giá vốn hàng bán", "Yếu tố chi phí": "CP Giá vốn",
                      "Thực hiện (tỷ)": gia_von})
-    recs += _group("Chi phí chung", cp_chung, _block("chi phi chung", ["chi phi luong"]))
-    recs += _group("Chi phí lương + CP khác cho CNV", cp_luong, _block("chi phi luong", ["loi nhuan"]))
+    labs = _bcqt_muc_labels(rows, name_j)
+    recs += _bcqt_muc_group(period, "Chi phí chung", cp_chung,
+                            _bcqt_muc_block(rows, labs, name_j, val_j, "chi phi chung", ["chi phi luong"]))
+    recs += _bcqt_muc_group(period, "Chi phí lương + CP khác cho CNV", cp_luong,
+                            _bcqt_muc_block(rows, labs, name_j, val_j, "chi phi luong", ["loi nhuan"]))
     return recs
+
+
+# ---- Helper DÙNG CHUNG cho bảng P&L quản trị kiểu "Mục cha + dòng con" (An KS 2026 'BCQT' và An KS
+# 2025 'Sheet1'). Tách ra khỏi `_ankhachsan_cp_recs` ngày 2026-08-16 để bản 2025 (6 Mục chi phí thay
+# vì 3) dùng lại NGUYÊN logic bóc con + guard Σcon≈lump, không chép lại. Hành vi giữ y nguyên bản gốc.
+def _bcqt_muc_labels(rows, name_j):
+    """Nhãn đã chuẩn hoá (bỏ dấu, lower) của cột tên khoản mục — dùng để dò mốc Mục."""
+    from servers.common import be_bridge as bb
+    _norm = lambda v: bb.remove_diacritics("" if v is None else str(v)).strip().lower()  # noqa: E731
+    return [(_norm(r[name_j]) if name_j < len(r) and r[name_j] not in (None, "") else "") for r in rows]
+
+
+def _bcqt_muc_block(rows, labs, name_j, val_j, start_kw, end_kws):
+    """Các dòng CON nằm GIỮA dòng Mục `start_kw` và Mục kế tiếp (khớp 1 trong `end_kws`, theo
+    startswith). Trả [(tên, tỷ)]; bỏ dòng nhãn rỗng / giá trị None / 0."""
+    si = next((i for i, k in enumerate(labs) if k.startswith(start_kw)), None)
+    if si is None:
+        return []
+    ei = next((i for i in range(si + 1, len(labs))
+               if any(labs[i].startswith(e) for e in end_kws)), len(labs))
+    out = []
+    for i in range(si + 1, ei):
+        r = rows[i]
+        ten = str(r[name_j]).strip() if name_j < len(r) and r[name_j] not in (None, "") else ""
+        v = r[val_j] if val_j < len(r) else None
+        if ten and isinstance(v, (int, float)) and v:
+            out.append((ten, round(v * 1e-9, 9)))
+    return out
+
+
+def _bcqt_muc_group(period, label, val, children):
+    """Gói 1 Mục chi phí thành dòng 02_CHIPHI. Có dòng con VÀ Σcon khớp lump (lệch ≤1%) -> ghi từng
+    con (dim1 = tên Mục cha, dim2 = _yeuto_cp(tên con)); ngược lại ghi 1 dòng lump theo tên Mục.
+    Guard 1% giữ nguyên: file lạ lệch công thức thì thà mất chi tiết còn hơn sai tổng."""
+    from extract_chiphi import _yeuto_cp
+    if children:
+        _csum = round(sum(v for _, v in children), 9)
+        if val and abs(_csum - val) > abs(val) * 0.01:
+            children = []
+    out = []
+    if children:
+        for ten, v in children:
+            out.append({"Kỳ (yyyy-mm)": period, "Nhóm CP (chuẩn mực KT)": label,
+                        "Khoản mục chi tiết": ten, "Yếu tố chi phí": _yeuto_cp(ten),
+                        "Thực hiện (tỷ)": v})
+    elif val:
+        out.append({"Kỳ (yyyy-mm)": period, "Nhóm CP (chuẩn mực KT)": label,
+                    "Khoản mục chi tiết": label, "Yếu tố chi phí": _yeuto_cp(label),
+                    "Thực hiện (tỷ)": val})
+    return out
+
+
+# 6 MỤC CHI PHÍ của An KS niên độ 2025 (cấu thành Mục II TỔNG CHI PHÍ), theo THỨ TỰ XUẤT HIỆN trong
+# sheet — mốc kết thúc của Mục trước chính là Mục sau, Mục cuối đóng bằng dòng 'LỢI NHUẬN'.
+# (từ khoá dò = nhãn đã bỏ dấu + lower, so bằng startswith; xem `_bcqt_muc_block`).
+# ⚠️ 'khach san'/'nha hang' là tên MỤC CHI PHÍ (dòng 48/60) — KHÔNG đụng dòng doanh thu 'DOANH THU
+# KHÁCH SẠN'/'DOANH THU NHÀ HÀNG' vì startswith yêu cầu khớp từ ĐẦU nhãn.
+_ANKS_2025_MUC_CP = [
+    ("chiet khau tu doanh thu", "Chiết khấu từ doanh thu"),
+    ("chi phi chung",           "Chi phí chung"),
+    ("chi phi luong",           "Chi phí lương + CP khác cho CNV"),
+    ("khach san",               "Chi phí khách sạn"),
+    ("nha hang",                "Chi phí nhà hàng"),
+    ("dau tu khu phuc hop",     "Đầu tư khu phức hợp"),
+]
+
+
+def _derive_kqkd_ankhachsan_2025(file_path: str, period: str, cong_ty: str):
+    """TẤT ĐỊNH — An KS NIÊN ĐỘ 2025 (sheet 'Sheet1', bản BCQT 12 cột tháng 'Tháng {m}/25').
+
+    KHÁC bản 2026 ('BCQT') ở ĐÚNG 3 điểm — còn lại DÙNG LẠI nguyên helper của bản 2026:
+      1. TÊN SHEET: file 2025 chỉ có 1 sheet 'Sheet1' (không có 'BCQT'/'KQKD' TT200) -> nhận diện
+         theo NỘI DUNG (header 'Nội dung chi phí' + có dòng Mục I 'TỔNG DOANH THU' và Mục II
+         'TỔNG CHI PHÍ'), KHÔNG bám tên sheet (tên 'Sheet1' quá chung, dễ trúng file khác).
+      2. HEADER CỘT THÁNG: 'Tháng 7/25' thay vì 'Tháng 07' -> `_bcqt_month_col_yy` (thử SAU
+         `_bcqt_month_col` để không đổi hành vi khi kế toán dùng lại kiểu cũ).
+      3. CƠ CẤU CHI PHÍ: Mục II gồm 6 Mục con (chiết khấu / chung / lương / khách sạn / nhà hàng /
+         đầu tư khu phức hợp) thay vì 3, và KHÔNG có dòng 'CHI PHÍ GIÁ VỐN'.
+
+    Map -> 01_HQKD:
+      • Doanh thu thuần (1000) = 'DOANH THU KHÁCH SẠN' + 'DOANH THU NHÀ HÀNG'. CỐ Ý KHÔNG lấy nguyên
+        Mục I: Mục I = KS + Nhà hàng + 'THU KHÁC' (thu hộ BHXH, thu xuất VAT hộ) — cùng nguyên tắc
+        đã áp cho bản 2026 (loại 'DT khác' khỏi doanh thu thuần) và cho GA (T101 thay T100). Bản
+        2026 chỉ cộng 1 nhánh KS vì năm đó nhà hàng đã dừng; năm 2025 nhà hàng còn chạy và CHIẾM
+        HƠN NỬA doanh thu (772,97/1.462,96 triệu cả năm) nên bỏ sẽ hụt phân nửa.
+      • Tổng chi phí (1047) = Mục II · LNTT (1112) = dòng 'LỢI NHUẬN (A-B)' (An KS không có thuế
+        TNDN -> LNST = LNTT).
+      • GIÁ VỐN / LỢI NHUẬN GỘP: KHÔNG ghi — nguồn 2025 không có dòng giá vốn nào, và 2 khối
+        'KHÁCH SẠN'/'NHÀ HÀNG' là chi phí HỖN HỢP (vật tư tiêu hao lẫn điện thoại, bảo dưỡng thang
+        máy) nên quy về giá vốn là suy diễn. Thà thiếu chỉ tiêu còn hơn bịa.
+    Trả None nếu file KHÔNG phải layout này (0 ảnh hưởng bản 2026 / đơn vị khác)."""
+    from servers import template_filler as tf
+    from servers.common import be_bridge as bb
+    _norm = lambda v: bb.remove_diacritics("" if v is None else str(v)).strip().lower()  # noqa: E731
+    wb = bb.fast_load_workbook(file_path, read_only=True, data_only=True)
+    try:
+        pick_sheet, rows, name_j = None, None, None
+        for s in wb.sheetnames:
+            _rows = [list(r) for r in wb[s].iter_rows(values_only=True)]
+            _nj = next((j for r in _rows[:8] for j, c in enumerate(r)
+                        if _norm(c).startswith("noi dung")), None)
+            if _nj is None:
+                continue
+            _labs = [(_norm(r[_nj]) if _nj < len(r) and r[_nj] not in (None, "") else "") for r in _rows]
+            if any(k.startswith("tong doanh thu") for k in _labs) \
+                    and any(k.startswith("tong chi phi") for k in _labs):
+                pick_sheet, rows, name_j = s, _rows, _nj
+                break
+    finally:
+        wb.close()
+    if rows is None:
+        return None
+    # Ứng viên cột giá trị THEO ƯU TIÊN: kiểu cũ ('Tháng 07'/'T07') -> kiểu 2025 ('Tháng 7/25') ->
+    # bản riêng-1-tháng ('Tổng cộng'). Giữ nguyên cách chọn của bản 2026: lấy cột ĐẦU TIÊN đọc được
+    # CẢ Mục I lẫn Mục II, ưu tiên cột có số (tháng chưa phát sinh vẫn nhận 0, không im lặng bỏ file).
+    cands = [j for j in (_bcqt_month_col(rows, period),
+                         _bcqt_month_col_yy(rows, period),
+                         _bcqt_single_month_total_col(rows, period)) if j is not None]
+    if not cands:
+        return {"ok": False, "error": f"An KS 2025 ({pick_sheet}): không thấy cột Tháng {period}"}
+
+    def _rowval(val_j, *starts):
+        for r in rows:
+            lab = _norm(r[name_j]) if len(r) > name_j else ""
+            if lab and any(lab.startswith(s) for s in starts):
+                x = r[val_j] if val_j < len(r) else None
+                return round(x * 1e-9, 9) if isinstance(x, (int, float)) else None
+        return None
+    pick = None
+    for val_j in cands:
+        dt, cp = _rowval(val_j, "tong doanh thu"), _rowval(val_j, "tong chi phi")
+        if dt is None or cp is None:
+            continue
+        if pick is None:
+            pick = (val_j, dt, cp)
+        if dt or cp:
+            pick = (val_j, dt, cp)
+            break
+    if pick is None:
+        return {"ok": False, "error": "An KS 2025: thiếu Mục I / Mục II"}
+    val_j, dt, cp = pick
+
+    def rowval(*starts):
+        return _rowval(val_j, *starts)
+    dt_ks = rowval("doanh thu khach san")
+    dt_nh = rowval("doanh thu nha hang")
+    ln = rowval("loi nhuan")
+    if ln is None and dt is not None and cp is not None:
+        ln = round(dt - cp, 9)
+    # DT thuần = KS + Nhà hàng (bỏ 'Thu khác'). Cả 2 đều thiếu -> lùi về Mục I để không mất kỳ.
+    dt_core = None if (dt_ks is None and dt_nh is None) else round((dt_ks or 0.0) + (dt_nh or 0.0), 9)
+    if dt_core is None:
+        dt_core = dt
+    records = []
+
+    def add(ten, val):
+        if val is not None:
+            records.append({"Kỳ (yyyy-mm)": period, "Chỉ tiêu KQKD": ten, "Thực hiện (tỷ)": val})
+    add("Doanh thu thuần", dt_core)                                    # -> 1000 + DTHU
+    add("Tổng chi phí", cp)                                            # -> 1047 (Mục II)
+    add("Lợi nhuận trước thuế", ln)                                    # -> 1112 (Mục 'LỢI NHUẬN (A-B)')
+    add("Doanh thu bán hàng và cung cấp dịch vụ", dt_core)             # -> PNLT (nuôi Cấu trúc DT)
+    add("Doanh thu HH, DV", dt_core)                                   # -> PNLT (#1 bảng 50)
+    add("Lợi nhuận sau thuế", ln)                                      # -> PNLT (An KS ko thuế -> =LNTT)
+    out = os.path.join(tf.FILLED_DIR, f"KQKD_{period}_{cong_ty or 'NA'}_01_HQKD.xlsx")
+    tf.fill("01_HQKD", records, out)
+    imp = tf.import_filled(out, cong_ty=cong_ty, khoi=_khoi_of(file_path), source_file=_source_id(file_path))
+    # 02_CHIPHI: 6 Mục con của Mục II, mỗi Mục bóc dòng con bằng helper DÙNG CHUNG với bản 2026.
+    labs = _bcqt_muc_labels(rows, name_j)
+    cp_recs, _ends = [], [k for k, _ in _ANKS_2025_MUC_CP] + ["loi nhuan"]
+    for _i, (kw, label) in enumerate(_ANKS_2025_MUC_CP):
+        cp_recs += _bcqt_muc_group(period, label, rowval(kw),
+                                   _bcqt_muc_block(rows, labs, name_j, val_j, kw, _ends[_i + 1:]))
+    cpr = _fill_import_chiphi(cp_recs, period, cong_ty, file_path) if cp_recs else None
+    return {"ok": bool(imp.get("rows_imported")), "rows": imp.get("rows_imported"),
+            "target": "01_HQKD", "via": f"An KS 2025 '{pick_sheet}'",
+            "value_col_header": f"Tháng {int(period.split('-')[1])}/{period[2:4]}", "chiphi": cpr}
 
 
 # MÃ SỐ LCTT (BCTC TT200) phân loại Thu/Chi cho HT theo spec "50 chỉ tiêu quản trị" dòng 18-19
@@ -4461,7 +4638,13 @@ def _cmd_autofill_impl(args):
         _guide_co = _contract.resolve_company(args.cong_ty, fname, prefer_file_name=True)
         _dv = (((_load_guide(_guide_co, fname) or {}).get("content") or {}).get("don_vi") or {})
         _styn = _dv.get("sheets_theo_y_nghia") or {}
-        _pl = _styn.get("p_and_l")
+        # WHITELIST THEO NĂM (thêm 2026-08-16): khoá `<ten>_<yyyy>` GHI ĐÈ khoá thường KHI VÀ CHỈ KHI
+        # kỳ đang nạp thuộc năm đó. Lý do: kế toán đổi hẳn cách trình bày giữa các NIÊN ĐỘ — file
+        # 2025 của Khối Dự án không có sheet 'HQKD' mà là 'KQKD_Dự Án (theo tháng)' (CÙNG bố cục
+        # dòng/cột, chỉ khác TÊN sheet). Tách theo năm thay vì gộp 2 tên vào 1 whitelist để năm 2026
+        # KHÔNG bao giờ nhận nhầm sheet cũ nếu kế toán lỡ để lại nó trong file mới.
+        _yr = str(period or "")[:4]
+        _pl = (_styn.get(f"p_and_l_{_yr}") if _yr else None) or _styn.get("p_and_l")
         if isinstance(_pl, list) and _pl:
             _kqkd_ok = {_re.sub(r"\s+", "", tf._norm(x)) for x in _pl}
         #  - sheets_theo_y_nghia.balance_sheet = WHITELIST sheet Bảng cân đối (CĐKT). Vd HO: file có
@@ -4470,7 +4653,7 @@ def _cmd_autofill_impl(args):
         #    _derive_cdkt nạp cả hai vào 07_TAISAN_NV; import_filled delete-scope (source_file+cong_ty)
         #    khiến sheet chạy SAU (TC_CĐKT) GHI ĐÈ sheet đúng -> BS phình 49->298 dòng, sai đơn vị/kỳ,
         #    mất cân đối 270=300+400. Cùng cơ chế whitelist p_and_l (khớp bỏ dấu + bỏ khoảng trắng).
-        _bs = _styn.get("balance_sheet")
+        _bs = (_styn.get(f"balance_sheet_{_yr}") if _yr else None) or _styn.get("balance_sheet")
         if isinstance(_bs, list) and _bs:
             _cdkt_ok = {_re.sub(r"\s+", "", tf._norm(x)) for x in _bs}
         _guide_thuan_llm = str(_dv.get("che_do_phan_tich") or "").strip().lower() == "thuan_llm"
@@ -4910,6 +5093,29 @@ def _cmd_autofill_impl(args):
                 _bc = next((s for s in _shs if s.upper().replace(" ", "") == f"T{_mm}BC"), None)
                 _cp = next((s for s in _shs if "CĐPS" in s or s.upper().replace(" ", "") == "CDPS"), None)
                 _bcrows = [list(r) for r in _wb[_bc].iter_rows(values_only=True)] if _bc else None
+                # NIÊN ĐỘ 2025 — MỘT FILE = 12 KỲ: kế toán không gửi file/tháng mà gộp cả năm vào 1
+                # file, MỖI THÁNG MỘT SHEET 'T01'…'T12' (P&L A-series đầy đủ, cột 'Kỳ này' = SỐ THÁNG,
+                # cột 'Lũy kế' tách riêng — kiểm chứng Σ12 tháng 'Kỳ này' = 5.743,340 tỷ = đúng
+                # 'Lũy kế' của T12). Sheet 'T12BCT' của file này KHÔNG khớp mẫu 'T{mm}BC' (thừa chữ T)
+                # nên nhánh 2026 ở trên trả _bc=None -> trước đây SRVF 2025 không lên được P&L nào.
+                # Ở đây gom danh sách (kỳ, rows) rồi nạp từng kỳ bằng CHÍNH `_derive_kqkd_srvf`
+                # (đã nới nhận mã lợi nhuận U300 cho layout 2025).
+                _yearly = []
+                if not _bcrows:
+                    for _m in range(1, 13):
+                        _s = next((s for s in _shs if s.strip().upper() in (f"T{_m:02d}", f"T{_m}")), None)
+                        if not _s:
+                            continue
+                        _rws = [list(r) for r in _wb[_s].iter_rows(values_only=True)]
+                        # NEO KỲ THEO TIÊU ĐỀ TRONG SHEET ('TỪ NGÀY 01/{mm}/{yyyy}'), KHÔNG theo tên
+                        # sheet: file 2026 cũng có sẵn sheet rỗng T06..T12 làm mẫu tháng sau — không
+                        # neo thì sẽ nạp 7 kỳ tương lai toàn 0 và xoá mất số thật của các kỳ đó.
+                        _txt = " ".join(bb.remove_diacritics(str(c)).strip().lower()
+                                        for r in _rws[:7] for c in r if c is not None)
+                        _mt = _re_bcqt.search(r"tu ngay \d{2}/(\d{2})/(\d{4})", _txt)
+                        if not _mt or int(_mt.group(1)) != _m:
+                            continue
+                        _yearly.append((f"{_mt.group(2)}-{_m:02d}", _s, _rws))
                 _wb.close()
                 # THIẾU SHEET -> KHÔNG LÊN SỐ: dọn dòng CŨ của đúng các loại sinh ra từ sheet đó.
                 # import_filled chỉ xoá theo report_type mà CHÍNH lượt nạp này sinh ra, nên khi kế
@@ -4921,9 +5127,13 @@ def _cmd_autofill_impl(args):
                 # NEO VÀO SỰ TỒN TẠI CỦA SHEET, KHÔNG neo vào extractor chạy thành công: sheet CÓ mà
                 # parse lỗi (đổi layout, công thức #REF!) thì phải GIỮ số cũ + báo lỗi, xoá đi là mất
                 # dữ liệu thật vì một lỗi tạm thời.
+                # `_yearly` (bản 2025, P&L nằm ở sheet T{mm} theo tháng) CŨNG LÀ NGUỒN P&L -> chỉ dọn
+                # HQKD/PNLT/DTHU/CHIPHI khi KHÔNG có CẢ 'T{mm}BC' LẪN sheet tháng, nếu không lượt nạp
+                # 2025 vừa ghi xong sẽ tự xoá số của chính nó.
+                _pl_src = _bcrows or _yearly
                 _absent = ([] if _ck else ["TSNV", "BS", "TS"]) \
                     + ([] if _cp else ["PTHU", "PTRA", "PTHU_ADV", "PTRA_ADV", "THUE", "HH"]) \
-                    + ([] if _bcrows else ["HQKD", "PNLT", "DTHU", "CHIPHI", "TREND"])
+                    + ([] if _pl_src else ["HQKD", "PNLT", "DTHU", "CHIPHI", "TREND"])
                 if _absent:
                     _pr = _prune_missing_sheet_types(args.file, period, _absent)
                     if _pr:
@@ -4931,7 +5141,7 @@ def _cmd_autofill_impl(args):
                                         "rows": _pr,
                                         "via": f"thiếu {'CĐKT ' if not _ck else ''}"
                                                f"{'CĐPS ' if not _cp else ''}"
-                                               f"{f'T{_mm}BC' if not _bcrows else ''}".strip()})
+                                               f"{f'T{_mm}BC' if not _pl_src else ''}".strip()})
                 if _ck:                                    # CĐKT -> TSNV (số dư, công nợ, tồn kho, tiền)
                     rc = _derive_cdkt(args.file, _ck, period, "TC")
                     derived.append({"kind": "07_TAISAN_NV", "sheet": _ck, "ok": rc.get("ok"),
@@ -4954,6 +5164,16 @@ def _cmd_autofill_impl(args):
                     derived.append({"kind": "01_HQKD", "sheet": _bc, "ok": bool(rk and rk.get("ok")),
                                     "rows": (rk or {}).get("rows"), "via": "SRVF T{mm}BC",
                                     "chiphi": (rk or {}).get("chiphi")})
+                for _pkey, _psheet, _prows in _yearly:     # bản 2025: 1 file -> nhiều kỳ, mỗi sheet 1 tháng
+                    # Kỳ lấy TỪ TIÊU ĐỀ SHEET (_pkey), KHÔNG dùng `period` của tên file — đây là chỗ
+                    # duy nhất trong pipeline mà 1 file nạp nhiều kỳ. import_filled tự tái dùng/tạo
+                    # dataset theo cột "Kỳ (yyyy-mm)" nên delete-scope vẫn tách bạch từng tháng.
+                    _rk = _derive_kqkd_srvf(_prows, _pkey, "TC", args.file)
+                    derived.append({"kind": "01_HQKD", "sheet": _psheet, "period": _pkey,
+                                    "ok": bool(_rk and _rk.get("ok")), "rows": (_rk or {}).get("rows"),
+                                    "via": f"SRVF niên độ {_pkey[:4]} — sheet tháng {_psheet}",
+                                    "chiphi": (_rk or {}).get("chiphi"),
+                                    "error": (_rk or {}).get("error")})
                 from derive_srvf_cdps import extract as _srvf_cdps   # công nợ + thuế + tồn kho xe
                 rd = _srvf_cdps(args.file, period, "TC")
                 derived.append({"kind": "SRVF CĐPS (PTHU/PTRA/THUE/HH)", "ok": rd.get("ok"),
@@ -5056,8 +5276,16 @@ def _cmd_autofill_impl(args):
                 derived.append({"kind": "An Taxi BCQT PT", "ok": False, "error": str(ex)[:150]})
         if _an_folder == "ANKHACHSAN":
             try:
-                rk = _derive_kqkd_ankhachsan(args.file, period, args.cong_ty or "AAG")
-                derived.append({"kind": "01_HQKD", "ok": bool(rk and rk.get("ok")), "via": "An KS BCQT",
+                # NIÊN ĐỘ 2025 đi nhánh RIÊNG (`_derive_kqkd_ankhachsan_2025`): file 2025 chỉ có 1
+                # sheet 'Sheet1' kiểu BCQT 12 cột 'Tháng {m}/25', Mục II gồm 6 Mục con và KHÔNG có
+                # dòng giá vốn. Tách hẳn theo năm thay vì nới bản 2026 để không có đường nào cho
+                # layout cũ ăn vào kỳ 2026. Trả None (không nhận layout) -> lùi về bản 2026.
+                rk = (_derive_kqkd_ankhachsan_2025(args.file, period, args.cong_ty or "AAG")
+                      if str(period).startswith("2025") else None)
+                if rk is None:
+                    rk = _derive_kqkd_ankhachsan(args.file, period, args.cong_ty or "AAG")
+                derived.append({"kind": "01_HQKD", "ok": bool(rk and rk.get("ok")),
+                                "via": (rk or {}).get("via", "An KS BCQT"),
                                 "rows": (rk or {}).get("rows"), "chiphi": (rk or {}).get("chiphi"),
                                 "error": (rk or {}).get("error")})
             except Exception as ex:  # noqa: BLE001
