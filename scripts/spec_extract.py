@@ -55,6 +55,8 @@ CẤU TRÚC SPEC (khoá tiếng Việt cho kế toán/BA đọc được):
   "cot_thang": {"tu": "E", "den": "J", "he_so": 1.0,
                 "kieu": "nguong"},       // tuỳ chọn — ô là ngưỡng có toán tử ("≥95%", "<4%"):
                                          // amount = số, payload.toan_tu = '>='/'<='/'<'/'='
+  "cot_ngay_dau_thang": "Kỳ này",       // bản ĐẦU THÁNG không có gì để trừ -> đọc cột này thay
+                                        // (chỉ có nghĩa khi đi kèm `tru_ngay_truoc`)
   "doi_gia_tri": {"dim1": {"A100": "1000", "A300": "1047"}},   // đổi TÊN giá trị khi đổi nguồn
                                         // mà phải giữ hình dạng bản ghi cũ; mã ngoài bản đồ GIỮ
                                         // NGUYÊN, muốn lọc thì dùng `loc` điều kiện `thuoc`.
@@ -2072,8 +2074,22 @@ def _tru_ngay_truoc(spec, path, recs):
         if d and d < ngay_nay and (d[:7] == ngay_nay[:7] or not cung_thang):
             ung_vien.append((d, f))
     if not ung_vien:
-        # Vẫn phải vứt dòng 0: bản ngày 01 của tháng đang dở có đủ 47 mã x 15 cột nhưng hầu hết
-        # bằng 0 (chưa phát sinh) — giữ lại là mỗi ngày đầu tháng đẻ ~700 dòng rác vào `raw_rows`.
+        # NGÀY ĐẦU THÁNG KHÔNG CÓ GÌ ĐỂ TRỪ (user chốt 05/09/2026: "cái của ngày đầu tháng thì
+        # không cần trừ đi"). Nhưng nếu cột đang đọc là luỹ kế LIÊN THÁNG thì ô của chính nó là
+        # luỹ kế từ khi thành lập — hàng nghìn tỷ, không phải số của ngày. `cot_ngay_dau_thang`
+        # khai cột thay thế CHỈ dùng cho bản đầu tháng: trên bản ngày 01, cột "Kỳ này" CHÍNH LÀ
+        # luỹ kế trong tháng tính tới ngày 01, tức đúng con số mà phép trừ lẽ ra phải cho ra.
+        # Không phải trộn hai thước đo — vẫn là "luỹ kế trong tháng", chỉ đọc ở cột mang nó.
+        cot_dt = spec.get("cot_ngay_dau_thang")
+        if cot_dt:
+            spec2 = json.loads(json.dumps({k: v for k, v in spec.items()
+                                           if k not in ("tru_ngay_truoc",)}))
+            for c in spec2.get("cot_gia_tri") or []:
+                c["header"] = cot_dt
+            recs, _w2 = extract_file({**spec2, "_dang_doc_ngay_truoc": True}, path)
+            return ([r for r in recs if abs(r.get("amount") or 0) > 1e-9],
+                    [f"tru_ngay_truoc: {ngay_nay} là bản đầu tiên có trong tháng -> KHÔNG trừ, "
+                     f"đọc cột '{cot_dt}' của chính bản này (xem `cot_ngay_dau_thang`)"])
         return ([r for r in recs if abs(r.get("amount") or 0) > 1e-9],
                 [f"tru_ngay_truoc: {ngay_nay} là bản đầu tiên "
                  + ("có trong thư mục" if spec.get("tru_ngay_truoc") == "lien_thang"
