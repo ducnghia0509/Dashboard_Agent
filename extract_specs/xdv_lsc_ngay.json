@@ -10,7 +10,9 @@
     "DÒNG 'Tổng cộng' NẰM Ở ĐẦU VÙNG (dòng 9) và MANG LUÔN BOLD=1 nên bộ lọc BOLD không chặn nó — nhãn 'Tổng cộng' rơi vào cột Y 'Tên', cột A 'Đơn vị cơ sở' bỏ trắng. Chặn thêm bằng `payload.so_lenh khac_rong` + `cost_center khac_rong`.",
     "FILE CHỈ CHỨA LỆNH CỦA MỘT NGÀY (mọi dòng có 'Ngày lệnh' = ngày trong tên file). Vì vậy chỉ tiêu #10 của mapping ('số lệnh >10 ngày chưa nghiệm thu') KHÔNG tính được từ một file: lệnh cũ không xuất hiện lại và trạng thái của chúng không được cập nhật. Cần Cyber kéo LUỸ KẾ đến ngày báo cáo, như đã đề nghị cho DV42/DV44. Từ nguồn hiện tại chỉ đo được: số lệnh tạo trong ngày, doanh thu/giá vốn theo lệnh, cơ cấu trạng thái tại thời điểm tạo.",
     "MỖI NGÀY MỘT FILE, KHÔNG LUỸ KẾ — `moi_ky_lay_file_moi_nhat: \"ngay\"`, bên cron khai `ANH_CHUP_KY`.",
-    "'Giá vốn' của tầng BOLD=1 thường bằng 0 (giá vốn nằm ở tầng chi tiết BOLD=0). Đừng dựng biên lợi nhuận từ report_type này."
+    "'Giá vốn' của tầng BOLD=1 thường bằng 0 (giá vốn nằm ở tầng chi tiết BOLD=0). Đừng dựng biên lợi nhuận từ report_type này.",
+    "CỘT 'Tiền sau CK' (thêm 05/09/2026) — mapping XDV dòng 86 'Số lệnh, giá trị RO treo ĐXBH' chỉ định lấy GIÁ TRỊ ở cột này, không phải cột 'Doanh thu' đang gán cho `amount`. Hai cột khác nhau trong chính file: 'Tiền sau CK' là tiền sau chiết khấu chưa thuế, 'Doanh thu' là ô riêng. Giữ cả hai, đừng đổi `amount`.",
+    "DỰNG ĐƯỢC TỪ SPEC NÀY, chưa cần nguồn mới (mapping 'QTVH_Cách lấy XDV'): dòng 86 RO treo ĐXBH = lọc `dim1` thuộc 4 trạng thái (Lập lệnh sửa chữa · Xe đang đưa vào khoang · Đang xuất kho · Xe đã sửa chữa xong) + `payload.ma_thanh_toan` = W + `payload.bold` = 1, đếm số lệnh và cộng `payload.tien_sau_ck`. Dòng 87 RO tồn sửa chữa = cùng 4 trạng thái, số ngày tồn = ngày báo cáo − `ngay` (Ngày lệnh)."
   ],
   "report_type": "XDV_LSC_D",
   "row_index_base": 8620000,
@@ -18,47 +20,157 @@
   "nguon": {
     "folder": "TEST_XDV/bangkelenhsuachua",
     "file_glob": "*.Bangkelenhsuachua.xlsx",
-    "sheet": {"so": 0}
+    "sheet": {
+      "so": 0
+    }
   },
   "kiem_tra_o": [
-    {"o": "A8", "bang": "Đơn vị cơ sở"},
-    {"o": "B8", "bang": "BOLD"},
-    {"o": "AL8", "bang": "Doanh thu"}
+    {
+      "o": "A8",
+      "bang": "Đơn vị cơ sở"
+    },
+    {
+      "o": "B8",
+      "bang": "BOLD"
+    },
+    {
+      "o": "AL8",
+      "bang": "Doanh thu"
+    }
   ],
-  "header": {"dong": 8},
+  "header": {
+    "dong": 8
+  },
   "dong_bat_dau": 9,
-  "ngay_tu_ten_file": {"regex": "\\.D\\.(\\d{4})(\\d{2})(\\d{2})\\.", "thu_tu": "ymd"},
+  "ngay_tu_ten_file": {
+    "regex": "\\.D\\.(\\d{4})(\\d{2})(\\d{2})\\.",
+    "thu_tu": "ymd"
+  },
   "moi_ky_lay_file_moi_nhat": "ngay",
   "cot": {
-    "cost_center": {"header": "Đơn vị cơ sở", "chuan_hoa": "xdv"},
-    "ngay": {"header": "Ngày lệnh", "kieu": "date"},
-    "amount": {"header": "Doanh thu", "kieu": "so_co_rong", "he_so": 1e-09},
-    "dim1": {"header": "Trạng thái", "bat_buoc": false},
-    "dim2": {"header": "Mã kiểu xe", "bat_buoc": false},
-    "payload.bold": {"header": "BOLD"},
-    "payload.so_lenh": {"header": "Số lệnh(R/O)"},
-    "payload.so_lenh_hang": {"header": "Số lệnh hãng", "bat_buoc": false},
-    "payload.ma_trang_thai": {"header": "Mã trạng thái", "bat_buoc": false},
-    "payload.ngay_nt": {"header": "Ngày NT", "bat_buoc": false},
-    "payload.so_khung": {"header": "Số khung", "bat_buoc": false},
-    "payload.khach_hang": {"header": "Khách hàng", "bat_buoc": false},
-    "payload.so_hd": {"header": "Số hóa đơn", "bat_buoc": false},
-    "payload.tien_ban": {"header": "Tiền bán", "kieu": "so_co_rong", "he_so": 1e-09, "bat_buoc": false},
-    "payload.chiet_khau": {"header": "Chiế khấu", "kieu": "so_co_rong", "he_so": 1e-09, "bat_buoc": false},
-    "payload.thue": {"header": "Thuế", "kieu": "so_co_rong", "he_so": 1e-09, "bat_buoc": false},
-    "payload.gia_von": {"header": "Giá vốn", "kieu": "so_co_rong", "he_so": 1e-09, "bat_buoc": false},
-    "payload.ho_tro_bh": {"header": "Hỗ trợ BH", "bat_buoc": false},
-    "payload.ma_thanh_toan": {"header": "Mã thanh toán", "bat_buoc": false},
-    "payload.cvdv": {"header": "Cố vấn dịch vụ", "bat_buoc": false},
-    "payload.ttcp": {"header": "TTCP", "bat_buoc": false}
+    "cost_center": {
+      "header": "Đơn vị cơ sở",
+      "chuan_hoa": "xdv"
+    },
+    "ngay": {
+      "header": "Ngày lệnh",
+      "kieu": "date"
+    },
+    "amount": {
+      "header": "Doanh thu",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09
+    },
+    "dim1": {
+      "header": "Trạng thái",
+      "bat_buoc": false
+    },
+    "dim2": {
+      "header": "Mã kiểu xe",
+      "bat_buoc": false
+    },
+    "payload.bold": {
+      "header": "BOLD"
+    },
+    "payload.so_lenh": {
+      "header": "Số lệnh(R/O)"
+    },
+    "payload.so_lenh_hang": {
+      "header": "Số lệnh hãng",
+      "bat_buoc": false
+    },
+    "payload.ma_trang_thai": {
+      "header": "Mã trạng thái",
+      "bat_buoc": false
+    },
+    "payload.ngay_nt": {
+      "header": "Ngày NT",
+      "bat_buoc": false
+    },
+    "payload.so_khung": {
+      "header": "Số khung",
+      "bat_buoc": false
+    },
+    "payload.khach_hang": {
+      "header": "Khách hàng",
+      "bat_buoc": false
+    },
+    "payload.so_hd": {
+      "header": "Số hóa đơn",
+      "bat_buoc": false
+    },
+    "payload.tien_ban": {
+      "header": "Tiền bán",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09,
+      "bat_buoc": false
+    },
+    "payload.tien_sau_ck": {
+      "header": "Tiền sau CK",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09,
+      "bat_buoc": false
+    },
+    "payload.chiet_khau": {
+      "header": "Chiế khấu",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09,
+      "bat_buoc": false
+    },
+    "payload.thue": {
+      "header": "Thuế",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09,
+      "bat_buoc": false
+    },
+    "payload.gia_von": {
+      "header": "Giá vốn",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09,
+      "bat_buoc": false
+    },
+    "payload.ho_tro_bh": {
+      "header": "Hỗ trợ BH",
+      "bat_buoc": false
+    },
+    "payload.ma_thanh_toan": {
+      "header": "Mã thanh toán",
+      "bat_buoc": false
+    },
+    "payload.cvdv": {
+      "header": "Cố vấn dịch vụ",
+      "bat_buoc": false
+    },
+    "payload.ttcp": {
+      "header": "TTCP",
+      "bat_buoc": false
+    }
   },
   "ban_ghi": "moi_dong",
-  "dan_xuat": {"amount2": "1"},
+  "dan_xuat": {
+    "amount2": "1"
+  },
   "loc": [
-    {"cot": "payload.bold", "dieu_kien": "bang", "gia_tri": "1"},
-    {"cot": "payload.so_lenh", "dieu_kien": "khac_rong"},
-    {"cot": "cost_center", "dieu_kien": "khac_rong"},
-    {"cot": "ngay", "dieu_kien": "khac_rong"}
+    {
+      "cot": "payload.bold",
+      "dieu_kien": "bang",
+      "gia_tri": "1"
+    },
+    {
+      "cot": "payload.so_lenh",
+      "dieu_kien": "khac_rong"
+    },
+    {
+      "cot": "cost_center",
+      "dieu_kien": "khac_rong"
+    },
+    {
+      "cot": "ngay",
+      "dieu_kien": "khac_rong"
+    }
   ],
-  "payload_them": {"unit": "ty", "dvt2": "lenh"}
+  "payload_them": {
+    "unit": "ty",
+    "dvt2": "lenh"
+  }
 }
