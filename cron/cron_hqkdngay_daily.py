@@ -328,6 +328,17 @@ def verify(entry: dict, want_day: str):
     12→15/08 với tổng GIỐNG HỆT 1.655, HTX Xanh VP có số tới tận 20/08. "Có dòng cho ngày hôm qua"
     và cả "số khác 0" đều không chứng minh kế toán đã nhập. Bằng chứng duy nhất đáng tin là NỘI DUNG
     FILE ĐỔI so với lượt trước — họ update vào chính file tháng đó, giống bên dòng tiền."""
+    # ĐƠN VỊ ĐÃ CHUYỂN NGUỒN: `derive_hqkd_ngay` bỏ mọi ngày >= `bo_tu_ngay` của đơn vị, nên với
+    # kỳ nằm trọn sau mốc thì file tay ĐÚNG RA phải không còn dòng nào. Hỏi DB rồi kết luận
+    # "không có dòng nào" là dựng một ô đỏ vĩnh viễn cho một việc bình thường. Chỉ ngắn mạch khi
+    # mốc rơi đúng ngày 01 và kỳ nằm từ tháng đó trở đi — cutover giữa tháng thì tháng đó vẫn còn
+    # phần trước mốc, phải kiểm như thường.
+    moc = (units_source().get(entry.get("company")) or {}).get("bo_tu_ngay")
+    if moc and moc.endswith("-01") and entry["_period"] >= moc[:7]:
+        out = f"DA_CHUYEN_NGUON(tu {moc})"
+        log(f"  kiem [{entry.get('company')}] {entry['_period']}: {out}"
+            " — nguon tay da duoc thay bang nguon tu dong, khong con dong nao la DUNG")
+        return parse_verify(out)
     sid = source_id(entry)
     rts = ",".join(f"'{t}'" for t in DAY_REPORT_TYPES)
     code = (
@@ -361,7 +372,8 @@ def parse_verify(out: str) -> dict:
     việc đọc nó ở cùng chỗ thì đổi format không làm hỏng bên tiêu thụ.
     """
     d = {"raw": out[:200], "so_ngay": None, "max_ngay": None, "code": None}
-    for code in ("KHONG_CO_DONG_NAO", "THIEU_NGAY_HOM_QUA", "OK_CO_NGAY_HOM_QUA"):
+    for code in ("DA_CHUYEN_NGUON", "KHONG_CO_DONG_NAO", "THIEU_NGAY_HOM_QUA",
+                 "OK_CO_NGAY_HOM_QUA"):
         if code in out:
             d["code"] = code
             break
@@ -530,6 +542,8 @@ def _ly_do(state: str, vr: dict, ngay_can: str, van_tay_cu: str = None,
         return "chưa có số liệu của ngày cần"
     if state == cron_status.STATE_KHONG_XAC_NHAN:
         return "file dựng sẵn cả tháng, chưa xác nhận được"
+    if state == cron_status.STATE_DA_CHUYEN_NGUON:
+        return "đã chuyển sang nguồn tự động, file tay không còn là nguồn của kỳ này"
     if state == cron_status.STATE_LOI_NAP:
         return "hệ thống không đọc được số liệu trong file"
     return "chưa thấy file báo cáo ở nguồn"
