@@ -55,6 +55,9 @@ CẤU TRÚC SPEC (khoá tiếng Việt cho kế toán/BA đọc được):
   "cot_thang": {"tu": "E", "den": "J", "he_so": 1.0,
                 "kieu": "nguong"},       // tuỳ chọn — ô là ngưỡng có toán tử ("≥95%", "<4%"):
                                          // amount = số, payload.toan_tu = '>='/'<='/'<'/'='
+  "doi_gia_tri": {"dim1": {"A100": "1000", "A300": "1047"}},   // đổi TÊN giá trị khi đổi nguồn
+                                        // mà phải giữ hình dạng bản ghi cũ; mã ngoài bản đồ GIỮ
+                                        // NGUYÊN, muốn lọc thì dùng `loc` điều kiện `thuoc`.
   "tinh_han_no": {"ngay_hoa_don": "payload.ngay_hoa_don", "cong_ngay": 15,   // suy đến hạn +
                   "den_han": "payload.den_han",            // số ngày quá hạn cho nguồn công nợ
                   "so_ngay_qua_han": "payload.so_ngay_qua_han", "phan_loai": "dim1"},
@@ -1531,6 +1534,28 @@ def _dan_xuat(rec, cong_thuc):
             rec.setdefault("_loi", []).append(f"{dich}: {ex}")
 
 
+def _doi_gia_tri(rec, cfg):
+    """Đổi giá trị một trường theo bản đồ khai trong spec — dùng khi ĐỔI NGUỒN nhưng phải GIỮ
+    NGUYÊN hình dạng bản ghi của nguồn cũ.
+
+    Bối cảnh: mapping VHKD chốt "file A bị thay bởi file B". File B mang mã riêng của nó (A100,
+    A300, A600…) trong khi mọi màn hình đang đọc mã của file A ('1000', '1047', '1112'). Không có
+    khoá này thì phải viết một hook Python cho MỖI report_type — bốn hook gần giống hệt nhau chỉ
+    khác vài dòng bản đồ.
+
+    Giá trị KHÔNG có trong bản đồ được GIỮ NGUYÊN (không bỏ trắng): bản đồ ở đây là phép ĐỔI TÊN,
+    không phải bộ lọc. Muốn giữ đúng vài mã thì lọc bằng `loc` với điều kiện `thuoc` — tách hai
+    việc ra để đọc spec là thấy ngay mã nào lên, mã nào không.
+    """
+    for truong, bando in (cfg or {}).items():
+        v = _lay(rec, truong)
+        if v is None:
+            continue
+        k = str(v).strip()
+        if k in bando:
+            _dat(rec, truong, bando[k])
+
+
 def _tinh_han_no(rec, cfg, ngay_file):
     """Suy `đến hạn` + `số ngày quá hạn` cho nguồn công nợ KHÔNG có sẵn hai cột đó.
 
@@ -2564,6 +2589,7 @@ def _extract_vung(spec, path):
             else:
                 outs.append(base)
             for r2 in outs:
+                _doi_gia_tri(r2, spec.get("doi_gia_tri"))
                 _tinh_han_no(r2, spec.get("tinh_han_no"), ngay_file)
                 _dan_xuat(r2, spec.get("dan_xuat"))
                 hong = r2.pop("_khong_map", None)
