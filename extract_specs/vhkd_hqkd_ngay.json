@@ -2,16 +2,17 @@
   "id": "vhkd_hqkd_ngay",
   "_mo_ta": "HIỆU QUẢ KINH DOANH SHOWROOM theo NGÀY — bản THAY THẾ tự động cho `SRVF/baocaohqkdngay`. Nuôi thẳng màn 'Hiệu quả kinh doanh' (/hieuqua) và 'Tổng quan': mã 1000 doanh thu (A100) · 1047 tổng chi phí (A300) · 1112 lợi nhuận trước thuế (A600).",
   "_kiem_chung": [
-    "Header dòng 8: Mã số · Chỉ tiêu · Lũy kế · Kỳ này · TK nợ · TK có · Mã phí · Mã NS · Công thức, rồi 27 cột đơn vị.",
-    "Hiệu cột 'Kỳ này' theo ngày (tỷ): 01/09 A300 0,9911 · 02/09 không có dòng nào · 03/09 A300 2,1721 (= 3,1632 − 0,9911). A100 doanh thu bằng 0 cả ba ngày — xem `_bay`."
+    "Header dòng 8: Mã số · Chỉ tiêu · Lũy kế · Kỳ này · TK nợ · TK có · Mã phí · Mã NS · Công thức, rồi 27 cột đơn vị. Giá trị đọc theo MÃ SỐ ở cột A, lấy ô cột 'Lũy kế'.",
+    "Hiệu cột 'Lũy kế' theo ngày (tỷ): 30/08 A100 10,8552 · A300 14,2215 · U302 −3,3663 | 31/08 0,0350 / 22,2412 / −22,2062 | 01/09 0,0350 / 21,0903 / −21,0553 | 02/09 không có dòng nào (bản 02/09 sao y bản 01/09, nghỉ lễ) | 03/09 99,7654 / 3,2279 / 96,5375."
   ],
   "_bay": [
-    "LẤY CỘT 'KỲ NÀY', CỐ Ý KHÁC CHỮ TRONG MAPPING — và đây là chỗ dễ bị 'sửa lại cho đúng mapping' nhất, đừng đổi nếu chưa đọc hết mục này. Bản mapping 05/09/2026 (sheet '2. Mapping chỉ tiêu', ô L5 · L34 · L36 · L37 · L39) ghi 'Cột \"Lũy kế\": báo cáo ngày sau − ngày trước'. Đã làm đúng như vậy một lượt và PHẢI BỎ: cột 'Lũy kế' là luỹ kế TỪ KHI THÀNH LẬP, nên phép trừ vắt qua ngày Cyber VÁ TEMPLATE là nhặt trọn phần vá vào một ngày — ngày 03/09/2026 ra doanh thu 99,77 tỷ trong khi không ô nào trong file ghi con số đó (số thật của ngày: doanh thu 1,827 tỷ · chi phí 1,908 tỷ · lỗ 81,2 triệu). Cột 'Kỳ này' reset đầu tháng nên miễn nhiễm với ca đó và ra ĐÚNG SỐ FILE BÁO CÁO. Quy tắc user chốt 05/09: 'lên đúng số được báo cáo ở file'.",
-    "'Kỳ này' là luỹ kế TỪ ĐẦU THÁNG -> `tru_ngay_truoc: true` (chỉ trừ trong cùng tháng). Bản ngày 01 của tháng giữ nguyên giá trị vì nó ĐÃ là số của ngày. ĐỪNG đổi sang \"lien_thang\" — đó là chế độ cho cột 'Lũy kế', dùng nhầm ở đây là ngày 01 mỗi tháng bị trừ với bản cuối tháng trước.",
+    "QUYẾT ĐỊNH CỦA USER 05/09/2026 — LẤY CỘT 'LŨY KẾ', ĐỌC THEO MÃ SỐ, HIỆU NGÀY n − NGÀY n−1. Đúng nguyên văn mapping 'Báo cáo API_VHKD' dòng 11 cột G: 'KQ ngày n = Tổng kết quả lũy kế (chốt ngày n) − tổng kết quả lũy kế (chốt ngày n−1)', và sheet '2. Mapping chỉ tiêu' ô L5·L34·L36·L37·L39 ghi rõ '- Cột \"Lũy kế\"'. Đã có một lượt đổi sang cột 'Kỳ này' rồi ĐỔI LẠI — ĐỪNG đổi nữa nếu chưa hỏi user.",
+    "HAI NGÀY BIẾT TRƯỚC LÀ LỆCH, ĐÃ BÁO USER VÀ USER CHỌN GIỮ. (1) 01/09/2026 ăn 21,0903 tỷ chi phí — thực chất là chi phí ngày 31/08 (file HQKD ngày của KT ghi 31/08 = 21,2085 tỷ, lệch 0,6%), vì cột 'Lũy kế' không reset đầu tháng nên hiệu vắt qua ranh giới tháng. Tháng 8 đã có đủ số đó từ nguồn tay `SRVF/baocaohqkdngay`. (2) 03/09/2026 ăn 99,7654 tỷ doanh thu — hôm đó Cyber VÁ TEMPLATE, thêm lại các dòng A210/A211/A211A/A213/A214 vốn không tồn tại trong file 29/08→02/09 (A200 đứng yên đúng 145,7345 tỷ = một mình A212 suốt 5 ngày rồi vọt lên 244,55). Số thật ngày đó: doanh thu 1,827 tỷ · chi phí 1,908 tỷ · LỖ 81,2 triệu. Phép trừ vắt qua ngày đổi định nghĩa nên nhặt trọn phần vá. Ngày 04/09 trở đi tự chạy lại bình thường.",
+    "TRONG CÙNG MỘT THÁNG HAI CỘT CHO Y HỆT NHAU — đã đo: hiệu A300 ngày 30/08 = 14,2215 tỷ và ngày 31/08 = 22,2412 tỷ ở CẢ hai cột. Chỉ lệch ở ranh giới tháng và ở ngày vá template. Nên đừng tranh luận cột nào 'đúng hơn' bằng cảm tính, đo lại hai ngày đó là ra.",
+    "`tru_ngay_truoc: \"lien_thang\"` LÀ BẮT BUỘC với cột này: 'Lũy kế' là luỹ kế TỪ KHI THÀNH LẬP, KHÔNG reset đầu tháng (A300 chạy liền 4.344,02 → 4.358,24 → 4.380,48 → 4.401,57 → 4.404,80 tỷ). Để `true` (chỉ trừ trong cùng tháng) là bản ngày 01 giữ nguyên luỹ kế và nạp mấy nghìn tỷ vào một ngày.",
     "ĐỔI NGUỒN, GIỮ NGUYÊN HÌNH DẠNG BẢN GHI. Mapping VHKD 'Báo cáo API_VHKD' dòng 11 chốt: `\\PHONGKETOANSHOWROOM\\BAOCAOHQKDNGAY` (file KT làm tay) BỊ THAY bởi `B.1.TC.TCKT.D.2026mmdd.Baocaotaichinhrieng-HQKD` (Cyber tự động). Vì vậy spec này ghi thẳng vào report_type/dim1 CŨ để mọi màn đang đọc không phải sửa một dòng nào; mã riêng của file mới (A-series) đổi sang mã cũ bằng khoá `doi_gia_tri`.",
     "MỨC KHỐI, KHÔNG CÓ COST CENTER — cột 'Lũy kế' không có bản tách theo showroom (27 cột đơn vị của file chạy theo gốc 'Kỳ này': đo 03/09 A300 Kỳ này 3,1632 tỷ ≈ Σ10 showroom 3,1629 tỷ, còn Lũy kế 4.404,80 tỷ). Phần theo từng showroom nằm ở `vhkd_pnl_ngay_cc` (report_type `VHKD_PNL_CC_D`, chưa lên màn). ĐỪNG khai thêm cột đơn vị vào spec này: `flow_by_khoi` cộng MỌI dòng cùng khối nên dòng khối + 10 dòng showroom là đếm đôi.",
     "RANH GIỚI 01/09/2026 (`chi_nap_tu_ngay`). Tháng 8 đã có đủ từ nguồn TAY `SRVF/baocaohqkdngay`; nạp chồng là hai nguồn cùng khối cùng ngày. Bản 31/08 vẫn được ĐỌC để làm số trừ cho 01/09 — mốc chỉ chặn NẠP.",
-    "SỐ CỦA NGÀY = HIỆU HAI BẢN LIÊN TIẾP CỦA CỘT 'KỲ NÀY' — đúng số file báo cáo, không tự dựng. Đo 05/09/2026: 01/09 chi phí 0,9911 tỷ · 02/09 KHÔNG CÓ DÒNG NÀO (bản 02/09 sao y bản 01/09, nghỉ lễ Quốc khánh — đúng, không phải nạp hỏng) · 03/09 chi phí 2,1721 tỷ. File HQKD ngày của kế toán cùng quãng: 0,110 + 0,0079 + 1,908 = 2,026 tỷ, bản tự động 3,163 tỷ — lệch 56%, là chênh PHẠM VI giữa hai nguồn, cần kế toán đối chiếu.",
     "MAPPING VIẾT VÍ DỤ LỆCH MỘT NGÀY ('doanh thu ngày 25/8 = báo cáo 26/8 − báo cáo 25/8'), spec KHÔNG gán như vậy: file `.D.20260831.` phủ TỚI HẾT 31/08 — đã đối chứng ở XDV (cột 'Kỳ này' bản 31/08 = 44.257.186.721 đ, khớp tuyệt đối tháng 8 trong DB). Hiệu gán cho ngày của file SAU.",
     "BẢN 02/09 LÀ BẢN SAO Y CỦA 01/09 (mọi ô bằng nhau) -> hiệu ra 0 dòng, đúng, không phải nạp hỏng.",
     "MÃ ĐÍCH PHẢI ĐÚNG BỘ CŨ: `MA_DT/MA_CP/MA_LNTT` = '1000'/'1047'/'1112' trong `derive_hqkd_ngay.py`. Đổi một ký tự là màn im số mà không báo lỗi."
@@ -33,8 +34,8 @@
       "bang": "Mã số"
     },
     {
-      "o": "D8",
-      "bang": "Kỳ này"
+      "o": "C8",
+      "bang": "Lũy kế"
     }
   ],
   "header": {
@@ -46,7 +47,7 @@
     "thu_tu": "ymd"
   },
   "moi_ky_lay_file_moi_nhat": "ngay",
-  "tru_ngay_truoc": true,
+  "tru_ngay_truoc": "lien_thang",
   "chi_nap_tu_ngay": "2026-09-01",
   "cot": {
     "dim1": {
@@ -59,7 +60,7 @@
   "ban_ghi": "moi_cot_gia_tri",
   "cot_gia_tri": [
     {
-      "header": "Kỳ này",
+      "header": "Lũy kế",
       "he_so": 1e-09
     }
   ],
