@@ -7,12 +7,14 @@
     "Cột 'Kỳ này' của bản 31/08 = 44.257.186.721 đ, khớp tuyệt đối số tháng 8 trong DB (rà 03/09/2026)."
   ],
   "_bay": [
-    "MỖI FILE LÀ LUỸ KẾ, KHÔNG PHẢI SỐ CỦA NGÀY. Bỏ `tru_ngay_truoc` là nạp thẳng luỹ kế vào `raw_rows` — mà mọi màn đều SUM theo kỳ, nên chọn vài ngày rồi cộng là ra gấp mấy lần số thật.",
+    "ĐỔI SANG CỘT 'LŨY KẾ' 05/09/2026 theo bản mapping XDV cập nhật (sheet 'QTVH_Cách lấy XDV', ô K5 · K8 · K38 · K41: 'Lấy mã số B100/B410/B120+B130 - Cột \"Lũy kế\": Báo cáo ngày sau − báo cáo ngày hôm trước'). Trước đó spec đọc cột 'Kỳ này'. Cùng một thay đổi với 4 spec SRVF (`vhkd_hqkd_ngay`…). ĐỪNG đổi lại khi chưa hỏi user.",
+    "`tru_ngay_truoc: \"lien_thang\"` LÀ BẮT BUỘC: cột 'Lũy kế' KHÔNG reset đầu tháng (B100 đi liên 294,7569 ngày 31/08 → 294,8880 ngày 01/09). Đổi sang `true` là bản 01/09 giữ nguyên luỹ kế 294,89 tỷ và nạp thẳng vào một ngày.",
+    "VÌ SAO ĐỔI CỘT LẠI TỐT HƠN Ở ĐÂY (khác hẳn bên SRVF): trong cùng một tháng hai cột cho hiệu Y HỆT nhau (B100: 29/08 = 40,3614 · 30/08 = 2,3847 · 31/08 = 1,5111 · 04/09 = 5,9505 ở cả hai cột). Khác biệt DUY NHẤT nằm ở ranh giới tháng: hiệu 'Lũy kế' cho 01/09 = 0,1311 tỷ (hợp lý), còn hiệu 'Kỳ này' cho −44,2572 tỷ vì cột đó reset về 0 đầu tháng — nên bản cũ (`tru_ngay_truoc: true`) phải bỏ ngày 01/09 và mất số của ngày đó. Đổi sang 'Lũy kế' liên tháng là VỚT LẠI được 01/09.",
     "Dải ngày trong tiêu đề file KHÔNG phải ngày báo cáo: bản 03/09 ghi 'TỪ NGÀY 01/09/2026 ĐẾN NGÀY 30/09/2026'. Ngày của bản ghi lấy từ TÊN FILE (`.D.20260903.`), không lấy từ ô tiêu đề.",
     "Hai bản 25/08 và 26/08 có dải 'TỪ NGÀY 25/08 ĐẾN NGÀY 25/08' (kéo 1 ngày) rồi từ 29/08 mới đổi sang dải cả tháng — hai bản đó KHÔNG phải luỹ kế nên hiệu với chúng vô nghĩa. Vì vậy chuỗi ngày chỉ đáng tin TỪ 29/08/2026 trở đi; nạp phần trước đó phải soi lại từng ngày.",
-    "CHỈ NẠP TỪ 30/08/2026 (`chi_nap_tu_ngay`). Bản 25 và 26/08 kéo dải MỘT NGÀY nên cột 'Kỳ này' = 0 — không phải luỹ kế, lấy hiệu với chúng là vô nghĩa. Bản 29/08 là bản luỹ kế ĐẦU TIÊN, nhưng không có bản luỹ kế nào trước nó trong tháng để trừ, nên nếu nạp thì nó ôm trọn 01→29/08 dồn vào một ngày. Mốc 30/08 làm ngày đầu tiên có hiệu đúng một ngày (trừ với bản 29/08, bản này vẫn đọc được vì mốc chỉ chặn NẠP). Phần 01→29/08 của tháng 8 đã có từ nguồn tay `XDV_DTHU`.",
     "`dim2` tách 'Khối' (cột 'Kỳ này') và 'Xưởng' (14 cột đơn vị) — ĐỪNG cộng cả hai, sẽ đếm đôi. Tổng 14 xưởng cũng KHÔNG bằng cột Khối: file còn các cột showroom (Showroom Long Biên, Showroom OceanPark…) và cột pháp nhân tổng, cố ý không khai vì mapping chỉ yêu cầu 14 XDV.",
-    "Bản SR (`TEST_SR/baocaotaichinhrienghqkd`) DÙNG CHUNG cách này được, NHƯNG template bên SR hỏng từ 29/08/2026 (mất 3 dòng doanh thu A210/A211/A213) nên chưa làm — xem mapping VHKD dòng 11."
+    "Bản SR (`TEST_SR/baocaotaichinhrienghqkd`) DÙNG CHUNG cách này được, NHƯNG template bên SR hỏng từ 29/08/2026 (mất 3 dòng doanh thu A210/A211/A213) nên chưa làm — xem mapping VHKD dòng 11.",
+    "CHỈ NẠP TỪ 30/08/2026 (`chi_nap_tu_ngay`). Bản 25 và 26/08 kéo dải MỘT NGÀY nên không phải luỹ kế; bản 29/08 là bản luỹ kế đầu tiên nhưng ôm trọn 01→29/08. Mốc 30/08 là ngày đầu tiên có hiệu đúng một ngày. Phần 01→29/08 đã có từ nguồn tay `XDV_DTHU`."
   ],
   "report_type": "XDV_PNL_D",
   "row_index_base": 8650000,
@@ -30,8 +32,8 @@
       "bang": "Mã số"
     },
     {
-      "o": "D8",
-      "bang": "Kỳ này"
+      "o": "C8",
+      "bang": "Lũy kế"
     },
     {
       "o": "J8",
@@ -47,7 +49,7 @@
     "thu_tu": "ymd"
   },
   "moi_ky_lay_file_moi_nhat": "ngay",
-  "tru_ngay_truoc": true,
+  "tru_ngay_truoc": "lien_thang",
   "cot": {
     "dim1": {
       "header": "Mã số"
@@ -59,7 +61,7 @@
   "ban_ghi": "moi_cot_gia_tri",
   "cot_gia_tri": [
     {
-      "header": "Kỳ này",
+      "header": "Lũy kế",
       "dim2": "Khối",
       "he_so": 1e-09
     },
