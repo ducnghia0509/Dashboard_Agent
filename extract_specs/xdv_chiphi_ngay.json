@@ -6,6 +6,7 @@
     "Đã đo trên bản 04/09/2026: 14/14 cột xưởng đều có B600 + B700 = B500 khớp tới đồng (vd Đài Tư 46.481.130 = 46.481.130), nên nhánh tách luôn đúng ở nguồn này."
   ],
   "_bay": [
+    "TÊN FILE LÀ NGÀY KÉO, KHÔNG PHẢI NGÀY CỦA SỐ — `ngay_du_lieu_lui: 1` (chốt 06/09/2026). Mapping ghi ở cột ghi chú sheet 'Cách lấy BC tự động': \"Báo cáo kéo tự động 12h trưa ngày N - Dữ liệu là của ngày N-1\". Đối chứng số nghiệp vụ đưa cho ngày 03/09: hiệu của bản `.D.20260904.` ở XDV = DT 5.950.507.762 · CP 4.688.749.745 · LNST 1.261.785.225, khớp từng đồng. Vì lùi áp cho mọi chỗ gọi `ngay_tu_ten_file`, `chi_nap_tu_ngay` nay đọc là 'chỉ nạp DỮ LIỆU từ ngày này' — không phải sửa mốc.",
     "ANH EM VỚI `xdv_hqkd_ngay` — BỐN SPEC CÙNG ĐỌC MỘT FILE, CÙNG MỘT CUTOVER. Đổi cột / đổi `chi_nap_tu_ngay` ở một cái là bốn cái lệch nhau; mốc 01/09/2026 phải khớp cả với `derive_hqkd_ngay._UNITS[\"XDV\"][\"bo_tu_ngay\"]` (nguồn tay). Sửa một bên là cộng đôi.",
     "`tru_ngay_truoc: true` (CHỈ TRONG CÙNG THÁNG) LÀ ĐÚNG: spec đọc 14 cột ĐƠN VỊ, vốn chạy theo gốc 'Kỳ này' và RESET đầu tháng. Đổi sang \"lien_thang\" là ngày 01 mỗi tháng ra âm hàng chục tỷ — xem `_bay` của `xdv_pnl_ngay` (đo 05/09/2026: −44,2572 tỷ).",
     "ĐỪNG KHAI THÊM CỘT 'Lũy kế'. Dòng Khối + 14 dòng xưởng trong cùng report_type là ĐẾM ĐÔI vì `flow_by_khoi` cộng mọi dòng cùng khối.",
@@ -162,5 +163,6 @@
     "unit": "ty",
     "grain": "day",
     "nguon_he": "HQKD ngày XDV (Cyber tự động)"
-  }
+  },
+  "ngay_du_lieu_lui": 1
 }
