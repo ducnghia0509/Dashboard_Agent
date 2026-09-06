@@ -7,7 +7,7 @@
     "Trong cùng một tháng, hiệu cột 'Lũy kế' và hiệu cột 'Kỳ này' cho Y HỆT nhau — đo A300: 30/08 = 14,2215 tỷ và 31/08 = 22,2412 tỷ ở cả hai cột. Chỉ lệch ở ranh giới tháng và ở những ngày cột 'Lũy kế' được dựng bù."
   ],
   "_bay": [
-    "TÊN FILE LÀ NGÀY KÉO, KHÔNG PHẢI NGÀY CỦA SỐ — `ngay_du_lieu_lui: 1` (chốt 06/09/2026). Mapping ghi ở cột ghi chú sheet 'Cách lấy BC tự động': \"Báo cáo kéo tự động 12h trưa ngày N - Dữ liệu là của ngày N-1\". Đối chứng số nghiệp vụ đưa cho ngày 03/09: hiệu của bản `.D.20260904.` ở XDV = DT 5.950.507.762 · CP 4.688.749.745 · LNST 1.261.785.225, khớp từng đồng. Vì lùi áp cho mọi chỗ gọi `ngay_tu_ten_file`, `chi_nap_tu_ngay` nay đọc là 'chỉ nạp DỮ LIỆU từ ngày này' — không phải sửa mốc.",
+    "NGÀY CỦA SỐ = NGÀY TRONG TÊN FILE, KHÔNG LÙI (user chốt 06/09/2026, ĐẢO LẠI quyết định `ngay_du_lieu_lui: 1` cùng ngày). Số của ngày N = bản kéo N − bản kéo N−1. Bằng chứng nằm ngay trong chính lượt kéo đó: 14/16 nguồn TEST_SR + TEST_XDV của bản `.D.20260904.` tự ghi ở dòng 6 'TỪ NGÀY 04/09/2026 ĐẾN NGÀY 04/09/2026' (bangkehoadonbanxe · baocaocongnophaithungay · baocaonhapxuattonhosoxe · baocaonhapxuattonkhoxe · baocaotaichinhriengcdps · baocaotonghopbanxe · baocaoxuathoadon · bangkelenhsuachua · bangkethungandv · baocaodoanhthuxdvngay · baocaolenhchuaxhd · baocaotonghoplsc · cdpscongnotheoro), và bangkehoadondv ghi 'TỪ NGÀY 04/09 ĐẾN NGÀY 05/09' với 0,7939 tỷ mang ngày hoá đơn 04/09 so với 0,0862 tỷ mang ngày 05/09 — tức phần lớn là của chính ngày N, phần tràn sang N+1 đã có `chi_lay_ngay_cua_file` gạt. Hai file HQKD ghi 'TỪ NGÀY 01/09 ĐẾN NGÀY 30/09' vì là báo cáo luỹ kế tháng, nhưng nằm CÙNG một lượt xuất với 14 file kia nên cùng quy ước đặt tên. ĐỪNG khai lại `ngay_du_lieu_lui` khi chưa hỏi user.",
     "ĐỔI 'Lũy kế' -> 'Kỳ này' 06/09/2026 theo bản mapping cập nhật (sheet kéo tay đổi 8 ô sang cột \"Kỳ này\"), và vì cột 'Lũy kế' của nguồn SR bị dựng bù ngược: A200 đứng yên 145,73 tỷ từ 29/08 đến 02/09 rồi nhảy 244,55 -> 467,54 tỷ, làm hiệu theo ngày ra 99,77 và 227,61 tỷ doanh thu. `tru_ngay_truoc` \"lien_thang\" -> `true` vì cột 'Kỳ này' RESET đầu tháng theo dải ngày ở dòng 6 của file.",
     "QUY TẮC USER CHỐT 05/09/2026 — ĐỪNG ĐỔI KHI CHƯA HỎI. Ngày nào cũng: Lũy kế(ngày n) − Lũy kế(ngày n−1), đọc theo MÃ SỐ ở cột A, giá trị lấy ô cột 'Lũy kế' (C8). KHÔNG loại trừ ngày đầu tháng: 01/09 = Lũy kế(01/09) − Lũy kế(31/08). Cài bằng `tru_ngay_truoc: \"lien_thang\"`. Spec này trong ngày 05/09 đã đổi cột/chế độ nhiều lượt rồi mới chốt — đừng đổi tiếp.",
     "`tru_ngay_truoc: \"lien_thang\"` LÀ BẮT BUỘC, ĐỪNG ĐỔI VỀ `true`. Cột 'Lũy kế' là luỹ kế TỪ KHI THÀNH LẬP, KHÔNG reset đầu tháng (A300 chạy liền 4.380,48 ngày 31/08 → 4.401,57 ngày 01/09). Để `true` (chỉ trừ trong cùng tháng) thì bản 01/09 giữ nguyên ô của nó và nạp thẳng 4.401,57 tỷ chi phí vào một ngày — một mình ngày đó nuốt trọn màn hình toàn tập đoàn.",
@@ -99,6 +99,5 @@
     "unit": "ty",
     "goc_so": "luy_ke_lien_thang",
     "nguon_he": "HQKD ngày Showroom (Cyber tự động)"
-  },
-  "ngay_du_lieu_lui": 1
+  }
 }
