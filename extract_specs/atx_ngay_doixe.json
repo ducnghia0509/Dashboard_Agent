@@ -4,8 +4,9 @@
   "row_index_base": 7850000,
   "_mo_ta": "ĐỘI XE THEO NGÀY của An Taxi — bố cục MỚI. Cột B tổng số xe · C số xe hoạt động · D xe nằm · AV xe thiếu tài · AY xe đến hạn bảo dưỡng. Mapping 'Mapping Antaxi 25.08' dòng 38-41/64-65.",
   "_bay": [
-    "BỐ CỤC MỚI (file về VPS 28/08/2026, 103×60): ba khối xếp DỌC — I Sơn Tây 9-39 · II Thái Nguyên 41-71 · III Tổng 2 depot 73-103. Bản CŨ mỗi ngày một dòng, ST/TN ở cột riêng; đừng bê spec cũ sang, cột lệch hoàn toàn.",
-    "GHIM CHỮ CỘT: nhãn dòng 4/5 lặp cho nhiều nhóm nên `header` không phân biệt được. Mỗi vùng `kiem_tra_o` khoá cả nhãn VÀ ô mốc khối (B8/B40/B72) — cột xê dịch thì BỎ QUA kèm cảnh báo.",
+    "NGUỒN CHÈN DÒNG 'Tổng' CUỐI MỖI KHỐI (bắt 06/09/2026) — mốc khối II tụt 1 dòng, khối III tụt 2 dòng: II ở B41 (dữ liệu 42-72), III ở B74 (dữ liệu 75-105). Bản spec trước ghi B40/41-71 và B72/73-103 theo bố cục 28/08; `kiem_tra_o` bắt được nên hai khối này DỪNG an toàn thay vì nạp lệch — nhưng hệ quả là MẤT TRẮNG depot Thái Nguyên và mất luôn lát 'Tổng 2 depot' ở MỌI report_type ngày, từ đó kéo theo hàng loạt lỗi 'chọn kỳ ngày thì không hiển thị' trong log KSNB 05/09. Đổi bố cục nữa thì kiểm lại B8/B41/B74 trước, đừng chỉ dịch số theo cảm giác.",
+    "BỐ CỤC MỚI (file về VPS 28/08/2026, 103×60): ba khối xếp DỌC — I Sơn Tây 9-39 · II Thái Nguyên 42-72 · III Tổng 2 depot 75-105 (mốc khối ở B8/B41/B74). Bản CŨ mỗi ngày một dòng, ST/TN ở cột riêng; đừng bê spec cũ sang, cột lệch hoàn toàn.",
+    "GHIM CHỮ CỘT: nhãn dòng 4/5 lặp cho nhiều nhóm nên `header` không phân biệt được. Mỗi vùng `kiem_tra_o` khoá cả nhãn VÀ ô mốc khối (B8/B41/B74) — cột xê dịch thì BỎ QUA kèm cảnh báo.",
     "Σ 2 depot = khối III, ba khối cùng report_type -> mọi phép cộng ở backend phải chọn MỘT lát (`cost_center` rỗng = tổng). Xem `antaxi.py` quy tắc 3.",
     "dim1 'Xe hoạt động' (KHÔNG phải 'Xe vận doanh' như bản THÁNG) — `antaxi._nen_chung` rơi về tên này cho bản ngày; đổi là mất trắng vế xe hoạt động ở chế độ Ngày.",
     "Cột E là TỶ LỆ xe hoạt động (phân số) — KHÔNG nạp ở đây, nó nằm ở `atx_ngay_chitieu` để backend không cộng một cột tỷ lệ qua ngày."
@@ -94,15 +95,15 @@
     },
     {
       "ten": "II Depot Thái Nguyên",
-      "dong_bat_dau": 41,
-      "dong_ket_thuc": 71,
+      "dong_bat_dau": 42,
+      "dong_ket_thuc": 72,
       "chieu_co_dinh": {
         "cong_ty": "AAG",
         "cost_center": "TN_AT"
       },
       "kiem_tra_o": [
         {
-          "o": "B40",
+          "o": "B41",
           "bang": "Depot Thái Nguyên"
         },
         {
@@ -151,14 +152,14 @@
     },
     {
       "ten": "III Tổng 2 depot",
-      "dong_bat_dau": 73,
-      "dong_ket_thuc": 103,
+      "dong_bat_dau": 75,
+      "dong_ket_thuc": 105,
       "chieu_co_dinh": {
         "cong_ty": "AAG"
       },
       "kiem_tra_o": [
         {
-          "o": "B72",
+          "o": "B74",
           "bang": "Tổng 2 depot"
         },
         {

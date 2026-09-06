@@ -4,8 +4,9 @@
   "row_index_base": 7840000,
   "_mo_ta": "DOANH THU + SỐ CUỐC THEO NGÀY của An Taxi, tách 4 NGUỒN THU × 3 phạm vi (ST/TN/Tổng) — bố cục MỚI. amount = doanh thu (tỷ), amount2 = số cuốc. Mapping 'Mapping Antaxi 25.08': cột I/N (App An) · O/T (Xanh) · U/Z (BE-VNPAY) · AA/AD (Đồng hồ); Σ 4 nguồn = AE (số cuốc) và AK (Dt thực đạt).",
   "_bay": [
+    "NGUỒN CHÈN DÒNG 'Tổng' CUỐI MỖI KHỐI (bắt 06/09/2026) — mốc khối II tụt 1 dòng, khối III tụt 2 dòng: II ở B41 (dữ liệu 42-72), III ở B74 (dữ liệu 75-105). Bản spec trước ghi B40/41-71 và B72/73-103 theo bố cục 28/08; `kiem_tra_o` bắt được nên hai khối này DỪNG an toàn thay vì nạp lệch — nhưng hệ quả là MẤT TRẮNG depot Thái Nguyên và mất luôn lát 'Tổng 2 depot' ở MỌI report_type ngày, từ đó kéo theo hàng loạt lỗi 'chọn kỳ ngày thì không hiển thị' trong log KSNB 05/09. Đổi bố cục nữa thì kiểm lại B8/B41/B74 trước, đừng chỉ dịch số theo cảm giác.",
     "BỐ CỤC MỚI (file về VPS 28/08/2026, 103×60). Bản CŨ mỗi ngày MỘT DÒNG với ST/TN ở các cột riêng (41×54); bản mới xếp DỌC ba khối như báo cáo tháng: I Sơn Tây dòng 9-39 · II Thái Nguyên 41-71 · III Tổng 2 depot 73-103. Đừng bê spec cũ sang, cột lệch hoàn toàn.",
-    "GHIM CHỮ CỘT chứ không dò theo tên: nhãn ở dòng 4 (nhóm) và dòng 5 (đo lường) lặp lại cho cả 4 nguồn thu nên `header` không phân biệt được. Bù lại mỗi vùng `kiem_tra_o` khoá cả nhãn nhóm, nhãn đo lường VÀ ô mốc khối (B8/B40/B72) — cột xê dịch là spec BỎ QUA kèm cảnh báo.",
+    "GHIM CHỮ CỘT chứ không dò theo tên: nhãn ở dòng 4 (nhóm) và dòng 5 (đo lường) lặp lại cho cả 4 nguồn thu nên `header` không phân biệt được. Bù lại mỗi vùng `kiem_tra_o` khoá cả nhãn nhóm, nhãn đo lường VÀ ô mốc khối (B8/B41/B74) — cột xê dịch là spec BỎ QUA kèm cảnh báo.",
     "Σ 2 depot = khối III ở mọi chỉ tiêu cộng được, và ba khối cùng một report_type -> MỌI phép cộng ở backend phải chọn MỘT lát (`cost_center` rỗng = tổng). Xem `antaxi.py` quy tắc 3.",
     "File tháng 08/2026 chỉ có số tới ngày 12 (dòng còn lại rỗng). Ô rỗng bị `loc` loại nên không đẻ ra 'ngày có số 0' giả.",
     "File ghi nhóm là 'Xanh' và 'BE-VNPAY'; dim1 chuẩn hoá về 'App Xanh'/'Be-VnPay' cho khớp `antaxi.KENH_DT` và nhãn thiết kế. Đổi dim1 là backend mất trắng 4 kênh.",
@@ -76,8 +77,8 @@
     },
     {
       "ten": "App An · II Depot Thái Nguyên",
-      "dong_bat_dau": 41,
-      "dong_ket_thuc": 71,
+      "dong_bat_dau": 42,
+      "dong_ket_thuc": 72,
       "chieu_co_dinh": {
         "cong_ty": "AAG",
         "cost_center": "TN_AT",
@@ -85,7 +86,7 @@
       },
       "kiem_tra_o": [
         {
-          "o": "B40",
+          "o": "B41",
           "bang": "Depot Thái Nguyên"
         },
         {
@@ -115,15 +116,15 @@
     },
     {
       "ten": "App An · III Tổng 2 depot",
-      "dong_bat_dau": 73,
-      "dong_ket_thuc": 103,
+      "dong_bat_dau": 75,
+      "dong_ket_thuc": 105,
       "chieu_co_dinh": {
         "cong_ty": "AAG",
         "dim1": "App An"
       },
       "kiem_tra_o": [
         {
-          "o": "B72",
+          "o": "B74",
           "bang": "Tổng 2 depot"
         },
         {
@@ -192,8 +193,8 @@
     },
     {
       "ten": "App Xanh · II Depot Thái Nguyên",
-      "dong_bat_dau": 41,
-      "dong_ket_thuc": 71,
+      "dong_bat_dau": 42,
+      "dong_ket_thuc": 72,
       "chieu_co_dinh": {
         "cong_ty": "AAG",
         "cost_center": "TN_AT",
@@ -201,7 +202,7 @@
       },
       "kiem_tra_o": [
         {
-          "o": "B40",
+          "o": "B41",
           "bang": "Depot Thái Nguyên"
         },
         {
@@ -231,15 +232,15 @@
     },
     {
       "ten": "App Xanh · III Tổng 2 depot",
-      "dong_bat_dau": 73,
-      "dong_ket_thuc": 103,
+      "dong_bat_dau": 75,
+      "dong_ket_thuc": 105,
       "chieu_co_dinh": {
         "cong_ty": "AAG",
         "dim1": "App Xanh"
       },
       "kiem_tra_o": [
         {
-          "o": "B72",
+          "o": "B74",
           "bang": "Tổng 2 depot"
         },
         {
@@ -308,8 +309,8 @@
     },
     {
       "ten": "Be-VnPay · II Depot Thái Nguyên",
-      "dong_bat_dau": 41,
-      "dong_ket_thuc": 71,
+      "dong_bat_dau": 42,
+      "dong_ket_thuc": 72,
       "chieu_co_dinh": {
         "cong_ty": "AAG",
         "cost_center": "TN_AT",
@@ -317,7 +318,7 @@
       },
       "kiem_tra_o": [
         {
-          "o": "B40",
+          "o": "B41",
           "bang": "Depot Thái Nguyên"
         },
         {
@@ -347,15 +348,15 @@
     },
     {
       "ten": "Be-VnPay · III Tổng 2 depot",
-      "dong_bat_dau": 73,
-      "dong_ket_thuc": 103,
+      "dong_bat_dau": 75,
+      "dong_ket_thuc": 105,
       "chieu_co_dinh": {
         "cong_ty": "AAG",
         "dim1": "Be-VnPay"
       },
       "kiem_tra_o": [
         {
-          "o": "B72",
+          "o": "B74",
           "bang": "Tổng 2 depot"
         },
         {
@@ -424,8 +425,8 @@
     },
     {
       "ten": "Đồng hồ · II Depot Thái Nguyên",
-      "dong_bat_dau": 41,
-      "dong_ket_thuc": 71,
+      "dong_bat_dau": 42,
+      "dong_ket_thuc": 72,
       "chieu_co_dinh": {
         "cong_ty": "AAG",
         "cost_center": "TN_AT",
@@ -433,7 +434,7 @@
       },
       "kiem_tra_o": [
         {
-          "o": "B40",
+          "o": "B41",
           "bang": "Depot Thái Nguyên"
         },
         {
@@ -463,15 +464,15 @@
     },
     {
       "ten": "Đồng hồ · III Tổng 2 depot",
-      "dong_bat_dau": 73,
-      "dong_ket_thuc": 103,
+      "dong_bat_dau": 75,
+      "dong_ket_thuc": 105,
       "chieu_co_dinh": {
         "cong_ty": "AAG",
         "dim1": "Đồng hồ"
       },
       "kiem_tra_o": [
         {
-          "o": "B72",
+          "o": "B74",
           "bang": "Tổng 2 depot"
         },
         {
