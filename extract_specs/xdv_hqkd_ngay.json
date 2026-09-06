@@ -7,7 +7,7 @@
     "14 cột xưởng của file TỰ ĐỘNG chạy theo gốc 'Kỳ này' (reset đầu tháng): Σ14 xưởng ngày 04/09 = 5,9505 tỷ, khớp đúng hiệu cột 'Lũy kế' của dòng Khối cùng ngày."
   ],
   "_bay": [
-    "TÊN FILE LÀ NGÀY KÉO, KHÔNG PHẢI NGÀY CỦA SỐ — `ngay_du_lieu_lui: 1` (chốt 06/09/2026). Mapping ghi thẳng ở cột ghi chú: \"Báo cáo kéo tự động 12h trưa ngày N - Dữ liệu là của ngày N-1\", và công thức cùng ô ghi \"lấy doanh thu ngày N thì lấy báo cáo N+1 − báo cáo N\". Đối chứng với số nghiệp vụ đưa 06/09: hiệu của bản `.D.20260904.` ở XDV = doanh thu 5.950.507.762 · chi phí 4.688.749.745 · LNST 1.261.785.225, đúng bằng số của NGÀY 03/09. Vì lùi áp cho MỌI chỗ gọi `ngay_tu_ten_file`, `chi_nap_tu_ngay: 2026-09-01` nay đọc là 'chỉ nạp DỮ LIỆU từ 01/09' (tức từ bản kéo 02/09) — không phải đổi mốc.",
+    "NGÀY CỦA SỐ = NGÀY TRONG TÊN FILE, KHÔNG LÙI (user chốt 06/09/2026, ĐẢO LẠI quyết định `ngay_du_lieu_lui: 1` cùng ngày). Số của ngày N = bản kéo N − bản kéo N−1. Bằng chứng nằm ngay trong chính lượt kéo đó: 14/16 nguồn TEST_SR + TEST_XDV của bản `.D.20260904.` tự ghi ở dòng 6 'TỪ NGÀY 04/09/2026 ĐẾN NGÀY 04/09/2026' (bangkehoadonbanxe · baocaocongnophaithungay · baocaonhapxuattonhosoxe · baocaonhapxuattonkhoxe · baocaotaichinhriengcdps · baocaotonghopbanxe · baocaoxuathoadon · bangkelenhsuachua · bangkethungandv · baocaodoanhthuxdvngay · baocaolenhchuaxhd · baocaotonghoplsc · cdpscongnotheoro), và bangkehoadondv ghi 'TỪ NGÀY 04/09 ĐẾN NGÀY 05/09' với 0,7939 tỷ mang ngày hoá đơn 04/09 so với 0,0862 tỷ mang ngày 05/09 — tức phần lớn là của chính ngày N, phần tràn sang N+1 đã có `chi_lay_ngay_cua_file` gạt. Hai file HQKD ghi 'TỪ NGÀY 01/09 ĐẾN NGÀY 30/09' vì là báo cáo luỹ kế tháng, nhưng nằm CÙNG một lượt xuất với 14 file kia nên cùng quy ước đặt tên. ĐỪNG khai lại `ngay_du_lieu_lui` khi chưa hỏi user.",
     "ĐỪNG KHAI THÊM CỘT 'Lũy kế' VÀO SPEC NÀY. `flow_by_khoi` cộng MỌI dòng cùng khối, nên dòng Khối + 14 dòng xưởng trong cùng một report_type là ĐẾM ĐÔI. Bản theo Khối đã có ở `xdv_pnl_ngay` (report_type `XDV_PNL_D`, dim2 'Khối'), màn QTVH đọc bản đó.",
     "`tru_ngay_truoc: true` (CHỈ TRỪ TRONG CÙNG THÁNG) LÀ ĐÚNG Ở ĐÂY, ĐỪNG ĐỔI SANG \"lien_thang\". Khác `xdv_pnl_ngay`: spec kia đọc cột 'Lũy kế' (luỹ kế TỪ KHI THÀNH LẬP, phải trừ vắt tháng), còn spec này đọc 14 cột ĐƠN VỊ vốn RESET đầu tháng. Trừ vắt tháng ở đây là ngày 01 mỗi tháng ra âm hàng chục tỷ — đúng lỗi đã xảy ra 05/09/2026 (−44,2572 tỷ), xem `_bay` của `xdv_pnl_ngay` và khoá `khong_tru_lien_thang_dim2`.",
     "NGÀY 01 CỦA THÁNG KHÔNG BỊ MẤT: không có bản nào cùng tháng để trừ -> engine giữ nguyên ô của chính nó, mà ô cột đơn vị bản ngày 01 CHÍNH LÀ luỹ kế trong tháng tới ngày 01 = số của riêng ngày đó. Đúng theo thiết kế, không phải bỏ sót.",
@@ -160,6 +160,5 @@
     "unit": "ty",
     "grain": "day",
     "nguon_he": "HQKD ngày XDV (Cyber tự động)"
-  },
-  "ngay_du_lieu_lui": 1
+  }
 }
