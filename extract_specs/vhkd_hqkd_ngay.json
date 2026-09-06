@@ -8,6 +8,7 @@
     "Trong cùng một tháng hai cột cho Y HỆT nhau — đo A300: 30/08 = 14,2215 tỷ và 31/08 = 22,2412 tỷ ở cả 'Lũy kế' lẫn 'Kỳ này'. Nên việc đổi cột CHỈ đổi số ở ranh giới tháng và ở những ngày cột 'Lũy kế' bị dựng bù."
   ],
   "_bay": [
+    "TÊN FILE LÀ NGÀY KÉO, KHÔNG PHẢI NGÀY CỦA SỐ — `ngay_du_lieu_lui: 1` (chốt 06/09/2026). Mapping ghi thẳng ở cột ghi chú: \"Báo cáo kéo tự động 12h trưa ngày N - Dữ liệu là của ngày N-1\", và công thức cùng ô ghi \"lấy doanh thu ngày N thì lấy báo cáo N+1 − báo cáo N\". Đối chứng với số nghiệp vụ đưa 06/09: hiệu của bản `.D.20260904.` ở XDV = doanh thu 5.950.507.762 · chi phí 4.688.749.745 · LNST 1.261.785.225, đúng bằng số của NGÀY 03/09. Vì lùi áp cho MỌI chỗ gọi `ngay_tu_ten_file`, `chi_nap_tu_ngay: 2026-09-01` nay đọc là 'chỉ nạp DỮ LIỆU từ 01/09' (tức từ bản kéo 02/09) — không phải đổi mốc.",
     "QUY TẮC USER CHỐT 06/09/2026 — đọc cột 'Kỳ này' (D8), lấy hiệu với bản ngày trước CÙNG THÁNG (`tru_ngay_truoc: true`). ĐÂY LÀ BẢN ĐẢO NGƯỢC quy tắc chốt 05/09 (đọc 'Lũy kế' + `\"lien_thang\"`), theo bản mapping cập nhật 06/09: sheet kéo tay của cả VHKD và XDV đã đổi 8 ô từ cột \"Lũy kế\" sang cột \"Kỳ này\". Đừng đổi lại khi chưa hỏi.",
     "VÌ SAO ĐẢO: cột 'Lũy kế' của A200 (bán xe) BỊ DỰNG BÙ NGƯỢC — đứng yên 145,73 tỷ từ 29/08 đến 02/09 rồi nhảy 244,55 (03/09) -> 467,54 (04/09), kéo A100 theo. Hiệu theo ngày của nó ra doanh thu 99,7654 tỷ (03/09) và 227,6100 tỷ (04/09) với LNTT +96,54 và +224,64 tỷ, trong khi CẢ THÁNG 8 doanh thu Showroom chỉ 362 tỷ. Số đó ĐÃ LÊN PROD từ 05/09 và bị bắt ngày 06/09. Cột 'Kỳ này' cùng hai ngày đó cho 0 và 5,2203 tỷ.",
     "VẾ DOANH THU CỦA FILE TỰ ĐỘNG CÒN THIẾU KÊNH — chi phí thì dùng được, doanh thu THÌ CHƯA. Đối chứng bản 31/08 với tháng 8 đã có từ nguồn tay: A300 'Kỳ này' = 369,330 tỷ ≈ 1047 thật 374,933 tỷ (lệch 1,5%, dùng được), NHƯNG A100 'Kỳ này' = 9,449 tỷ so với 1000 thật 362,303 tỷ — hụt ~38 lần. Lý do: trong file đó A200 chỉ có ĐÚNG MỘT thành phần A212 (bán xe cũ khối GF, 5,809 tỷ); hai dòng chính A210 (B2C) và A211 (B2B) KHÔNG XUẤT HIỆN. Bản 04/09 thì A210 lại có (4,653 tỷ) -> dòng này về thất thường. Đây là lỗi PHÍA NGUỒN (Cyber), spec không chữa được. Hệ quả: doanh thu ngày của Showroom tháng 9 đang THIẾU, không phải sai kiểu thổi phồng như bản cột 'Lũy kế'. Đã báo user 06/09.",
@@ -95,5 +96,6 @@
     "unit": "ty",
     "goc_so": "luy_ke_trong_thang",
     "nguon_he": "HQKD ngày Showroom (Cyber tự động)"
-  }
+  },
+  "ngay_du_lieu_lui": 1
 }

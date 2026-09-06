@@ -66,6 +66,10 @@ CẤU TRÚC SPEC (khoá tiếng Việt cho kế toán/BA đọc được):
   "tinh_han_no": {"ngay_hoa_don": "payload.ngay_hoa_don", "cong_ngay": 15,   // suy đến hạn +
                   "den_han": "payload.den_han",            // số ngày quá hạn cho nguồn công nợ
                   "so_ngay_qua_han": "payload.so_ngay_qua_han", "phan_loai": "dim1"},
+  "ngay_du_lieu_lui": 1,                 // TÊN FILE là ngày KÉO, số bên trong là của ngày TRƯỚC
+                                         // -> lùi N ngày khi suy `ngay`. Mặc định 0.
+                                         // Xem `ngay_tu_ten_file`. Báo cáo tự động Cyber
+                                         // chạy 12h trưa ngày N, chỉ có số tới hết N-1.
   "chi_lay_ngay_cua_file": true,         // bỏ dòng có `ngay` khác ngày suy từ TÊN FILE — cho nguồn
                                          // ngày cho lẫn sang hôm sau (xem chỗ dùng bên dưới)
   "tru_ngay_truoc": true,                // ô nguồn là LUỸ KẾ từ đầu tháng -> lấy hiệu với file
@@ -1640,7 +1644,30 @@ def chu_ky_tuan(spec, path):
 
 
 def ngay_tu_ten_file(spec, path):
-    """-> ('YYYY-MM-DD' | None, [cảnh báo]). Dùng cho bảng ẢNH CHỤP (không có cột ngày từng dòng).
+    """NGÀY CỦA DỮ LIỆU suy từ tên file — đã áp `ngay_du_lieu_lui` nếu spec khai.
+
+    Bọc quanh `_ngay_tu_ten_file_tho`. Tách ra vì có nguồn mà TÊN FILE là ngày KÉO chứ không
+    phải ngày của số: báo cáo tự động của Cyber chạy 12h trưa ngày N và chỉ chứa số tới hết
+    ngày N−1 — mapping VHKD/XDV ghi thẳng "Báo cáo kéo tự động 12h trưa ngày N - Dữ liệu là
+    của ngày N-1". Đối chứng 06/09/2026 với số nghiệp vụ đưa: hiệu của bản `.D.20260904.` ở
+    XDV ra doanh thu 5.950.507.762 · chi phí 4.688.749.745 · LNST 1.261.785.225, đúng bằng
+    số của NGÀY 03/09.
+
+    ÁP CHO MỌI CHỖ DÙNG, CỐ Ý VẬY — ba chỗ gọi hàm này đều nên nói cùng một thứ ngày:
+      · ghép bản ngày trước của `_tru_ngay_truoc` — lùi đều nên thứ tự không đổi, ghép y cũ;
+      · chốt "cùng tháng" của phép trừ — nay so THÁNG CỦA DỮ LIỆU, đúng chỗ cột luỹ kế reset;
+      · `chi_nap_tu_ngay` — nay đọc là "chỉ nạp dữ liệu TỪ ngày này", tự nhiên hơn ngày kéo.
+    Mặc định 0 nên mọi spec khác không đổi hành vi một chút nào.
+    """
+    ngay, warn = _ngay_tu_ten_file_tho(spec, path)
+    lui = spec.get("ngay_du_lieu_lui") or 0
+    if ngay and lui:
+        ngay = (dt.date.fromisoformat(ngay) - dt.timedelta(days=int(lui))).isoformat()
+    return ngay, warn
+
+
+def _ngay_tu_ten_file_tho(spec, path):
+    """-> ('YYYY-MM-DD' | None, [cảnh báo]) — ngày GHI TRONG TÊN FILE, chưa lùi. Dùng cho bảng ẢNH CHỤP (không có cột ngày từng dòng).
 
     `ky_tu_ten_file` tách RIÊNG regex năm và tháng — file công nợ đặt tên
     "…M.2026.07.22_Baocaocongnophaithu_T1.xlsx": cụm 2026.07.22 là NGÀY LẬP báo cáo (giống hệt
