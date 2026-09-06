@@ -7,6 +7,9 @@
     "Cột 'Kỳ này' của bản 31/08 = 44.257.186.721 đ, khớp tuyệt đối số tháng 8 trong DB (rà 03/09/2026)."
   ],
   "_bay": [
+    "TÊN FILE LÀ NGÀY KÉO, KHÔNG PHẢI NGÀY CỦA SỐ — `ngay_du_lieu_lui: 1` (chốt 06/09/2026). Mapping ghi ở cột ghi chú sheet 'Cách lấy BC tự động': \"Báo cáo kéo tự động 12h trưa ngày N - Dữ liệu là của ngày N-1\". Đối chứng số nghiệp vụ đưa cho ngày 03/09: hiệu của bản `.D.20260904.` ở XDV = DT 5.950.507.762 · CP 4.688.749.745 · LNST 1.261.785.225, khớp từng đồng. Vì lùi áp cho mọi chỗ gọi `ngay_tu_ten_file`, `chi_nap_tu_ngay` nay đọc là 'chỉ nạp DỮ LIỆU từ ngày này' — không phải sửa mốc.",
+    "GỠ `khong_tru_lien_thang_dim2` 06/09/2026 — SPEC KHÔNG CÒN TRỘN HAI GỐC SỐ. Trước đây cột 'Lũy kế' (dim2 'Khối') luỹ kế từ khi thành lập còn 14 cột đơn vị (dim2 'Xưởng') reset đầu tháng, nên phải có ngoại lệ đó. Nay CẢ HAI vế đều đọc gốc 'Kỳ này' (reset đầu tháng) với `tru_ngay_truoc: true`, một luật đúng cho mọi dòng. Đừng thêm lại.",
+    "ĐỔI 'Lũy kế' -> 'Kỳ này' 06/09/2026 theo bản mapping cập nhật (sheet kéo tay đổi 8 ô sang cột \"Kỳ này\"), và vì cột 'Lũy kế' của nguồn SR bị dựng bù ngược: A200 đứng yên 145,73 tỷ từ 29/08 đến 02/09 rồi nhảy 244,55 -> 467,54 tỷ, làm hiệu theo ngày ra 99,77 và 227,61 tỷ doanh thu. `tru_ngay_truoc` \"lien_thang\" -> `true` vì cột 'Kỳ này' RESET đầu tháng theo dải ngày ở dòng 6 của file.",
     "ĐỔI SANG CỘT 'LŨY KẾ' 05/09/2026 theo bản mapping XDV cập nhật (sheet 'QTVH_Cách lấy XDV', ô K5 · K8 · K38 · K41: 'Lấy mã số B100/B410/B120+B130 - Cột \"Lũy kế\": Báo cáo ngày sau − báo cáo ngày hôm trước'). Trước đó spec đọc cột 'Kỳ này'. Cùng một thay đổi với 4 spec SRVF (`vhkd_hqkd_ngay`…). ĐỪNG đổi lại khi chưa hỏi user.",
     "MỘT SPEC TRỘN HAI GỐC SỐ — `khong_tru_lien_thang_dim2: [\"Xưởng\"]` LÀ BẮT BUỘC, ĐỪNG GỠ. Cột 'Lũy kế' (dim2 'Khối') là luỹ kế TỪ KHI THÀNH LẬP nên phải trừ vắt tháng; còn 14 cột ĐƠN VỊ (dim2 'Xưởng') chạy theo gốc 'Kỳ này', RESET đầu tháng. Trừ tất bằng một luật thì ngày 01 mỗi tháng các xưởng bị trừ với bản cuối tháng trước: đo 05/09/2026, ngày 01/09 ra −44,2572 tỷ trong khi dòng Khối ra +0,1311 tỷ. Trong cùng tháng hai gốc cho hiệu Y HỆT nhau nên chỉ ranh giới tháng mới lộ.",
     "`tru_ngay_truoc: \"lien_thang\"` LÀ BẮT BUỘC: cột 'Lũy kế' KHÔNG reset đầu tháng (B100 đi liên 294,7569 ngày 31/08 → 294,8880 ngày 01/09). Đổi sang `true` là bản 01/09 giữ nguyên luỹ kế 294,89 tỷ và nạp thẳng vào một ngày.",
@@ -50,7 +53,7 @@
     "thu_tu": "ymd"
   },
   "moi_ky_lay_file_moi_nhat": "ngay",
-  "tru_ngay_truoc": "lien_thang",
+  "tru_ngay_truoc": true,
   "cot": {
     "dim1": {
       "header": "Mã số"
@@ -62,7 +65,7 @@
   "ban_ghi": "moi_cot_gia_tri",
   "cot_gia_tri": [
     {
-      "header": "Lũy kế",
+      "header": "Kỳ này",
       "dim2": "Khối",
       "he_so": 1e-09
     },
@@ -165,7 +168,5 @@
     "nguon_he": "HQKD ngày XDV (Cyber tự động)"
   },
   "chi_nap_tu_ngay": "2026-08-30",
-  "khong_tru_lien_thang_dim2": [
-    "Xưởng"
-  ]
+  "ngay_du_lieu_lui": 1
 }

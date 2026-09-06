@@ -7,6 +7,8 @@
     "Trong cùng một tháng, hiệu cột 'Lũy kế' và hiệu cột 'Kỳ này' cho Y HỆT nhau — đo A300: 30/08 = 14,2215 tỷ và 31/08 = 22,2412 tỷ ở cả hai cột. Chỉ lệch ở ranh giới tháng và ở những ngày cột 'Lũy kế' được dựng bù."
   ],
   "_bay": [
+    "TÊN FILE LÀ NGÀY KÉO, KHÔNG PHẢI NGÀY CỦA SỐ — `ngay_du_lieu_lui: 1` (chốt 06/09/2026). Mapping ghi ở cột ghi chú sheet 'Cách lấy BC tự động': \"Báo cáo kéo tự động 12h trưa ngày N - Dữ liệu là của ngày N-1\". Đối chứng số nghiệp vụ đưa cho ngày 03/09: hiệu của bản `.D.20260904.` ở XDV = DT 5.950.507.762 · CP 4.688.749.745 · LNST 1.261.785.225, khớp từng đồng. Vì lùi áp cho mọi chỗ gọi `ngay_tu_ten_file`, `chi_nap_tu_ngay` nay đọc là 'chỉ nạp DỮ LIỆU từ ngày này' — không phải sửa mốc.",
+    "ĐỔI 'Lũy kế' -> 'Kỳ này' 06/09/2026 theo bản mapping cập nhật (sheet kéo tay đổi 8 ô sang cột \"Kỳ này\"), và vì cột 'Lũy kế' của nguồn SR bị dựng bù ngược: A200 đứng yên 145,73 tỷ từ 29/08 đến 02/09 rồi nhảy 244,55 -> 467,54 tỷ, làm hiệu theo ngày ra 99,77 và 227,61 tỷ doanh thu. `tru_ngay_truoc` \"lien_thang\" -> `true` vì cột 'Kỳ này' RESET đầu tháng theo dải ngày ở dòng 6 của file.",
     "QUY TẮC USER CHỐT 05/09/2026 — ĐỪNG ĐỔI KHI CHƯA HỎI. Ngày nào cũng: Lũy kế(ngày n) − Lũy kế(ngày n−1), đọc theo MÃ SỐ ở cột A, giá trị lấy ô cột 'Lũy kế' (C8). KHÔNG loại trừ ngày đầu tháng: 01/09 = Lũy kế(01/09) − Lũy kế(31/08). Cài bằng `tru_ngay_truoc: \"lien_thang\"`. Spec này trong ngày 05/09 đã đổi cột/chế độ nhiều lượt rồi mới chốt — đừng đổi tiếp.",
     "`tru_ngay_truoc: \"lien_thang\"` LÀ BẮT BUỘC, ĐỪNG ĐỔI VỀ `true`. Cột 'Lũy kế' là luỹ kế TỪ KHI THÀNH LẬP, KHÔNG reset đầu tháng (A300 chạy liền 4.380,48 ngày 31/08 → 4.401,57 ngày 01/09). Để `true` (chỉ trừ trong cùng tháng) thì bản 01/09 giữ nguyên ô của nó và nạp thẳng 4.401,57 tỷ chi phí vào một ngày — một mình ngày đó nuốt trọn màn hình toàn tập đoàn.",
     "HAI SỐ BIẾT TRƯỚC LÀ TO, ĐÃ BÁO USER VÀ USER CHỌN GIỮ. (1) 01/09 ăn 21,0903 tỷ chi phí — thực chất là chi phí ngày 31/08 (file HQKD ngày của KT ghi 31/08 = 21,2085 tỷ, lệch 0,6%), vì cột 'Lũy kế' không reset đầu tháng nên hiệu vắt qua ranh giới tháng; tháng 8 đã có đủ số đó từ nguồn tay. (2) Doanh thu 03/09 = 99,7654 tỷ và 04/09 = 227,6100 tỷ — cột 'Lũy kế' của A100 đi 192,47 → 192,47 → 292,23 → 519,84 tỷ trong khi CẢ THÁNG 8 doanh thu Showroom chỉ 362 tỷ. Cột này đang được dựng bù ngược chứ không phải chuỗi luỹ kế ổn định, nên hiệu theo ngày không ra số của ngày. Đối chiếu: cột 'Kỳ này' cùng ngày 04/09 cho doanh thu 5,2203 tỷ · chi phí 2,7487 · LNST +2,4716 — hợp lý hơn hẳn. Cần Cyber sửa cột 'Lũy kế'; trước khi sửa xong thì số ở đây chỉ dùng để đối chiếu, đừng trích cho lãnh đạo.",
@@ -48,7 +50,7 @@
     "thu_tu": "ymd"
   },
   "moi_ky_lay_file_moi_nhat": "ngay",
-  "tru_ngay_truoc": "lien_thang",
+  "tru_ngay_truoc": true,
   "chi_nap_tu_ngay": "2026-09-01",
   "cot": {
     "dim1": {
@@ -64,7 +66,7 @@
   "ban_ghi": "moi_cot_gia_tri",
   "cot_gia_tri": [
     {
-      "header": "Lũy kế",
+      "header": "Kỳ này",
       "he_so": 1e-09
     }
   ],
@@ -97,5 +99,6 @@
     "unit": "ty",
     "goc_so": "luy_ke_lien_thang",
     "nguon_he": "HQKD ngày Showroom (Cyber tự động)"
-  }
+  },
+  "ngay_du_lieu_lui": 1
 }
