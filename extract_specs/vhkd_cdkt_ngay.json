@@ -1,0 +1,99 @@
+{
+  "id": "vhkd_cdkt_ngay",
+  "_mo_ta": "BẢNG CÂN ĐỐI KẾ TOÁN theo NGÀY — nguồn TỰ ĐỘNG Cyber (ổ IT\\TESTBAOCAOTUDONG\\1.VINFAST_SR -> VPS `TEST_SR/baocaotaichinhriengcdkt`), mỗi ngày một file. Mapping VHKD sheet 'Báo cáo API_VHKD' dòng 10: 'Bảng CĐKT · Khối TCKT · Tất cả các tài khoản trên BCĐKT, số dư đầu kỳ, cuối kỳ'. Một bản ghi = MỘT MÃ SỐ chỉ tiêu của BCĐKT (100/110/111...), `amount` = Số cuối kỳ, `amount2` = Số đầu kỳ.",
+  "_kiem_chung": [
+    "05/09/2026: mã 100 (A. TÀI SẢN NGẮN HẠN) Số cuối kỳ = 3.922.171.060.871,455 đ, Số đầu kỳ = 3.917.020.105.893,455 đ, Số đầu năm = 2.505.985.782.358,81 đ — đọc thẳng từ C9/D9/E9 của file.",
+    "Cột 'Công thức tính' của chính file tự khai quan hệ cộng (100 = 110+120+130+140+150), dùng để tự đối chiếu tổng mà không cần bảng ngoài.",
+    "05/09/2026 — KIỂM CÂN ĐỐI: file tự cộng ĐÚNG (270 = 100+200 và 440 = 300+400, lệch 0 ở cả 3 cột), NHƯNG đẳng thức cơ bản TỔNG TÀI SẢN = TỔNG NGUỒN VỐN thì VỠ: cuối kỳ 3.247,1 vs −5.954,0 (lệch 9.201,1 tỷ), đầu kỳ lệch 9.199,0 tỷ, đầu năm lệch 5.618,1 tỷ. Xem `_bay` mục đầu."
+  ],
+  "_bay": [
+    "*** NGUỒN KHÔNG CÂN — ĐỪNG DÙNG ĐỂ RA SỐ CÔNG BỐ KHI CHƯA HỎI KẾ TOÁN. *** Đo 07/09/2026 trên bản 05/09: TỔNG CỘNG TÀI SẢN (mã 270) = 3.247,1 tỷ nhưng TỔNG CỘNG NGUỒN VỐN (mã 440) = −5.954,0 tỷ, lệch 9.201,1 tỷ; lệch y hệt ở cả cột 'Số đầu kỳ' (9.199,0) và 'Số đầu năm' (5.618,1) nên KHÔNG phải sự cố một ngày. Hai dòng vô lý kéo theo: 'B. TÀI SẢN DÀI HẠN' (200) = −675,1 tỷ và 'Lợi nhuận sau thuế chưa phân phối' (421) = −8.868,3 tỷ — một chi nhánh có 3.247 tỷ tài sản không thể lỗ luỹ kế 8.868 tỷ. Phép cộng NỘI BỘ file lại đúng khít, nên đây là lỗi SỐ ĐẦU VÀO của template Cyber chứ không phải lỗi đọc. Spec đọc trung thực file; số sai là sai từ nguồn. Cần kế toán chốt lại template trước khi nối vào bất kỳ ô nào.",
+    "ĐÂY LÀ SỐ DƯ (ảnh chụp tại ngày), KHÔNG PHẢI SỐ PHÁT SINH — TUYỆT ĐỐI KHÔNG bật `tru_ngay_truoc`. Dòng 6 của file ghi 'TẠI NGÀY 05 THÁNG 09 NĂM 2026', khác hẳn các nguồn HQKD ghi 'TỪ NGÀY ... ĐẾN NGÀY ...'. Trừ ngày trước ở đây là biến số dư thành biến động và sai toàn bộ bảng.",
+    "TỔNG Σ MỌI DÒNG LÀ VÔ NGHĨA (dry-run 07/09 ra −19.499,365 tỷ): file có 119 mã số thuộc NHIỀU TẦNG lồng nhau (100 chứa 110/120/130/140/150, 110 lại chứa 111/112/113…). Con số đó chỉ là tổng máy móc của cả cây, KHÔNG phải quy mô bảng cân đối. Luôn chọn đúng một tầng khi dùng.",
+    "CHƯA NỐI MÀN NÀO (`chua_len_man`) — mapping mới chỉ khai 'lấy tất cả tài khoản', chưa chỉ ô đích trên thiết kế. Nạp để sẵn và đối chiếu, y như `vhkd_cdps_ngay`. Đừng gắn vào màn nào khi chưa có ô đích được duyệt.",
+    "MÃ SỐ CÓ HAI TẦNG CHỒNG NHAU: mã tổng (100) và mã con (110/120/130/140/150) cùng nằm trong file. Cộng hết mọi dòng là ĐẾM NHIỀU LẦN. Khi dùng phải chọn ĐÚNG MỘT TẦNG, dựa vào cột 'Công thức tính' đã nạp ở `payload.cong_thuc`.",
+    "File chỉ có MỘT pháp nhân (Chi nhánh Vinfast Hà Nội), không có cột đơn vị nào -> không đặt `cost_center`. Đừng suy cost center từ tên file.",
+    "Mỗi ngày một file, KHÔNG luỹ kế -> `moi_ky_lay_file_moi_nhat: \"ngay\"`, bên cron khai `ANH_CHUP_KY`. Để `LUY_KE` là các file ngày bị coi là nhiều bản chốt của một tháng rồi xoá hết chỉ giữ một."
+  ],
+  "report_type": "VHKD_CDKT_D",
+  "row_index_base": 8850000,
+  "khoi": "Khối KD Vinfast - Showroom",
+  "nguon": {
+    "folder": "TEST_SR/baocaotaichinhriengcdkt",
+    "file_glob": "*.Baocaotaichinhrieng-CDKT.xlsx",
+    "sheet": {
+      "so": 0
+    }
+  },
+  "kiem_tra_o": [
+    {
+      "o": "A8",
+      "bang": "Chỉ tiêu"
+    },
+    {
+      "o": "B8",
+      "bang": "Mã Số"
+    },
+    {
+      "o": "C8",
+      "bang": "Số cuối kỳ"
+    }
+  ],
+  "header": {
+    "dong": 8
+  },
+  "dong_bat_dau": 9,
+  "ngay_tu_ten_file": {
+    "regex": "\\.D\\.(\\d{4})(\\d{2})(\\d{2})\\.",
+    "thu_tu": "ymd"
+  },
+  "moi_ky_lay_file_moi_nhat": "ngay",
+  "cot": {
+    "dim1": {
+      "header": "Mã Số"
+    },
+    "amount": {
+      "header": "Số cuối kỳ",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09
+    },
+    "amount2": {
+      "header": "Số đầu kỳ",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09
+    },
+    "payload.chi_tieu": {
+      "header": "Chỉ tiêu"
+    },
+    "payload.so_dau_nam": {
+      "header": "Số đầu năm",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09,
+      "bat_buoc": false
+    },
+    "payload.tai_khoan": {
+      "header": "Tài khoản",
+      "bat_buoc": false
+    },
+    "payload.cong_thuc": {
+      "header": "Công thức tính",
+      "bat_buoc": false
+    },
+    "payload.thuyet_minh": {
+      "header": "Thuyết Minh",
+      "bat_buoc": false
+    }
+  },
+  "ban_ghi": "moi_dong",
+  "loc": [
+    {
+      "cot": "dim1",
+      "dieu_kien": "khac_rong"
+    }
+  ],
+  "payload_them": {
+    "unit": "ty",
+    "nguon_he": "BCĐKT ngày Showroom (Cyber tự động)",
+    "chua_len_man": "1"
+  }
+}

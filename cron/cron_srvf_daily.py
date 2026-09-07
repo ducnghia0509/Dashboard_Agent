@@ -140,6 +140,22 @@ NGUON = [
         "ten": "Cân đối phát sinh theo ngày (tự động)",
         "ngay_regex": r"\.D\.(20\d{2})(\d{2})(\d{2})\.",
     },
+    {
+        # BẢNG CÂN ĐỐI KẾ TOÁN theo ngày (mapping VHKD dòng 10: "tất cả tài khoản trên BCĐKT, số dư
+        # đầu kỳ, cuối kỳ"). Khai 07/09/2026 theo yêu cầu user — đây là thư mục TEST_SR CUỐI CÙNG
+        # chưa được kéo, bị BỎ SÓT chứ không phải cố ý để ngoài như bên XDV: mapping đã đặt hàng từ
+        # đầu, chỉ là chưa tới lượt làm. Trước đó trên đĩa đúng MỘT file (bản 05/09, kéo tay 06/09).
+        #
+        # NGUỒN KHÔNG CÂN — spec `vhkd_cdkt_ngay` nạp vào report_type RIÊNG `VHKD_CDKT_D` và CHƯA
+        # NỐI MÀN NÀO. Đo 07/09/2026 trên bản 05/09: tổng tài sản 3.247,1 tỷ vs tổng nguồn vốn
+        # −5.954,0 tỷ, lệch 9.201,1 tỷ ở cả ba cột. Xem `_bay` của spec trước khi gắn vào ô nào.
+        #
+        # ANH_CHUP_KY chứ không phải LUY_KE: mỗi ngày một file rời, để LUY_KE là các file ngày bị
+        # coi là nhiều bản chốt của một tháng rồi xoá hết chỉ giữ một.
+        "company": "TEST_SR", "rt": "baocaotaichinhriengcdkt", "che_do": core.ANH_CHUP_KY,
+        "ten": "Bảng cân đối kế toán theo ngày (tự động)",
+        "ngay_regex": r"\.D\.(20\d{2})(\d{2})(\d{2})\.",
+    },
     # NGUỒN TAY 'baocaotonkhoxevatly' ĐÃ GỠ 03/09/2026 — cùng lý do: `vhkd_tonkho_vatly` nghỉ hưu,
     # `VHKD_TONVATLY` nay lấy từ TEST_SR/baocaonhapxuattonkhoxe.
     {

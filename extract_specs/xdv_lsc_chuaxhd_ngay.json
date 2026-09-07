@@ -1,0 +1,65 @@
+{
+  "id": "xdv_lsc_chuaxhd_ngay",
+  "_mo_ta": "BÁO CÁO LỆNH CHƯA XUẤT HOÁ ĐƠN (DV44) — nguồn TỰ ĐỘNG Cyber (ổ IT\\TESTBAOCAOTUDONG\\2.VINFAST_XDV -> VPS `TEST_XDV/baocaolenhchuaxhd`), mỗi ngày một file. Một bản ghi = MỘT LỆNH (R/O) đã nghiệm thu trong ngày mà chưa xuất hoá đơn. Khai 07/09/2026 theo yêu cầu user, ĐỂ ĐỐI CHIẾU SONG SONG với nguồn KSCL tuần `XDV_LSC_CHUAXHD` chứ chưa thay nó — xem `_bay`.",
+  "_kiem_chung": [
+    "05/09/2026: 321 dòng CHA (có 'Đơn vị'), cột 'Tổng DT sau GG' cộng ra 994.375.954 đ — KHỚP TUYỆT ĐỐI dòng 'Tổng cộng' (r9) của chính file.",
+    "1.218 dòng CON (bỏ trắng 'Đơn vị') cộng cột đó ra ĐÚNG 0 — toàn bộ tiền nằm ở tầng CHA, nên lọc `cost_center khac_rong` không hụt đồng nào.",
+    "Cùng 05/09: 'Tổng tiền' = 1.075.380.570,36 · 'Còn lại HĐ' = 1.075.380.570,36 · 'Đã thanh toán' = 136.016.760 — khớp dòng Tổng cộng."
+  ],
+  "_bay": [
+    "VÌ SAO TRƯỚC ĐÂY BỊ ĐỂ NGOÀI CRON (rà 03-04/09/2026): Cyber kéo DẢI MỘT NGÀY — dòng 6 ghi 'TỪ NGÀY 05/09 ĐẾN NGÀY 05/09' và mọi dòng có 'Ngày NT' = ngày trong tên file. Tức file chỉ chứa lệnh NGHIỆM THU TRONG NGÀY chưa xuất hoá đơn, KHÔNG phải toàn bộ danh sách TREO luỹ kế mà chỉ tiêu DV44 cần (lệnh của các ngày trước vẫn treo thì không xuất hiện lại). Nạp vào report_type RIÊNG để đối chiếu là an toàn; GẮN THẲNG vào ô 'giá trị lệnh chưa xuất hoá đơn' là hụt hàng chục lần. Muốn dùng thật phải đề nghị Cyber đổi tham số kéo sang LUỸ KẾ ĐẾN NGÀY BÁO CÁO.",
+    "HAI TẦNG DÒNG CHỒNG NHAU: tầng CHA (có 'Đơn vị') là MỘT LỆNH, tầng CON (trống 'Đơn vị') là từng vật tư/công việc của lệnh đó. Khác `XDV_LSC_D` ở chỗ tiền CHỈ nằm ở tầng CHA (đo 05/09: cha 994.375.954 / con 0), nên ở đây lọc tầng bằng `cost_center khac_rong` chứ không có cột BOLD để bám.",
+    "DÒNG 'Tổng cộng' NẰM Ở DÒNG 9 (đầu vùng), nhãn rơi vào cột E 'Số R/O HÃng', cột A bỏ trắng -> cùng bộ lọc `cost_center khac_rong` gạt luôn, không cần luật riêng.",
+    "FILE CÓ HAI CỘT TRÙNG TÊN: 'Trạng thái' xuất hiện ở AM và AN, 'Tên Cty Bảo hiểm' ở AH và AQ. Spec CỐ Ý KHÔNG map hai tên đó — khai vào là engine bắt cột nào tuỳ thứ tự, số đổi im lặng khi file đảo cột. Cần trạng thái thì thêm bằng `o` tuyệt đối, đừng dùng header.",
+    "AMOUNT = 'Tổng DT sau GG' (chưa thuế) vì đó là con số dòng Tổng cộng của chính báo cáo. Giá trị đã gồm thuế nằm ở `payload.tong_tien`, phần còn treo ở `payload.con_lai_hd`.",
+    "Mỗi ngày một file, KHÔNG luỹ kế -> `moi_ky_lay_file_moi_nhat: \"ngay\"`, bên cron khai `ANH_CHUP_KY`."
+  ],
+  "report_type": "XDV_LSC_CXHD_D",
+  "row_index_base": 8870000,
+  "khoi": "Khối KD Vinfast - XDV",
+  "nguon": {
+    "folder": "TEST_XDV/baocaolenhchuaxhd",
+    "file_glob": "*.BaocaolenhchuaXHD.xlsx",
+    "sheet": {"so": 0}
+  },
+  "kiem_tra_o": [
+    {"o": "A8", "bang": "Đơn vị"},
+    {"o": "F8", "bang": "Số R/O"},
+    {"o": "Q8", "bang": "Tổng DT sau GG"}
+  ],
+  "header": {"dong": 8},
+  "dong_bat_dau": 9,
+  "ngay_tu_ten_file": {"regex": "\\.D\\.(\\d{4})(\\d{2})(\\d{2})\\.", "thu_tu": "ymd"},
+  "moi_ky_lay_file_moi_nhat": "ngay",
+  "cot": {
+    "cost_center": {"header": "Đơn vị", "chuan_hoa": "xdv"},
+    "amount": {"header": "Tổng DT sau GG", "kieu": "so_co_rong", "he_so": 1e-09},
+    "dim1": {"header": "Loại TT", "bat_buoc": false},
+    "dim2": {"header": "Nhóm KH nợ", "bat_buoc": false},
+    "payload.so_ro": {"header": "Số R/O"},
+    "payload.so_ro_hang": {"header": "Số R/O HÃng", "bat_buoc": false},
+    "payload.ngay_nt": {"header": "Ngày NT", "bat_buoc": false},
+    "payload.ngay_ro": {"header": "Ngày R/O", "bat_buoc": false},
+    "payload.bks": {"header": "BKS", "bat_buoc": false},
+    "payload.khach_hang": {"header": "Khách hàng", "bat_buoc": false},
+    "payload.cvdv": {"header": "CVDV", "bat_buoc": false},
+    "payload.ttcp": {"header": "TTCP", "bat_buoc": false},
+    "payload.ly_do_no": {"header": "Lý do nợ", "bat_buoc": false},
+    "payload.thue": {"header": "Tổng thuế", "kieu": "so_co_rong", "he_so": 1e-09, "bat_buoc": false},
+    "payload.tong_tien": {"header": "Tổng tiền", "kieu": "so_co_rong", "he_so": 1e-09, "bat_buoc": false},
+    "payload.da_thanh_toan": {"header": "Đã thanh toán", "kieu": "so_co_rong", "he_so": 1e-09, "bat_buoc": false},
+    "payload.con_lai": {"header": "Còn lại", "kieu": "so_co_rong", "he_so": 1e-09, "bat_buoc": false},
+    "payload.con_lai_hd": {"header": "Còn lại HĐ", "kieu": "so_co_rong", "he_so": 1e-09, "bat_buoc": false},
+    "payload.con_lai_hd_c": {"header": "Còn lại HĐ C", "kieu": "so_co_rong", "he_so": 1e-09, "bat_buoc": false},
+    "payload.con_lai_hd_i": {"header": "Còn lại HĐ I", "kieu": "so_co_rong", "he_so": 1e-09, "bat_buoc": false},
+    "payload.con_lai_hd_n": {"header": "Còn lại HĐ N", "kieu": "so_co_rong", "he_so": 1e-09, "bat_buoc": false},
+    "payload.con_lai_hd_w": {"header": "Còn lại HĐ W", "kieu": "so_co_rong", "he_so": 1e-09, "bat_buoc": false}
+  },
+  "ban_ghi": "moi_dong",
+  "dan_xuat": {"amount2": "1"},
+  "loc": [
+    {"cot": "cost_center", "dieu_kien": "khac_rong"},
+    {"cot": "payload.so_ro", "dieu_kien": "khac_rong"}
+  ],
+  "payload_them": {"unit": "ty", "dvt2": "lenh", "nguon_he": "Lệnh chưa XHĐ ngày XDV (Cyber tự động)", "chua_len_man": "1"}
+}
