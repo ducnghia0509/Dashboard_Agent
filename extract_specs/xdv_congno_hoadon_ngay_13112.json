@@ -1,0 +1,63 @@
+{
+  "id": "xdv_congno_hoadon_ngay_13112",
+  "_mo_ta": "BÁO CÁO CÔNG NỢ THEO HOÁ ĐƠN — TÀI KHOẢN 13112 (DV03) — nguồn TỰ ĐỘNG Cyber (ổ IT\\TESTBAOCAOTUDONG\\2.VINFAST_XDV -> VPS `TEST_XDV/baocaocongnotheohoadon`), mỗi ngày MỘT FILE MỖI TÀI KHOẢN. Một bản ghi = MỘT HOÁ ĐƠN còn nợ, kèm 9 khoảng tuổi nợ (1-30 … trên 390 ngày). Khai 07/09/2026 theo yêu cầu user. Bản sinh đôi cho TK 13812: `xdv_congno_hoadon_ngay_13812.json` (cùng `report_type`).",
+  "_kiem_chung": [
+    "CHƯA KIỂM CHỨNG ĐƯỢC SỐ — bản mới nhất trên đĩa là 25/08/2026 và dòng 'Tổng cộng' (r9) = 0 ở TOÀN BỘ 9 cột tiền (GT Hóa đơn · Đã thanh toán · Còn lại T/T · và cả 6 khoảng tuổi nợ đầu). File chỉ có 13 dòng, không có dòng dữ liệu nào.",
+    "Bố cục đã đọc và khai đúng: header dòng 8, 25 cột A..Y, dòng 6 tự khai 'TÀI KHOẢN: 13112, ĐẾN NGÀY 25/08/2026'."
+  ],
+  "_bay": [
+    "NGUỒN ĐANG RỖNG — spec này sẽ nạp 0 DÒNG cho tới khi file có dữ liệu thật. ĐÓ LÀ TRẠNG THÁI ĐÚNG, đừng sửa spec để 'cứu' số. Bản rà 03-04/09/2026 đã ghi: thư mục đứng ở 25/08, chỉ 2 file 13112/13812 và CẢ HAI Tổng cộng = 0.",
+    "SAI BỘ TÀI KHOẢN SO VỚI DỮ LIỆU THẬT: mapping XDV khai 13112/13117/13119/13812, nhưng công nợ thật của xưởng đang nằm ở 13131 (+13132/13133) — xem `xdv_congno_ro_ngay`, đo 05/09/2026: 24.220/24.220 dòng đều TK 13131, 73,42 tỷ. Nên kể cả khi file 13112 có số, nó cũng KHÔNG phải toàn bộ công nợ. ĐỪNG gắn vào ô công nợ của mapping khi chưa chốt lại danh sách tài khoản với kế toán.",
+    "TẦNG DÒNG CHƯA XÁC MINH ĐƯỢC (file rỗng): có cột 'BOLD' và cột 'Đơn vị' — hai dấu hiệu của bố cục CHA/CON như DV44. Spec tạm lọc `cost_center khac_rong` (giữ tầng có Đơn vị). KHI FILE CÓ SỐ, VIỆC ĐẦU TIÊN phải làm là so Σ `amount` với dòng 'Tổng cộng' r9; lệch thì xem lại tầng nào mang tiền rồi đổi bộ lọc, ĐỪNG nạp cả hai tầng — sẽ đúng gấp đôi.",
+    "MỘT NGÀY HAI FILE (13112 và 13812) CÙNG report_type: phải là HAI SPEC với `file_glob` riêng. Gộp một spec là `moi_ky_lay_file_moi_nhat: \"ngay\"` chỉ giữ file mới hơn trong ngày và TK còn lại biến mất lặng lẽ. `dim1` lấy mã TK từ TÊN FILE (`chieu_tu_ten_file`) nên hai spec không lẫn nhau.",
+    "'ĐẾN NGÀY' ở dòng 6 nghĩa là số dư LUỸ KẾ tới ngày đó (ảnh chụp), KHÔNG phải phát sinh trong ngày — KHÔNG bật `tru_ngay_truoc`.",
+    "Mỗi ngày một file, KHÔNG luỹ kế theo nghĩa nhiều bản chốt -> `moi_ky_lay_file_moi_nhat: \"ngay\"`, bên cron khai `ANH_CHUP_KY`."
+  ],
+  "report_type": "XDV_CN_HD_D",
+  "row_index_base": 8900000,
+  "khoi": "Khối KD Vinfast - XDV",
+  "nguon": {
+    "folder": "TEST_XDV/baocaocongnotheohoadon",
+    "file_glob": "*.Congnotheohoadon-13112.xlsx",
+    "sheet": {"so": 0}
+  },
+  "kiem_tra_o": [
+    {"o": "A8", "bang": "Đơn vị"},
+    {"o": "C8", "bang": "Số HĐ"},
+    {"o": "J8", "bang": "Còn lại T/T"}
+  ],
+  "header": {"dong": 8},
+  "dong_bat_dau": 9,
+  "ngay_tu_ten_file": {"regex": "\\.D\\.(\\d{4})(\\d{2})(\\d{2})\\.", "thu_tu": "ymd"},
+  "chieu_tu_ten_file": {"dim1": {"regex": "Congnotheohoadon-(\\d+)"}},
+  "moi_ky_lay_file_moi_nhat": "ngay",
+  "cot": {
+    "cost_center": {"header": "Đơn vị", "chuan_hoa": "xdv"},
+    "amount": {"header": "Còn lại T/T", "kieu": "so_co_rong", "he_so": 1e-09},
+    "amount2": {"header": "GT Hóa đơn", "kieu": "so_co_rong", "he_so": 1e-09},
+    "dim2": {"header": "Loại T/T", "bat_buoc": false},
+    "payload.so_hd": {"header": "Số HĐ", "bat_buoc": false},
+    "payload.ngay_hd": {"header": "Ngày HĐ", "bat_buoc": false},
+    "payload.so_ro": {"header": "Số R/O", "bat_buoc": false},
+    "payload.bks": {"header": "BKS", "bat_buoc": false},
+    "payload.ma_kh": {"header": "Mã KH", "bat_buoc": false},
+    "payload.khach_hang": {"header": "Khách hàng/Diển giải", "bat_buoc": false},
+    "payload.ten_khach_hang": {"header": "Tên khách hàng", "bat_buoc": false},
+    "payload.cvdv": {"header": "CVDV", "bat_buoc": false},
+    "payload.ma_ct": {"header": "Mã CT", "bat_buoc": false},
+    "payload.bold": {"header": "BOLD", "bat_buoc": false},
+    "payload.da_thanh_toan": {"header": "Đã thanh toán", "kieu": "so_co_rong", "he_so": 1e-09, "bat_buoc": false},
+    "payload.tuoi_1_30": {"header": "1-30 Ngày", "kieu": "so_co_rong", "he_so": 1e-09, "bat_buoc": false},
+    "payload.tuoi_31_45": {"header": "31-45 Ngày", "kieu": "so_co_rong", "he_so": 1e-09, "bat_buoc": false},
+    "payload.tuoi_46_60": {"header": "46-60 Ngày", "kieu": "so_co_rong", "he_so": 1e-09, "bat_buoc": false},
+    "payload.tuoi_61_90": {"header": "61-90 Ngày", "kieu": "so_co_rong", "he_so": 1e-09, "bat_buoc": false},
+    "payload.tuoi_91_120": {"header": "91-120 Ngày", "kieu": "so_co_rong", "he_so": 1e-09, "bat_buoc": false},
+    "payload.tuoi_121_210": {"header": "121-210 Ngày", "kieu": "so_co_rong", "he_so": 1e-09, "bat_buoc": false},
+    "payload.tuoi_211_300": {"header": "211-300 Ngày", "kieu": "so_co_rong", "he_so": 1e-09, "bat_buoc": false},
+    "payload.tuoi_301_390": {"header": "301-390 Ngày", "kieu": "so_co_rong", "he_so": 1e-09, "bat_buoc": false},
+    "payload.tuoi_tren_390": {"header": "Trên 390 ngày", "kieu": "so_co_rong", "he_so": 1e-09, "bat_buoc": false}
+  },
+  "ban_ghi": "moi_dong",
+  "loc": [{"cot": "cost_center", "dieu_kien": "khac_rong"}],
+  "payload_them": {"unit": "ty", "nguon_he": "Công nợ theo hoá đơn ngày XDV (Cyber tự động)", "chua_len_man": "1"}
+}

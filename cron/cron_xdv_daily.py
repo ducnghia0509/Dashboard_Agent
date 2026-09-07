@@ -62,8 +62,14 @@ NGUON = [
     # `che_do` PHẢI là ANH_CHUP_KY: 9 file ngày mà để `luy_ke` thì bị coi là 9 bản chốt của một
     # tháng rồi XOÁ 8 cái — đúng cảnh báo đã ghi trong `_bay` của cả ba spec.
     #
-    # Chỉ khai BA thư mục trong chín: ba cái này là "chỉ tiêu mới", nạp thẳng được và không đụng
-    # report_type nào đang sống. Sáu thư mục còn lại của TEST_XDV cố ý ĐỂ NGOÀI (rà 03-04/09):
+    # 07/09/2026 — KHAI NỐT 5 THƯ MỤC CÒN LẠI theo yêu cầu user, tức TEST_XDV nay được kéo ĐỦ 9/9.
+    # ĐỌC KỸ TRƯỚC KHI DÙNG SỐ: năm cái này trước đây cố ý để ngoài vì SỐ SAI PHẠM VI, không phải vì
+    # thiếu nguồn. Mở cửa kéo KHÔNG làm chúng đúng lên. Vì vậy cả 5 nạp vào REPORT_TYPE RIÊNG, cả 5
+    # đều mang `chua_len_man` trong `payload_them`, và KHÔNG cái nào ghi đè report_type đang sống:
+    #   · baocaotonghoplsc (DV42) -> XDV_LSC_TH_D   · baocaolenhchuaxhd (DV44) -> XDV_LSC_CXHD_D
+    #   · baocaodoanhthuxdvngay (DV62) -> XDV_DTHU_RO_D · cdpscongnotheoro (DV04) -> XDV_CN_RO_D
+    #   · baocaocongnotheohoadon (DV03) -> XDV_CN_HD_D (HAI spec, một cho mỗi tài khoản)
+    # Lý do gốc của từng cái vẫn còn nguyên giá trị, giữ lại đây và chép đủ vào `_bay` của từng spec:
     #   · baocaotonghoplsc (DV42) và baocaolenhchuaxhd (DV44) — Cyber kéo dải 1 NGÀY nên ra dòng
     #     chảy, trong khi chỉ tiêu cần danh sách TREO luỹ kế; khai vào là số nhỏ hơn bản đang dùng
     #     hàng chục lần (đo 31/08: 578.769.141 đ / 11 xưởng vs 31,07 tỷ / 14 xưởng).
@@ -72,8 +78,15 @@ NGUON = [
     #   · cdpscongnotheoro (DV04) — rỗng 10/10 ngày. · baocaocongnotheohoadon (DV03) — sai bộ tài
     #     khoản (mapping ghi 13112/13117/13119/13812, dữ liệu thật ở 13131), mới có 1 ngày và rỗng.
     # (`baocaotaichinhrienghqkd` ĐÃ khai từ 04/09 — xem mục ngay dưới.)
-    # Khai một thư mục chưa có spec thì mỗi lượt vẫn xin file về rồi nạp 0 dòng, đẻ log rác và một
-    # dòng "nguồn chưa báo cáo" giả trong artifact giám sát.
+    #
+    # ĐO LẠI 07/09/2026 khi viết spec, có hai điều ĐỔI so với bản rà 03-06/09:
+    #   · cdpscongnotheoro ĐÃ TỰ LÀNH: bản 05/09 có 24.220 dòng, Σ nợ cuối kỳ 73.420.947.706,5 đ,
+    #     khớp tuyệt đối dòng Tổng cộng của file. Không còn "rỗng" nữa — nhưng vẫn 100% TK 13131,
+    #     tức lý do "sai bộ tài khoản" thì còn y nguyên.
+    #   · baocaocongnotheohoadon VẪN RỖNG (đứng ở 25/08, Tổng cộng = 0) -> hai spec của nó nạp 0
+    #     dòng. Đó là trạng thái ĐÚNG, đừng sửa spec để "cứu" số.
+    # Ba cái còn lại khớp tuyệt đối dòng Tổng cộng của chính file khi chạy khô bản 05/09:
+    # DV42 551 dòng/1,66217 tỷ · DV44 321 dòng/0,994376 tỷ · DV62 615 dòng/2,254627 tỷ.
     {
         "company": "TEST_XDV", "rt": "bangkehoadondv", "che_do": core.ANH_CHUP_KY,
         "ten": "Hoá đơn dịch vụ theo ngày (DV01 tự động)",
@@ -100,6 +113,47 @@ NGUON = [
         "company": "TEST_XDV", "rt": "baocaotaichinhrienghqkd", "che_do": core.ANH_CHUP_KY,
         "ten": "Lợi nhuận khối XDV theo ngày (HQKD tự động, hiệu luỹ kế)",
         "ngay_regex": r"\.D\.(20\d{2})(\d{2})(\d{2})\.",
+    },
+    # ── 5 THƯ MỤC KHAI 07/09/2026 (xem khối chú thích dài ở trên) ───────────────────────────
+    {
+        # DV42. TRÙNG PHẠM VI với `XDV_LSC_D` (DV41, thư mục bangkelenhsuachua): cùng tổng tiền
+        # 1,66217 tỷ ngày 05/09. ĐỪNG CỘNG HAI REPORT_TYPE — đúng gấp đôi.
+        "company": "TEST_XDV", "rt": "baocaotonghoplsc", "che_do": core.ANH_CHUP_KY,
+        "ten": "Tổng hợp lệnh sửa chữa theo ngày (DV42 tự động, ĐỐI CHIẾU)",
+        "ngay_regex": r"\.D\.(20\d{2})(\d{2})(\d{2})\.",
+    },
+    {
+        # DV44. Cyber kéo DẢI 1 NGÀY -> chỉ là lệnh nghiệm thu TRONG NGÀY chưa xuất hoá đơn, KHÔNG
+        # phải danh sách treo luỹ kế. Muốn dùng thật phải đề nghị Cyber đổi tham số kéo.
+        "company": "TEST_XDV", "rt": "baocaolenhchuaxhd", "che_do": core.ANH_CHUP_KY,
+        "ten": "Lệnh chưa xuất hoá đơn theo ngày (DV44 tự động, ĐỐI CHIẾU)",
+        "ngay_regex": r"\.D\.(20\d{2})(\d{2})(\d{2})\.",
+    },
+    {
+        # DV62. Chi tiết TỪNG RO; ô đích của mapping là dòng theo mã B100/B110… nên vẫn cần cộng ở
+        # tầng đọc — engine `spec_extract` KHÔNG có mode aggregate (soi lại 07/09: không có khoá nào).
+        "company": "TEST_XDV", "rt": "baocaodoanhthuxdvngay", "che_do": core.ANH_CHUP_KY,
+        "ten": "Doanh thu xưởng dịch vụ theo RO (DV62 tự động, ĐỐI CHIẾU)",
+        "ngay_regex": r"\.D\.(20\d{2})(\d{2})(\d{2})\.",
+    },
+    {
+        # DV04. FILE RẤT LỚN: 24.220 dòng/ngày, gấp ~40 lần các nguồn XDV ngày khác — theo dõi dung
+        # lượng DB. Vẫn 100% TK 13131 chứ không phải 13112/13117/13119/13812 như mapping khai.
+        "company": "TEST_XDV", "rt": "cdpscongnotheoro", "che_do": core.ANH_CHUP_KY,
+        "ten": "CĐPS công nợ theo R/O (DV04 tự động, ĐỐI CHIẾU)",
+        "ngay_regex": r"\.D\.(20\d{2})(\d{2})(\d{2})\.",
+    },
+    {
+        # `slot` LÀ BẮT BUỘC, ĐỪNG GỠ — bắt được ngay ở lượt chạy khô đầu tiên 07/09/2026: thiếu nó
+        # thì hai file 13112 và 13812 CÙNG NGÀY có cùng `ngay_vao_db`, bị nhánh "PHÁT HÀNH LẠI" của
+        # `anh_chup_ky` coi là HAI BẢN CHỐT CỦA NHAU và bản 13112 bị XOÁ rows ("giữ ...13812, thay
+        # thế ...13112"). Đây đúng cái bẫy `_slot` đã cảnh báo cho 3 kênh B2B/B2C/GF bên SRVF, chỉ
+        # khác là lát song song ở đây là TÀI KHOẢN chứ không phải kênh. Có `slot` thì mỗi tài khoản
+        # là một slot riêng và cả hai cùng sống.
+        "company": "TEST_XDV", "rt": "baocaocongnotheohoadon", "che_do": core.ANH_CHUP_KY,
+        "ten": "Công nợ theo hoá đơn (DV03 tự động, ĐỐI CHIẾU)",
+        "ngay_regex": r"\.D\.(20\d{2})(\d{2})(\d{2})\.",
+        "slot": r"Congnotheohoadon-(\d+)",
     },
     # ── tháng: 1 file/kỳ, luỹ kế sẵn theo ngày bên trong -> kéo lại đè chính nó ─────────────
     {"company": "XDV", "rt": "baocaodoanhthungay", "che_do": core.THANG,
