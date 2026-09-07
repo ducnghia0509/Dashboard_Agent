@@ -126,13 +126,23 @@ _UNITS = {
     # ô ở DÒNG TỔNG (dòng 4, nằm NGAY TRÊN header dòng 5): H4 tổng · J4 trong hạn · K4 đến hạn ·
     # L4 quá hạn · M4/N4/O4/P4 = 4 dải. Cột I = 'CÓ' (khách ứng trước) -> KHÔNG thuộc aging.
     #
-    # DỰ ÁN — `DUAN/baocaotuoino/B.4.TC.TCKT.M.<YYYYM>.Baocaotuoinophaithu.xlsx`, sheet "Tháng {m}".
-    # Cùng kiểu nhưng cột lệch: D3 tổng · F3 trong hạn · G3 đến hạn · H3 quá hạn · I3/J3/K3/L3 dải
-    # (E = 'Có'). Header dòng 4, 4 dải nằm NGAY TRÊN header chính chứ không ở sub-header như HT ->
-    # `_find_cols_hanno` phải dò dải ở CẢ 2 dòng (xem hàm đó).
+    # DỰ ÁN — `DUAN/baocaotuoino/B.4.TC.TCKT.M.<YYYYM[M]>.Baocaotuoinophaithu.xlsx`. HAI bố cục,
+    # khai 2 hint (thứ tự KHÔNG quan trọng ở vòng 1 vì nó so '<hint> {mm}'; vòng 2 so BẰNG tên):
+    #  - Bản KT tự làm (kỳ <= 07/2026, tên file `M.20267` thiếu zero-pad): sheet "Tháng {m}",
+    #    1 sheet duy nhất, cột lệch template: D3 tổng · F3 trong hạn · G3 đến hạn · H3 quá hạn ·
+    #    I3/J3/K3/L3 dải (E = 'Có'). Header dòng 4, 4 dải nằm NGAY TRÊN header chính chứ không ở
+    #    sub-header như HT -> `_find_cols_hanno` phải dò dải ở CẢ 2 dòng (xem hàm đó).
+    #  - Bản gửi 07/09/2026: KT chuyển sang ĐÚNG template chung của Showroom/SRVF — 4 sheet
+    #    ('Chi tiết theo hợp đồng' và 'CN theo đơn vị' RỖNG, chỉ có công thức), số nằm ở sheet
+    #    "Tuổi nợ phải thu": dòng tổng r1 · header r2 + sub-header r3 · data từ r4 ·
+    #    J tổng · K trong hạn · L đến hạn · M quá hạn · N-Q 4 dải. `_find_cols_hanno` dò theo TÊN
+    #    header nên KHÔNG cần sửa gì thêm — chỉ thiếu hint tên sheet, và `_find_sheet` `return None`
+    #    cứng khi có hints (không rơi về nhánh 'tuoi no') nên trước đó 2 file mới bị SKIP CÂM.
+    #    Bản mới MẤT cột 'Dự án' (Núi Pháo/Quảng Ngãi/...) — mode 'hanno_tong' chỉ đọc dòng tổng
+    #    nên không ảnh hưởng, nhưng đừng trông vào file này để bóc theo dự án.
     # (cong_ty, khoi) verify 2026-08-06 trên DB coding 5435: HT|'Khối KD Xe tải', TC|'Khối KD Dự án'.
     "HUNGTHINH": ("HT", "Khối KD Xe tải", "hanno_tong", ("phai thu",)),
-    "DUAN": ("TC", "Khối KD Dự án", "hanno_tong", ("thang",)),
+    "DUAN": ("TC", "Khối KD Dự án", "hanno_tong", ("tuoi no phai thu", "thang")),
     # XƯỞNG DỊCH VỤ VINFAST (spec user 2026-08-06) — `XDV/baocaotuoino/B9.TC.TCKT.M.<YYYYMM>.
     # TUOINOPHAITHU.xlsx`, sheet "Tuổi nợ ". Cũng đọc DÒNG TỔNG nằm TRÊN header như HT/Dự án, nhưng
     # bố cục cột KHÁC HẲN template -> mode riêng 'hanno_tong_xdv' (xem `_find_cols_xdv`).
