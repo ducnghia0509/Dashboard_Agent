@@ -68,6 +68,7 @@ Ghi thật:
 import argparse
 import calendar
 import datetime as dt
+import io
 import json
 import os
 import re
@@ -211,6 +212,30 @@ def _find_sheet(wb, period=None, hints=None):
     mm = int(period[5:7])
     pat = re.compile(rf"(?<![0-9])t0?{mm}(?![0-9])")
     return next((s for s in wb.sheetnames if pat.search(_nd(s))), None)
+
+
+_RE_FILE_NGAY = re.compile(r"\.D[.\d]")
+
+
+def _la_file_ngay(path):
+    """File nguồn theo NGÀY (ảnh chụp cập nhật hằng ngày) hay theo THÁNG (chốt cuối kỳ)?
+
+    Chốt 08/09/2026 theo yêu cầu nghiệp vụ: hai loại file phải nằm ở HAI TAB KHÁC NHAU —
+    `.M.` -> tab Tháng (`PTHU_TUOINO`), `.D.` -> tab Ngày (`PTHU_TUOINO_D`). Trước đó cả hai cùng
+    ghi vào `PTHU_TUOINO` cùng một kỳ, mà report_type này nằm trong `_SNAP_RT` (chỉ giữ MAX(ngay)
+    theo cặp công-ty/khối) nên hai file TRANH nhau: file nào có `ngay` mới hơn thì thắng, file kia
+    biến mất im lặng. Riêng Showroom T08/2026 còn tệ hơn — bản tay ra 0 (xem `_agg_hanno`) mà vẫn
+    thắng, xoá sổ 144,58 tỷ của bản ngày.
+
+    Nhận diện theo TOKEN 'D' trong tên file (`.D.202608.` hoặc `.D20260902.`), KHÔNG bắt chữ D lẻ
+    trong từ. Mặc định về THÁNG khi không thấy token — 13 file Showroom kỳ 2025 đặt tên viết liền
+    'M202501' không có dấu chấm, và mọi file còn lại đều là báo cáo chốt tháng, nên nghiêng về
+    tháng là chiều an toàn (giữ đúng hành vi cũ cho 100/102 file hiện có)."""
+    return bool(_RE_FILE_NGAY.search(os.path.basename(path)))
+
+
+def _report_type(path):
+    return "PTHU_TUOINO_D" if _la_file_ngay(path) else "PTHU_TUOINO"
 
 
 def _period_end(period):
@@ -386,6 +411,30 @@ def _twin_attrs(cur, period):
     return cur.fetchone()
 
 
+def _ngay_ban_ngay(path, period):
+    """`ngay` cho bản NGÀY (`PTHU_TUOINO_D`) — mốc số liệu THẬT, không phải ngày "vay" của kỳ.
+
+    `_twin_attrs` lấy `ngay` từ một dòng bất kỳ cùng kỳ; với bản THÁNG thế là đủ (chỉ cần một mốc
+    trong kỳ để `_SNAP_RT` chọn snapshot), nhưng bản NGÀY thì `ngay` quyết định nó có nằm trong cửa
+    sổ ngày người xem chọn hay không — mốc vay sẽ đặt số liệu vào một ngày tuỳ tiện.
+
+    Trong file KHÔNG có mốc nào tin được: sheet 'CN theo đơn vị' của bản `.D.202608` ghi dải
+    "01/08/2025 - 05/08/2025" và 'số dư nợ chuẩn' ghi 2026-01-16 — đều là vết công thức cũ, lệch cả
+    năm. Tên file cũng không mang ngày (`.D.202608` chỉ có tháng). Mốc dùng được duy nhất là
+    `modified_at` trong file .json metadata mà máy gửi ghi kèm — lần kế toán sửa file sau cùng.
+
+    Ngoài kỳ thì KẸP về ngày cuối kỳ: file có thể được sửa/gửi sang tháng sau (bản này gửi về VPS
+    06/09), mà `ngay` lệch khỏi `period_month` sẽ làm chính kỳ đó lọc from/to không thấy dòng nào."""
+    end = _period_end(period)
+    try:
+        with io.open(os.path.splitext(path)[0] + ".json", encoding="utf-8") as fh:
+            mod = (json.load(fh) or {}).get("modified_at") or ""
+        d = dt.date(int(mod[0:4]), int(mod[5:7]), int(mod[8:10]))
+    except Exception:
+        return end
+    return d if dt.date(end.year, end.month, 1) <= d <= end else end
+
+
 def _agg_age(rows, report_date):
     """mode 'age' (XVP/HTX/HO/TRẠM SẠC/GLOBAL AI) — bucket theo tuổi hoá đơn, xem docstring đầu file."""
     data_start, ngay_i, tong_i, ma_i = _find_cols(rows)
@@ -434,7 +483,17 @@ def _agg_hanno(rows, report_date=None):
             continue
         vals = {k: _num(r[cols[k]]) if cols[k] < len(r) else None for k in keys}
         if vals["tong"] is None:
-            continue
+            # TEMPLATE MỚI CỦA SHOWROOM (08/09/2026, file B.1...M.202608): cột "Tổng nợ phải thu"
+            # để RỖNG ở MỌI dòng — file chỉ điền các cột thành phần (trong hạn / đến hạn / quá
+            # hạn). Bản cũ lọc `tong is None` nên bỏ SẠCH 301 dòng, ra tổng 0; dòng 0 đó còn ĐÈ
+            # nguồn ngày qua `_SNAP_RT` (MAX(ngay)) làm Showroom mất hẳn số trên màn Công nợ.
+            # Suy tổng = trong hạn + đến hạn + quá hạn — KHÔNG cộng 4 dải qh_*, chúng là phần chia
+            # nhỏ của chính "quá hạn" (cộng vào sẽ đếm đôi). Dòng không có SỐ NÀO ở cả 3 cột đó
+            # vẫn bị bỏ như cũ, nên file có cột tổng thật (101 file còn lại) không đổi hành vi.
+            phan = [vals[k] for k in ("trong_han", "den_han", "qua_han")]
+            if all(v is None for v in phan):
+                continue
+            vals["tong"] = sum(v or 0.0 for v in phan)
         n_rows += 1
         for k in keys:
             agg[k] += vals[k] or 0.0
@@ -581,6 +640,9 @@ def derive(path, period, write=False):
         if k in result:
             out[k] = result[k]
 
+    report_type = _report_type(path)
+    out["report_type"] = report_type
+
     if write:
         source_file = _source_id(path)
         conn = psycopg.connect(DB_URL)
@@ -591,15 +653,20 @@ def derive(path, period, write=False):
                 out["error"] = f"không thấy dòng nào có ngay (period={period}) để suy dataset_id/ngay -> BỎ ghi"
                 return out
             dataset_id, ngay = attrs
+            if report_type.endswith("_D"):
+                ngay = _ngay_ban_ngay(path, period).isoformat()
             # idempotent: xoá bản cũ CÙNG source_file (KHÔNG cong_ty+period — vài đơn vị dùng CHUNG
             # cong_ty như HO/TRẠM SẠC đều 'TC', xoá theo cong_ty sẽ xoá NHẦM sang đơn vị khác cùng mã)
-            cur.execute("DELETE FROM raw_rows WHERE report_type='PTHU_TUOINO' AND source_file=%s",
-                        (source_file,))
+            # DELETE theo ĐÚNG report_type của file này. Phải xoá CẢ hậu tố còn lại của cùng
+            # source_file: file đã từng nạp dưới report_type kia (trước 08/09/2026 mọi file đều vào
+            # 'PTHU_TUOINO') sẽ để lại dòng mồ côi không ai ghi đè nữa nếu chỉ xoá một nhánh.
+            cur.execute("DELETE FROM raw_rows WHERE report_type IN ('PTHU_TUOINO','PTHU_TUOINO_D') "
+                        "AND source_file=%s", (source_file,))
             cur.execute(
                 "INSERT INTO raw_rows (dataset_id, report_type, row_index, ngay, cong_ty, khoi, "
                 "cost_center, period_month, amount, amount2, dim1, dim2, dim3, payload, source_file) "
                 "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
-                (dataset_id, "PTHU_TUOINO", 6100000, ngay, cong_ty, khoi, None, period,
+                (dataset_id, report_type, 6100000, ngay, cong_ty, khoi, None, period,
                  tong_all, None, cong_ty, None, None,
                  json.dumps(payload, ensure_ascii=False), source_file))
             conn.commit()
