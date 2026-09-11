@@ -97,7 +97,8 @@ def term_map(unit, f, month):
     tm = {}
 
     def _cell(b, t):
-        return tm.setdefault(b, {}).setdefault(t, {"cuoi": 0.0, "vay": 0.0, "tra": 0.0, "den_han": 0.0, "den_han_next": 0.0})
+        return tm.setdefault(b, {}).setdefault(t, {"cuoi": 0.0, "vay": 0.0, "tra": 0.0, "den_han": 0.0,
+                                                     "den_han_next": 0.0, "den_han_next2": 0.0})
 
     res, _ = ext.read_bcth2(wb, unit)
     last = None
@@ -123,6 +124,8 @@ def term_map(unit, f, month):
             _cell(bank, term)["den_han"] += (ext.matrix_month(ws, month) or 0) / 1e9
             if month < 12:                              # #8: nợ gốc đáo hạn THÁNG TỚI = cột tháng M+1 (ma trận)
                 _cell(bank, term)["den_han_next"] += (ext.matrix_month(ws, month + 1) or 0) / 1e9
+            if month < 11:                              # nợ gốc đáo hạn 2 THÁNG TỚI = cột tháng M+2 (ma trận)
+                _cell(bank, term)["den_han_next2"] += (ext.matrix_month(ws, month + 2) or 0) / 1e9
     if unit == "ThinhCuong":                        # TC trung hạn: cột rộng 'Trả gốc T<mm>'
         for nm in ("Trung hạn 2022", "Trung hạn BIDV"):
             if nm in wb.sheetnames:
@@ -153,6 +156,7 @@ def split_row(row, tmap):
         npl["tra_no"] = round(terms[t].get("tra") or 0.0, 9)
         npl["den_han"] = round(terms[t].get("den_han") or 0.0, 9)
         npl["den_han_next"] = round(terms[t].get("den_han_next") or 0.0, 9)   # #8: đáo hạn tháng tới
+        npl["den_han_next2"] = round(terms[t].get("den_han_next2") or 0.0, 9)  # đáo hạn 2 tháng tới
         nr = dict(row)
         nr["amount"] = round(amt * ratio, 9)
         nr["amount2"] = round((row["amount2"] or 0.0) * ratio, 9)
