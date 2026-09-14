@@ -3662,31 +3662,14 @@ def _derive_cdkt(file_path: str, sheet: str, period: str, cong_ty: str):
                     if _ma_s in _by_ma:   # khấu hao trong kỳ = PS CÓ gộp (xem chú thích _kh)
                         _by_ma[_ma_s]["PS tăng trong kỳ (tỷ)"] = _ps_srvf(_codes_s)[1]
 
-    # TRẠM SẠC: CĐKT mã222/223 KHÔNG phản ánh đủ (lệch ~5% so với sổ con "Biểu khấu hao" — vài tài
-    # sản mới mua (vd 'PC Intel'/'Laptop Dell' T06) đã vào sổ khấu hao nhưng CHƯA lên CĐKT tháng này).
-    # Book1_.xlsx chốt TRẠM SẠC lấy TSCĐ hữu hình từ dòng 'Tổng' của sheet 'Biểu khấu hao' (đầy đủ
-    # hơn, có PS tăng trực tiếp) thay vì CĐKT. Override CẢ Chart 1 (NG) lẫn Chart 2 (HM/Tăng NG).
-    if "tram sac" in _khoi_l or _src == "TRAMSAC":
-        _wb3 = bb.fast_load_workbook(file_path, read_only=True, data_only=True)
-        try:
-            _bkh_sheet = next((s for s in _wb3.sheetnames if "bieu khau hao" in norm(s)), None)
-            _bkh_rows = [list(r) for r in _wb3[_bkh_sheet].iter_rows(values_only=True)] if _bkh_sheet else None
-        finally:
-            _wb3.close()
-        if _bkh_rows:
-            _tong_i = next((i for i, r in enumerate(_bkh_rows) if r and norm(r[0] or "") == "tong"), None)
-            if _tong_i is not None:
-                r = _bkh_rows[_tong_i]
-
-                def _n(j):
-                    v = r[j] if j < len(r) else None
-                    return v if isinstance(v, (int, float)) else 0.0
-                _ng_cuoi, _tang_ng, _hm_cuoi = _n(8) * 1e-9, _n(6) * 1e-9, _n(12) * 1e-9
-                if "222" in _by_ma:
-                    _by_ma["222"]["Cuối kỳ (tỷ)"] = round(_ng_cuoi, 9)
-                    _by_ma["222"]["PS tăng trong kỳ (tỷ)"] = round(_tang_ng, 9)
-                if "223" in _by_ma:
-                    _by_ma["223"]["Cuối kỳ (tỷ)"] = round(-_hm_cuoi, 9)
+    # TRẠM SẠC: TRƯỚC 2026-09-14 code ghi ĐÈ mã 222/223 bằng dòng 'Tổng' sheet "Biểu khấu hao" (lý do
+    # cũ: CĐKT từng thiếu ~5% — vài tài sản mới mua đã vào sổ khấu hao nhưng chưa lên CĐKT tháng đó).
+    # CHỐT 2026-09-14 (kế toán + dev, file lỗi_ra_lai_12-09.xlsx dòng 29): LẤY THEO CĐKT (D48/D49 =
+    # mã 222/223), KHÔNG lấy "Biểu khấu hao" nữa -> không còn override, đi đường chung như mọi đơn vị
+    # (NG/HM cuối kỳ từ CĐKT; PS tăng/giảm NG + KH kỳ từ CĐPS ở khối trên).
+    # Chênh lệch đã đo trên 7 file T01-T07/2026 (NG cuối kỳ, BKH − CĐKT): T01-T05 = 133.210.243 mỗi
+    # tháng (2.957.837.699 − 2.824.627.456), T06 = 153.052.836, T07 = 62.004.364. Riêng T07 'Tăng NG'
+    # theo BKH ra ÂM (−418.000) trong khi CĐPS TK211 cho +90.630.472 — thêm một lý do bỏ BKH.
 
     # XANH VP: CĐKT header là 'Ngày cuối kỳ'/'Ngày đầu kỳ' — 'đầu kỳ' ở đây là ĐẦU THÁNG (không phải
     # đầu NĂM như đa số đơn vị khác) -> Tăng NG = cuối − đầu tính THẲNG được, không cần CĐPS (XANH VP
@@ -3867,8 +3850,8 @@ def _derive_cdkt(file_path: str, sheet: str, period: str, cong_ty: str):
         # source_file KHÁC (B.9 thay vì B.4 CĐKT/CĐPS ở đây) -> không đè/đếm đôi.
         pass
     elif "tram sac" in _khoi_l or _src == "TRAMSAC":
-        # Dùng LẠI số đã tính ở override "Biểu khấu hao" trên (đáng tin hơn CĐKT/CĐPS thô) — spec
-        # gán TOÀN BỘ TSCĐ trạm sạc vào nhóm "Máy móc, thiết bị".
+        # Dùng LẠI mã 222/223 tính ở khối trên (từ 2026-09-14 là CĐKT + CĐPS, không còn "Biểu khấu
+        # hao") — spec gán TOÀN BỘ TSCĐ trạm sạc vào nhóm "Máy móc, thiết bị".
         if "222" in _by_ma:
             _t5_ng(1, _by_ma["222"].get("Cuối kỳ (tỷ)"))
             _t5_tang(1, _by_ma["222"].get("PS tăng trong kỳ (tỷ)"))
