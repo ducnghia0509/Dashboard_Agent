@@ -22,6 +22,7 @@ import sys
 from datetime import datetime, timedelta, timezone
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import luu_lichsu  # noqa: E402
 import pull_nguon  # noqa: E402
 
 VN = timezone(timedelta(hours=7))
@@ -52,6 +53,20 @@ def main():
                             and (e.get("company") or "") == "THUCHI"
                             and e.get("month") in (thang, truoc), log)
         log(f"  -> xin {kq['xin']}, về {kq['ve']}, thiếu {len(kq['thieu'])}")
+
+        # LƯU LỊCH SỬ: workbook này 7+ sheet nên không "thêm 1 sheet" được — lưu NGUYÊN FILE vào
+        # thư mục theo ngày. Đây là bản "báo cáo ngày N" mà công thức diff của mapping cần.
+        ngay = luu_lichsu.ten_ngay()
+        goc = os.path.join(pull_nguon.RECEIVED_DIR, "THUCHI", "baocaonganhang")
+        n_luu = 0
+        if os.path.isdir(goc):
+            for ten in sorted(os.listdir(goc)):
+                if not ten.lower().endswith((".xlsx", ".xlsm")) or ten.startswith("~$"):
+                    continue
+                if f"{thang:02d}.2026" in ten or f"T{thang}.2026" in ten:   # chỉ tháng đang chạy
+                    if luu_lichsu.luu_file_bcnh(os.path.join(goc, ten), ngay, log):
+                        n_luu += 1
+        log(f"  LƯU TRỮ: {n_luu} file -> {luu_lichsu.KHO_BCNH}/{ngay}")
 
     env = {**os.environ, "DATABASE_URL": DB[a.env]}
     r = subprocess.run(

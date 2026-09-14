@@ -19,6 +19,7 @@ import sys
 from datetime import datetime, timedelta, timezone
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import luu_lichsu  # noqa: E402
 import pull_nguon  # noqa: E402
 
 VN = timezone(timedelta(hours=7))
@@ -45,6 +46,21 @@ def main():
         kq = pull_nguon.keo(lambda e: (e.get("report_type") or "").startswith("sodu")
                             and (e.get("company") or "") == "THUCHI", log)
         log(f"  -> xin {kq['xin']}, về {kq['ve']}, thiếu {len(kq['thieu'])}")
+
+        # LƯU LỊCH SỬ: nguồn bị ghi đè mỗi lượt kéo, không lưu lại là mất hẳn bản của mốc trước.
+        # Mỗi lượt = 1 sheet tên "<ngày> <giờ>h" trong workbook lưu trữ của chính file đó.
+        nhan = luu_lichsu.ten_sheet()
+        n_luu = 0
+        for thu_muc, cty in (("soduhungthinh", "HT"), ("soduthinhcuong", "TC"),
+                             ("soduxanhvinhphuc", "XVP"), ("soduvfqn", "VFQN")):
+            goc = os.path.join(pull_nguon.RECEIVED_DIR, "THUCHI", thu_muc)
+            if not os.path.isdir(goc):
+                continue
+            for ten in sorted(os.listdir(goc)):
+                if ten.lower().endswith((".xlsx", ".xlsm", ".xls")) and not ten.startswith("~$"):
+                    if luu_lichsu.luu_sheet_sodu(os.path.join(goc, ten), nhan, log):
+                        n_luu += 1
+        log(f"  LƯU TRỮ: {n_luu} file -> sheet '{nhan}' ({luu_lichsu.KHO_SODU})")
 
     env = {**os.environ, "DATABASE_URL": DB[a.env]}
     r = subprocess.run(
