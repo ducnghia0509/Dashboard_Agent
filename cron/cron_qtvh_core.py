@@ -299,14 +299,279 @@ def _slot(nguon: dict, e: dict, period: str) -> tuple:
     return (nguon["rt"], period) + tuple(s.upper() for s in extra)
 
 
-def pick_targets(ctx: Ctx, nguon_list: list, meta: list, periods: list):
+def ngay_vao_db(nguon: dict, e: dict):
+    """NGÀY CHỐT MÀ ENGINE TRÍCH XUẤT SẼ GHI cho file này ('YYYY-MM-DD'), hoặc None.
+
+    KHÁC `ngay_chot()`: cái đó đọc NGÀY PHÁT HÀNH từ tên file, còn cái này trả về ngày mà dòng
+    THỰC SỰ mang trong `raw_rows`. Với báo cáo TUẦN của KSCL hai thứ đó lệch nhau và chính chỗ
+    lệch là nơi đẻ ra cộng đôi: `W.2026.8.5.25.LSCCyber` và `W.2026.8.5.28.LSCCyber` phát hành
+    25/08 và 28/08 (khác nhau) nhưng CÙNG phủ tuần 17-23/08 nên cùng rơi vào `ngay = 2026-08-23`.
+    Gom slot theo ngày phát hành là hai bản vẫn đứng riêng, y như cũ.
+
+    HỎI THẲNG `spec_extract` chứ KHÔNG chép lại luật lịch (lùi ngày phát hành về thứ Hai của tuần
+    chứa nó rồi lấy 7 ngày trước đó): chép là hai nơi tự trôi khỏi nhau, và cron sẽ xoá nhầm hoặc
+    bỏ sót đúng vào lúc luật đổi. Đọc được thì cron và tầng trích xuất luôn cùng một định nghĩa
+    "cùng một kỳ".
+
+    Không spec nào phụ trách / không suy được kỳ -> None, và `_slot` tự lùi về hành vi cũ.
+    """
+    sys.path.insert(0, f"{AGENT}/scripts")
+    try:
+        from spec_extract import ngay_tu_ten_file, specs_for_path
+    except Exception:                                            # noqa: BLE001
+        return None                     # engine đổi/không import được -> giữ nguyên hành vi cũ
+    path = os.path.join(RECEIVED_DIR, nguon["company"], nguon["rt"], e.get("fileName") or "")
+    for sp in specs_for_path(path):
+        try:
+            ngay, _w = ngay_tu_ten_file(sp, path)
+        except Exception:                                        # noqa: BLE001
+            continue
+        if ngay:
+            return ngay
+    return None
+
+
+# Tên file báo cáo NGÀY: '….D.YYYYMMDD.….xlsx'. Dấu ngăn sau ngày có thể là '.' hoặc '_'
+# (`B.1.TC.OO.D.20260903_Baocaocongnophaithu.xlsx` — kế toán đặt tên lệch quy ước ở đúng một
+# thư mục). Bắt buộc phải có '.D.' phía trước: '.M.202609.' là báo cáo THÁNG, không phải ngày.
+_RE_NGAY_FILE = re.compile(r"\.D\.(\d{8})[._]", re.IGNORECASE)
+
+
+def thieu_ngay_truoc(ctx, nguon_list: list) -> bool:
+    """Còn thư mục nguồn THEO NGÀY nào chưa có file của HÔM QUA (giờ VN) không?
+
+    Dùng cho lượt chạy lại 01:15: lượt 01:00 đã kéo đủ thì lượt sau chỉ tổ xin lại cả chục file,
+    chờ metadata rồi nạp lại y nguyên — mỗi đêm tốn một lượt vô ích và đẻ một loạt log "nạp 0
+    dòng mới" khó phân biệt với hỏng thật.
+
+    ĐO TRÊN ĐĨA, không đo DB, vì câu hỏi ở đây đúng là "kéo về chưa" chứ không phải "nạp chưa";
+    hai chuyện đó có job khác lo (`ra_soat`). File về mà nạp hỏng thì lượt 01:15 chạy lại cũng
+    không cứu được — nó sẽ vấp đúng chỗ cũ.
+
+    Thư mục KHÔNG đặt tên theo ngày (nguồn tháng/tuần) bị BỎ QUA hẳn: chúng không có khái niệm
+    "file của hôm qua", tính vào là lượt chạy lại không bao giờ được bỏ. Hệ quả cố ý: job toàn
+    nguồn tháng (QLTS, Xanh VP) thì hàm này luôn trả False -> lượt 01:15 của chúng luôn bỏ qua,
+    đúng như mong muốn.
+    """
+    hom_qua = (datetime.now(VN) - timedelta(days=1)).strftime("%Y%m%d")
+    thieu, co_thu_muc_ngay = [], False
+    for n in nguon_list:
+        thu_muc = os.path.join(RECEIVED_DIR, n["company"], n["rt"])
+        try:
+            ds = os.listdir(thu_muc)
+        except OSError:
+            continue                     # thư mục chưa từng có file -> chưa phải nguồn theo ngày
+        co_ngay = {m.group(1) for f in ds for m in [_RE_NGAY_FILE.search(f)] if m}
+        if not co_ngay:
+            continue
+        co_thu_muc_ngay = True
+        if hom_qua not in co_ngay:
+            thieu.append(muc_cua(n))
+    if not co_thu_muc_ngay:
+        ctx.log(f"Không có thư mục nguồn nào đặt tên theo ngày -> không có gì để đợi ({hom_qua}).")
+        return False
+    if thieu:
+        ctx.log(f"CHƯA CÓ file ngày {hom_qua} ở {len(thieu)} thư mục: {', '.join(thieu)}")
+    return bool(thieu)
+
+
+def thieu_trong_db(ctx, nguon_list: list) -> bool:
+    """Còn thư mục nguồn THEO NGÀY nào chưa có SỐ CỦA HÔM QUA *trong DB* không?
+
+    Bản đo DB của `thieu_ngay_truoc`, viết cho lượt vá 02:35 / 02:45 (xem khối chú thích tương ứng
+    trong crontab). Câu hỏi ở đây là "đã LÊN DASHBOARD chưa" chứ không phải "đã kéo về đĩa chưa",
+    nên nó bịt đúng điểm mù của người anh em: file về đĩa lúc 00:30 nhưng autofill vấp — đĩa thì
+    đủ mà màn hình vẫn trống, và lượt vá đo đĩa sẽ bỏ qua đúng cái đêm cần nó nhất.
+
+    Trả True (=> chạy lượt đầy đủ) khi còn MỘT trong hai:
+      · thư mục theo ngày chưa có file của hôm qua trên đĩa — y hệt `thieu_ngay_truoc`;
+      · có file trên đĩa nhưng `source_file` đó không có lấy một dòng trong `raw_rows`.
+
+    ĐẮT HƠN `thieu_ngay_truoc` ĐÚNG MỘT TRUY VẤN: hàm kia chỉ `os.listdir`, hàm này gọi thêm một
+    lượt `_py_sql`. Vẫn rẻ hơn nhiều so với lượt kéo mà nó tránh (~5 phút + 45-74 file qua
+    receiver), nhưng đừng gắn cờ này cho những mốc dày như cụm 01:00-06:25.
+
+    HỎNG DB THÌ CHẠY THẬT, KHÔNG BỎ LƯỢT: truy vấn không trả về câu chốt 'HET' -> coi như thiếu.
+    Thà tốn một lượt kéo thừa còn hơn im lặng bỏ qua đúng đêm DB có chuyện.
+
+    NGUỒN RỖNG HỢP LỆ PHẢI KHAI `cho_phep_rong`: `TEST_XDV/baocaocongnotheohoadon` ngày nào cũng
+    có file và ngày nào cũng nạp 0 dòng (bên Cyber rỗng thật, Tổng cộng = 0 — xem `_bay` của spec).
+    Không miễn cho nó thì hàm này đêm nào cũng trả True và lượt vá mất sạch tác dụng. Cờ đó CHỈ
+    miễn vế DB: file vẫn phải về đĩa, thiếu file vẫn tính là thiếu.
+    """
+    hom_qua = (datetime.now(VN) - timedelta(days=1)).strftime("%Y%m%d")
+    thieu_dia, can_kiem, co_thu_muc_ngay = [], [], False
+    for n in nguon_list:
+        thu_muc = os.path.join(RECEIVED_DIR, n["company"], n["rt"])
+        try:
+            ds = sorted(os.listdir(thu_muc))
+        except OSError:
+            continue                     # thư mục chưa từng có file -> chưa phải nguồn theo ngày
+        # Chỉ đếm file Excel: sidecar .json cùng tên cũng khớp `_RE_NGAY_FILE`, tính vào là mỗi
+        # ngày hỏi DB hai `source_file` mà một trong hai không bao giờ tồn tại.
+        cua_ngay = [f for f in ds
+                    if f.lower().endswith((".xlsx", ".xlsm", ".xlsb", ".xls"))
+                    and not f.startswith("~$") and _RE_NGAY_FILE.search(f)]
+        if not cua_ngay:
+            continue
+        co_thu_muc_ngay = True
+        hq = [f for f in cua_ngay if _RE_NGAY_FILE.search(f).group(1) == hom_qua]
+        if not hq:
+            thieu_dia.append(muc_cua(n))
+            continue
+        if n.get("cho_phep_rong"):
+            continue
+        can_kiem.extend((muc_cua(n), f"{n['company']}::{f}") for f in hq)
+    if not co_thu_muc_ngay:
+        ctx.log(f"Không có thư mục nguồn nào đặt tên theo ngày -> không có gì để đợi ({hom_qua}).")
+        return False
+    if thieu_dia:
+        ctx.log(f"CHƯA CÓ file ngày {hom_qua} ở {len(thieu_dia)} thư mục: {', '.join(thieu_dia)}")
+    if not can_kiem:
+        return bool(thieu_dia)
+
+    sids = sorted({sid for _, sid in can_kiem})
+    code = (
+        "import sys;sys.path.insert(0,'.');"
+        "from app.database.session import get_db;"
+        f"sids={sids!r};"
+        "ph=','.join(['?']*len(sids));"
+        "\nfor r in get_db().execute('SELECT DISTINCT source_file s FROM raw_rows WHERE "
+        "source_file IN (%s)'%ph, tuple(sids)):\n"
+        "    print('CO|%s'%r['s'])\n"
+        "print('HET')\n"
+    )
+    out = _py_sql(ctx, code, timeout=300)
+    dong = out.splitlines()
+    if "HET" not in dong:
+        ctx.log(f"KHÔNG HỎI ĐƯỢC DB ({out[:150]}) -> coi như thiếu, chạy lượt đầy đủ.")
+        return True
+    da_co = {ln[3:] for ln in dong if ln.startswith("CO|")}
+    # Cùng phần tên khác đuôi ('..._T8.Xls' cạnh '..._T8.xlsx') — mượn nguyên phép loại của
+    # `ra_soat_mo_coi`, nếu không thì bản .Xls không bao giờ có dòng và đêm nào cũng báo thiếu.
+    goc_da_co = {os.path.splitext(s)[0].lower() for s in da_co}
+    thieu_db = sorted({muc for muc, sid in can_kiem
+                       if sid not in da_co and os.path.splitext(sid)[0].lower() not in goc_da_co})
+    if thieu_db:
+        ctx.log(f"CÓ FILE {hom_qua} TRÊN ĐĨA NHƯNG CHƯA CÓ DÒNG NÀO TRONG DB ở {len(thieu_db)} thư"
+                f" mục: {', '.join(thieu_db)}")
+    elif not thieu_dia:
+        ctx.log(f"Đủ: {len(sids)} file ngày {hom_qua} đều đã có dòng trong DB.")
+    return bool(thieu_dia or thieu_db)
+
+
+def muc_cua(nguon: dict) -> str:
+    r"""KHOÁ TRẠNG THÁI của một nguồn — '<company>/<rt>', kèm lát khi thư mục bị chia `chi_lay`.
+
+    Không kèm lát thì HAI KHAI BÁO CÙNG (company, rt) đè nhau: job An Taxi + Xanh Vĩnh Phúc khai
+    `KEHOACH/baocaokehoachthang` hai lần (lát `^7\.AnTX\.` và `^6\.XVP\.`), `expected` đếm 5
+    nhưng `records` chỉ còn 4 -> artifact lệch 1 VĨNH VIỄN, bên giám sát đọc thành "một nguồn chưa
+    báo cáo" mỗi lượt, và nhãn của lát trước bị nhãn lát sau ghi đè nên lát An Taxi biến mất khỏi
+    bảng trạng thái. Bắt được 29/08/2026 ngay lượt chạy đầu của job đó.
+
+    Job SRVF và XDV cũng đều khai `KEHOACH/baocaokehoachthang` nhưng ở HAI job khác nhau nên mỗi
+    bên có artifact riêng — chỉ đụng khi hai lát nằm CHUNG một job.
+    """
+    m = f"{nguon['company']}/{nguon['rt']}"
+    return f"{m} [{nguon['chi_lay']}]" if nguon.get("chi_lay") else m
+
+
+def _sid_trong_db(ctx: Ctx, ctys: list) -> set:
+    """{source_file} đang CÓ DÒNG trong DB của các công ty này (kèm tiền tố 'CTY::')."""
+    code = (
+        "import sys;sys.path.insert(0,'.');"
+        "from app.database.session import get_db;"
+        f"ctys={sorted(set(ctys))!r};"
+        "pc=','.join(['?']*len(ctys));"
+        "sql=('SELECT DISTINCT source_file sf FROM raw_rows WHERE split_part(source_file,%s,1)"
+        " IN (%s)')%(chr(39)+'::'+chr(39),pc);"
+        "\nfor r in get_db().execute(sql, tuple(ctys)):\n"
+        "    print('SID|%s'%(r['sf'] or '',))\n"
+    )
+    out = _py_sql(ctx, code, timeout=120)
+    return {ln[4:] for ln in out.splitlines() if ln.startswith("SID|") and ln[4:]}
+
+
+def ky_cu_co_ban_moi(ctx: Ctx, nguon_list: list, meta: list, periods: list) -> dict:
+    """{(company, rt): [(period, month, year)…]} — kỳ NGOÀI cửa sổ mà nguồn đã có BẢN MỚI HƠN bản
+    đang nằm trong DB.
+
+    VÌ SAO CẦN: `target_periods()` chỉ xét tháng này + tháng trước, trong khi nghiệp vụ thường
+    phát hành lại BẢN SỬA CỦA KỲ CŨ dưới tên mới. Ca thật 14/09/2026: claim B2C T6/T7 có bản
+    `2026.9.07` ở nguồn, nhưng `ky_regex` đọc ra tháng 6 và 7 — ngoài cửa sổ {9, 8} nên KHÔNG lượt
+    nào xin về; UI đứng ở "Mới · chưa kéo về" vĩnh viễn còn dashboard giữ số của bản `2026.8.25`.
+
+    HẸP CÓ CHỦ ĐÍCH — chỉ mở thêm kỳ khi CẢ HAI đúng:
+      · tên gốc đó ĐÃ có dòng trong DB (đang hiển thị số, tức là kỳ người ta thực sự xem), và
+      · bản ở nguồn có NGÀY PHÁT HÀNH MỚI HƠN bản trong DB.
+    Mở trần theo "mọi kỳ nguồn có" là mỗi lượt kéo lại toàn bộ lịch sử (22 file tồn vật lý T1..T7,
+    xem `ky_cua`) — vừa chậm vừa nạp chồng.
+
+    Chỉ áp cho `LUY_KE`: `ANH_CHUP_KY` mỗi file một mốc chốt riêng (không có khái niệm "bản mới
+    của cùng kỳ"), `THANG` mỗi kỳ vốn một file.
+    """
+    dung = [n for n in nguon_list if n["che_do"] == LUY_KE]
+    if not dung:
+        return {}
+    try:
+        trong_db = _sid_trong_db(ctx, [n["company"] for n in dung])
+    except (OSError, ValueError, subprocess.SubprocessError) as ex:
+        ctx.log(f"  KỲ CŨ: không đọc được DB ({type(ex).__name__}) -> bỏ qua, chỉ kéo cửa sổ thường")
+        return {}
+    # {(công ty, tên gốc): ngày phát hành của bản ĐANG có dòng}
+    db_moi = {}
+    for sf in trong_db:
+        cty = sf.split("::", 1)[0]
+        nph = _ngay_phat_hanh(sf)
+        if not nph:
+            continue
+        khoa = (cty, _ten_goc(sf))
+        if khoa not in db_moi or nph > db_moi[khoa]:
+            db_moi[khoa] = nph
+
+    da_co = {p for p, _, _ in periods}
+    them = {}
+    for nguon in dung:
+        for e in meta:
+            fn = e.get("fileName") or ""
+            if not fn or e.get("company") != nguon["company"] or e.get("report_type") != nguon["rt"]:
+                continue
+            if nguon.get("chi_lay") and not re.search(nguon["chi_lay"], fn, re.IGNORECASE):
+                continue
+            if nguon.get("bo_qua") and re.search(nguon["bo_qua"], fn, re.IGNORECASE):
+                continue
+            nph = _ngay_phat_hanh(fn)
+            cu = db_moi.get((nguon["company"], _ten_goc(fn)))
+            if not nph or not cu or nph <= cu:
+                continue                      # chưa có trong DB, hoặc nguồn không mới hơn
+            thang, nam = ky_cua(ctx, nguon, e)
+            if not thang:
+                continue
+            nam = nam or datetime.now(VN).year
+            period = f"{nam}-{int(thang):02d}"
+            if period in da_co:
+                continue                      # đã nằm trong cửa sổ thường
+            khoa = (nguon["company"], nguon["rt"])
+            if (period, int(thang), int(nam)) not in them.setdefault(khoa, []):
+                them[khoa].append((period, int(thang), int(nam)))
+                ctx.log(f"  KỲ CŨ CÓ BẢN MỚI [{nguon['company']}/{nguon['rt']} {period}]:"
+                        f" {fn[:52]} (nguồn {'.'.join(map(str, nph))} > DB"
+                        f" {'.'.join(map(str, cu))}) -> mở thêm kỳ này để kéo")
+    return them
+
+
+def pick_targets(ctx: Ctx, nguon_list: list, meta: list, periods: list, them_ky: dict = None):
     """Trả (targets, losers). `targets` = bản sẽ nạp; `losers` = bản cũ cùng slot sẽ xoá rows.
 
-    Chỉ chế độ `luy_ke` sinh `losers`. `anh_chup_ky` giữ hết, `thang` mỗi kỳ vốn 1 file.
+    `luy_ke` và `anh_chup_ky` đều sinh `losers`, chỉ khác cách định nghĩa slot; `thang` mỗi kỳ
+    vốn 1 file nên không sinh.
     """
     by_key = {}
     for nguon in nguon_list:
-        for period, month, year in periods:
+        # Kỳ mở thêm là RIÊNG TỪNG NGUỒN (xem `ky_cu_co_ban_moi`): mở chung cho cả job là các thư
+        # mục khác cũng bị lôi lịch sử về theo, mỗi lượt kéo lại hàng chục file không ai cần.
+        ky_nguon = list(periods) + list((them_ky or {}).get((nguon["company"], nguon["rt"]), []))
+        for period, month, year in ky_nguon:
             for e in meta:
                 if e.get("company") != nguon["company"] or e.get("report_type") != nguon["rt"]:
                     continue
@@ -321,7 +586,15 @@ def pick_targets(ctx: Ctx, nguon_list: list, meta: list, periods: list):
                 if nguon.get("bo_qua") and re.search(nguon["bo_qua"], fn, re.IGNORECASE):
                     continue
                 thang, nam_ten = ky_cua(ctx, nguon, e)
-                if thang != month:
+                # `ca_nam`: MỘT file mang CẢ NĂM, tên không có tháng ('B.7.AAG.PKDVH.M.2026.
+                # BAOCAOTONGHOP.xlsx' của An Taxi) -> `month` của metadata là None và suy từ tên
+                # cũng None. So `thang != month` thì None != 8 -> file bị loại khỏi MỌI lượt kéo,
+                # im lặng, đúng lớp bug đã làm Dự án đứng số suốt một tháng (xem `ky_cua_entry`).
+                # Nhận ở ĐÚNG kỳ chính, không thì mỗi lượt kéo cùng một file 2 lần (2 kỳ đang xem).
+                if nguon.get("ca_nam"):
+                    if period != periods[0][0]:
+                        continue
+                elif thang != month:
                     continue
                 years = {int(t) for t in re.findall(r"(20\d{2})", fn)}
                 if years and year not in years:
@@ -343,6 +616,33 @@ def pick_targets(ctx: Ctx, nguon_list: list, meta: list, periods: list):
             ds = _xep_slot(ds)
             for e in ds[:-GIU_MOI_NHAT]:
                 e["_bo_qua_neu_co_roi"] = True
+            # PHÁT HÀNH LẠI CÙNG MỘT TUẦN -> bản sau THAY THẾ bản trước (sửa 29/08/2026).
+            # Trước đây mỗi file là một slot riêng nên hai bản của CÙNG tuần cùng nằm trong DB với
+            # CÙNG `ngay`; `_SNAP_RT` lấy MAX(ngay) thì cả hai đều bằng MAX -> cộng cả hai. Đo trên
+            # prod: lệnh tồn Cyber tuần 17-23/08 ra 1.618 = 735 (bản 25/08) + 893 (bản 28/08).
+            # Ở đây gom theo NGÀY VÀO DB (xem `ngay_vao_db`) rồi để bản sau thắng — TUẦN KHÁC NHAU
+            # vẫn là slot khác nhau nên KHÔNG mất bản tuần cũ, đúng tinh thần `anh_chup_ky`.
+            # Không đọc được ngày (không spec nào phụ trách) -> mỗi file một slot, y như trước.
+            theo_tuan = {}
+            for e in ds:
+                nv = ngay_vao_db(e["_nguon"], e)
+                theo_tuan.setdefault(nv or f"?{e['fileName']}", []).append(e)
+            for tuan, ban in sorted(theo_tuan.items()):
+                # `_slot_key` phải hẹp tới TỪNG TUẦN, không phải (rt, tháng): `xoa_ban_cu` chỉ xoá
+                # bản cũ khi bản mới CÙNG SLOT đã nạp OK, mà khoá theo tháng thì bất kỳ tuần nào
+                # của tháng nạp xong cũng mở khoá xoá cho mọi tuần khác — mất bảo hiểm.
+                for e in ban:
+                    e["_slot_key"] = (e["_nguon"]["rt"], tuan)
+                if len(ban) == 1:
+                    continue
+                ban = _xep_slot(ban)
+                for o in ban[:-1]:
+                    o["_thay_the_boi"] = ban[-1]["fileName"]
+                losers.extend(ban[:-1])
+                ctx.log(f"  PHÁT HÀNH LẠI [{key[0]} tuần {tuan}]: {len(ban)} bản"
+                        f" -> giữ {ban[-1]['fileName'][:46]}")
+                for o in ban[:-1]:
+                    ctx.log(f"      thay thế {o['fileName'][:46]} (xoá rows sau khi bản mới nạp OK)")
             targets.extend(ds)
             continue
         if mode != LUY_KE or len(ds) == 1:
@@ -396,6 +696,19 @@ def wait_arrival(ctx: Ctx, targets: list, before: dict) -> set:
     return arrived
 
 
+def _ky_moi_tao(js: dict) -> list:
+    """Kỳ vừa được KHAI SINH trong lượt nạp này (servers/common/dataset_ky.py).
+
+    Không phải cảnh báo — là SỰ KIỆN đáng ghi: kỳ mới xuất hiện trong ô chọn kỳ của dashboard,
+    và nếu về sau có tranh cãi "kỳ này ở đâu ra" thì log là chỗ duy nhất trả lời được.
+    """
+    ks = set()
+    for x in [js] + list(js.get("derived") or []) + list(js.get("processed") or []):
+        v = x.get("ky_moi_tao") if isinstance(x, dict) else None
+        ks.update([v] if isinstance(v, str) else (v or []))
+    return sorted(ks)
+
+
 def autofill(ctx: Ctx, entry: dict):
     """`agent_cli.py autofill` — điểm vào DUY NHẤT, tự dispatch: báo cáo ngày -> derive_hqkd_ngay,
     nguồn khai bằng spec JSON (toàn bộ VHKD + XDV) -> spec_extract, còn lại -> đường tất định.
@@ -419,6 +732,8 @@ def autofill(ctx: Ctx, entry: dict):
         js = json.loads(last)
     except (json.JSONDecodeError, ValueError):
         return True, None, []            # không parse được thì để verify quyết định
+    for _k in _ky_moi_tao(js):
+        ctx.log(f"  KỲ MỚI: khai sinh kỳ {_k} (chưa từng có dataset; nguồn số thực tế)")
     cb = list(js.get("canh_bao") or [])
     # KỲ MÀ FILE THỰC SỰ GHI VÀO có thể KHÁC kỳ suy từ tên file — và đó là một lỗi dữ liệu thật,
     # không phải chuyện lý thuyết. Prod 24/08/2026: `Xuathoadon_GF_T7.xlsx` chứa toàn số THÁNG 6
@@ -428,7 +743,18 @@ def autofill(ctx: Ctx, entry: dict):
     # NÓI TO — nếu không nó lại nằm im vài tháng như lần này.
     ky_ghi = {k for d in (js.get("derived") or []) for k in (d.get("ky") or {})}
     lech = sorted(k for k in ky_ghi if k != entry["_period"])
-    if lech:
+    # CHỈ kêu khi kỳ của TÊN FILE hoàn toàn VẮNG MẶT trong phần nội dung ghi được. Đó mới là
+    # "dán nhãn sai tháng" (GF_T7 tên T7, nội dung chỉ có 2026-06 — không có 2026-07 ở đâu cả).
+    #
+    # Nguồn KẾ HOẠCH NĂM ghi cả 12 kỳ trong MỘT file, và kỳ của tên file nằm ngay trong đó — bản
+    # trước kêu cả ca này nên mỗi lượt SRVF/XDV đẻ một dòng KỲ LỆCH vô nghĩa: 5/10 dòng của SRVF
+    # và 6/6 của XDV là báo giả, đủ để che mất ca GF thật nằm cùng danh sách.
+    #
+    # Đánh đổi đã cân nhắc: file vừa ghi ĐÚNG kỳ của mình vừa lạc vài dòng sang kỳ khác thì nay
+    # im. Chấp nhận, vì "ghi nhiều kỳ" là hình dạng BÌNH THƯỜNG của nguồn kế hoạch, còn phần cộng
+    # đôi do bản chốt trùng đã có lớp `_slot`/`luy_ke` lo — thứ lớp đó KHÔNG đỡ được đúng là ca
+    # dán nhãn sai tháng, tức ca vẫn giữ lại ở đây.
+    if lech and entry["_period"] not in ky_ghi:
         cb.append(f"KỲ LỆCH: tên file thuộc kỳ {entry['_period']} nhưng nội dung ghi vào kỳ "
                   f"{', '.join(lech)} — kiểm tra file nguồn có bị dán nhãn sai tháng không "
                   f"(có thể đang cộng đôi với file của kỳ đó)")
@@ -583,6 +909,23 @@ def _ten_goc(fn: str) -> str:
     s = re.sub(r"^.*?\b20\d{2}(?:[.\-_]\d{1,2}){0,4}[.\-_]", "", s)   # bỏ tiền tố ngày phát hành
     s = re.sub(r"^\d{1,2}[.\-_]", "", s)                              # sót token ngày lẻ
     return s.strip().lower()
+
+
+_RE_NGAY_PH = re.compile(r"\b(20\d{2})((?:[.\-_]\d{1,2}){1,4})[.\-_]")
+
+
+def _ngay_phat_hanh(fn: str):
+    """NGÀY PHÁT HÀNH đọc từ TIỀN TỐ tên file: '…M.2026.9.07.Baocaoclaim…' -> (2026, 9, 7).
+
+    Trả None khi không đọc được — bên gọi TUYỆT ĐỐI không được đoán bản nào mới hơn, vì đoán sai
+    là xoá nhầm bản đang đúng. Khác `ngay_chot()` ở chỗ không cần `ngay_regex` của từng thư mục:
+    chỗ dùng nó chỉ có chuỗi `source_file` lấy từ DB, không có entry metadata.
+    """
+    m = _RE_NGAY_PH.search(fn.split("::", 1)[-1])
+    if not m:
+        return None
+    phan = [int(x) for x in re.findall(r"\d+", m.group(2))][:3]
+    return tuple([int(m.group(1))] + phan + [0] * (3 - len(phan)))
 
 
 def _la_ban_gop(a: str, b: str) -> bool:
@@ -757,7 +1100,7 @@ def _lat_du_lieu(ctx: Ctx, ctys: list) -> list:
     return lat
 
 
-def ra_soat_cong_doi(ctx: Ctx, nguon_list: list) -> list:
+def ra_soat_cong_doi(ctx: Ctx, nguon_list: list, thu_gom: list = None) -> list:
     """CỘNG ĐÔI = trong CÙNG một lát (xem `_lat_du_lieu`) có nhiều hơn một file cùng đóng góp.
 
     Vì sao không tự khỏi: với ảnh chụp, `_rows()` chọn ngày chốt theo (công ty, khối) chứ KHÔNG
@@ -790,6 +1133,13 @@ def ra_soat_cong_doi(ctx: Ctx, nguon_list: list) -> list:
             if len(same) > 1:
                 chi_tiet = " + ".join(f"{f} ({c} dòng)" for f, c in sorted(same))
                 canh_bao.append(f"TRÙNG BẢN CHỐT {o}: {chi_tiet}")
+                # Gom bản CÓ CẤU TRÚC để `xoa_trung_ban_chot` dọn được: chuỗi cảnh báo ở trên chỉ
+                # để người đọc, parse ngược lại là mời lỗi. `sf` đầy đủ (có tiền tố 'CTY::') lấy
+                # lại từ `files` vì `same` đã cắt mất tiền tố cho gọn log.
+                if thu_gom is not None:
+                    day_du = [(sf, c) for sf, c in files.items()
+                              if sf.split("::")[-1] in {f for f, _ in same}]
+                    thu_gom.append({"lat": o, "ban": day_du})
         for a in sorted(theo_ten):
             con = [b for b in sorted(theo_ten) if b != a and _la_ban_gop(a, b)]
             if con:
@@ -807,7 +1157,90 @@ def ra_soat_cong_doi(ctx: Ctx, nguon_list: list) -> list:
     return canh_bao
 
 
-def ra_soat(ctx: Ctx, nguon_list: list, st=None) -> dict:
+def xoa_trung_ban_chot(ctx: Ctx, trung: list) -> int:
+    """Xoá rows của BẢN CHỐT CŨ khi cùng một lát có 2+ bản của CÙNG một báo cáo.
+
+    VÌ SAO `xoa_ban_cu` KHÔNG GÁNH ĐƯỢC: nó chỉ dọn bản cũ mà lượt chạy NHÌN THẤY Ở NGUỒN (ghép
+    chung slot rồi cho bản mới thắng). Bản đã bị đổi tên/xoá bên nguồn thì không lượt nào chọn nó
+    làm "bản thua" nữa -> nằm lại trong DB vĩnh viễn. Ca thật: claim B2C kỳ 2026-08 trên prod cõng
+    cả `…8.25.…T8` (259 dòng) lẫn `…9.07.…T8` (555 dòng); bộ dò đã kêu mỗi đêm từ 10/09 mà không
+    có đường nào xoá, vì bản `.8.25.` đã biến khỏi danh sách nguồn.
+
+    CHỈ xử `TRÙNG BẢN CHỐT` (cùng tên gốc, khác ngày phát hành). KHÔNG đụng `BẢN GỘP ⊃ BẢN TÁCH`:
+    chúng không phải hai bản của nhau, xoá là mất hẳn một lát dữ liệu thật (xem docstring
+    `ra_soat_cong_doi`).
+
+    BA CHỐT AN TOÀN — tiền lệ 29/08/2026: xoá bản cũ khi bản mới nạp ra 0 dòng làm prod thủng
+    trắng tuần 17-23/08.
+      1. Đọc được NGÀY PHÁT HÀNH của MỌI bản trong nhóm; sót một bản là bỏ cả nhóm, chỉ cảnh báo.
+      2. Bản giữ lại phải CÓ DÒNG (> 0).
+      3. Bản giữ lại KHÔNG được ÍT DÒNG HƠN bản định xoá — đó đúng hình dạng tai nạn "bản mới đổi
+         bố cục, nạp ra ít/0 dòng". Gặp thì CHỈ cảnh báo, để người xem quyết bằng tay.
+    """
+    # MỘT FILE CÓ THỂ NẰM Ở NHIỀU LÁT (claim T8 dính cả lát TC lẫn lát VFQN). Xoá là xoá TRỌN
+    # `source_file`, nên chỉ cần MỘT lát chưa đạt điều kiện an toàn là cấm xoá file đó ở mọi lát —
+    # nếu không, một lát "đạt" sẽ xoá mất dữ liệu của lát đang nghi ngờ.
+    can_xoa, cam_xoa, giu_lai = {}, set(), 0
+    for nhom in trung:
+        ban = nhom["ban"]
+        ngay = {sf: _ngay_phat_hanh(sf) for sf, _ in ban}
+        if not all(ngay.values()):
+            cam_xoa.update(sf for sf, _ in ban)
+            ctx.log(f"  TRÙNG BẢN CHỐT {nhom['lat']}: KHÔNG đọc được ngày phát hành của"
+                    f" {sum(1 for v in ngay.values() if not v)}/{len(ban)} bản -> chỉ cảnh báo,"
+                    " không tự xoá (đoán bản mới là xoá nhầm bản đúng)")
+            giu_lai += 1
+            continue
+        xep = sorted(ban, key=lambda t: ngay[t[0]])
+        moi_sf, moi_c = xep[-1]
+        if moi_c <= 0:
+            ctx.log(f"  TRÙNG BẢN CHỐT {nhom['lat']}: bản mới nhất {moi_sf.split('::')[-1][:46]}"
+                    " KHÔNG có dòng -> giữ nguyên tất cả")
+            cam_xoa.update(sf for sf, _ in ban)
+            giu_lai += 1
+            continue
+        cu_nhieu_hon = [sf for sf, c in xep[:-1] if c > moi_c]
+        if cu_nhieu_hon:
+            cam_xoa.update(sf for sf, _ in ban)
+            ctx.log(f"  TRÙNG BẢN CHỐT {nhom['lat']}: bản mới {moi_sf.split('::')[-1][:40]}"
+                    f" ({moi_c} dòng) ÍT HƠN bản cũ -> KHÔNG tự xoá, kiểm tay xem bản mới có bị"
+                    " đổi bố cục/nạp thiếu không")
+            giu_lai += 1
+            continue
+        for sf, c in xep[:-1]:
+            can_xoa[sf] = c
+            ctx.log(f"  TRÙNG BẢN CHỐT {nhom['lat']}: xoá bản cũ {sf.split('::')[-1][:46]}"
+                    f" ({c} dòng), giữ {moi_sf.split('::')[-1][:46]} ({moi_c} dòng)")
+    for sf in sorted(set(can_xoa) & cam_xoa):
+        ctx.log(f"  TRÙNG BẢN CHỐT: KHÔNG xoá {sf.split('::')[-1][:46]} — lát khác của chính file"
+                " này chưa đạt điều kiện an toàn")
+        can_xoa.pop(sf, None)
+    if not can_xoa:
+        if giu_lai:
+            ctx.log(f"XOÁ TRÙNG BẢN CHỐT: bỏ qua {giu_lai} nhóm (chưa đủ điều kiện an toàn)")
+        return 0
+    sids = sorted(can_xoa)
+    code = (
+        "import sys;sys.path.insert(0,'.');"
+        "from app.database.session import get_db;"
+        f"sids={sids!r};db=get_db();n=0;"
+        "\nfor s in sids:\n"
+        "    r=db.execute('SELECT COUNT(*) c FROM raw_rows WHERE source_file=?',(s,)).fetchone()\n"
+        "    c=(r['c'] if r else 0) or 0\n"
+        "    if c:\n"
+        "        db.execute('DELETE FROM raw_rows WHERE source_file=?',(s,))\n"
+        "    n+=c\n"
+        "    print('XOA %s dong | %s'%(c,s))\n"
+        "print('TONG_XOA=%s'%n)"
+    )
+    out = _py_sql(ctx, code, timeout=300)
+    for line in out.splitlines():
+        ctx.log(f"  {line[:180]}")
+    m = re.search(r"TONG_XOA=(\d+)", out)
+    return int(m.group(1)) if m else 0
+
+
+def ra_soat(ctx: Ctx, nguon_list: list, st=None, thu_gom: list = None) -> dict:
     """Chạy cả 2 bộ rà soát và ghi vào artifact trạng thái (agent gửi tin lãnh đạo đọc file này).
 
     BỌC try/except cho từng bộ: đây là phần ĐI KÈM, chạy sau khi dữ liệu đã nạp xong. Nó nổ mà kéo
@@ -815,9 +1248,10 @@ def ra_soat(ctx: Ctx, nguon_list: list, st=None) -> dict:
     chạy" — hỏng cái phụ làm báo động giả cái chính.
     """
     kq = {}
-    for ten, fn in (("mo_coi", ra_soat_mo_coi), ("cong_doi", ra_soat_cong_doi)):
+    for ten, fn, them in (("mo_coi", ra_soat_mo_coi, ()),
+                          ("cong_doi", ra_soat_cong_doi, (thu_gom,))):
         try:
-            kq[ten] = fn(ctx, nguon_list)
+            kq[ten] = fn(ctx, nguon_list, *them)
         except (OSError, ValueError, KeyError, subprocess.SubprocessError) as ex:
             ctx.log(f"RÀ SOÁT {ten}: LỖI {type(ex).__name__}: {str(ex)[:160]} — bỏ qua, lượt nạp"
                     " vẫn tính là xong")
@@ -838,6 +1272,17 @@ def run(job: str, nhan: str, nguon_list: list, schedule_vn: str, argv=None) -> i
     ap.add_argument("--dry-run", action="store_true",
                     help="chỉ in bản sẽ chọn / bản sẽ loại, KHÔNG xin file, KHÔNG nạp, KHÔNG xoá")
     ap.add_argument("--env", choices=("test", "prod"), default="test")
+    # LOẠI TRỪ NHAU, cố ý cho argparse nổ chứ không tự hoà giải: `--neu-thieu-trong-db` là điều
+    # kiện RỘNG HƠN (thiếu file HOẶC có file mà 0 dòng). Đặt cả hai thì cổng hẹp bỏ lượt ngay sau
+    # khi cổng rộng đã quyết "chạy", tức ca "file về mà nạp hỏng" lại bị bỏ qua — đúng cái mà cờ
+    # mới sinh ra để bắt.
+    g = ap.add_mutually_exclusive_group()
+    g.add_argument("--neu-thieu-ngay-truoc", action="store_true",
+                   help="CHỈ chạy khi còn thư mục nguồn theo ngày thiếu file của HÔM QUA TRÊN ĐĨA;"
+                        " đủ rồi thì thoát ngay. Dùng cho lượt chạy lại 01:15.")
+    g.add_argument("--neu-thieu-trong-db", action="store_true",
+                   help="CHỈ chạy khi số của HÔM QUA chưa lên DB — thiếu file trên đĩa, hoặc có"
+                        " file mà source_file đó không có dòng nào. Dùng cho lượt vá 02:35/02:45.")
     ap.add_argument("--chi-ra-soat", action="store_true",
                     help="CHỈ rà soát DB (file mồ côi + lát bị cộng đôi) rồi thoát — không xin"
                          " file, không nạp, không xoá, không ghi artifact trạng thái")
@@ -848,6 +1293,17 @@ def run(job: str, nhan: str, nguon_list: list, schedule_vn: str, argv=None) -> i
     ctx.log("=" * 70)
     ctx.log(f"{nhan} — MOI TRUONG: {args.env} (DB {cfg['database_url'].rsplit('@', 1)[-1]})")
 
+    # KHÔNG ghi artifact trạng thái ở hai nhánh bỏ lượt dưới đây. Ghi là báo với agent gửi tin lãnh
+    # đạo rằng "job vừa chạy xong", trong khi thực tế nó không kéo gì — lượt 00:30 mới là lượt làm
+    # việc và đã ghi artifact của nó rồi. Ghi đè lên đó là xoá mất dấu vết lượt thật.
+    if args.neu_thieu_ngay_truoc and not thieu_ngay_truoc(ctx, nguon_list):
+        ctx.log("BỎ LƯỢT: mọi thư mục nguồn theo ngày đã có file của hôm qua.")
+        return 0
+
+    if args.neu_thieu_trong_db and not thieu_trong_db(ctx, nguon_list):
+        ctx.log("BỎ LƯỢT: số của hôm qua đã có đủ dòng trong DB.")
+        return 0
+
     if args.chi_ra_soat:
         # Cố ý KHÔNG dựng StatusWriter ở nhánh này: ghi artifact là báo với agent gửi tin lãnh đạo
         # rằng "job vừa chạy", trong khi đây chỉ là một lượt soi DB do người gõ tay.
@@ -856,9 +1312,8 @@ def run(job: str, nhan: str, nguon_list: list, schedule_vn: str, argv=None) -> i
 
     # Mẫu số của artifact = DANH SÁCH KHAI BÁO, không phải số file tìm thấy: thư mục vắng mặt hoàn
     # toàn khỏi metadata không để lại dấu vết nào trong log (bài học DUAN 22/08/2026).
-    expected = [f"{n['company']}/{n['rt']}" for n in nguon_list]
-    ten = {f"{n['company']}/{n['rt']}": n.get("ten") or f"{n['company']}/{n['rt']}"
-           for n in nguon_list}
+    expected = [muc_cua(n) for n in nguon_list]
+    ten = {muc_cua(n): n.get("ten") or muc_cua(n) for n in nguon_list}
     st = None if args.dry_run else cron_status.StatusWriter(
         job=job, env=args.env, json_path=cfg["status_json"], jsonl_path=cfg["status_jsonl"],
         schedule_vn=schedule_vn, expected=sorted(expected), names=ten)
@@ -893,23 +1348,25 @@ def run(job: str, nhan: str, nguon_list: list, schedule_vn: str, argv=None) -> i
     if meta is None:
         return done(cron_status.RUN_DUNG_SOM, "không đọc được available_metadata.json", 1)
 
-    targets, losers = pick_targets(ctx, nguon_list, meta, periods)
+    them_ky = ky_cu_co_ban_moi(ctx, nguon_list, meta, periods)
+    targets, losers = pick_targets(ctx, nguon_list, meta, periods, them_ky)
+    # `setdefault`: chế độ `anh_chup_ky` đã tự gán khoá HẸP TỚI TỪNG TUẦN trong `pick_targets`
+    # (xem chú thích "PHÁT HÀNH LẠI CÙNG MỘT TUẦN"). Gán đè ở đây là kéo khoá trở về (rt, tháng)
+    # và làm hỏng bảo hiểm của `xoa_ban_cu`.
     for t in targets:
-        t["_slot_key"] = _slot(t["_nguon"], t, t["_period"])
+        t.setdefault("_slot_key", _slot(t["_nguon"], t, t["_period"]))
     for o in losers:
-        o["_slot_key"] = _slot(o["_nguon"], o, o["_period"])
+        o.setdefault("_slot_key", _slot(o["_nguon"], o, o["_period"]))
 
     ky_chinh = periods[0][0]
-    thay = {f"{t.get('company')}/{t.get('report_type')}" for t in targets}
+    thay = {muc_cua(t["_nguon"]) for t in targets}
     # PHÂN BIỆT "KHÔNG CÓ FILE NÀO" VỚI "CHƯA CÓ FILE KỲ NÀY". Bản đầu ghi chung một câu "chưa
     # thấy file báo cáo ở nguồn" cho cả hai, nên 4 mục (claim B2B, công nợ phải thu, nhập xe
     # B2B/B2C) hiện y như thể nguồn trống trơn — trong khi chúng CÓ file, chỉ là mới tới T07.
     # Câu này đi thẳng vào tin gửi lãnh đạo nên sai nghĩa là họ đi hỏi kế toán sai chỗ.
-    thay_ky_chinh = {f"{t.get('company')}/{t.get('report_type')}"
-                     for t in targets if t["_period"] == ky_chinh}
+    thay_ky_chinh = {muc_cua(t["_nguon"]) for t in targets if t["_period"] == ky_chinh}
     for muc in sorted(set(expected) - thay_ky_chinh):
-        ky_khac = sorted({t["_period"] for t in targets
-                          if f"{t.get('company')}/{t.get('report_type')}" == muc})
+        ky_khac = sorted({t["_period"] for t in targets if muc_cua(t["_nguon"]) == muc})
         if muc in thay:
             ctx.log(f"  CHUA CO FILE KY {ky_chinh}: {muc} (nguồn mới có kỳ {', '.join(ky_khac)})")
         else:
@@ -948,7 +1405,7 @@ def run(job: str, nhan: str, nguon_list: list, schedule_vn: str, argv=None) -> i
     today = datetime.now(VN).strftime("%Y-%m-%d")
     ok, da_nap_ok = 0, set()
     for e in sorted(targets, key=lambda x: (x["_period"], x.get("report_type") or "")):
-        muc = f"{e.get('company')}/{e.get('report_type')}"
+        muc = muc_cua(e["_nguon"])
         rec = st.record if (st and e["_period"] == ky_chinh) else (lambda *a, **k: None)
         if not os.path.exists(xlsx_path(e)):
             ctx.log(f"  BỎ QUA [{muc}] {e['_period']}: không có file trên đĩa")
@@ -983,9 +1440,19 @@ def run(job: str, nhan: str, nguon_list: list, schedule_vn: str, argv=None) -> i
     so_xoa = xoa_ban_cu(ctx, losers, da_nap_ok) if losers else 0
     # SAU khi đã nạp + đã xoá bản chốt cũ: rà lại chính cái vừa để lại trong DB. Đặt ở đây chứ
     # không phải đầu lượt để không báo động cái mà `xoa_ban_cu` của chính lượt này vừa dọn xong.
-    rs = ra_soat(ctx, nguon_list, st)
+    trung = []
+    rs = ra_soat(ctx, nguon_list, st, trung)
+    # Bản chốt cũ mà nguồn đã đổi tên/xoá: `xoa_ban_cu` ở trên không thấy nên không dọn được, phải
+    # dựa vào bộ dò vừa chạy. Xoá xong RÀ LẠI để artifact (agent gửi tin lãnh đạo đọc) không còn
+    # báo cộng đôi cho đúng cái vừa dọn xong.
+    so_xoa_trung = xoa_trung_ban_chot(ctx, trung) if (trung and not args.dry_run) else 0
+    if trung and args.dry_run:
+        ctx.log(f"DRY-RUN: bỏ qua xoá {len(trung)} nhóm trùng bản chốt")
+    if so_xoa_trung:
+        rs = ra_soat(ctx, nguon_list, st)
     ctx.log(f"XONG — nạp thành công {ok}/{len(targets)} file"
             + (f", xoá {so_xoa} dòng của {len(losers)} bản chốt cũ" if losers else "")
+            + (f", xoá {so_xoa_trung} dòng bản chốt cũ nguồn đã gỡ" if so_xoa_trung else "")
             + (f", RÀ SOÁT: {len(rs['cong_doi'])} lát cộng đôi / {len(rs['mo_coi'])} nhóm file mồ"
                " côi" if (rs["cong_doi"] or rs["mo_coi"]) else ", rà soát sạch"))
     if st:
