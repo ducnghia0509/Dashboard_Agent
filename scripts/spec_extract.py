@@ -725,6 +725,45 @@ def _kenh_tk(v):
     return "Khác" if s else None
 
 
+def _hd_kenh_b2b(v):
+    """Cột "HD B2B" của KD60 -> `dim2` = "B2B" nếu Checked, ngược lại "B2C".
+
+    ## Vì sao cần hook này
+
+    `VHKD_HDONG` (hợp đồng ký mới) có `dim2` = kênh ở bản THÁNG — suy từ TÊN FILE
+    (`Kymoi_B2B_T8.xlsx`), xem `chieu_tu_ten_file` của `vhkd_hopdong_thang.json`. Bản NGÀY
+    gộp cả ba kênh vào một file nên không còn đường đó, và `dim2` bỏ trống từ 25/08/2026.
+    Hệ quả: "ký mới theo B2C/B2B/GF theo ngày" không lên số được — đúng cột mà báo cáo
+    ngày của 9 nhóm SR cần.
+
+    ## Vì sao phải HAI hook chứ không một
+
+    Kênh nằm ở HAI cột cờ ("HD B2B" và "HD Xe GF"), mà một hook chỉ nhìn được MỘT ô. Nên
+    hook này đặt mặc định B2C/B2B, rồi `_hd_kenh_gf` (khai SAU trong spec) ghi đè lên khi
+    cờ GF bật. Thứ tự cột trong JSON được giữ nguyên khi áp dụng, nên khai ngược là GF
+    không bao giờ thắng.
+
+    ## Đã đối chiếu, không phải suy đoán
+
+    Ngày 25/08/2026 hai bản (tháng + ngày) chồng nhau. So kênh-từ-tên-file với kênh-từ-cờ
+    trên cùng bộ số hợp đồng: **48/48 khớp** (43 B2C + 5 B2B, 0 lệch). Đo trên prod
+    14/09/2026. Và trong 1.072 hợp đồng từ 25/08 tới nay KHÔNG có dòng nào bật cả hai cờ
+    (811 B2C / 258 B2B / 3 GF), nên nhánh "cả hai cùng Checked" chưa từng xảy ra — vẫn
+    định nghĩa GF thắng để kết quả xác định, chứ không để nó phụ thuộc thứ tự.
+    """
+    return {"dim2": "B2B" if str(v or "").strip() == "Checked" else "B2C"}
+
+
+def _hd_kenh_gf(v):
+    """Cột "HD Xe GF" -> ghi đè `dim2` = "GF" khi Checked. Xem `_hd_kenh_b2b`.
+
+    Trả **dict RỖNG** khi không Checked, không phải None: engine chỉ bỏ qua khi hook trả
+    dict rỗng, còn None sẽ đi tiếp vào `_dat(...)` và GHI ĐÈ đích bằng None — tức xoá mất
+    kênh mà `_hd_kenh_b2b` vừa đặt cho 1.069/1.072 dòng.
+    """
+    return {"dim2": "GF"} if str(v or "").strip() == "Checked" else {}
+
+
 def _qua_han(v):
     """Cột "số ngày quá hạn" -> "Quá hạn" / "Trong hạn".
 
@@ -1152,6 +1191,8 @@ _CHUAN_HOA = {
     "khoi_qlts": _khoi_qlts,
     "cty_qlts": _cty_qlts,
     "sr_showroom": _cc_showroom,
+    "hd_kenh_b2b": _hd_kenh_b2b,
+    "hd_kenh_gf": _hd_kenh_gf,
     "kenh_tk": _kenh_tk,
     "kho_kenh": _kho_kenh,
     "qua_han": _qua_han,
