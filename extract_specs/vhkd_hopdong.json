@@ -47,6 +47,8 @@
     "payload.gia_ban": { "header": "Giá bán", "kieu": "so_co_rong", "he_so": 1e-9, "bat_buoc": false },
     "payload.da_xhd": { "header": "Đã xuất HĐ", "bat_buoc": false },
     "payload.huy_hd": { "header": "Hủy HĐ", "bat_buoc": false },
+    "dim2": { "header": "HD B2B", "chuan_hoa": "hd_kenh_b2b", "chuan_hoa_khi_rong": true },
+    "payload._kenh_gf": { "header": "HD Xe GF", "chuan_hoa": "hd_kenh_gf", "chuan_hoa_khi_rong": true },
     "payload.hd_b2b": { "header": "HD B2B", "bat_buoc": false },
     "payload.hd_gf": { "header": "HD Xe GF", "bat_buoc": false },
     "payload.ghi_chu": { "header": "Ghi chú", "bat_buoc": false },
