@@ -25,11 +25,7 @@
     "file_glob": "*.Xuathoadon.xlsx",
     "sheet": { "so": 0 }
   },
-  "kiem_tra_o": [
-    { "o": "A8", "bang": "Tên đơn vị" },
-    { "o": "I8", "bang": "Số HĐ" },
-    { "o": "AM8", "bang": "Ngày cọc" }
-  ],
+  "kiem_tra_o": [{"hang": 8, "bang": "Tên đơn vị"}, {"hang": 8, "bang": "Số HĐ"}, {"hang": 8, "bang": "Ngày cọc"}, {"hang": 8, "bang": "Ngày hợp đồng"}],
   "header": { "dong": 8 },
   "dong_bat_dau": 9,
   "ngay_tu_ten_file": { "regex": "\\.D\\.(\\d{4})(\\d{2})(\\d{2})\\.", "thu_tu": "ymd" },
