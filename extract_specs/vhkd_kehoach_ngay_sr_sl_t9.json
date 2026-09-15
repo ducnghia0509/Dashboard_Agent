@@ -1,0 +1,43 @@
+{
+  "id": "vhkd_kehoach_ngay_sr_sl_t9",
+  "_mo_ta": "Kế hoạch SẢN LƯỢNG bán xe theo NGÀY × TỪNG SR (showroom) của khối Showroom, THÁNG 9/2026 trở đi — sheet 'KHT9ngaytheoSR', khối A (dòng 9-45). Report_type MỚI `VHKD_KH_SR_SL_NGAY`, cặp với `vhkd_kehoach_ngay_sr_gt_t9` (doanh thu). Chưa nối màn nào ở bản đầu — nạp trước để sẵn, dùng cho '%HT SL' theo SR nếu sau này cần.",
+  "_bay": [
+    "Y HỆT cơ chế lọc của `vhkd_kehoach_ngay_sr_gt_t9` (đọc trước khi sửa spec này): lọc bằng chính phép map `cost_center` (`sr_showroom`), KHÔNG dùng dong_bat_dau/ket_thuc theo từng khối kênh — 3 dòng tổng kênh + 1 dòng tổng khối ('A. Tổng sản lượng') không map được nên tự loại, gộp thẳng cả 3 khối kênh (B2C 11-21, B2B 23-33, GF 35-44) trong MỘT dong_bat_dau=9/dong_ket_thuc=45.",
+    "3 dòng không map (loại đúng như bản GT): '+ Vinfast Hạ Long 1S', '+ Thanh lý xe Demo', '+ P.Kinh doanh B2B' — có giá trị thật (vd Hạ Long 1S ở B2B = 160 xe) nhưng không gắn 1 SR cụ thể.",
+    "Đơn vị XE, `he_so: 1.0` (khác bản GT dùng 1e-9 quy tỷ đồng)."
+  ],
+  "_kiem_chung": [
+    "9 SR × 30 ngày, kỳ 2026-09. Đối chiếu Ocean Park (B2C+B2B+GF) = 120 + 70 + 8 = 198 xe."
+  ],
+  "report_type": "VHKD_KH_SR_SL_NGAY",
+  "giu_ngay_tuong_lai": true,
+  "row_index_base": 8925000,
+  "khoi": "Khối KD Vinfast - Showroom",
+  "nguon": {
+    "folder": "KEHOACH/baocaokehoachthang",
+    "file_glob": "1.SR.*.Kehoachthang.xlsx",
+    "sheet": {
+      "ten": "KHT9ngaytheoSR"
+    }
+  },
+  "kiem_tra_o": [
+    { "o": "A8", "bang": "Mã" },
+    { "o": "B8", "bang": "Kênh" },
+    { "o": "B7", "bang": "THÁNG 9" },
+    { "o": "B9", "bang": "A. Tổng sản lượng" }
+  ],
+  "ky_thang_tu_o": { "o": "B7" },
+  "header": { "dong": 8 },
+  "dong_bat_dau": 9,
+  "dong_ket_thuc": 45,
+  "cot": {
+    "cost_center": { "header": "Kênh", "chuan_hoa": "sr_showroom" }
+  },
+  "ban_ghi": "moi_cot_ngay",
+  "cot_ngay": { "dong": 8, "tu": "F", "den": "AJ", "he_so": 1.0 },
+  "loc": [
+    { "cot": "cost_center", "dieu_kien": "khac_rong" }
+  ],
+  "payload_them": { "unit": "xe", "nguon": "kehoach_ngay_sheet_KHT9ngaytheoSR" },
+  "source_file_hau_to": "KHT9ngaytheoSR_SR_SL"
+}

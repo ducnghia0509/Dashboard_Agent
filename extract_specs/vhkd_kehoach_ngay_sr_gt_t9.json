@@ -1,0 +1,48 @@
+{
+  "id": "vhkd_kehoach_ngay_sr_gt_t9",
+  "_mo_ta": "Kế hoạch DOANH THU bán xe theo NGÀY × TỪNG SR (showroom) của khối Showroom, THÁNG 9/2026 trở đi — sheet 'KHT9ngaytheoSR' của 1.SR.OO.M.<yyyymm>.Kehoachthang.xlsx, khối B (dòng 46-82, các dòng '+ Vinfast <SR>'). Report_type MỚI `VHKD_KH_SR_NGAY`, nối vào `_theo_showroom()` (app/metrics/vhkd.py) để tính '%HT DT' theo từng showroom — trước đây kế hoạch chỉ chi tiết tới kênh (B2C/B2B/GF), không tới SR.",
+  "_bay": [
+    "SHEET NÀY LÀ BỐ CỤC MỚI TỪ T9 — kiểm chéo với sheet T8 ('KHngàytheokenh') xác nhận T8 KHÔNG có breakdown theo SR, chỉ có 3 dòng kênh. Trước T9 không có nguồn nào để làm spec này.",
+    "KHÔNG cần đọc dim2 (kênh): mỗi SR bán ở CẢ 3 kênh (B2C/B2B/GF), '_theo_showroom' cộng doanh thu theo cost_center BẤT KỂ kênh (đúng cách KDVH đang làm) — nên spec này gộp thẳng cả khối B2C (dòng 48-58) + B2B (60-70) + GF (72-81) vào MỘT report_type, không tách dim2.",
+    "LỌC BẰNG CHÍNH PHÉP MAP cost_center, KHÔNG dùng dong_bat_dau/ket_thuc theo từng khối kênh: 3 dòng tổng kênh ('Kênh B2C'/'Kênh B2B'/'Kênh GF') và dòng tổng khối ('B.Tổng Doanh thu bán xe') đều KHÔNG khớp bất kỳ SR nào sau `sr_showroom` (hook chỉ có alias 'b2b'->B2B_SR, không có alias cho b2c/gf) -> cost_center rỗng -> bị loại bởi `loc: khac_rong`. Cách này gộp được cả 3 khối kênh trong MỘT dong_bat_dau=46/dong_ket_thuc=82 mà không cộng nhầm dòng tổng.",
+    "3 DÒNG KHÔNG PHẢI SR THẬT bị loại theo đúng cơ chế trên (không cần khai riêng): '+ Vinfast Hạ Long 1S' (không có trong master_data, khác 'Vinfast Hạ Long'), '+ P.Kinh doanh B2B'/'+ P.Kinh doanh GF' (đội bán tập trung, không gắn 1 showroom). Cả 3 đều có giá trị thật (vd Hạ Long 1S ở B2B = 106,317 tỷ) nhưng KHÔNG đại diện một SR cụ thể nên cố ý bỏ — hệ quả: Σ theo SR < tổng khối kênh đúng bằng phần của 3 dòng này, y hệt cách '_theo_showroom' đã chấp nhận cho vế THỰC HIỆN (KDVH cũng chỉ phủ SR có cost_center).",
+    "Ô B69 (Hạ Long 1S, khối B2B) lưu dạng CHUỖI có dấu phẩy ngăn nghìn ('106,317,000,000') khác các ô số khác — không ảnh hưởng vì dòng này bị loại (không map cost_center) nên giá trị không bao giờ được đọc.",
+    "`ky_thang_tu_o` trỏ B7 ('THÁNG 9'), KHÔNG ghim cứng: tháng sau có 'KHT10ngaytheoSR' thì khai spec mới trỏ sheet đó, đừng sửa spec này (đúng quy ước đã áp dụng cho `vhkd_kehoach_ngay_sl_t9`).",
+    "`source_file_hau_to` riêng, khác cả `vhkd_kehoach_ngay_sl_t9` (đọc SHEET giống nhưng report_type khác — không bắt buộc nhưng giữ cho audit rõ nguồn)."
+  ],
+  "_kiem_chung": [
+    "9 SR × 30 ngày, kỳ 2026-09. Σ doanh thu theo SR = Σ Σ 3 khối kênh (48-56 + 60-68 + 72-80, bỏ 3 dòng không map) = Σ cột 'Cộng tháng' của 9 showroom qua 3 kênh.",
+    "Đối chiếu: doanh thu Ocean Park (B2C+B2B+GF) = 78.664.445.821 + 44.716.000.000 + 3.264.214.416 = 126.644.660.237."
+  ],
+  "report_type": "VHKD_KH_SR_NGAY",
+  "giu_ngay_tuong_lai": true,
+  "row_index_base": 8920000,
+  "khoi": "Khối KD Vinfast - Showroom",
+  "nguon": {
+    "folder": "KEHOACH/baocaokehoachthang",
+    "file_glob": "1.SR.*.Kehoachthang.xlsx",
+    "sheet": {
+      "ten": "KHT9ngaytheoSR"
+    }
+  },
+  "kiem_tra_o": [
+    { "o": "A8", "bang": "Mã" },
+    { "o": "B8", "bang": "Kênh" },
+    { "o": "B7", "bang": "THÁNG 9" },
+    { "o": "B46", "bang": "B.Tổng Doanh thu bán xe" }
+  ],
+  "ky_thang_tu_o": { "o": "B7" },
+  "header": { "dong": 8 },
+  "dong_bat_dau": 46,
+  "dong_ket_thuc": 82,
+  "cot": {
+    "cost_center": { "header": "Kênh", "chuan_hoa": "sr_showroom" }
+  },
+  "ban_ghi": "moi_cot_ngay",
+  "cot_ngay": { "dong": 8, "tu": "F", "den": "AJ", "he_so": 1e-09 },
+  "loc": [
+    { "cot": "cost_center", "dieu_kien": "khac_rong" }
+  ],
+  "payload_them": { "unit": "ty", "nguon": "kehoach_ngay_sheet_KHT9ngaytheoSR" },
+  "source_file_hau_to": "KHT9ngaytheoSR_SR_GT"
+}
