@@ -65,7 +65,9 @@ CẤU TRÚC SPEC (khoá tiếng Việt cho kế toán/BA đọc được):
                                         // NGUYÊN, muốn lọc thì dùng `loc` điều kiện `thuoc`.
   "tinh_han_no": {"ngay_hoa_don": "payload.ngay_hoa_don", "cong_ngay": 15,   // suy đến hạn +
                   "den_han": "payload.den_han",            // số ngày quá hạn cho nguồn công nợ
-                  "so_ngay_qua_han": "payload.so_ngay_qua_han", "phan_loai": "dim1"},
+                  "so_ngay_qua_han": "payload.so_ngay_qua_han", "phan_loai": "dim1",
+                  "qua_han_tu": 0},                        // số ngày quá hạn >= mức này -> "Quá
+                                                           // hạn" (mặc định 1)
   "ngay_du_lieu_lui": 1,                 // TÊN FILE là ngày KÉO, số bên trong là của ngày TRƯỚC
                                          // -> lùi N ngày khi suy `ngay`. Mặc định 0.
                                          // Xem `ngay_tu_ten_file`. Báo cáo tự động Cyber
@@ -707,22 +709,45 @@ def _kho_kenh(v):
     return _KHO_KENH.get(s, "Khác")
 
 
-_KENH_TK = [("13111", "B2C"), ("13116", "GF"), ("1316", "B2B")]
+# BẢNG KÊNH THEO SỐ HIỆU TÀI KHOẢN — chép đúng bản mapping VHKD sửa 15/09/2026 (sheet "Cách lấy
+# BC tự động_SR", DASHBOARD 2 mục 1). Trước bản đó mapping chỉ khai ba tài khoản (13111 B2C ·
+# 13116 GF · 1316* B2B) nên mọi mã còn lại rơi vào rổ "Khác": 13112 nằm im trong rổ đó suốt
+# (14/09/2026: 5,44 tỷ dư nợ ở bản ngày, 4,84 tỷ ở bản tháng T09) trong khi nghiệp vụ coi nó là
+# B2C. Nay khai đủ 5 kênh, KHỚP TUYỆT ĐỐI theo mã.
+_KENH_TK = {
+    "13110": "Demo",
+    "13111": "B2C", "13112": "B2C",
+    "13113": "Khác", "13114": "Khác", "13118": "Khác",
+    "13115": "GF", "13116": "GF",
+    "13161": "B2B", "13162": "B2B", "13163": "B2B",
+}
+# Lưới cuối cho TÀI KHOẢN CON mở sau này (13111x…): giữ lối khớp TIỀN TỐ của bản cũ, nhưng chỉ
+# cho những tiền tố mapping đã nêu. "13116"/"13115" (GF) phải đứng TRƯỚC "1316" (B2B) — nếu không
+# GF bị tiền tố B2B nuốt.
+_KENH_TK_TIEN_TO = [("13110", "Demo"), ("13111", "B2C"), ("13112", "B2C"),
+                    ("13113", "Khác"), ("13114", "Khác"), ("13118", "Khác"),
+                    ("13115", "GF"), ("13116", "GF"), ("1316", "B2B")]
 
 
 def _kenh_tk(v):
-    """Số hiệu tài khoản -> kênh bán. Khớp theo TIỀN TỐ, không khớp tuyệt đối.
+    """Số hiệu tài khoản -> kênh bán, theo bảng mapping DASHBOARD 2.
 
-    Mapping ghi kênh B2B = "1316" nhưng tài khoản THẬT trong file là 13161 và 13163 (1.053 dòng
-    trên tổng 1.911). Khớp tuyệt đối "1316" thì toàn bộ B2B rơi vào nhóm "Khác" mà vẫn chạy trơn.
-    Thứ tự trong `_KENH_TK` quan trọng: "13116" (GF) phải đứng TRƯỚC "1316" (B2B), nếu không GF
-    bị tiền tố B2B nuốt.
+    KHỚP TUYỆT ĐỐI TRƯỚC, tiền tố sau. Bản trước 15/09/2026 chỉ khớp tiền tố với ba mục, nên mọi
+    mã ngoài ba mục đó — kể cả 13112 mà mapping nay xếp vào B2C — im lặng thành "Khác".
+
+    Mã LẠ vẫn ra "Khác" chứ không None: rổ "Khác" là một kênh CÓ THẬT trong mapping (13113 +
+    13114 + 13118), nên mã mới mở sẽ nằm lẫn trong đó cho tới khi được khai. Muốn soi thì so
+    `payload.tai_khoan` (engine vẫn lưu nguyên số hiệu) với bảng trên.
     """
     s = re.sub(r"\D", "", str(v or ""))
-    for tien_to, kenh in _KENH_TK:
+    if not s:
+        return None
+    if s in _KENH_TK:
+        return _KENH_TK[s]
+    for tien_to, kenh in _KENH_TK_TIEN_TO:
         if s.startswith(tien_to):
             return kenh
-    return "Khác" if s else None
+    return "Khác"
 
 
 def _hd_kenh_b2b(v):
@@ -1646,7 +1671,14 @@ def _tinh_han_no(rec, cfg, ngay_file):
         so_ngay = (dt.date(ym, mm, dd) - den_han).days
     _dat(rec, dich_qh, so_ngay)
     if cfg.get("phan_loai"):
-        _dat(rec, cfg["phan_loai"], _qua_han(so_ngay))
+        # NGƯỠNG QUÁ HẠN LÀ THAM SỐ, mặc định 1 (giữ nguyên hành vi `_qua_han`: quá hạn khi cột
+        # "số ngày quá hạn" > 0). Nguồn TỰ ĐỘNG khai `qua_han_tu: 0` vì mapping 15/09/2026 định
+        # nghĩa dải theo A = ngày chốt − ngày hoá đơn: "A < 15: Trong hạn · 15 <= A < 45: Quá hạn
+        # 1-30 ngày". Tức A = 15 (so_ngay_qua_han = 0, đúng ngày đến hạn) ĐÃ là quá hạn — khác
+        # bản tay, nơi kế toán chỉ điền số dương vào cột quá hạn.
+        tu = int(cfg.get("qua_han_tu", 1))
+        _dat(rec, cfg["phan_loai"],
+             "Quá hạn" if (so_ngay is not None and so_ngay >= tu) else "Trong hạn")
 
 
 def _tuan_truoc(bc):

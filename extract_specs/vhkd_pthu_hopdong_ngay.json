@@ -3,7 +3,8 @@
   "_mo_ta": "CÂN ĐỐI PHÁT SINH CÔNG NỢ THEO HỢP ĐỒNG — nguồn TỰ ĐỘNG Cyber (ổ IT\\TESTBAOCAOTUDONG\\1.VINFAST_SR -> VPS `TEST_SR/baocaocongnophaithungay`), mỗi ngày một file. Mapping VHKD 'Báo cáo API_VHKD' dòng 17. Mỗi dòng = một HỢP ĐỒNG: dư Nợ/Có đầu kỳ, phát sinh, dư cuối kỳ, kèm số hoá đơn / ngày hoá đơn / số khung / ngày nhập COC / ngày giao xe. Giữ NGUYÊN hình dạng bản ghi của `vhkd_pthu_coc` (nguồn tay) để sau này đổi nguồn chỉ phải sửa một dòng ở backend.",
   "_kiem_chung": [
     "31/08/2026: 3.242 dòng có 'Tên đơn vị'; 329 dòng có dư Nợ cuối kỳ, tổng 68,6335 tỷ; 2.894 dòng có dư Có (tiền khách đặt cọc), tổng 42,4036 tỷ.",
-    "'đến hạn' = Ngày hoá đơn + 15 ngày — quy ước đã đối chiếu 03/09/2026 với bản tay, khớp 472/472 dòng. Tính trong engine bằng khoá `tinh_han_no`."
+    "'đến hạn' = Ngày hoá đơn + 15 ngày — quy ước đã đối chiếu 03/09/2026 với bản tay, khớp 472/472 dòng. Tính trong engine bằng khoá `tinh_han_no`.",
+    "15/09/2026: mapping bản mới (sheet 'Cách lấy BC tự động_SR', DASHBOARD 2 mục 3) khai dải theo A = ngày chốt − Ngày hoá đơn: A<15 Trong hạn · 15<=A<45 Quá hạn 1-30 · 45<=A<105 · 105<=A<195 · A>=195. Vì so_ngay_qua_han = A − 15 nên mốc thành 0/30/90/180 và ĐÚNG NGÀY ĐẾN HẠN (A=15, so_ngay_qua_han=0) ĐÃ tính là quá hạn -> `qua_han_tu: 0`. Phần chia dải nằm ở backend (`_dai_tuoi_no`), biên là '<' chứ không phải '<='."
   ],
   "_bay": [
     "KHÔNG PHẢI BẢN THAY THẾ 1-1 CỦA `VHKD_PTHU_COC` — CỐ Ý ĐỂ REPORT_TYPE RIÊNG. Nguồn tự động THIẾU TOÀN BỘ TÀI KHOẢN B2B: 10/10 file (25/08→03/09) chỉ có 13111 · 13112 · 13115 · 13116, không có 13161/13163 nào. Bản tay cùng ngày 31/08 có 13163 (104 HĐ · 35,66 tỷ) + 13161 (73 HĐ · 21,75 tỷ) = 57,41 tỷ B2B. Ghi đè `VHKD_PTHU_COC` bằng nguồn này là làm bốc hơi 57 tỷ công nợ B2B mà màn hình vẫn hiện số trông bình thường. Chỉ đổi sang khi Cyber bổ sung 1316* và hai bên khớp 2-3 ngày liên tiếp.",
@@ -60,7 +61,8 @@
     "cong_ngay": 15,
     "den_han": "payload.den_han",
     "so_ngay_qua_han": "payload.so_ngay_qua_han",
-    "phan_loai": "dim1"
+    "phan_loai": "dim1",
+    "qua_han_tu": 0
   },
   "ban_ghi": "moi_dong",
   "loc": [
