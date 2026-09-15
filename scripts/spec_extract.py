@@ -2401,9 +2401,35 @@ def _extract_vung(spec, path):
         # file công nợ T1 và T7 tuy cùng tên sheet nhưng bố cục KHÁC HẲN (T1 không có phân tách
         # kênh, header ở dòng 5). Không có chốt này thì T1 vẫn "chạy được" và đẻ ra 9,86 tỷ vô
         # nghĩa, im lặng — kiểu sai nguy hiểm nhất.
+        # Hai cách khai, chọn theo cách SPEC ĐỌC CỘT:
+        #   {"o": "R8", ...}    -> ô ĐÚNG VỊ TRÍ. Bắt buộc cho spec địa chỉ cột bằng CHỮ CỘT.
+        #   {"hang": 8, ...}    -> nhãn nằm ĐÂU ĐÓ trong hàng 8. Cho spec đọc cột theo HEADER.
+        #
+        # VÌ SAO CẦN CÁCH THỨ HAI (15/09/2026, sự cố thật). Cyber chèn thêm cột "Thanh toán
+        # VinPoint" vào giữa bảng kê hoá đơn bán xe: file từ 56 lên 57 cột, mọi cột từ P trở đi
+        # dịch phải một ô. `vhkd_kqkd_auto` địa chỉ cột theo TÊN HEADER nên việc đọc số hoàn toàn
+        # không hề gì — nhưng cái neo `R8 = "Ngày hóa đơn"` thành "Tư vấn bán hàng" và chốt từ
+        # chối cả file. Hậu quả: 61 hoá đơn ngày 14/09 không vào DB, bản tin sáng hôm sau báo
+        # XHĐ = 0 cho cả 9 showroom, đỏ toàn bảng — một báo động giả gửi thẳng tới giám đốc.
+        #
+        # Nói cách khác: chốt chặt hơn thứ nó cần chặn. Việc nó phải phát hiện là "file này KHÁC
+        # LOẠI báo cáo" (bảng công nợ T1 header ở dòng 5, không có cột kênh — nạp bừa là đẻ ra
+        # 9,86 tỷ vô nghĩa). Đòi nhãn phải nằm ĐÚNG ô thì mỗi lần nguồn chèn một cột vô hại là
+        # mất trắng một ngày dữ liệu.
+        #
+        # Kiểm theo HÀNG vẫn giữ nguyên sức mạnh đó: phải có ĐỦ các nhãn mốc trong đúng hàng
+        # header. File khác loại, hay header nằm dòng khác, vẫn trượt như cũ.
         for ktr in spec.get("kiem_tra_o") or []:
+            can = _nd(ktr.get("bang"))
+            if ktr.get("hang"):
+                hang = int(ktr["hang"])
+                if not any(can in _nd(c.value) for c in ws[hang]):
+                    co = [str(c.value)[:18] for c in ws[hang] if c.value][:8]
+                    return [], [f"BỎ QUA — layout khác spec: hàng {hang} không có nhãn "
+                                f"{ktr.get('bang')!r} (thấy: {co})"]
+                continue
             thuc = ws[ktr["o"]].value
-            if _nd(ktr.get("bang")) not in _nd(thuc):
+            if can not in _nd(thuc):
                 return [], [f"BỎ QUA — layout khác spec: ô {ktr['o']} = "
                             f"{str(thuc)[:40]!r}, cần chứa {ktr.get('bang')!r}"]
 

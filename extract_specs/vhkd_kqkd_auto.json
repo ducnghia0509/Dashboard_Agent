@@ -28,11 +28,7 @@
     "file_glob": "*.Bangkehoadonbanxe.xlsx",
     "sheet": { "so": 0 }
   },
-  "kiem_tra_o": [
-    { "o": "A8", "bang": "Tên DVCS" },
-    { "o": "B8", "bang": "Mã Hợp đồng" },
-    { "o": "R8", "bang": "Ngày hóa đơn" }
-  ],
+  "kiem_tra_o": [{"hang": 8, "bang": "Tên DVCS"}, {"hang": 8, "bang": "Mã Hợp đồng"}, {"hang": 8, "bang": "Ngày hóa đơn"}, {"hang": 8, "bang": "Số lượng"}],
   "header": { "dong": 8 },
   "dong_bat_dau": 9,
   "ngay_tu_ten_file": { "regex": "\\.D\\.(\\d{4})(\\d{2})(\\d{2})\\.", "thu_tu": "ymd" },
