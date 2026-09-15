@@ -1,13 +1,16 @@
 {
   "id": "vhkd_kehoach_ngay_sr_sl_t9",
-  "_mo_ta": "Kế hoạch SẢN LƯỢNG bán xe theo NGÀY × TỪNG SR (showroom) của khối Showroom, THÁNG 9/2026 trở đi — sheet 'KHT9ngaytheoSR', khối A (dòng 9-45). Report_type MỚI `VHKD_KH_SR_SL_NGAY`, cặp với `vhkd_kehoach_ngay_sr_gt_t9` (doanh thu). Chưa nối màn nào ở bản đầu — nạp trước để sẵn, dùng cho '%HT SL' theo SR nếu sau này cần.",
+  "_mo_ta": "Kế hoạch SẢN LƯỢNG bán xe theo NGÀY × KÊNH × TỪNG SR (showroom), THÁNG 9/2026 trở đi — sheet 'KHT9ngaytheoSR', khối A (dòng 9-45). Report_type `VHKD_KH_SR_SL_NGAY`, cặp với `vhkd_kehoach_ngay_sr_gt_t9` (doanh thu). Cùng hình dạng bản ghi với `VHKD_KH_SL_NGAY` (dim1='A200', dim2=kênh) nhưng có thêm `cost_center`.",
   "_bay": [
-    "Y HỆT cơ chế lọc của `vhkd_kehoach_ngay_sr_gt_t9` (đọc trước khi sửa spec này): lọc bằng chính phép map `cost_center` (`sr_showroom`), KHÔNG dùng dong_bat_dau/ket_thuc theo từng khối kênh — 3 dòng tổng kênh + 1 dòng tổng khối ('A. Tổng sản lượng') không map được nên tự loại, gộp thẳng cả 3 khối kênh (B2C 11-21, B2B 23-33, GF 35-44) trong MỘT dong_bat_dau=9/dong_ket_thuc=45.",
-    "3 dòng không map (loại đúng như bản GT): '+ Vinfast Hạ Long 1S', '+ Thanh lý xe Demo', '+ P.Kinh doanh B2B' — có giá trị thật (vd Hạ Long 1S ở B2B = 160 xe) nhưng không gắn 1 SR cụ thể.",
-    "Đơn vị XE, `he_so: 1.0` (khác bản GT dùng 1e-9 quy tỷ đồng)."
+    "Y HỆT cơ chế của `vhkd_kehoach_ngay_sr_gt_t9` (đọc spec đó trước khi sửa spec này): `ngu_canh_dong` lấy dim2 từ dòng tiêu đề kênh và nuốt luôn dòng tổng khối ('A. Tổng sản lượng'), `giu_khi_khong_map` giữ dòng ngoài danh mục. Khác đúng hai chỗ: dải dòng (9-45 thay vì 46-82) và `he_so` (1.0 — đơn vị XE, không quy tỷ đồng).",
+    "Khối A của sheet có THÊM một dòng mà khối B không có: '+ Thanh lý xe Demo' (kênh B2C, kế hoạch = 0). Không map được cost_center, giữ lại với cost_center rỗng như '+ Vinfast Hạ Long 1S'; vì toàn 0 nên không sinh bản ghi nào (ô 0 bị `moi_cot_ngay` bỏ).",
+    "DÒNG 'A. Tổng sản lượng' CỦA SHEET NÀY BẰNG 0 Ở MỌI Ô — công thức tổng trong file chưa nối lại sau khi kế toán chèn khối SR. ĐỪNG dùng nó để đối chiếu; mốc đúng là 3 dòng tổng kênh (918 + 863 + 40 = 1.821) và nó khớp `VHKD_KH_SL_NGAY` kỳ 2026-09.",
+    "LỆCH VỚI BẢN THÁNG LÀ CÓ THẬT, KHÔNG PHẢI LỖI TRÍCH XUẤT: `VHKD_KH_SL` (sheet KHDT, bản tháng) ghi T9 = 1.796 xe, sheet ngày này ghi 1.821 xe — chênh 25 xe giữa hai sheet của CÙNG một workbook. Đã đối chiếu tận ô. Đừng 'vá' bằng hệ số; nếu cần một con số duy nhất thì hỏi kế toán sheet nào là bản chốt."
   ],
   "_kiem_chung": [
-    "9 SR × 30 ngày, kỳ 2026-09. Đối chiếu Ocean Park (B2C+B2B+GF) = 120 + 70 + 8 = 198 xe."
+    "Σ TOÀN BỘ (kể cả dòng cost_center rỗng) = 1.821 xe = 918 (B2C) + 863 (B2B) + 40 (GF), khớp Σ `VHKD_KH_SL_NGAY` kỳ 2026-09.",
+    "Σ phần CÓ cost_center = 1.661 xe (= 1.821 − 160 xe của '+ Vinfast Hạ Long 1S').",
+    "Ocean Park (B2C+B2B+GF) = 120 + 70 + 8 = 198 xe · B2B_SR (dòng '+ P.Kinh doanh B2B') = 159 xe."
   ],
   "report_type": "VHKD_KH_SR_SL_NGAY",
   "giu_ngay_tuong_lai": true,
@@ -24,19 +27,35 @@
     { "o": "A8", "bang": "Mã" },
     { "o": "B8", "bang": "Kênh" },
     { "o": "B7", "bang": "THÁNG 9" },
-    { "o": "B9", "bang": "A. Tổng sản lượng" }
+    { "o": "B9", "bang": "A. Tổng sản lượng" },
+    { "o": "B10", "bang": "Kênh B2C" },
+    { "o": "B22", "bang": "Kênh B2B" },
+    { "o": "B34", "bang": "Kênh GF" }
   ],
   "ky_thang_tu_o": { "o": "B7" },
   "header": { "dong": 8 },
   "dong_bat_dau": 9,
   "dong_ket_thuc": 45,
+  "chieu_co_dinh": { "dim1": "A200" },
+  "ngu_canh_dong": [
+    {
+      "khi": [{ "cot": "A", "dieu_kien": "regex", "gia_tri": "^\\s*[AB]\\.\\s*$" }],
+      "xoa": ["dim2"]
+    },
+    {
+      "khi": [{ "cot": "A", "dieu_kien": "regex", "gia_tri": "^\\s*(B2C|B2B|GF)\\s*$" }],
+      "gan": { "dim2": { "cot": "A", "chuan_hoa": "hoa" } }
+    }
+  ],
   "cot": {
-    "cost_center": { "header": "Kênh", "chuan_hoa": "sr_showroom" }
+    "cost_center": { "header": "Kênh", "chuan_hoa": "sr_showroom", "giu_khi_khong_map": true },
+    "payload.ten_dong": { "header": "Kênh", "chuan_hoa": "cat" }
   },
   "ban_ghi": "moi_cot_ngay",
   "cot_ngay": { "dong": 8, "tu": "F", "den": "AJ", "he_so": 1.0 },
   "loc": [
-    { "cot": "cost_center", "dieu_kien": "khac_rong" }
+    { "cot": "dim2", "dieu_kien": "khac_rong" },
+    { "cot": "payload.ten_dong", "dieu_kien": "khac_rong" }
   ],
   "payload_them": { "unit": "xe", "nguon": "kehoach_ngay_sheet_KHT9ngaytheoSR" },
   "source_file_hau_to": "KHT9ngaytheoSR_SR_SL"

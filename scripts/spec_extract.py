@@ -249,8 +249,17 @@ def _cc_showroom(ten):
     File ghi "Showroom OceanPark"/"Showroom Uông Bí", master ghi "Vinfast Ocean Park" -> bỏ tiền
     tố showroom/vinfast ở CẢ hai phía rồi so. Bản "(61)" (pháp nhân Xanh Vĩnh Phúc) chuẩn hoá
     thành "...61" nên không đụng bản gốc. "Vinfast B2B" là đội bán B2B tập trung -> B2B_SR.
+
+    ALIAS THỨ HAI CHO CHÍNH ĐỘI B2B ĐÓ (15/09/2026): bản KẾ HOẠCH gọi nó là "+ P.Kinh doanh B2B"
+    (sheet 'KHT9ngaytheoSR'), bản THỰC HIỆN gọi là "Vinfast B2B" -> hai khoá khác nhau sau `_nd`
+    ("pkinhdoanhb2b" vs "b2b"). Thiếu alias này thì dòng kế hoạch 159 xe / 105,171 tỷ của T9 rơi
+    lặng lẽ, trong khi `KDVH` VẪN có cost center B2B_SR (T9: 18,358 tỷ) -> bảng điểm theo Showroom
+    in một dòng có thực hiện mà '%HT DT' để trống, đọc thành "chưa đăng ký kế hoạch".
+    KHÔNG khai alias cho "+ P.Kinh doanh GF": không có cost center nào tương ứng ở vế thực hiện
+    (và kế hoạch của nó = 0), bịa ra mã mới là đẻ một dòng rỗng trên mọi bảng xếp hạng.
     """
-    return _cc_theo_khoi(ten, "Khối KD Vinfast - Showroom", {"b2b": ("B2B_SR", "TC")})
+    return _cc_theo_khoi(ten, "Khối KD Vinfast - Showroom",
+                         {"b2b": ("B2B_SR", "TC"), "pkinhdoanhb2b": ("B2B_SR", "TC")})
 
 
 def _cc_hcns_xdv(ten):
