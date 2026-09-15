@@ -108,6 +108,32 @@ NGUON = [
         "ten": "Tồn hồ sơ xe theo ngày (KD25 tự động)",
         "ngay_regex": r"\.D\.(20\d{2})(\d{2})(\d{2})\.",
     },
+    {
+        # KD23 — tồn kho xe theo HOÁ ĐƠN (khai 14/09/2026 theo bản mapping DASHBOARD 4 của VHKD).
+        # Bộ ba tồn kho nay đủ mặt: KD36 vật lý · KD25 hồ sơ · KD23 hoá đơn. Ba tập KHÁC NHAU,
+        # không cái nào thay được cái nào (14/09: hoá đơn 1.205 xe; 13/09: vật lý 1.602, hồ sơ
+        # 1.844) — chính hiệu số vật lý − hoá đơn là chỉ tiêu khối B của màn vhkd4.
+        #
+        # `VHKD_TONHD` vẫn là REPORT_TYPE RIÊNG (không ghi đè `VHKD_KHOXE`), nhưng TỪ 15/09/2026
+        # màn vhkd4 + CT40 ĐỌC NÓ TRƯỚC và chỉ lùi về 3 file tay ở kỳ nào chưa có nó — xem
+        # `vhkd._ton_hoa_don`. Giữ hai report_type tách bạch chính là thứ cho phép đường lùi đó.
+        "company": "TEST_SR", "rt": "baocaonhapxuatxetheosokhung", "che_do": core.ANH_CHUP_KY,
+        "ten": "Tồn kho xe theo hoá đơn theo ngày (KD23 tự động)",
+        # ĐÃ GỠ `chi_env: "test"` NGÀY 15/09/2026 — người dùng chốt chuyển hẳn màn vhkd4 sang
+        # nguồn này, nên prod cũng kéo hằng ngày. Ba câu hỏi nghiệp vụ trong `_bay` của spec
+        # được xử như sau thay vì chờ tiếp:
+        #   · ký gửi/B2B_KD vắng mặt -> cứ nạp đúng cái file có, mã kho lạ lộ ra ở nhóm "Khác";
+        #   · mất "chưa ghép khách" -> BE trả None + khai `thieuNguon`, FE ẩn thẻ (không in 0);
+        #   · đổi cơ sở tuổi tồn -> in thẳng mốc đếm ra màn + ghi chú CT40, và loại xe demo/ký
+        #     gửi khỏi CT40 để giữ nguyên phạm vi chỉ tiêu của các kỳ trước.
+        # Kỳ T01–T08 vẫn xem bằng `VHKD_KHOXE` (3 file tay) qua đường lùi `vhkd._ton_hoa_don`:
+        # file KD23 là sổ luỹ kế nhưng cột "Tồn cuối"/"Số ngày tồn" là ảnh chụp tại ngày chạy,
+        # không xuất lại được ảnh chụp của quá khứ.
+        # GẠCH DƯỚI trước tên báo cáo, giống `baocaocongnophaithungay` bên dưới chứ không giống 5
+        # thư mục TEST_SR ở trên -> regex phải kết bằng '_'. Kết bằng '.' là không bắt được ngày
+        # nào và mọi file rơi về slot rỗng.
+        "ngay_regex": r"\.D\.(20\d{2})(\d{2})(\d{2})_",
+    },
     # BA thư mục TEST_SR còn lại KHAI NỐT 05/09/2026. Cả ba đều ĐỔI NGUỒN CHỨ KHÔNG ĐỔI CÁCH TÍNH,
     # và cả ba đều để REPORT_TYPE RIÊNG chứ không ghi đè nguồn tay — nguồn nào cũng đang có một
     # khuyết tật ở phía FILE, nên nạp để đối chiếu song song trước, đổi sang sau khi khớp:
