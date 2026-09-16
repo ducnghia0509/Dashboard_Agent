@@ -83,6 +83,39 @@ def cell_at(ws, kw, target_row_1based):
     return ext.num(ext.get(rows[target_row_1based - 1], j))
 
 
+def ht_du_no_theo_ky_han(wb):
+    """Hưng Thịnh — 'Cơ cấu số dư vay' ĐỔI LOGIC (mapping cập nhật): đọc THẲNG cột 'Nợ đầu kỳ'
+    của sheet 'BCTH 2', KHÔNG qua `evk.read_bcth2()`/`term_map()`'s 'cuoi' (=đầu kỳ+vay-trả) —
+    mapping ghi rõ Ngắn hạn = Ô F7, Trung hạn = Ô F6+F8, chỉ lấy NGUYÊN VĂN cột F.
+
+    Trả {(bank, term): amount (tỷ)} — hiện có {(VCB,NH): F7, (VCB,TH): F6, (BIDV,TH): F8}, tách
+    riêng theo NGÂN HÀNG (không gộp F6+F8 thành 1 dòng) để khớp cấu trúc dim1=bank/dim2=term sẵn
+    có của VAY_D và vẫn cộng đúng ra tổng trung hạn F6+F8 khi FE/BE tổng hợp theo cty hoặc theo
+    kỳ hạn — xem `_bay` ở docstring module.
+
+    KIỂM NHÃN CỘT E ('Thời hạn vay') TRƯỚC KHI TIN VỊ TRÍ DÒNG: mapping ghim cứng dòng 6/7/8 vì
+    bố cục HT chỉ có 3 dòng vay cố định (VCB trung/ngắn hạn, BIDV trung hạn — HT không có khoản
+    ngắn hạn BIDV), nhưng ghim dòng là DỄ VỠ ÂM THẦM nếu kế toán chèn/xoá dòng — trả về {} kèm
+    cảnh báo qua giá trị None nếu nhãn không khớp, để `run()` fallback về đường cũ thay vì ghi số
+    sai không kiểm chứng được."""
+    if "BCTH 2" not in wb.sheetnames:
+        return None
+    ws = wb["BCTH 2"]
+
+    def _nhan(r):
+        return str(ws.cell(r, 5).value or "").strip().lower()   # cột E = 'Thời hạn vay'
+
+    def _f(r):
+        v = ws.cell(r, 6).value                                  # cột F = 'Nợ đầu kỳ'
+        return (v or 0) / 1e9 if isinstance(v, (int, float)) else 0.0
+
+    nhan6, nhan7, nhan8 = _nhan(6), _nhan(7), _nhan(8)
+    if not ("trung" in nhan6 and "vcb" in nhan6 and "ngắn" in nhan7 and "vcb" in nhan7
+            and "trung" in nhan8 and "bidv" in nhan8):
+        return None
+    return {("VCB", "TH"): _f(6), ("VCB", "NH"): _f(7), ("BIDV", "TH"): _f(8)}
+
+
 def cum_today(wb, cty):
     """-> {(bank, term): (cum_vay, cum_tra, tra_reversed)} — giá trị LŨY KẾ thô đọc hôm nay,
     CHƯA diff. `tra_reversed`=True nghĩa là cột trả nợ là SỐ DƯ GIẢM DẦN (diff N-1 trừ N)."""
@@ -176,11 +209,24 @@ def run(commit, ngay=None):
         if ds is None:
             skipped.append({"cong_ty": "HT", "error": f"chua_co_dataset_VAY_ky_{period}"})
         else:
+            # ĐỔI LOGIC (mapping cập nhật, xem docstring `ht_du_no_theo_ky_han`): dư nợ đọc THẲNG
+            # cột 'Nợ đầu kỳ' của BCTH 2 thay vì SEED từ dòng VAY (tháng) — dòng VAY (tháng) của
+            # HT đang = 0 vì nguồn "Báo cáo tiền tập đoàn" tháng 9 ghi cứng 0 ở cột dư cuối (xem
+            # phần "Dư nợ cuối kỳ = 0" đã ghi trong dongtien-sodu-vayngay). BCTH 2 KHÔNG dính lỗi
+            # đó (khác file/sheet), nên bây giờ "Vay & chi phí lãi vay theo công ty" của HT ở tab
+            # Ngày mới có số. `None` (nhãn dòng 6/7/8 không khớp — bố cục đổi) -> fallback im lặng
+            # về đường SEED cũ, KHÔNG ghi số sai không kiểm chứng được.
+            wb_bcth2 = ext.load(ht_file)
+            du_no_moi = ht_du_no_theo_ky_han(wb_bcth2)
+            wb_bcth2.close()
             for bank, terms in tm.items():
                 for term, v in terms.items():
                     seed_cuoi, seed_dau = _month_seed(db, "HT", bank, term, period)
+                    amount = (du_no_moi or {}).get((bank, term))
+                    if amount is None:
+                        amount = seed_cuoi
                     row = {"cong_ty": "HT", "dim1": bank, "dim2": term, "dataset_id": ds,
-                           "amount": seed_cuoi, "du_dau_ky": seed_dau,
+                           "amount": amount, "du_dau_ky": seed_dau,
                            "vay_them": v.get("vay", 0.0), "tra_no": v.get("tra", 0.0),
                            "den_han": v.get("den_han", 0.0), "den_han_next": v.get("den_han_next", 0.0),
                            "den_han_next2": v.get("den_han_next2", 0.0),
