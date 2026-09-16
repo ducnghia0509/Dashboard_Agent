@@ -250,7 +250,14 @@ def source_id_from_path(path: str) -> str:
 
 
 def index_file(path: str) -> dict:
-    """Index 1 file xlsx -> entry {file, path, company, report_type, month, sheets:[...], ...}."""
+    """Index 1 file xlsx/xls -> entry {file, path, company, report_type, month, sheets:[...], ...}.
+
+    `.xls` (BIFF/OLE2 đời cũ, vd 2 file số dư ngân hàng của Hưng Thịnh — MB/VCB cùng thư mục lại
+    là `.xlsx`) KHÔNG mở được bằng openpyxl (`InvalidFileException`/`BadZipFile`) — đọc bằng
+    `xlrd` (đã có sẵn trong venv cho `extract_sodu_nganhang.py`), tự dựng header/nrows tương
+    đương nhánh openpyxl bên dưới. Thiếu nhánh này thì `index_dir()` không index được các file
+    đó dù đã kéo về đủ trên đĩa -> tab Nguồn dữ liệu báo mãi mãi "Mới · chưa kéo về" (không phải
+    lỗi kéo/lỗi nạp số — 2 việc đó dùng đường khác, không đi qua catalog này)."""
     side = _sidecar(path)
     meta = _from_path(path)
     # B29/B30: sidecar .json do RECEIVER ngoài ghi — đã xác nhận (2026-07-09) đây chỉ là COPY
@@ -273,24 +280,43 @@ def index_file(path: str) -> dict:
     }
     entry.update(_gan_ky(entry["file"], side))
     entry["nhom_nguon"] = raw_company_from_path(path)
-    wb = bb.fast_load_workbook(path, read_only=True, data_only=True)
-    try:
-        for ws in wb.worksheets:
-            # CHỈ đọc ~30 dòng đầu để lấy header (KHÔNG duyệt hết — sheet BCTC có thể tới
-            # cả triệu dòng phantom -> duyệt hết là treo). Số dòng lấy từ ws.max_row.
+    if path.lower().endswith(".xls"):
+        import xlrd
+        wb = xlrd.open_workbook(path)
+        for ws in wb.sheets():
+            # Y HỆT nhánh openpyxl bên dưới: CHỈ đọc ~30 dòng đầu để lấy header.
             header = []
-            for r in ws.iter_rows(min_row=1, max_row=30, values_only=True):
-                if sum(1 for c in r if c not in (None, "")) >= 2:
-                    header = [("" if c is None else str(c).strip()) for c in r]
+            for r in range(min(ws.nrows, 30)):
+                row = [ws.cell_value(r, c) for c in range(ws.ncols)]
+                if sum(1 for c in row if c not in (None, "")) >= 2:
+                    header = [("" if c is None else str(c).strip()) for c in row]
                     break
             entry["sheets"].append({
-                "name": ws.title,
+                "name": ws.name,
                 "columns": [h for h in header if h][:40],
-                "nrows": ws.max_row,          # xấp xỉ (dimension Excel), tránh duyệt toàn bộ
-                "canonical_kind": canonical.guess_canonical_kind(ws.title),
+                "nrows": ws.nrows,
+                "canonical_kind": canonical.guess_canonical_kind(ws.name),
             })
-    finally:
-        wb.close()
+        # xlrd không cache/giữ handle như fast_load_workbook — không có wb.close() để gọi.
+    else:
+        wb = bb.fast_load_workbook(path, read_only=True, data_only=True)
+        try:
+            for ws in wb.worksheets:
+                # CHỈ đọc ~30 dòng đầu để lấy header (KHÔNG duyệt hết — sheet BCTC có thể tới
+                # cả triệu dòng phantom -> duyệt hết là treo). Số dòng lấy từ ws.max_row.
+                header = []
+                for r in ws.iter_rows(min_row=1, max_row=30, values_only=True):
+                    if sum(1 for c in r if c not in (None, "")) >= 2:
+                        header = [("" if c is None else str(c).strip()) for c in r]
+                        break
+                entry["sheets"].append({
+                    "name": ws.title,
+                    "columns": [h for h in header if h][:40],
+                    "nrows": ws.max_row,          # xấp xỉ (dimension Excel), tránh duyệt toàn bộ
+                    "canonical_kind": canonical.guess_canonical_kind(ws.title),
+                })
+        finally:
+            wb.close()
     # Lock cả chu trình load-sửa-save: 2 phiên index 2 file song song không khoá sẽ
     # lost-update (mỗi bên save catalog thiếu entry của bên kia).
     with locked_json(CATALOG):
@@ -304,14 +330,18 @@ def index_file(path: str) -> dict:
 
 
 def index_dir(root: str = None) -> dict:
-    """Quét thư mục received_reports, index mọi .xlsx (bỏ file tạm ~$). Đuôi so KHÔNG phân biệt
-    hoa/thường — SRVF gửi '.Xlsx' (2026-07-30), glob '*.xlsx' bỏ sót -> file nằm trên đĩa nhưng
-    catalog không thấy: tab Nguồn dữ liệu báo 'Mới · chưa kéo về', không analyze/xem được."""
+    """Quét thư mục received_reports, index mọi .xlsx/.xls (bỏ file tạm ~$). Đuôi so KHÔNG phân
+    biệt hoa/thường — SRVF gửi '.Xlsx' (2026-07-30), glob '*.xlsx' bỏ sót -> file nằm trên đĩa
+    nhưng catalog không thấy: tab Nguồn dữ liệu báo 'Mới · chưa kéo về', không analyze/xem được.
+
+    THÊM '.xls' (15/09/2026): 2 file số dư ngân hàng của Hưng Thịnh (BIDV/VPBANK — 2 ngân hàng
+    còn lại cùng thư mục MB/VCB là '.xlsx') đứng mãi ở 'Mới · chưa kéo về' dù đã kéo về + lên số
+    SDNH bình thường mỗi ngày — `index_file()` giờ đọc `.xls` bằng xlrd, xem docstring hàm đó."""
     root = root or RECEIVED_DIR
     if not os.path.isdir(root):
         return {"ok": False, "error": f"Không thấy thư mục: {root}", "indexed": 0}
     files = [f for f in glob.glob(os.path.join(root, "**", "*"), recursive=True)
-             if f.lower().endswith(".xlsx") and not os.path.basename(f).startswith("~$")]
+             if f.lower().endswith((".xlsx", ".xls")) and not os.path.basename(f).startswith("~$")]
     cat = _load()
     done = 0
     for f in files:
