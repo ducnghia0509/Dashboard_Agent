@@ -1,6 +1,6 @@
 {
   "id": "vhkd_kehoach_giaoxe_ngay",
-  "_mo_ta": "KẾ HOẠCH GIAO XE theo NGÀY × SHOWROOM × DÒNG XE — file 'CHI_TIET_TIEN_DO_TUNG_SHOWROOM_TUNG_DONG_XE_13_NGAY.xlsx', 9 sheet 'SR <tên>'. KHÁC họ `kehoach15ngay` (`VHKD_KH_XHD_*`): bên kia đo XUẤT HOÁ ĐƠN và gộp dòng xe còn 6 cột; bên này đo GIAO XE và tách đủ 11 dòng xe cho TỪNG showroom. Hai nguồn BỔ SUNG nhau, không thay thế — đừng gộp mẫu số. Kỳ 03/09–15/09/2026 = 746 xe (mốc 60% của chỉ tiêu tháng 1.248). LƯU Ý: file này CHỈ phủ nửa đầu tháng, phần 16→30 chưa có kế hoạch ngày.",
+  "_mo_ta": "KẾ HOẠCH GIAO XE theo NGÀY × SHOWROOM × DÒNG XE — file 'CHI_TIET_TIEN_DO_TUNG_SHOWROOM_TUNG_DONG_XE_13_NGAY.xlsx', 9 sheet 'SR <tên>'. KHÁC họ `kehoach15ngay` (`VHKD_KH_XHD_*`): bên kia đo XUẤT HOÁ ĐƠN và gộp dòng xe còn 6 cột; bên này đo GIAO XE và tách đủ 11 dòng xe cho TỪNG showroom. Hai nguồn BỔ SUNG nhau, không thay thế — đừng gộp mẫu số. Kỳ 03/09–15/09/2026 = 746 xe (mốc 60% của chỉ tiêu tháng 1.248). LƯU Ý: file này CHỈ phủ nửa đầu tháng, phần 16→30 chưa có kế hoạch ngày. | dim1 dùng ĐÚNG mã của sổ bán xe (ECV/LM1/MPV/MNO/VF*) chứ không phải tên hiển thị trong file ('Limo Green', 'VF MPV7', 'Minio Green'): chỉ tiêu phải ghép được vào thực hiện của KDVH/VHKD_HDONG, lệch mã là bảng dòng xe mất mẫu số.",
   "report_type": "VHKD_KH_GIAOXE_NGAY",
   "row_index_base": 8550000,
   "khoi": "Khối KD Vinfast - Showroom",
@@ -43,7 +43,7 @@
   "cot_gia_tri": [
     {
       "header": "EC Van (Mũi nhọn)",
-      "dim1": "EC Van"
+      "dim1": "ECV"
     },
     {
       "header": "VF3 (Mũi nhọn)",
@@ -59,7 +59,7 @@
     },
     {
       "header": "Limo (Mũi nhọn)",
-      "dim1": "Limo Green"
+      "dim1": "LM1"
     },
     {
       "header": "VF2",
@@ -67,11 +67,11 @@
     },
     {
       "header": "VF MPV7",
-      "dim1": "VF MPV7"
+      "dim1": "MPV"
     },
     {
       "header": "Minio Green",
-      "dim1": "Minio Green"
+      "dim1": "MNO"
     },
     {
       "header": "VF7",
