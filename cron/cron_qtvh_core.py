@@ -856,6 +856,25 @@ def trang_thai(vr: dict, van_tay_cu, doi_luc_cu, today: str):
     return (cron_status.STATE_DU if doi_luc == today else cron_status.STATE_CHAM), doi_luc
 
 
+# ── REPORT_TYPE GIỮ TRỌN LỊCH SỬ PHÁT HÀNH — MIỄN TRỪ MỌI ĐƯỜNG XOÁ BẢN CŨ (17/09/2026) ────
+#
+# Ba hàm dưới đây (`xoa_ban_cu`, `xoa_trung_ban_chot`) và bộ dò `_lat_du_lieu` đều đi từ MỘT giả
+# định: một kỳ chỉ được có MỘT bản chốt, bản cũ còn nằm lại là cộng đôi. Đúng cho mọi nguồn — trừ
+# `VHKD_CLAIM_NGAY`, thứ SINH RA để giữ đủ các bản.
+#
+# Màn Claim tab Ngày trả lời câu "tại ngày D, số nào đang hiệu lực": file claim B2C của kỳ T8 đã
+# qua 4 bản (25/08 = 2,91 tỷ · 07/09 = 9,36 · 15/09 = 15,00 · 16/09 = 17,73), và chính chuỗi bậc
+# thang đó LÀ dữ liệu. Xoá bản cũ là tab Ngày chỉ còn đúng một mốc.
+#
+# XOÁ THEO `source_file` NÊN PHẢI CHỪA THEO `report_type`, không chừa theo file: CÙNG một file
+# claim cấp cả `VHKD_CLAIM` (bản THÁNG — vẫn phải một bản/kỳ, nếu không tab Tháng cộng đôi thật)
+# lẫn `VHKD_CLAIM_NGAY`. Chừa cả file là tab Tháng sai ngay; chừa cả report_type là mất lịch sử.
+#
+# `xoa_rows_bi_bo_qua` CỐ Ý KHÔNG dùng danh sách này: file rơi vào `bo_qua` là file ĐỌC SAI (bản
+# 9.15 của claim B2B T1 lệch cột), lịch sử của một bản sai thì không có giá trị gì để giữ.
+RT_GIU_LICH_SU = ("VHKD_CLAIM_NGAY",)
+
+
 def xoa_ban_cu(ctx: Ctx, losers: list, da_nap_ok: set) -> int:
     """Xoá rows của các bản chốt CŨ cùng slot — chỉ khi bản MỚI của slot đó đã nạp thành công.
 
@@ -877,12 +896,15 @@ def xoa_ban_cu(ctx: Ctx, losers: list, da_nap_ok: set) -> int:
     code = (
         "import sys;sys.path.insert(0,'.');"
         "from app.database.session import get_db;"
-        f"sids={sids!r};db=get_db();n=0;"
+        f"sids={sids!r};giu={list(RT_GIU_LICH_SU)!r};db=get_db();n=0;"
+        # Chừa report_type giữ lịch sử — xem `RT_GIU_LICH_SU`.
+        "w='source_file=? AND report_type NOT IN (%s)'%','.join(['?']*len(giu));"
         "\nfor s in sids:\n"
-        "    r=db.execute('SELECT COUNT(*) c FROM raw_rows WHERE source_file=?',(s,)).fetchone()\n"
+        "    p=tuple([s]+giu)\n"
+        "    r=db.execute('SELECT COUNT(*) c FROM raw_rows WHERE '+w,p).fetchone()\n"
         "    c=(r['c'] if r else 0) or 0\n"
         "    if c:\n"
-        "        db.execute('DELETE FROM raw_rows WHERE source_file=?',(s,))\n"
+        "        db.execute('DELETE FROM raw_rows WHERE '+w,p)\n"
         "    n+=c\n"
         "    print('XOA %s dong | %s'%(c,s))\n"
         "print('TONG_XOA=%s'%n)"
@@ -1077,13 +1099,18 @@ def _lat_du_lieu(ctx: Ctx, ctys: list) -> list:
         "import sys;sys.path.insert(0,'.');"
         "from app.metrics._shared import _SNAP_RT;"
         "from app.database.session import get_db;"
-        f"ctys={sorted(ctys)!r};"
-        "pc=','.join(['?']*len(ctys));"
+        f"ctys={sorted(ctys)!r};giu={list(RT_GIU_LICH_SU)!r};"
+        "pc=','.join(['?']*len(ctys));pg=','.join(['?']*len(giu));"
+        # `RT_GIU_LICH_SU` bị LOẠI KHỎI BỘ DÒ, không chỉ khỏi đường xoá: với `VHKD_CLAIM_NGAY`,
+        # "nhiều bản chốt trong cùng một lát" LÀ trạng thái đúng (lô 15/09 có 13 file cùng kỳ).
+        # Để nguyên thì mỗi đêm bộ dò kêu hàng chục "TRÙNG BẢN CHỐT" cho đúng cái vừa cố ý giữ —
+        # báo động giả đều đặn là cách nhanh nhất làm người ta thôi đọc log.
         "sql=('SELECT report_type rt,cong_ty ct,khoi k,ngay ng,period_month pm,source_file sf,"
-        "COUNT(*) c FROM raw_rows WHERE split_part(source_file,%s,1) IN (%s) AND source_file NOT "
+        "COUNT(*) c FROM raw_rows WHERE split_part(source_file,%s,1) IN (%s) AND report_type NOT "
+        "IN (%s) AND source_file NOT "
         "IN (SELECT source_file FROM hidden_files) GROUP BY 1,2,3,4,5,6')%(chr(39)+'::'+chr(39),"
-        "pc);"
-        "\nfor r in get_db().execute(sql, tuple(ctys)):\n"
+        "pc,pg);"
+        "\nfor r in get_db().execute(sql, tuple(ctys)+tuple(giu)):\n"
         "    snap=r['rt'] in _SNAP_RT\n"
         "    print('LAT|%s|%s|%s|%s|%s|%s|%s'%(r['rt'],r['ct'] or '',r['k'] or '',"
         "(r['ng'] if snap else r['pm']) or '','chốt' if snap else 'kỳ',r['sf'],r['c']))\n"
@@ -1223,12 +1250,15 @@ def xoa_trung_ban_chot(ctx: Ctx, trung: list) -> int:
     code = (
         "import sys;sys.path.insert(0,'.');"
         "from app.database.session import get_db;"
-        f"sids={sids!r};db=get_db();n=0;"
+        f"sids={sids!r};giu={list(RT_GIU_LICH_SU)!r};db=get_db();n=0;"
+        # Chừa report_type giữ lịch sử — xem `RT_GIU_LICH_SU`.
+        "w='source_file=? AND report_type NOT IN (%s)'%','.join(['?']*len(giu));"
         "\nfor s in sids:\n"
-        "    r=db.execute('SELECT COUNT(*) c FROM raw_rows WHERE source_file=?',(s,)).fetchone()\n"
+        "    p=tuple([s]+giu)\n"
+        "    r=db.execute('SELECT COUNT(*) c FROM raw_rows WHERE '+w,p).fetchone()\n"
         "    c=(r['c'] if r else 0) or 0\n"
         "    if c:\n"
-        "        db.execute('DELETE FROM raw_rows WHERE source_file=?',(s,))\n"
+        "        db.execute('DELETE FROM raw_rows WHERE '+w,p)\n"
         "    n+=c\n"
         "    print('XOA %s dong | %s'%(c,s))\n"
         "print('TONG_XOA=%s'%n)"
