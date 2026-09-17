@@ -1302,6 +1302,33 @@ def _a200_kenh_tu_dong(v):
     return {"he_so_dau": 1}
 
 
+def _claim_ky_du_lieu(v):
+    """Tên file claim -> `dim3` = KỲ DỮ LIỆU ('2026-08'), tách khỏi NGÀY PHÁT HÀNH.
+
+    File claim mang HAI mốc thời gian khác nhau, và chính chỗ đó là lý do màn Claim cần tab Ngày:
+        `B.1.TC.OO.M.2026.9.16.Baocaoclaim_B2C_T8.xlsx`
+                   └ ngày PHÁT HÀNH 16/09        └ kỳ DỮ LIỆU = tháng 8
+    Spec NGÀY (`vhkd_claim_ngay`/`_b2b_ngay`) đặt `ngay` = ngày phát hành để dựng chuỗi "số nào
+    đang hiệu lực tại ngày nào"; kỳ dữ liệu vì thế phải có chỗ đứng RIÊNG, nếu không mọi bản phát
+    hành của mọi tháng dồn thành một đống không tách lại được.
+
+    Nhận group(0) của regex (khai `"nhom": 0` trong spec) vì hook chỉ thấy MỘT chuỗi, mà ở đây cần
+    cả năm phát hành lẫn số tháng dữ liệu.
+
+    NĂM CỦA KỲ = năm phát hành, LÙI MỘT NĂM khi tháng dữ liệu > tháng phát hành: bản chốt T12 luôn
+    ra vào tháng 1 năm sau. Không có luật này thì file phát hành 01/2027 cho kỳ T12/2026 sẽ ghi
+    thành 2027-12 — một kỳ tương lai, và `_ghi` lặng lẽ bỏ nó (`bo_qua_ky_khong_tao_duoc`).
+    """
+    m = re.search(r"M\.(\d{4})\.(\d{1,2})\.\d{1,2}\..*?_T(\d{1,2})\b", str(v or ""), re.I)
+    if not m:
+        return {"_khong_map": str(v or "")[:60]}
+    nam_ph, thang_ph, thang_dl = (int(x) for x in m.group(1, 2, 3))
+    if not 1 <= thang_dl <= 12:
+        return {"_khong_map": str(v or "")[:60]}
+    nam = nam_ph - 1 if thang_dl > thang_ph else nam_ph
+    return {"dim3": f"{nam:04d}-{thang_dl:02d}"}
+
+
 _CHUAN_HOA = {
     "cc_qlts": _cc_qlts,
     "khoi_qlts": _khoi_qlts,
@@ -1328,6 +1355,7 @@ _CHUAN_HOA = {
     "xvp_ma_doanh_thu": _xvp_ma_doanh_thu,
     "xvp_don_vi": _xvp_don_vi,
     "sr_loai_xe": _sr_loai_xe,
+    "claim_ky_du_lieu": _claim_ky_du_lieu,
     "a200_kenh_tu_dong": _a200_kenh_tu_dong,
     "hoa": lambda v: str(v or "").strip().upper() or None,
     "cat": lambda v: str(v or "").strip() or None,
@@ -2107,6 +2135,23 @@ def quet_nguon(spec):
     # File tạm Excel sinh ra khi ai đó đang MỞ file trên máy chia sẻ. Khớp "*.xlsx" nhưng không
     # phải workbook thật -> đọc vào là ném lỗi khó hiểu giữa lượt nạp.
     ten = [n for n in ten if not n.startswith("~$")]
+    # `bo_qua_file` (17/09/2026) — regex LOẠI HẲN file khỏi spec này. Mặc định không khai nên mọi
+    # spec cũ giữ nguyên hành vi.
+    #
+    # VÌ SAO Ở TẦNG SPEC chứ không chỉ ở cron: `bo_qua` của `cron_qtvh_core` chỉ chặn việc XIN FILE
+    # VỀ, còn file đã nằm sẵn trên đĩa thì mọi đường nạp khác (nút "Phân tích AI", "Nạp lại tất
+    # cả", chạy tay `spec_extract.py <id> --write`) vẫn đọc nó. Hai file claim B2C `_T11.25` /
+    # `_T12.25` là kỳ 11-12/**2025** nhưng tên mang cụm 'M.2026' (xem `_bay` của `vhkd_claim`), và
+    # bản `9.15` của claim B2B T1 lệch cột — cả ba đều phải chặn ở đây, nếu không spec NGÀY (lấy
+    # MỌI bản phát hành, không có `moi_ky_lay_file_moi_nhat` che chắn) sẽ nạp thẳng chúng vào.
+    bo_qua = (spec.get("nguon") or {}).get("bo_qua_file")
+    if bo_qua:
+        giu = [n for n in ten if not re.search(bo_qua, n, re.IGNORECASE)]
+        if len(giu) != len(ten):
+            warn.append("bo_qua_file: bỏ %d file (%s)"
+                        % (len(ten) - len(giu),
+                           ", ".join(n for n in ten if re.search(bo_qua, n, re.IGNORECASE))[:180]))
+        ten = giu
     out = [os.path.join(thu_muc, n) for n in ten if fnmatch.fnmatch(n.lower(), mau)]
     if mau.endswith(".xlsx"):
         da_co = {os.path.splitext(p)[0].lower() for p in out}
