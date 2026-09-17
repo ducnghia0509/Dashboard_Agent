@@ -1379,6 +1379,28 @@ def _derive_kqkd_ho(rows, period, cong_ty, file_path):
                 s += x * 1e-9                # full precision — làm tròn chỉ ở tầng hiển thị
                 got = True
         return s if got else None
+
+    def codeval(*want):
+        """Σ cột T{mm} của các dòng có MÃ SỐ (cột A) đúng bằng `want`. Dùng cho 2 chỉ tiêu KT chốt
+        17/09: '515.01' (Doanh thu hoạt động tài chính công ty) và '7111' (Thu nhập khác) — log KT
+        ghi nhầm là '505.01' nhưng ví dụ ô E11/E13 T01/2026 xác nhận đúng 2 mã này. CỐ Ý KHÔNG lấy
+        '515.02' (lãi trái phiếu/sổ tiết kiệm CÁ NHÂN — không phải DT tài chính của công ty).
+        Trả None nếu không mã nào có số (phân biệt 'không phát sinh' với 0)."""
+        want = set(want)
+        s, got = 0.0, False
+        for r in rows:
+            if not r or r[0] in (None, ""):
+                continue
+            code = str(r[0]).strip()
+            if code.endswith(".0"):          # Excel lưu mã dạng số (7111 -> '7111.0')
+                code = code[:-2]
+            if code not in want:
+                continue
+            x = r[val_j] if val_j < len(r) else None
+            if isinstance(x, (int, float)):
+                s += x * 1e-9                # full precision — làm tròn chỉ ở tầng hiển thị
+                got = True
+        return s if got else None
     dt, cp, ln = rowval("tong doanh thu"), rowval("tong chi phi"), rowval("tong loi nhuan")
     if dt is None and ln is None:
         return {"ok": False, "error": "HO_KQKD: không đọc được Tổng DT/LN"}
@@ -1400,6 +1422,13 @@ def _derive_kqkd_ho(rows, period, cong_ty, file_path):
     add("Lợi nhuận sau thuế", ln)                       # -> PNLT (nuôi thẻ LNST; HO không có thuế -> LNST=LNTT)
     add("Doanh thu HH, DV", dt_thuan)                   # -> PNLT (#1 bảng 50: mã 511_TS 'DT thanh lý bán vật tư, TS')
     add("Lợi nhuận gộp", dt_thuan)                      # -> PNLT (#6: LNG = DT thuần − giá vốn; HO "Không có" giá vốn -> = DT thuần, chốt Mapping 2026-07-18)
+    # DT tài chính / Thu nhập khác (log KT #29 + #30 ngày 17/09: thẻ "DT TÀI CHÍNH & TN KHÁC" ở Tổng
+    # quan và 2 tab ở Hiệu quả kinh doanh đứng im 0 với khối HO). Nguyên nhân: PNLT của HO trước đây
+    # CHỈ có 3 dòng (DT HH-DV / LN gộp / LNST) nên metrics lọc ILIKE '%doanh thu%tài chính%' và
+    # '%thu nhập khác%' không bắt được gì. Nhãn dùng ĐÚNG như các deriver khác (XDV/An Taxi) để 2 màn
+    # gom nhất quán. coalesce 0.0: HO luôn có 2 dòng này trong file, giữ thẻ hiện số 0 tường minh.
+    add("Doanh thu tài chính", codeval("515.01") or 0.0)   # -> PNLT (ô E11 của T01 = mã 515.01)
+    add("Thu nhập khác", codeval("7111") or 0.0)           # -> PNLT (ô E13 của T01 = mã 7111)
     out = os.path.join(tf.FILLED_DIR, f"KQKD_{period}_{cong_ty or 'NA'}_01_HQKD.xlsx")
     tf.fill("01_HQKD", records, out)
     imp = tf.import_filled(out, cong_ty=cong_ty, khoi=_khoi_of(file_path), source_file=_source_id(file_path))
