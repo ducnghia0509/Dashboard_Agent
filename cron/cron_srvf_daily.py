@@ -200,6 +200,14 @@ NGUON = [
     # nằm ngoài 2 kỳ đang kéo và job này không bao giờ chạm tới.
     {"company": "SRVF", "rt": "baocaoclaimb2b", "che_do": core.LUY_KE, "ten": "Claim B2B",
      "ky_regex": r"Claim_B2[BC]_T(\d+)",
+     # BẢN 9.15 CỦA T1 HỎNG BỐ CỤC (phát hiện 16/09/2026): nguồn chèn thêm 1 cột từ O trở đi trong
+     # vùng DỮ LIỆU mà KHÔNG chèn ở dòng header (header vẫn 25 nhãn, dòng dữ liệu dài 26 ô) -> mọi
+     # cột spec đọc đều lệch phải 1: 'Tình trạng hồ sơ' ra SỐ TIỀN, 'Tên DVCS' ra bộ hồ sơ. Nạp ra
+     # 6 dòng rác nằm cạnh bản `…8.25.…T1` đúng (278 dòng / 10,0044 tỷ). Chỉ DUY NHẤT T1 lệch —
+     # T2..T9 của cùng lô 9.15 đọc bình thường, nên không đụng spec, chỉ chặn đúng file này.
+     # GỠ DÒNG NÀY khi nghiệp vụ phát hành lại T1 (tên mới, ngày khác 9.15) hoặc sửa cột trong
+     # chính file 9.15 — để nguyên là bản T1 đúng về sau cũng bị chặn nếu họ giữ tên cũ.
+     "bo_qua": r"\.9\.15\.\s*BaocaoClaim_B2B_T1\.",
      "ngay_regex": r"\.M\.(20\d{2})\.(\d{1,2})\.(\d{1,2})\.\s*Baocaoclaim"},
     {"company": "SRVF", "rt": "baocaoclaimb2c", "che_do": core.LUY_KE, "ten": "Claim B2C",
      "ky_regex": r"Claim_B2[BC]_T(\d+)",
@@ -211,6 +219,11 @@ NGUON = [
         # MỘT file cấp 3 report_type (VHKD_PTHU + _KENH + _COC) -> xoá bản cũ phải xoá TRỌN
         # source_file, không kèm report_type. Xem `core.xoa_ban_cu`.
         "ten": "Công nợ phải thu + COC",
+        # ẢNH CHỤP SỐ DƯ: bản chốt muộn hơn ÍT DÒNG HƠN là bình thường (hợp đồng thu xong thì rụng
+        # khỏi bảng), nên chốt 3 của `xoa_trung_ban_chot` được nới cho riêng nguồn này — xem
+        # docstring hàm đó. Không khai thì mỗi kỳ hai bản chốt lại phải xoá tay: T9 đã dính đúng
+        # vậy (bản 09.05 = 292 dòng/99,135 tỷ nằm cạnh bản 09.15 = 239 dòng/87,147 tỷ).
+        "anh_chup_so_du": r"Baocaocongnophaithu",
         "ky_regex": r"Baocaocongnophaithu_T(\d+)",
         "ngay_regex": r"\.M\.(20\d{2})\.(\d{1,2})\.(\d{1,2})_Baocaocongnophaithu",
     },
@@ -222,6 +235,24 @@ NGUON = [
         # (khớp `file_glob` của 6 spec vhkd_kehoach_*). Không lọc là job này kéo cả kế hoạch Trạm
         # sạc/Xe tải/Xanh VP/An Taxi — ngoài phạm vi, và job XDV cũng kéo trùng.
         "chi_lay": r"^1\.SR\.",
+    },
+    {
+        "company": "SRVF", "rt": "baocaotiendoshowroomngay", "che_do": core.THANG,
+        "ten": "Tiến độ giao xe theo ngày × showroom × dòng xe",
+        # HAI file song song trong cùng thư mục, cùng bố cục, khác ý nghĩa:
+        #   *_13_NGAY  -> KẾ HOẠCH  (spec `vhkd_kehoach_giaoxe_ngay`, VHKD_KH_GIAOXE_NGAY)
+        #   *_30_NGAY  -> THỰC HIỆN (spec `vhkd_giaoxe_ngay`,         VHKD_TH_GIAOXE_NGAY)
+        # `slot` BẮT BUỘC: thiếu nó thì hai file rơi vào CÙNG một slot (rt, kỳ) và bị coi là hai
+        # bản chốt của nhau -> mỗi lượt giữ đúng một cái, cái kia bị xoá khỏi DB. Nhóm bắt được
+        # ('13' / '30') tách chúng ra làm hai lát độc lập.
+        "slot": r"_(\d+)_NGAY",
+        # `ca_nam` BẮT BUỘC, cùng lý do như `ANTAXI/baocaoqtvhthang`: tên file KHÔNG có một chữ số
+        # kỳ nào (`CHI_TIET_TIEN_DO_TUNG_SHOWROOM_TUNG_DONG_XE_13_NGAY.xlsx`) nên metadata trả
+        # `month=null` và `thang_tu_ten_file` cũng chịu -> phép lọc `thang != month` loại file
+        # khỏi MỌI lượt kéo, im lặng. Tên file cũng KHÔNG lăn theo tháng: sang tháng 10 vẫn đúng
+        # cái tên đó, chỉ nội dung đổi -> kéo lại ở kỳ chính là đủ, và hai spec tự đọc kỳ từ dòng
+        # tiêu đề trong sheet (`ky_thang_tu_o`) chứ không tin tên file.
+        "ca_nam": True,
     },
 ]
 
