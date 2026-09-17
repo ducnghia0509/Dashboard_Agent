@@ -236,6 +236,24 @@ NGUON = [
         # sạc/Xe tải/Xanh VP/An Taxi — ngoài phạm vi, và job XDV cũng kéo trùng.
         "chi_lay": r"^1\.SR\.",
     },
+    {
+        "company": "SRVF", "rt": "baocaotiendoshowroomngay", "che_do": core.THANG,
+        "ten": "Tiến độ giao xe theo ngày × showroom × dòng xe",
+        # HAI file song song trong cùng thư mục, cùng bố cục, khác ý nghĩa:
+        #   *_13_NGAY  -> KẾ HOẠCH  (spec `vhkd_kehoach_giaoxe_ngay`, VHKD_KH_GIAOXE_NGAY)
+        #   *_30_NGAY  -> THỰC HIỆN (spec `vhkd_giaoxe_ngay`,         VHKD_TH_GIAOXE_NGAY)
+        # `slot` BẮT BUỘC: thiếu nó thì hai file rơi vào CÙNG một slot (rt, kỳ) và bị coi là hai
+        # bản chốt của nhau -> mỗi lượt giữ đúng một cái, cái kia bị xoá khỏi DB. Nhóm bắt được
+        # ('13' / '30') tách chúng ra làm hai lát độc lập.
+        "slot": r"_(\d+)_NGAY",
+        # `ca_nam` BẮT BUỘC, cùng lý do như `ANTAXI/baocaoqtvhthang`: tên file KHÔNG có một chữ số
+        # kỳ nào (`CHI_TIET_TIEN_DO_TUNG_SHOWROOM_TUNG_DONG_XE_13_NGAY.xlsx`) nên metadata trả
+        # `month=null` và `thang_tu_ten_file` cũng chịu -> phép lọc `thang != month` loại file
+        # khỏi MỌI lượt kéo, im lặng. Tên file cũng KHÔNG lăn theo tháng: sang tháng 10 vẫn đúng
+        # cái tên đó, chỉ nội dung đổi -> kéo lại ở kỳ chính là đủ, và hai spec tự đọc kỳ từ dòng
+        # tiêu đề trong sheet (`ky_thang_tu_o`) chứ không tin tên file.
+        "ca_nam": True,
+    },
 ]
 
 

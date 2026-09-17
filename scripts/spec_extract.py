@@ -43,6 +43,8 @@ CẤU TRÚC SPEC (khoá tiếng Việt cho kế toán/BA đọc được):
   "nam_tu_ten_file": {"regex": "\\.M\\.(\\d{4})\\."},   // cho `kieu: "thang_cuoi"`
   "ky_thang_tu_o": {"o": "B13"},         // THÁNG đọc từ ô nhãn khối ("THÁNG 9"), năm từ tên file
                                          // — cho sheet xếp NHIỀU KHỐI THÁNG, khai trong từng `vung`
+                                         // `regex` có nhóm tên `nam` -> ô mang TRỌN năm+tháng và
+                                         // tên file thôi phải mang kỳ (họ file tiến độ Showroom)
   "vung": [                              // NHIỀU KHỐI trong CÙNG 1 sheet (xem `extract_file`).
     {"ten": "Sơn Tây", "header": {"dong": [6, 7]}, "dong_bat_dau": 8, "dong_ket_thuc": 19,
      "chieu_co_dinh": {"cost_center": "ST_AT"}, "cot": {"amount": {"header": "TXTX"}}}
@@ -50,6 +52,9 @@ CẤU TRÚC SPEC (khoá tiếng Việt cho kế toán/BA đọc được):
   "chieu_tu_ten_file": {"dim2": {"regex": "Xuathoadon_(B2B|B2C|GF)", "hoa": true},
                         // `chuan_hoa` chạy trên chính tên bắt được; hook trả dict thì trộn cả dict
                         "cost_center": {"regex": "BCDau(\\w+)", "chuan_hoa": "cc_qlts"}},
+  "chieu_tu_ten_sheet": {"cost_center": {"regex": "^SR\\s+(.+)$", "chuan_hoa": "sr_showroom"}},
+                                         // y hệt `chieu_tu_ten_file` nhưng đọc TÊN SHEET — cho file
+                                         // xếp MỖI ĐƠN VỊ MỘT SHEET, trong sheet không còn cột tên
   "ngay_tu_ten_file": {"regex": "M\\.(\\d{4})\\.(\\d{1,2})\\.(\\d{1,2})", "thu_tu": "ymd"},
   "cot": {                               // đích -> cách lấy. Đích: ngay/cost_center/cong_ty/
     "cost_center": {"header": "Tên DVCS", "chuan_hoa": "sr_showroom"},   // amount/amount2/dim1..3/
@@ -1903,11 +1908,23 @@ def _ky_thang(spec, path):
     # Khối RỖNG / hết khối (ô nhãn trống) -> trả cảnh báo và None, `_extract_vung` bỏ vùng đó.
     c_o = spec.get("ky_thang_tu_o")
     if c_o:
-        goc, w = _ky_thang({k: v for k, v in spec.items() if k != "ky_thang_tu_o"}, path)
-        if not goc:
-            return None, w
+        # `regex` CÓ NHÓM TÊN `nam` -> ô mang TRỌN năm + tháng, KHÔNG cần tên file (17/09/2026).
+        #
+        # VÌ SAO CÓ: họ file tiến độ Showroom
+        # (`CHI_TIET_TIEN_DO_TUNG_SHOWROOM_TUNG_DONG_XE_13_NGAY.xlsx`) không có một chữ số kỳ nào
+        # trong tên, và cũng KHÔNG lăn tên theo tháng — sang tháng 10 vẫn đúng cái tên đó, chỉ nội
+        # dung đổi. Kỳ chỉ nằm ở dòng tiêu đề ("(03/09–30/09/2026)"). Suy năm từ tên file là bất
+        # khả; ghim cứng năm/tháng vào spec thì tháng sau nạp ĐÈ lên tháng trước trong im lặng —
+        # đúng cái bẫy `ky_khai_sinh_tu_so_thuc_te`. Spec cũ không khai `?P<nam>` nên không đổi.
+        tu_o_du_ky = "?P<nam>" in (c_o.get("regex") or "")
+        if tu_o_du_ky:
+            goc, w = None, []
+        else:
+            goc, w = _ky_thang({k: v for k, v in spec.items() if k != "ky_thang_tu_o"}, path)
+            if not goc:
+                return None, w
         sh = (spec.get("nguon") or {}).get("sheet") or {}
-        ten_sh = _chon_sheet(_mo_wb(path), sh, goc[1])
+        ten_sh = _chon_sheet(_mo_wb(path), sh, goc[1] if goc else None)
         if not ten_sh:
             return None, [*w, f"`ky_thang_tu_o`: không chọn được sheet ({sh})"]
         txt = str(_mo_wb(path)[ten_sh][c_o["o"]].value or "")
@@ -1915,10 +1932,14 @@ def _ky_thang(spec, path):
         if not m:
             return None, [*w, f"`ky_thang_tu_o`: ô {c_o['o']} của sheet {ten_sh!r} = {txt.strip()!r}"
                               f" — không dò được số tháng -> bỏ khối"]
-        thang = int(m.group(1))
+        g = m.groupdict()
+        thang = int(g["thang"]) if g.get("thang") else int(m.group(1))
         if not 1 <= thang <= 12:
             return None, [*w, f"`ky_thang_tu_o`: ô {c_o['o']} ra tháng {thang}, ngoài 1..12"]
-        return (goc[0], thang), w
+        nam = int(g["nam"]) if g.get("nam") else goc[0]
+        if not 2000 <= nam <= 2100:
+            return None, [*w, f"`ky_thang_tu_o`: ô {c_o['o']} ra năm {nam}, ngoài 2000..2100"]
+        return (nam, thang), w
     c = spec.get("ky_thang_tu_ten_file") or {"regex": r"\.(\d{4})(\d{2})\."}
     m = re.search(c["regex"], os.path.basename(path))
     if not m:
@@ -2540,8 +2561,18 @@ def _extract_vung(spec, path):
                 cot[dich] = (j, {**c, "_ky": _ky_ngay})
 
         chieu = {}
-        for dich, cfg in (spec.get("chieu_tu_ten_file") or {}).items():
-            m = re.search(cfg["regex"], os.path.basename(path), re.I)
+        # `chieu_tu_ten_sheet` (17/09/2026) — ANH EM của `chieu_tu_ten_file`, đọc TÊN SHEET đang
+        # mở thay vì tên file. Báo cáo tiến độ Showroom xếp MỖI SHOWROOM MỘT SHEET ("SR OceanPark"
+        # … "SR Cẩm Phả"); trong sheet không còn cột nào ghi tên đơn vị -> không hook được ở `cot`.
+        # Ghim thẳng `cost_center` vào từng `vung` thì vẫn chạy, nhưng phải chép tay cả `cong_ty`
+        # (UB_SR thuộc VFQN, 8 mã còn lại thuộc TC) và mã sẽ đứng im khi master đổi. Đi qua
+        # `chuan_hoa` thì master vẫn là nguồn sự thật duy nhất, y như mọi spec khác.
+        _muc_chieu = [(d, c, os.path.basename(path), "tên file")
+                      for d, c in (spec.get("chieu_tu_ten_file") or {}).items()]
+        _muc_chieu += [(d, c, str(sheet), "tên sheet")
+                       for d, c in (spec.get("chieu_tu_ten_sheet") or {}).items()]
+        for dich, cfg, _van_ban, _nhan_nguon in _muc_chieu:
+            m = re.search(cfg["regex"], _van_ban, re.I)
             v = (m.group(int(cfg.get("nhom", 1))) if m else cfg.get("mac_dinh"))
             v = (str(v).upper() if v and cfg.get("hoa") else v)
             # `chuan_hoa` (17/08/2026): CHÍNH cái tên bắt được từ file cũng cần chuẩn hoá. Báo cáo
@@ -2554,7 +2585,8 @@ def _extract_vung(spec, path):
                 res = _CHUAN_HOA[hook](v)
                 if isinstance(res, dict):
                     if res.get("_khong_map"):
-                        warn.append(f"{dich}: không map được {res['_khong_map']!r} (từ tên file)")
+                        warn.append(f"{dich}: không map được {res['_khong_map']!r} "
+                                    f"(từ {_nhan_nguon})")
                     chieu.update({k: x for k, x in res.items() if k != "_khong_map"})
                     continue
                 v = res
