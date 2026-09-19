@@ -398,6 +398,81 @@ def _heuristic_tk_mapping(file_path: str, sheet: str, canonical_kind: str):
             for i, side, _ in openings:
                 if i in only_idxs:
                     columns.append({"index": i, "role": f"{role}_{side}"})
+
+        def _tiebreak_dau_ky(cands):
+            """(d) PHÂN GIẢI CUỐI CÙNG BẰNG ĐẲNG THỨC KẾ TOÁN — khi nhãn KHÔNG tách nổi.
+
+            Gặp ở sổ 131 của Khối Dự án bản 2025: sheet có HAI cặp Nợ/Có mà nhãn nhóm
+            viết y hệt nhau ('Dư đầu kỳ' và 'DƯ ĐẦU KỲ', chuẩn hoá về CÙNG một chuỗi) —
+            mọi luật theo NHÃN ở trên đều bó tay, trước đây rơi hết vào `partial` nên
+            'Dư đầu kỳ' của 05_PHAITHU bị bỏ trắng. Nhưng chỉ MỘT cặp là đầu kỳ thật:
+            cặp kia là dư ĐẦU NĂM (T01 hai cặp bằng nhau, từ T02 lệch dần — đã kiểm cả
+            12 file: 7-8/28 dòng lệch).
+
+            Số liệu tự tố cáo cặp nào đúng: Cuối = Đầu + PS Nợ − PS Có (số dư RÒNG hai
+            chiều). Chấm điểm từng cặp trên dữ liệu THẬT, chỉ chốt khi có đúng 1 cặp
+            thoả GẦN NHƯ TOÀN BỘ (>=90% dòng) và hơn hẳn cặp còn lại — không thì vẫn
+            trả None để rơi về `partial` như cũ (thà thiếu đầu kỳ còn hơn lấy nhầm cột).
+            Ràng buộc chặt nên KHÔNG đụng file đang chạy đúng: file chỉ có 1 nhóm 'đầu'
+            không bao giờ tới được nhánh này."""
+            side_of = {i: sd for i, sd, _ in openings}
+            groups, cur = [], []
+            for i in sorted(cands):   # gom cặp Nợ/Có liền kề, mỗi cặp tối đa 2 ô
+                if cur and (len(cur) >= 2 or i != cur[-1] + 1 or side_of.get(i) == side_of.get(cur[-1])):
+                    groups.append(cur)
+                    cur = []
+                cur.append(i)
+            if cur:
+                groups.append(cur)
+            _ri = {c["role"]: c["index"] for c in columns}
+            cn_i, cc_i = _ri.get("cuoi_ky_no"), _ri.get("cuoi_ky_co")
+            pn_i, pc_i = _ri.get("phat_sinh_no"), _ri.get("phat_sinh_co")
+            if len(groups) < 2 or cn_i is None or (pn_i is None and pc_i is None):
+                return None
+
+            def _n(r, j):
+                return r[j] if (j is not None and j < len(r) and isinstance(r[j], (int, float))) else 0.0
+            # `rows` chỉ là MẪU 20 dòng của sheet_profile — sổ công nợ đầy dòng 0 (khách chưa phát
+            # sinh) nên mẫu đó thường không đủ 5 dòng CÓ SỐ để chấm. Đọc sâu hơn CHỈ ở nhánh mập mờ
+            # hiếm này (các sheet rõ vai không bao giờ chạy tới đây) -> không làm chậm đường chính.
+            _src, _CAP, _cut = rows, 2000, True
+            try:
+                _need = max(i for i in (cn_i, cc_i, pn_i, pc_i, *cands) if i is not None) + 1
+                _deep = ing.sheet_profile(file_path, sheet=sheet, max_rows=_CAP,
+                                          max_cols=max(15, _need)).get("row_sample", [])
+                if len(_deep) > len(_src):
+                    _src, _cut = _deep, len(_deep) >= _CAP
+            except Exception:      # noqa: BLE001 — đọc sâu lỗi thì chấm trên mẫu như cũ
+                pass
+            _pair = [(next((i for i in g if side_of.get(i) == "no"), None),
+                      next((i for i in g if side_of.get(i) == "co"), None)) for g in groups]
+            scored, fits, all_same = 0, [0] * len(groups), True
+            for r in _src[sub_idx + 1:]:
+                cells = [_n(r, j) for j in (cn_i, cc_i, pn_i, pc_i)]
+                if not any(abs(v) > 1e-9 for v in cells):
+                    continue        # dòng rỗng/nhãn -> không chấm
+                scored += 1
+                cuoi = _n(r, cn_i) - _n(r, cc_i)
+                ps = _n(r, pn_i) - _n(r, pc_i)
+                nets = [_n(r, no_i) - _n(r, co_i) for no_i, co_i in _pair]
+                if any(abs(v - nets[0]) > 1 for v in nets[1:]):
+                    all_same = False
+                for k, v in enumerate(nets):
+                    if abs(v + ps - cuoi) <= 1:   # dung sai 1 ĐỒNG
+                        fits[k] += 1
+            if scored < 5:
+                return None         # quá ít dòng -> không đủ căn cứ, để agent
+            best = max(range(len(groups)), key=lambda k: fits[k])
+            if fits[best] < 0.9 * scored:
+                return None         # không cặp nào cân -> cấu trúc lạ, đừng đoán
+            if any(fits[k] >= fits[best] for k in range(len(groups)) if k != best):
+                # HOÀ. Nếu các cặp có GIÁ TRỊ Y HỆT NHAU trên MỌI dòng thì không có gì phải phân
+                # giải — chọn cặp nào cũng ra đúng số (Dự án T01: đầu kỳ == đầu năm). Hoà mà số KHÁC
+                # nhau thì mới thực sự không biết -> trả None, để agent như cũ.
+                # `_cut` = đã đọc chạm trần _CAP -> KHÔNG dám kết luận "y hệt nhau" vì phần chưa đọc
+                # có thể lệch (sổ 331 Dự án 449 dòng: 200 dòng đầu trùng khít, lệch nằm ở khúc sau).
+                return set(groups[0]) if (all_same and not _cut) else None
+            return set(groups[best])
         if len(opening_idxs) <= 2:              # (a) 1 nhóm 'đầu' duy nhất -> chắc chắn đầu kỳ
             _emit("dau_ky", set(opening_idxs))
         else:
@@ -420,7 +495,19 @@ def _heuristic_tk_mapping(file_path: str, sheet: str, canonical_kind: str):
                 # DUY NHẤT 1 nhãn ngắn nhất và mọi nhãn khác dài hơn hẳn -> vẫn "chắc theo nghĩa".
                 non_nam = [i for i in opening_idxs if i not in nam]
                 labs = {i: by_idx[i] for i in non_nam}
-                if non_nam and len(set(labs.values())) > 1:
+                # (d) ĐẲNG THỨC KẾ TOÁN ĐỨNG TRƯỚC QUY ƯỚC NHÃN — SỐ nói thật hơn NHÃN.
+                # Bằng chứng (sổ 331 Khối Dự án 2025, 12/12 tháng): nhãn 'Dư đầu' (2 từ, cột 4/5)
+                # NGẮN hơn 'Số dư đầu kỳ' (4 từ, cột 6/7) nên quy ước (c) chấm cột 4/5 là đầu kỳ —
+                # nhưng chấm lại bằng Cuối = Đầu + PS Nợ − PS Có thì cột 4/5 chỉ khớp ~47/138 dòng
+                # còn cột 6/7 khớp 138/138: cột 4/5 là dư ĐẦU NĂM. Để nguyên là "Dư đầu kỳ" của
+                # 06_PHAITRA ăn số đầu năm suốt cả năm mà không có dấu hiệu gì.
+                # `_tiebreak_dau_ky` chỉ trả kết quả khi CHẮC (>=5 dòng chấm, >=90% khớp, hơn hẳn
+                # cặp còn lại) -> nơi nào nhãn đang đúng thì nó cũng chọn đúng cặp đó, không đổi gì.
+                _pick = _tiebreak_dau_ky(non_nam)
+                if _pick:
+                    _emit("dau_ky", _pick)
+                    _emit("dau_nam", set(non_nam) - _pick)
+                elif non_nam and len(set(labs.values())) > 1:
                     minlen = min(len(s.split()) for s in labs.values())
                     plain = {i for i in non_nam if len(labs[i].split()) == minlen}
                     plain_labels = {labs[i] for i in plain}
@@ -797,11 +884,26 @@ def _derive_kqkd_duan(rows, period, cong_ty, file_path):
     # Sao lưu CSV trước khi đổi: ~/backups/duan-swap-ttda-ybda-20260828/. Núi Pháo/
     # Quảng Ngãi KHÔNG có trong MD_COSTCENTER -> mã tự đặt NUIPHAO_DA/QUANGNGAI_DA (backfill cong_ty
     # =TC qua import_filled, giống pattern HO_XVP/B2B_SR).
+    # ⚠️ PHẢI KHỚP `derive_hqkd_ngay._CC_DUAN` (bản NGÀY). Lệch hai danh sách = dự án có số ở
+    # bản tháng mà KHÔNG có một dòng nào trong DB, im lặng tuyệt đối. ĐÃ XẢY RA: bảng này thiếu
+    # "binh phuoc" nên kỳ 2026-08 mất trắng Bình Phước (DT 621.080.352, giá vốn 729.743.729,
+    # phân bổ HO 17.386.990, LNTT -126.050.367) — phát hiện 18/09/2026 khi đối chiếu tháng vs Σ
+    # ngày, và nó cũng chính là 621.080.352 đ "không cột nào giải thích" ở cột Tổng của sheet
+    # ngày 31. Thêm "tho chu" cùng lượt cho khớp hẳn bản ngày, dù nguồn T8 chưa có cột đó.
     _DA_PROJECT_CC = [
         ("cao bang", "CB_DA"), ("tan thinh", "TT_DA"), ("lang son", "LS_DA"),
         ("nui phao", "NUIPHAO_DA"), ("quang son", "QS_DA"), ("quang ngai", "QUANGNGAI_DA"),
-        ("yen binh", "YB_DA"), ("phu quoc", "PQ_DA"),
+        ("yen binh", "YB_DA"), ("phu quoc", "PQ_DA"), ("binh phuoc", "BINHPHUOC_DA"),
+        ("tho chu", "TC_DA"),
     ]
+    # Bản đồ admin đã duyệt ở chuông 🔔 (bảng `cost_center_map`, migration 0070) — dùng CHUNG với
+    # bản ngày để duyệt một lần là cả hai pipeline cùng thấy, không phải duyệt hai nơi.
+    try:
+        from derive_hqkd_ngay import _cc_da_duyet as _cc_db
+        _DA_PROJECT_CC = _DA_PROJECT_CC + [kv for kv in _cc_db()
+                                           if kv[0] not in {k for k, _ in _DA_PROJECT_CC}]
+    except Exception:                                    # noqa: BLE001
+        pass                                             # thiếu bảng/DB -> giữ danh sách trong code
 
     def _find_da_col(kw):
         return next((j for r in rows[:12] for j, c in enumerate(r)
@@ -2842,6 +2944,18 @@ def _derive_thue(file_path: str, sheet: str, period: str, cong_ty: str):
         rows = [list(r) for r in wb[sheet].iter_rows(values_only=True)]
     finally:
         wb.close()
+    # CHART TK 333 ĐỔI THEO NIÊN ĐỘ (Khối Dự án, 14/09/2026): file 2026 dùng chart TT200 chuẩn
+    # (33311 GTGT đầu ra, 3335 TNCN) — khớp _THUE333_MAP; nhưng 12 file 2025 phát hành lại
+    # (BCTC2025VR3) dùng CHART CỦA HO: 3331=GTGT, 3332=TNCN, 3333/3334=XNK, 3337/3338=khác, KHÔNG
+    # có 33311/3335. Giữ _THUE333_MAP cho bản 2025 thì GTGT (3331) + TNCN (3332) bị BỎ HẲN còn 3334
+    # ("Thuế XNK BP KD Tài sản") bị dán nhãn TNDN — sai câm. Nhận dạng theo HÌNH DẠNG CHART chứ
+    # không theo năm (kế toán có thể đổi lại bất cứ lúc nào): CÓ 3332 mà KHÔNG có 33311 -> chart HO.
+    # Giới hạn thư mục 'DUAN' để không đụng đơn vị khác — ở chart TT200 chuẩn 3332 là "Thuế tiêu thụ
+    # đặc biệt" (KHÔNG phải TNCN), nới rộng ra toàn hệ thống sẽ dán nhãn sai cho đơn vị có TTĐB.
+    if _thue_src == "DUAN" and code_i is not None:
+        _codes = {str(r[code_i]).strip() for r in rows if code_i < len(r) and r[code_i] not in (None, "")}
+        if "3332" in _codes and "33311" not in _codes:
+            _thue333_map = _THUE333_MAP_HO
 
     def num(r, i):
         # FULL PRECISION khi quy đổi tỷ (KHÔNG round từng dòng): dashboard CỘNG nhiều dòng rồi mới
@@ -3068,7 +3182,14 @@ def _derive_tonkho_cdps(file_path: str, sheet: str, period: str, cong_ty: str):
         # 154 'CP dịch vụ dở dang'). TRƯỚC chỉ giữ cuối>0 -> MẤT tồn kho TIÊU HẾT trong kỳ (đầu>0,
         # cuối=0, vd HTX_XTQ T02 TK152 'Vật liệu, dụng cụ' đầu 3,5tr / xuất 3,5tr / cuối 0) -> tồn
         # đầu kỳ không lên. Nay đầu>0 vẫn giữ để hiện đầu kỳ (cuối có thể =0).
-        if not (abs(cuoi or 0) > 1e-9 or abs(_dau or 0) > 1e-9):
+        # NGOẠI LỆ TK151 'Hàng mua đang đi đường' (QA Trạm sạc 12/09/2026): hàng về rồi kết chuyển
+        # hết sang 156 NGAY trong tháng -> đầu=cuối=0 nhưng Nhập/Xuất là THẬT, luật trên xoá nguyên
+        # dòng làm mất đúng bằng nhau ở CẢ hai chiều (T01 3.516.606.303, T02 1.634.518.518, T06
+        # 1.152.474.074). Chỉ nới cho 151 (bản chất là hàng tồn kho đang trên đường), các TK khác
+        # giữ nguyên luật cũ nên An Taxi 154 vẫn bị loại như thiết kế.
+        _psn, _psc = num(r, ps_no), num(r, ps_co)
+        if not (abs(cuoi or 0) > 1e-9 or abs(_dau or 0) > 1e-9
+                or (code == "151" and (abs(_psn or 0) > 1e-9 or abs(_psc or 0) > 1e-9))):
             continue
         ten = bb.parse_text(r[name_i]) if (name_i is not None and name_i < len(r)) else None
         records.append({"Kỳ": period, "Đơn vị": cong_ty, "TK (151-156)": code,
@@ -4725,11 +4846,22 @@ def _cmd_autofill_impl(args):
         #   · đọc nó chỉ tốn 1,3s (128 dòng), khác hẳn CĐPS của HO (342×16.348 = 5,6M ô, 6,3s/lượt).
         # CĐPS/CĐKT rộng ảo (HO 'CĐPS'/'TC_CDPS', GA 'TC_CDPS', THUCHI 'TC01_SD TIỀN', QLTS 'Nhật ký')
         # GIỮ NGUYÊN bị cắt — quét 534 file/mọi kỳ: đúng 1 sheet trên toàn hệ thống thoả điều kiện này.
+        # MIỄN TRỪ THỨ HAI — CĐPS của KHỐI DỰ ÁN (14/09/2026): 12 file B.4.TC.TCKT.M.2025xx được kế
+        # toán phát hành lại (BCTC2025VR3, nhận 09/09/2026) dùng workbook HỌ HÀNG VỚI HO nên sheet
+        # 'CĐPS' cũng khai 16.340 cột ảo — trong khi dữ liệu THẬT chỉ 35 cột và `_heuristic_tk_mapping`
+        # dò ĐÚNG header 2 tầng (mã TK cột E, đầu/PS/cuối kỳ cột J..O) trên CẢ 12 tháng. Bị hàng rào
+        # này cắt thì Dự án MẤT TRẮNG thuế (TK 133/333) + tồn kho (TK 152) cả năm 2025, im lặng.
+        # Khác HO ở chỗ: HO có sẵn đường khác cho thuế/tồn kho còn Dự án thì KHÔNG (CĐPS là nguồn duy
+        # nhất). Giới hạn theo THƯ MỤC NGUỒN 'DUAN' để HO/GA/THUCHI/QLTS giữ nguyên hành vi cắt 100%
+        # — đọc thêm ~10s/lượt/file, chấp nhận được với file THÁNG (12 file, chạy 1 lần).
         _hrows = headers.get(sheet) or []
         _ncols = max((len(_hr) for _hr in _hrows), default=0)
         _ncols_real = max((max((_j + 1 for _j, _c in enumerate(_hr) if _c not in (None, "")), default=0)
                            for _hr in _hrows), default=0)
-        if _ncols > _MAX_SHEET_COLS and not (ck == "TONKHO" and _ncols_real <= _MAX_SHEET_COLS):
+        _wide_ok = (_ncols_real <= _MAX_SHEET_COLS
+                    and (ck == "TONKHO"
+                         or (ck == "CDPS" and _source_id(args.file).split("::", 1)[0].upper() == "DUAN")))
+        if _ncols > _MAX_SHEET_COLS and not _wide_ok:
             ledger.append({"sheet": sheet, "bucket": "skip_wide", "target_sheet": None,
                            "canonical_kind": ck, "cols": _ncols,
                            "reason": f"sheet {_ncols} cột (>{_MAX_SHEET_COLS}) — phantom/rác, bỏ qua tránh nghẽn autofill"})
