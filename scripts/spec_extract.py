@@ -2102,6 +2102,7 @@ def _chuyen_xls_cu(duong_dan):
     except ImportError:
         return None
     try:
+        from openpyxl.cell.cell import ILLEGAL_CHARACTERS_RE
         nguon = xlrd.open_workbook(duong_dan)
         wb = openpyxl.Workbook()
         wb.remove(wb.active)
@@ -2121,6 +2122,15 @@ def _chuyen_xls_cu(duong_dan):
                             pass                                       # số ngày hỏng -> để nguyên
                     elif o.ctype == xlrd.XL_CELL_BOOLEAN:
                         v = bool(v)
+                    elif isinstance(v, str):
+                        # Giống hệt `_chuyen_xlsb`: ô kế toán gõ tay hay dính ký tự điều khiển
+                        # (BCTC riêng SRVF T08/2026 có tên tài sản "Cầu nâng cắt kéo …\x07…").
+                        # XML của .xlsx cấm nhóm này -> openpyxl ném IllegalCharacterError và
+                        # HỎNG CẢ BẢN CHUYỂN chỉ vì một ô, `except` nuốt lỗi trả None nên file
+                        # nằm im không cảnh báo. Bỏ ký tự đó đi, phần chữ giữ nguyên.
+                        v = ILLEGAL_CHARACTERS_RE.sub("", v)
+                        if not v:
+                            continue
                     ws.cell(row=r + 1, column=c + 1, value=v)
         wb.save(dich)
     except Exception:                                                  # noqa: BLE001
