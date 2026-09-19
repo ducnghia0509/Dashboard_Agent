@@ -75,8 +75,10 @@ NGUON = [
     #     hàng chục lần (đo 31/08: 578.769.141 đ / 11 xưởng vs 31,07 tỷ / 14 xưởng).
     #   · baocaodoanhthuxdvngay (DV62) — số tin cậy nhưng là chi tiết từng RO, còn ô đích là dòng
     #     theo mã chỉ tiêu B100/B110…; cần AGGREGATE mà engine chưa có mode đó.
-    #   · cdpscongnotheoro (DV04) — rỗng 10/10 ngày. · baocaocongnotheohoadon (DV03) — sai bộ tài
-    #     khoản (mapping ghi 13112/13117/13119/13812, dữ liệu thật ở 13131), mới có 1 ngày và rỗng.
+    #   · cdpscongnotheoro (DV04) — rà lại 06/09: 11 ngày tới 04/09, rỗng 10/11, riêng 04/09 có 3
+    #     dòng và CẢ 3 ĐỀU TK 13131. Nên lý do để ngoài nay là SAI BỘ TÀI KHOẢN (không phải "nguồn
+    #     rỗng"). · baocaocongnotheohoadon (DV03) — vẫn đứng ở 25/08, chỉ 2 file 13112/13812 và cả
+    #     hai Tổng cộng = 0. Mapping ghi 13112/13117/13119/13812; dữ liệu thật ở 13131 (+13132/3).
     # (`baocaotaichinhrienghqkd` ĐÃ khai từ 04/09 — xem mục ngay dưới.)
     #
     # ĐO LẠI 07/09/2026 khi viết spec, có hai điều ĐỔI so với bản rà 03-06/09:
@@ -144,6 +146,9 @@ NGUON = [
         "ngay_regex": r"\.D\.(20\d{2})(\d{2})(\d{2})\.",
     },
     {
+        # DV03. MỘT NGÀY HAI FILE (13112 + 13812) -> bên spec phải là HAI file JSON với `file_glob`
+        # riêng, nếu gộp một spec thì `moi_ky_lay_file_moi_nhat: "ngay"` chỉ giữ file mới hơn và
+        # tài khoản còn lại biến mất lặng lẽ. Nguồn hiện RỖNG, nạp 0 dòng là đúng.
         # `slot` LÀ BẮT BUỘC, ĐỪNG GỠ — bắt được ngay ở lượt chạy khô đầu tiên 07/09/2026: thiếu nó
         # thì hai file 13112 và 13812 CÙNG NGÀY có cùng `ngay_vao_db`, bị nhánh "PHÁT HÀNH LẠI" của
         # `anh_chup_ky` coi là HAI BẢN CHỐT CỦA NHAU và bản 13112 bị XOÁ rows ("giữ ...13812, thay
@@ -154,6 +159,12 @@ NGUON = [
         "ten": "Công nợ theo hoá đơn (DV03 tự động, ĐỐI CHIẾU)",
         "ngay_regex": r"\.D\.(20\d{2})(\d{2})(\d{2})\.",
         "slot": r"Congnotheohoadon-(\d+)",
+        # NGUỒN RỖNG HỢP LỆ -> miễn cho nó vế "phải có dòng trong DB" của `--neu-thieu-trong-db`
+        # (khai 09/09/2026 cùng lượt thêm cờ đó). File về đều mỗi ngày nhưng nạp 0 dòng vì bên
+        # Cyber rỗng thật; không miễn thì lượt vá 02:45 đêm nào cũng thấy "thiếu" và kéo lại cả
+        # 74 file vô ích. GỠ CỜ NÀY NGAY khi Cyber sửa xong bộ tài khoản — để lại là nguồn hỏng
+        # thật cũng lọt lưới.
+        "cho_phep_rong": True,
     },
     # ── tháng: 1 file/kỳ, luỹ kế sẵn theo ngày bên trong -> kéo lại đè chính nó ─────────────
     {"company": "XDV", "rt": "baocaodoanhthungay", "che_do": core.THANG,

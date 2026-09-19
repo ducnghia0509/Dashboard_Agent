@@ -15,6 +15,7 @@
     "Theo dòng xe: VF2 130 · VF3 125 · VF5 70 · VF6 65 · MPV 74 · Dòng Khác 56 = 520."
   ],
   "report_type": "VHKD_KH_XHD_DX",
+  "giu_ngay_tuong_lai": true,
   "row_index_base": 8540000,
   "khoi": "Khối KD Vinfast - Showroom",
   "nguon": {

@@ -5,7 +5,8 @@
     "Tách khỏi `vhkd_ct_vanhanh_gt` CHỈ vì ĐƠN VỊ: dòng này đếm XE (he_so = 1), dòng CT35 là tiền (he_so = 1e-9). `cot_thang.he_so` mỗi spec một giá trị nên không gộp được — để chung là 3 xe thành 0,000000003 tỷ.",
     "Cùng report_type với spec kia cũng KHÔNG được: `_ghi` xoá theo (report_type, source_file), hai spec cùng report_type trên cùng một file thì cái chạy sau xoá sạch dữ liệu cái chạy trước. Đúng lý do đã tách VHKD_KH / VHKD_KH_SL.",
     "Đây là số GÕ TAY, không phải công thức: ô E9..J9 = 3/3/4/3/4/4, còn D9 = '=SUM(E9:J9)' = 21. Nghĩa là chỉ tiêu 'mỗi NV bán 3-4 xe/tháng', KHÔNG phải sản lượng chia số NV. Đừng 'sửa' thành số lẻ cho khớp CT35.",
-    "Xem đủ bẫy chung (dải tháng E..J khác bản XDV, glob phải ghim '1.SR.', vì sao 8 dòng kia bị bỏ) ở `vhkd_ct_vanhanh_gt.json`."
+    "Xem đủ bẫy chung (dải tháng E..J khác bản XDV, glob phải ghim '1.SR.', vì sao 8 dòng kia bị bỏ) ở `vhkd_ct_vanhanh_gt.json`.",
+    "BỐ CỤC ĐỔI 09/09/2026 — SHEET 'CT Vận hành' DỊCH PHẢI MỘT CỘT VÀ TIÊU ĐỀ ĐỔI Ô: file chèn thêm cột '6 tháng cuối năm' ở E nên dải tháng T7..T12 dời từ E..J sang F..K; nhãn chỉ tiêu dời từ cột B sang C (cột B nay là 'Mã Số DB tổng quan' chứa CT33/CT34/...); ô tiêu đề 'ĐĂNG KÝ CHỈ TIÊU VẬN HÀNH' dời từ C1 sang D1 (C2 nay là 'Khối'). Spec cũ dừng ở `kiem_tra_o` với \"layout khác spec: ô C1 = 'None'\" rồi bỏ cả file — KHÔNG xoá dữ liệu cũ nên DB đứng nguyên và tháng 9 lặng lẽ không có kế hoạch. `cot.dim1.header` tra theo TÊN cột nên tự tìm được cột C, không cần sửa."
   ],
   "_kiem_chung": [
     "NS_SL: T7 = 3 · T8 = 3 · T9 = 4 · T10 = 3 · T11 = 4 · T12 = 4 xe/NV/tháng (6 bản ghi). Tổng ô D9 = 21 — cộng đúng.",
@@ -18,22 +19,49 @@
   "nguon": {
     "folder": "KEHOACH/baocaokehoachthang",
     "file_glob": "1.SR.*.Kehoachthang.xlsx",
-    "sheet": { "ten": "CT Vận hành" }
+    "sheet": {
+      "ten": "CT Vận hành"
+    }
   },
-  "header": { "dong": 4 },
+  "header": {
+    "dong": 4
+  },
   "dong_bat_dau": 5,
   "kiem_tra_o": [
-    { "o": "C1", "bang": "ĐĂNG KÝ CHỈ TIÊU VẬN HÀNH" },
-    { "o": "E4", "bang": "Tháng 7" },
-    { "o": "B9", "bang": "Năng suất Sản lượng" }
+    {
+      "o": "D1",
+      "bang": "ĐĂNG KÝ CHỈ TIÊU VẬN HÀNH"
+    },
+    {
+      "o": "F4",
+      "bang": "Tháng 7"
+    },
+    {
+      "o": "C9",
+      "bang": "Năng suất Sản lượng"
+    }
   ],
   "cot": {
-    "dim1": { "header": "Kế hoạch/Mục tiêu cần đạt", "chuan_hoa": "sr_ct_dong" }
+    "dim1": {
+      "header": "Kế hoạch/Mục tiêu cần đạt",
+      "chuan_hoa": "sr_ct_dong"
+    }
   },
   "ban_ghi": "moi_cot_thang",
-  "cot_thang": { "tu": "E", "den": "J", "he_so": 1.0 },
+  "cot_thang": {
+    "tu": "F",
+    "den": "L",
+    "he_so": 1.0
+  },
   "loc": [
-    { "cot": "dim1", "dieu_kien": "bang", "gia_tri": "NS_SL" }
+    {
+      "cot": "dim1",
+      "dieu_kien": "bang",
+      "gia_tri": "NS_SL"
+    }
   ],
-  "payload_them": { "unit": "xe", "loai": "kehoach" }
+  "payload_them": {
+    "unit": "xe",
+    "loai": "kehoach"
+  }
 }

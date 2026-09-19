@@ -6,7 +6,8 @@
     "Sheet chỉ có T7..T12 ('ĐĂNG KÝ CHỈ TIÊU VẬN HÀNH 6 THÁNG CUỐI NĂM'). Cột D là 'Tổng 6 tháng cuối năm', nằm NGOÀI dải nên không lọt vào — đừng nới `tu` về D.",
     "BỎ 3 dòng TRÙNG NGUỒN: 'Doanh thu' (CT33) và 'Số lượng xe chạy' lặp đúng số của sheet KHDT đã nạp thành ATX_KH/ATX_KH_SL; 'Lợi nhuận' (CT34) trống toàn bộ trong file — cả 6 bản kế hoạch khối đều bỏ trống dòng này, nên chỉ tiêu #34 của màn Tổng quan vẫn CHƯA có nguồn, đừng lấy số gần giống thế chỗ.",
     "MÃ Ở CỘT A KHÔNG TIN ĐƯỢC (xem `_kh_ct_dong` trong scripts/spec_extract.py) — dim1 gắn theo NHÃN dòng.",
-    "'Doanh thu bình quân/cuốc' là số ĐĂNG KÝ CỐ ĐỊNH 109.174 đ cho cả 6 tháng, không phải công thức theo tháng. Vế thực hiện tương ứng (ô I191 báo cáo QTVH) chia cho cuốc HOÀN THÀNH — xem chú thích (b) đầu `app/metrics/antaxi.py`, hai bên phải cùng mẫu số mới so được."
+    "'Doanh thu bình quân/cuốc' là số ĐĂNG KÝ CỐ ĐỊNH 109.174 đ cho cả 6 tháng, không phải công thức theo tháng. Vế thực hiện tương ứng (ô I191 báo cáo QTVH) chia cho cuốc HOÀN THÀNH — xem chú thích (b) đầu `app/metrics/antaxi.py`, hai bên phải cùng mẫu số mới so được.",
+    "BỐ CỤC ĐỔI 09/09/2026 — DẢI THÁNG DỜI E..J SANG F..K: file chèn thêm HAI cột trước dải tháng ('Công thức tính' ở D, '6 tháng cuối năm' ở E) nên 'Tháng 7' dời từ E sang F, 'Tháng 12' sang K. Nhãn chỉ tiêu VẪN ở cột B và mốc dòng (B8/B14) không đổi — khác file Showroom cùng đợt (bên đó nhãn dời B->C). Spec cũ dừng ở `kiem_tra_o` với \"layout khác spec: ô E4 = '6 tháng cuối năm', cần chứa 'Tháng 7'\" rồi bỏ cả file; kiểu hỏng này KHÔNG xoá dữ liệu cũ nên DB đứng nguyên và tháng 9 lặng lẽ không có kế hoạch."
   ],
   "_kiem_chung": [
     "18 bản ghi (3 chỉ tiêu × 6 tháng), đơn vị TỶ đồng như mọi nguồn tiền khác.",
@@ -20,25 +21,61 @@
   "nguon": {
     "folder": "KEHOACH/baocaokehoachthang",
     "file_glob": "7.AnTX.*.Kehoachthang.xlsx",
-    "sheet": { "ten": "CT Vận hành" }
+    "sheet": {
+      "ten": "CT Vận hành"
+    }
   },
-  "header": { "dong": 4 },
+  "header": {
+    "dong": 4
+  },
   "dong_bat_dau": 5,
   "dong_ket_thuc": 16,
   "kiem_tra_o": [
-    { "o": "B1", "bang": "ĐĂNG KÝ CHỈ TIÊU VẬN HÀNH" },
-    { "o": "B2", "bang": "An Taxi" },
-    { "o": "E4", "bang": "Tháng 7" }
+    {
+      "o": "B1",
+      "bang": "ĐĂNG KÝ CHỈ TIÊU VẬN HÀNH"
+    },
+    {
+      "o": "B2",
+      "bang": "An Taxi"
+    },
+    {
+      "o": "F4",
+      "bang": "Tháng 7"
+    }
   ],
-  "chieu_co_dinh": { "dim2": "Tổng" },
+  "chieu_co_dinh": {
+    "dim2": "Tổng"
+  },
   "cot": {
-    "dim1": { "header": "Kế hoạch/Mục tiêu cần đạt", "chuan_hoa": "kh_ct_dong" },
-    "payload.dvt": { "header": "Đvt", "kieu": "cat" }
+    "dim1": {
+      "header": "Kế hoạch/Mục tiêu cần đạt",
+      "chuan_hoa": "kh_ct_dong"
+    },
+    "payload.dvt": {
+      "header": "Đvt",
+      "kieu": "cat"
+    }
   },
   "ban_ghi": "moi_cot_thang",
-  "cot_thang": { "tu": "E", "den": "J", "he_so": 1e-9 },
+  "cot_thang": {
+    "tu": "F",
+    "den": "K",
+    "he_so": 1e-09
+  },
   "loc": [
-    { "cot": "dim1", "dieu_kien": "thuoc", "gia_tri": ["DT_BQ_CUOC", "DT_BQ_NGAY", "DT_BQ_XE_NGAY"] }
+    {
+      "cot": "dim1",
+      "dieu_kien": "thuoc",
+      "gia_tri": [
+        "DT_BQ_CUOC",
+        "DT_BQ_NGAY",
+        "DT_BQ_XE_NGAY"
+      ]
+    }
   ],
-  "payload_them": { "unit": "ty", "loai": "kehoach" }
+  "payload_them": {
+    "unit": "ty",
+    "loai": "kehoach"
+  }
 }

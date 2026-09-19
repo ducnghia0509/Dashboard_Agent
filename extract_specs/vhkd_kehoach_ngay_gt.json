@@ -7,16 +7,22 @@
     "Khớp tuyệt đối kế hoạch THÁNG đang dùng: Σ 31 cột ngày THÁNG 8 = 1.038.969.575.271 = ô 'Cộng tháng' = ô KHDT 'Tháng 8' = Σ VHKD_KH T08 (B2B 499,410 + B2C 526,332 + GF 13,228). Lệch 0.",
     "Tiêu đề cột ghi 'Ngày 01'..'Ngày 31' chứ không phải số trần — engine đã nới regex 15/08/2026, đừng đổi lại.",
     "T09-T12 hiện toàn 0 (nghiệp vụ chưa lập). Engine bỏ ô 0 nên chúng không đẻ 'kế hoạch 0 giả'.",
-    "CHỐT NHẬN DẠNG KHỐI LÀ BẮT BUỘC Ở SHEET NÀY: `specs_for_path` chọn spec theo THƯ MỤC và BỎ QUA `file_glob`, nên nút 'Phân tích AI'/'Đồng bộ & nạp' trên MỘT file kế hoạch sẽ chạy TẤT CẢ spec của thư mục lên nó. Sheet 'KH ngày' của An Taxi và XVP giống hệt nhau (cùng tiêu đề B1, cùng nhãn dòng) và sheet 'KHngày' của Showroom cũng khớp tên sau chuẩn hoá — không có chốt thì spec này đọc file khối khác và đẻ ra 31 dòng kế hoạch SAI dưới một source_file mới, `_ghi` không chặn được vì nó chỉ xoá theo (report_type, source_file). Đã kiểm chéo 6 spec × 6 file ngày 18/08/2026: có chốt thì 0 lượt đọc nhầm."
+    "CHỐT NHẬN DẠNG KHỐI LÀ BẮT BUỘC Ở SHEET NÀY: `specs_for_path` chọn spec theo THƯ MỤC và BỎ QUA `file_glob`, nên nút 'Phân tích AI'/'Đồng bộ & nạp' trên MỘT file kế hoạch sẽ chạy TẤT CẢ spec của thư mục lên nó. Sheet 'KH ngày' của An Taxi và XVP giống hệt nhau (cùng tiêu đề B1, cùng nhãn dòng) và sheet 'KHngày' của Showroom cũng khớp tên sau chuẩn hoá — không có chốt thì spec này đọc file khối khác và đẻ ra 31 dòng kế hoạch SAI dưới một source_file mới, `_ghi` không chặn được vì nó chỉ xoá theo (report_type, source_file). Đã kiểm chéo 6 spec × 6 file ngày 18/08/2026: có chốt thì 0 lượt đọc nhầm.",
+    "SHEET ĐỔI TÊN 09/09/2026: 'KHngày' -> 'KHngàytheokenh'. `sheet.ten` nay khai LIST hai ứng viên (bản mới trước) nên đọc được cả file cũ lẫn file mới; đổi tên sheet là kiểu hỏng CÂM — spec trả 0 dòng, bỏ qua cả file, KHÔNG xoá dữ liệu cũ nên màn không vỡ mà chỉ thiếu đúng kỳ mới.",
+    "KỲ CỦA TỪNG KHỐI NAY ĐỌC TỪ Ô NHÃN, KHÔNG TỪ TÊN FILE (09/09/2026). Sheet xếp NĂM KHỐI THÁNG nối tiếp, còn tháng thì `_ky_thang` suy từ tên file ('.M.202608.' -> 8) — mà tên file KHÔNG lăn tháng (một bản kế hoạch phát hành một lần cho nhiều tháng), nên chỉ khối trùng tháng phát hành được đọc và T9-T12 nằm im trong file. Ngày 09/09/2026 lỗi này thành thấy được: kế hoạch NGÀY dừng ở T8 nên chế độ Ngày tháng 9 lấy kế hoạch CẢ THÁNG làm mẫu số (Showroom: thực hiện 9,34 tỷ / kế hoạch 1.154,64 tỷ). Nay mỗi `vung` khai `ky_thang_tu_o` trỏ ĐÚNG ô nhãn của nó — khối nào nói 'THÁNG n' thì ghi vào tháng n. ĐỪNG đổi sang ghim cứng tháng cho từng vùng: thứ tự khối chạy theo tháng PHÁT HÀNH (bản T8 mở đầu bằng THÁNG 8, bản T10 sẽ mở đầu bằng THÁNG 10) nên ghim cứng là bản sau trượt gate và mất sạch dữ liệu trong im lặng. `chi_doc_khi_o` giữ lại làm chốt tự kiểm."
   ],
   "report_type": "VHKD_KH_NGAY",
+  "giu_ngay_tuong_lai": true,
   "row_index_base": 6630000,
   "khoi": "Khối KD Vinfast - Showroom",
   "nguon": {
     "folder": "KEHOACH/baocaokehoachthang",
     "file_glob": "1.SR.*.Kehoachthang.xlsx",
     "sheet": {
-      "ten": "KHngày"
+      "ten": [
+        "KHngàytheokenh",
+        "KHngày"
+      ]
     }
   },
   "ky_thang_tu_ten_file": {
@@ -51,6 +57,9 @@
         "tu": "D",
         "den": "AH",
         "he_so": 1e-09
+      },
+      "ky_thang_tu_o": {
+        "o": "B2"
       }
     },
     {
@@ -71,6 +80,9 @@
         "tu": "D",
         "den": "AH",
         "he_so": 1e-09
+      },
+      "ky_thang_tu_o": {
+        "o": "B13"
       }
     },
     {
@@ -91,6 +103,9 @@
         "tu": "D",
         "den": "AH",
         "he_so": 1e-09
+      },
+      "ky_thang_tu_o": {
+        "o": "B24"
       }
     },
     {
@@ -111,6 +126,9 @@
         "tu": "D",
         "den": "AH",
         "he_so": 1e-09
+      },
+      "ky_thang_tu_o": {
+        "o": "B35"
       }
     },
     {
@@ -131,6 +149,9 @@
         "tu": "D",
         "den": "AH",
         "he_so": 1e-09
+      },
+      "ky_thang_tu_o": {
+        "o": "B46"
       }
     }
   ],

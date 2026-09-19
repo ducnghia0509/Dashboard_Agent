@@ -6,13 +6,15 @@
     "Bản XVP ghi SỐ XE NGUYÊN (996 xe mọi ngày của T8) — khác bản An Taxi rải số lẻ. Đừng suy 'file này chuẩn hơn': 996 là mức TRẦN đăng ký, không phải kế hoạch từng ngày khác nhau.",
     "996 xe/ngày ở đây KHÁC 1.284 xe của XVP_KH_SL T8: 1.284 là tổng xe chạy trong tháng của cả 5 nguồn thu, 996 chỉ là xe dịch vụ taxi (đúng bằng SL_TAXI T8 = 996). Đừng chấm %HT chéo.",
     "Năm khối tháng và cách chốt `chi_doc_khi_o` giống bản doanh thu — xem `xvp_kehoach_ngay_gt.json`.",
-    "CHỐT NHẬN DẠNG KHỐI LÀ BẮT BUỘC Ở SHEET NÀY: `specs_for_path` chọn spec theo THƯ MỤC và BỎ QUA `file_glob`, nên nút 'Phân tích AI'/'Đồng bộ & nạp' trên MỘT file kế hoạch sẽ chạy TẤT CẢ spec của thư mục lên nó. Sheet 'KH ngày' của An Taxi và XVP giống hệt nhau (cùng tiêu đề B1, cùng nhãn dòng) và sheet 'KHngày' của Showroom cũng khớp tên sau chuẩn hoá — không có chốt thì spec này đọc file khối khác và đẻ ra 31 dòng kế hoạch SAI dưới một source_file mới, `_ghi` không chặn được vì nó chỉ xoá theo (report_type, source_file). Đã kiểm chéo 6 spec × 6 file ngày 18/08/2026: có chốt thì 0 lượt đọc nhầm."
+    "CHỐT NHẬN DẠNG KHỐI LÀ BẮT BUỘC Ở SHEET NÀY: `specs_for_path` chọn spec theo THƯ MỤC và BỎ QUA `file_glob`, nên nút 'Phân tích AI'/'Đồng bộ & nạp' trên MỘT file kế hoạch sẽ chạy TẤT CẢ spec của thư mục lên nó. Sheet 'KH ngày' của An Taxi và XVP giống hệt nhau (cùng tiêu đề B1, cùng nhãn dòng) và sheet 'KHngày' của Showroom cũng khớp tên sau chuẩn hoá — không có chốt thì spec này đọc file khối khác và đẻ ra 31 dòng kế hoạch SAI dưới một source_file mới, `_ghi` không chặn được vì nó chỉ xoá theo (report_type, source_file). Đã kiểm chéo 6 spec × 6 file ngày 18/08/2026: có chốt thì 0 lượt đọc nhầm.",
+    "KỲ CỦA TỪNG KHỐI NAY ĐỌC TỪ Ô NHÃN, KHÔNG TỪ TÊN FILE (09/09/2026). Sheet xếp NĂM KHỐI THÁNG nối tiếp, còn tháng thì `_ky_thang` suy từ tên file ('.M.202608.' -> 8) — mà tên file KHÔNG lăn tháng (một bản kế hoạch phát hành một lần cho nhiều tháng), nên chỉ khối trùng tháng phát hành được đọc và T9-T12 nằm im trong file. Ngày 09/09/2026 lỗi này thành thấy được: kế hoạch NGÀY dừng ở T8 nên chế độ Ngày tháng 9 lấy kế hoạch CẢ THÁNG làm mẫu số (Showroom: thực hiện 9,34 tỷ / kế hoạch 1.154,64 tỷ). Nay mỗi `vung` khai `ky_thang_tu_o` trỏ ĐÚNG ô nhãn của nó — khối nào nói 'THÁNG n' thì ghi vào tháng n. ĐỪNG đổi sang ghim cứng tháng cho từng vùng: thứ tự khối chạy theo tháng PHÁT HÀNH (bản T8 mở đầu bằng THÁNG 8, bản T10 sẽ mở đầu bằng THÁNG 10) nên ghim cứng là bản sau trượt gate và mất sạch dữ liệu trong im lặng. `chi_doc_khi_o` giữ lại làm chốt tự kiểm."
   ],
   "_kiem_chung": [
     "T8: 31 bản ghi, mỗi ngày 996 xe (Σ = 30.876, con số cộng dồn này KHÔNG có nghĩa nghiệp vụ, chỉ để soát đã đọc đủ 31 cột).",
     "996 = ô C4 'Cộng tháng' của chính khối T8 và = SL_TAXI T8 của XVP_KH_SL."
   ],
   "report_type": "XVP_KH_NGAY_SL",
+  "giu_ngay_tuong_lai": true,
   "row_index_base": 8360000,
   "khoi": "Khối KD Vận tải Taxi Xanh",
   "nguon": {
@@ -49,6 +51,9 @@
         "tu": "D",
         "den": "AH",
         "he_so": 1.0
+      },
+      "ky_thang_tu_o": {
+        "o": "B2"
       }
     },
     {
@@ -69,6 +74,9 @@
         "tu": "D",
         "den": "AH",
         "he_so": 1.0
+      },
+      "ky_thang_tu_o": {
+        "o": "B7"
       }
     },
     {
@@ -89,6 +97,9 @@
         "tu": "D",
         "den": "AH",
         "he_so": 1.0
+      },
+      "ky_thang_tu_o": {
+        "o": "B12"
       }
     },
     {
@@ -109,6 +120,9 @@
         "tu": "D",
         "den": "AH",
         "he_so": 1.0
+      },
+      "ky_thang_tu_o": {
+        "o": "B17"
       }
     },
     {
@@ -129,6 +143,9 @@
         "tu": "D",
         "den": "AH",
         "he_so": 1.0
+      },
+      "ky_thang_tu_o": {
+        "o": "B22"
       }
     }
   ],

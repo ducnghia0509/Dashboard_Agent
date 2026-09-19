@@ -8,7 +8,8 @@
     "Ô C2 sheet này ghi khối 'KINH DOANH XE VINFAST' — giống y bản XDV (vết biểu mẫu dùng chung). ĐỪNG dùng làm chốt layout.",
     "CHỈ NẠP CT35. Xem khối chú thích `_SR_CT_DONG` trong `scripts/spec_extract.py` để biết vì sao 8 dòng còn lại bị bỏ (CT33/CT34 là công thức trỏ sang sheet KHDT đã nạp; CT36 backend tự suy; 4 dòng ngưỡng ghi bằng LỜI).",
     "CT35 trong file là DẪN XUẤT: ô E8 = '=E9*E10' = CT38 (năng suất sản lượng) × CT36 (giá trị BQ đơn hàng). Vẫn nạp thay vì tự tính lại ở backend, vì tính lại phải qua HAI tầng dẫn xuất (CT36 tự nó cũng là D5/D7) — đọc thẳng ô mà nghiệp vụ đã đăng ký thì lệch là biết ngay có người sửa file.",
-    "ĐỪNG suy 'số NV bán hàng kế hoạch' bằng CT33/CT35. Ra 471,3 / 561,7 / 449 / 629,3 người — trông như số thật nhưng chỉ là hệ quả của việc CT38 được gõ tay số NGUYÊN đã làm tròn (3/3/4/3/4/4). Mẫu số thật của vế THỰC HIỆN vẫn thiếu, đúng như ghi chú của chính file ở ô K8."
+    "ĐỪNG suy 'số NV bán hàng kế hoạch' bằng CT33/CT35. Ra 471,3 / 561,7 / 449 / 629,3 người — trông như số thật nhưng chỉ là hệ quả của việc CT38 được gõ tay số NGUYÊN đã làm tròn (3/3/4/3/4/4). Mẫu số thật của vế THỰC HIỆN vẫn thiếu, đúng như ghi chú của chính file ở ô K8.",
+    "BỐ CỤC ĐỔI 09/09/2026 — SHEET 'CT Vận hành' DỊCH PHẢI MỘT CỘT VÀ TIÊU ĐỀ ĐỔI Ô: file chèn thêm cột '6 tháng cuối năm' ở E nên dải tháng T7..T12 dời từ E..J sang F..K; nhãn chỉ tiêu dời từ cột B sang C (cột B nay là 'Mã Số DB tổng quan' chứa CT33/CT34/...); ô tiêu đề 'ĐĂNG KÝ CHỈ TIÊU VẬN HÀNH' dời từ C1 sang D1 (C2 nay là 'Khối'). Spec cũ dừng ở `kiem_tra_o` với \"layout khác spec: ô C1 = 'None'\" rồi bỏ cả file — KHÔNG xoá dữ liệu cũ nên DB đứng nguyên và tháng 9 lặng lẽ không có kế hoạch. `cot.dim1.header` tra theo TÊN cột nên tự tìm được cột C, không cần sửa."
   ],
   "_kiem_chung": [
     "NS_DT: T7 = 1,746685739847651 tỷ · T8 = 1,984614598593838 tỷ · T9 = 3,218137966643507 tỷ · T10 = 2,046217378970235 tỷ · T11 = 2,688482613004427 tỷ · T12 = 2,723083539469662 tỷ (6 bản ghi).",
@@ -22,22 +23,49 @@
   "nguon": {
     "folder": "KEHOACH/baocaokehoachthang",
     "file_glob": "1.SR.*.Kehoachthang.xlsx",
-    "sheet": { "ten": "CT Vận hành" }
+    "sheet": {
+      "ten": "CT Vận hành"
+    }
   },
-  "header": { "dong": 4 },
+  "header": {
+    "dong": 4
+  },
   "dong_bat_dau": 5,
   "kiem_tra_o": [
-    { "o": "C1", "bang": "ĐĂNG KÝ CHỈ TIÊU VẬN HÀNH" },
-    { "o": "E4", "bang": "Tháng 7" },
-    { "o": "B8", "bang": "Năng suất Doanh thu/1NV bán hàng" }
+    {
+      "o": "D1",
+      "bang": "ĐĂNG KÝ CHỈ TIÊU VẬN HÀNH"
+    },
+    {
+      "o": "F4",
+      "bang": "Tháng 7"
+    },
+    {
+      "o": "C8",
+      "bang": "Năng suất Doanh thu/1NV bán hàng"
+    }
   ],
   "cot": {
-    "dim1": { "header": "Kế hoạch/Mục tiêu cần đạt", "chuan_hoa": "sr_ct_dong" }
+    "dim1": {
+      "header": "Kế hoạch/Mục tiêu cần đạt",
+      "chuan_hoa": "sr_ct_dong"
+    }
   },
   "ban_ghi": "moi_cot_thang",
-  "cot_thang": { "tu": "E", "den": "J", "he_so": 1e-9 },
+  "cot_thang": {
+    "tu": "F",
+    "den": "L",
+    "he_so": 1e-09
+  },
   "loc": [
-    { "cot": "dim1", "dieu_kien": "bang", "gia_tri": "NS_DT" }
+    {
+      "cot": "dim1",
+      "dieu_kien": "bang",
+      "gia_tri": "NS_DT"
+    }
   ],
-  "payload_them": { "unit": "ty", "loai": "kehoach" }
+  "payload_them": {
+    "unit": "ty",
+    "loai": "kehoach"
+  }
 }

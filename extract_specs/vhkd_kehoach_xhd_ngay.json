@@ -17,6 +17,7 @@
     "Hạng B (OceanPark, Long Biên, Smart City, Sơn Tây, Xuân Mai): mỗi SR 72 xe/14 ngày. Hạng C (Hạ Long, Vĩnh Phúc, Uông Bí, Cẩm Phả): mỗi SR 40. 5×72 + 4×40 = 520."
   ],
   "report_type": "VHKD_KH_XHD_NGAY",
+  "giu_ngay_tuong_lai": true,
   "row_index_base": 8530000,
   "khoi": "Khối KD Vinfast - Showroom",
   "nguon": {

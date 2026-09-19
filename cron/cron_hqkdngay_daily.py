@@ -129,9 +129,44 @@ def unit_names(src: dict) -> dict:
 
 
 REPORT_TYPES = ("baocaohqkdngay",)
-# 4 report_type derive_hqkd_ngay.py ghi ra (RT_HQKD/RT_PNLT/RT_CHIPHI/RT_DTHU) — verify() đếm
-# ngày trên bất kỳ loại nào có mặt (mỗi đơn vị/layout không chắc sinh đủ cả 4).
-DAY_REPORT_TYPES = ("HQKD_D", "PNLT_D", "CHIPHI_D", "DTHU_D")
+# Mọi report_type derive_hqkd_ngay.py ghi ra — verify() đếm ngày trên bất kỳ loại nào có mặt (mỗi
+# đơn vị/layout không chắc sinh đủ). Danh sách dự phòng dùng khi KHÔNG import được deriver; nguồn
+# thật lấy ở `day_report_types()` để hai bên không lệch nhau.
+_DAY_RT_FALLBACK = ("HQKD_D", "PNLT_D", "CHIPHI_D", "DTHU_D",
+                    # Cụm SỐ DƯ (Trạm sạc, 14/09/2026). Đưa vào đây KHÔNG phải để đếm ngày — cụm
+                    # P&L đã luôn có đủ ngày nhờ zero-fill — mà để VÂN TAY bắt được thay đổi.
+                    # Kế toán xuất lại file mà chỉ đổi công nợ/tồn kho/thuế thì vân tay tính trên
+                    # riêng P&L KHÔNG đổi, và cron kết luận "file chưa cập nhật" (trạng thái
+                    # `cham`) trong khi nguồn vừa được sửa thật.
+                    "PTHU_D", "PTRA_D", "BS_D", "TS_D", "THUE_D", "HH_D", "TSNV_D")
+
+
+def day_report_types():
+    """Danh sách report_type NGÀY — lấy từ chính deriver, y hệt cách `units_source()` lấy `_UNITS`.
+
+    Gắn cứng ở hai nơi là kiểu lỗi im lặng: thêm report_type mới cho deriver mà quên sửa cron thì
+    vân tay bỏ sót đúng phần vừa thêm, không có gì báo."""
+    try:
+        sys.path.insert(0, f"{AGENT}/scripts")       # y hệt units_source(), phòng khi gọi trước nó
+        import derive_hqkd_ngay                      # noqa: PLC0415
+        return tuple(derive_hqkd_ngay.REPORT_TYPES)
+    except Exception as ex:
+        log(f"  CANH BAO: khong import duoc REPORT_TYPES ({ex}) -> dung danh sach du phong")
+        return _DAY_RT_FALLBACK
+
+
+# Cụm SỐ DƯ, tách khỏi cụm P&L để `verify()` ĐẾM NGÀY RIÊNG — xem docstring ở đó.
+_RT_SODU_FALLBACK = ("PTHU_D", "PTRA_D", "BS_D", "TS_D", "THUE_D", "HH_D", "TSNV_D")
+
+
+def sodu_report_types():
+    """Các report_type thuộc cụm SỐ DƯ. Lấy từ deriver, cùng lý do như `day_report_types()`."""
+    try:
+        sys.path.insert(0, f"{AGENT}/scripts")
+        import derive_hqkd_ngay                      # noqa: PLC0415
+        return tuple(derive_hqkd_ngay._RT_SODU)
+    except Exception:
+        return _RT_SODU_FALLBACK
 META_REFRESH_TIMEOUT = 240
 META_REFRESH_POLL = 5
 ARRIVE_TIMEOUT = 300
@@ -292,7 +327,7 @@ def autofill(entry: dict):
     (DELETE-then-insert idempotent theo source_file, đọc lại TOÀN BỘ ngày có trong file — xem
     docstring module). Không dùng LLM.
 
-    Trả (ok, ly_do): `ly_do` là câu error NGẮN lấy từ JSON dòng cuối (vd "đọc được 6 sheet ngày
+    Trả (ok, ly_do, js): `ly_do` là câu error NGẮN lấy từ JSON dòng cuối (vd "đọc được 6 sheet ngày
     (D1..D6) nhưng không sheet nào ra chỉ tiêu") để artifact có lý do thật, không phải suy đoán.
     rc=0 nhưng JSON `ok:false` VẪN là lỗi nạp — agent_cli không đổi exit code cho ca này.
     """
@@ -305,17 +340,17 @@ def autofill(entry: dict):
     log(f"  autofill [{entry.get('company')}] {entry['_period']}: rc={p.returncode}"
         f" | {last[:280]}")
     if p.returncode != 0:
-        return False, f"autofill lỗi (rc={p.returncode})"
+        return False, f"autofill lỗi (rc={p.returncode})", {}
     try:
         js = json.loads(last)
     except (json.JSONDecodeError, ValueError):
-        return True, None            # không parse được thì để verify quyết định
+        return True, None, {}        # không parse được thì để verify quyết định
     for _k in _ky_moi_tao(js):
         log(f"  KỲ MỚI: khai sinh kỳ {_k} (chưa từng có dataset; nguồn số thực tế)")
     if js.get("ok"):
-        return True, None
+        return True, None, js
     errs = [d.get("error") for d in (js.get("derived") or []) if d.get("error")]
-    return False, (errs[0][:200] if errs else "autofill trả ok=false, không kèm lý do")
+    return False, (errs[0][:200] if errs else "autofill trả ok=false, không kèm lý do"), js
 
 
 def verify(entry: dict, want_day: str):
@@ -333,24 +368,56 @@ def verify(entry: dict, want_day: str):
     # "không có dòng nào" là dựng một ô đỏ vĩnh viễn cho một việc bình thường. Chỉ ngắn mạch khi
     # mốc rơi đúng ngày 01 và kỳ nằm từ tháng đó trở đi — cutover giữa tháng thì tháng đó vẫn còn
     # phần trước mốc, phải kiểm như thường.
-    moc = (units_source().get(entry.get("company")) or {}).get("bo_tu_ngay")
+    #
+    # TRỪ ĐƠN VỊ CÓ `layout_phu` (An Taxi, 16/09/2026): ở đó nguồn thay thế nằm trong CHÍNH thư mục
+    # này và do CHÍNH job này kéo, chỉ khác HỌ FILE — mốc dùng để tách hai họ, không phải để tiễn
+    # dữ liệu sang job khác. Ngắn mạch theo mốc ở đây là bịt mắt luôn nguồn mới: An Taxi sẽ báo
+    # DA_CHUYEN_NGUON vĩnh viễn, xanh cả khi họ `.D.` ngừng về hẳn.
+    don_vi = units_source().get(entry.get("company")) or {}
+    moc = None if don_vi.get("layout_phu") else don_vi.get("bo_tu_ngay")
     if moc and moc.endswith("-01") and entry["_period"] >= moc[:7]:
         out = f"DA_CHUYEN_NGUON(tu {moc})"
         log(f"  kiem [{entry.get('company')}] {entry['_period']}: {out}"
             " — nguon tay da duoc thay bang nguon tu dong, khong con dong nao la DUNG")
         return parse_verify(out)
     sid = source_id(entry)
-    rts = ",".join(f"'{t}'" for t in DAY_REPORT_TYPES)
+    # KHOÁ THEO KỲ của đơn vị nạp theo bộ snapshot luỹ kế (Trạm sạc từ kỳ 2026-09). Ở đó một file
+    # không phủ trọn tháng ngày nên deriver ghi dưới khoá kỳ — hỏi DB chỉ bằng `sid` sẽ ra
+    # KHONG_CO_DONG_NAO cho dữ liệu vừa nạp. Hỏi CẢ HAI: đơn vị thường thì khoá kỳ không khớp gì.
+    import derive_hqkd_ngay                          # noqa: PLC0415 — lazy y như units_source()
+    sid_ky = derive_hqkd_ngay.period_source_key(entry.get("company") or "", entry["_period"])
+    # ĐẾM NGÀY CHỈ TRÊN CỤM P&L, VÂN TAY VẪN TRÊN TẤT CẢ (sửa 18/09/2026).
+    #
+    # Chú thích ở `_DAY_RT_FALLBACK` vốn đã ghi rõ ý định: cụm số dư đưa vào danh sách là để VÂN
+    # TAY bắt được thay đổi, "KHÔNG phải để đếm ngày". Nhưng `nd`/`mx` lại tính trên cùng danh sách
+    # đó, nên ý định và code lệch nhau — chưa lộ chừng nào chỉ Trạm sạc/An Taxi có số dư, vì hai
+    # đơn vị này P&L và số dư cùng nhịp.
+    #
+    # Lộ ra ngày 18/09/2026 khi 3 khối Xanh có số dư mà không có P&L cùng ngày: P&L thật của XVP
+    # dừng ở 14/09, số dư có tới 16/09 -> `max_ngay` = 16/09 -> bảng gửi lãnh đạo báo đơn vị chỉ
+    # chậm 1 ngày trong khi thực tế chậm 3. Đó là ô XANH ĐÈ LÊN MỘT LUỒNG ĐANG ĐỨT, đúng loại sai
+    # mà cả file này được viết ra để tránh.
+    #
+    # `max_ngay_sodu` đi kèm để không mất thông tin: cụm số dư về tới đâu vẫn đọc được, chỉ là
+    # không còn được tính là "đã có báo cáo ngày".
+    rts = ",".join(f"'{t}'" for t in day_report_types())
+    rt_sodu = set(sodu_report_types())
+    rts_pnl = ",".join(f"'{t}'" for t in day_report_types() if t not in rt_sodu)
+    rts_sd = ",".join(f"'{t}'" for t in day_report_types() if t in rt_sodu) or "''"
     code = (
         "import sys;sys.path.insert(0,'.');"
         "from app.database.session import get_db;"
-        f"sid={sid!r};w={want_day!r};"
-        f"r=get_db().execute(\"SELECT COUNT(DISTINCT ngay) nd,MAX(ngay) mx,COUNT(*) sd,"
-        f"SUM(ABS(COALESCE(amount,0))) tg FROM raw_rows "
-        f"WHERE source_file=? AND report_type IN ({rts})\",(sid,)).fetchone();"
+        f"sid={sid!r};sk={sid_ky!r};w={want_day!r};db=get_db();"
+        f"r=db.execute(\"SELECT COUNT(DISTINCT ngay) nd,MAX(ngay) mx FROM raw_rows "
+        f"WHERE source_file IN (?,?) AND report_type IN ({rts_pnl})\",(sid,sk)).fetchone();"
+        f"s=db.execute(\"SELECT MAX(ngay) mx FROM raw_rows "
+        f"WHERE source_file IN (?,?) AND report_type IN ({rts_sd})\",(sid,sk)).fetchone();"
+        f"v=db.execute(\"SELECT COUNT(*) sd,SUM(ABS(COALESCE(amount,0))) tg FROM raw_rows "
+        f"WHERE source_file IN (?,?) AND report_type IN ({rts})\",(sid,sk)).fetchone();"
         "print('KHONG_CO_DONG_NAO') if not r or not r['nd'] else "
-        "print('so_ngay=%s max_ngay=%s van_tay=%s:%.6f %s'%(r['nd'],r['mx'],r['sd'],"
-        "float(r['tg'] or 0),"
+        "print('so_ngay=%s max_ngay=%s%s van_tay=%s:%.6f %s'%(r['nd'],r['mx'],"
+        "(' max_ngay_sodu=%s'%s['mx'] if s and s['mx'] else ''),"
+        "v['sd'],float(v['tg'] or 0),"
         "('OK_CO_NGAY_HOM_QUA' if (r['mx'] or '')>=w else 'THIEU_NGAY_HOM_QUA(can>=%s)'%w)))"
     )
     api = VERIFY_API_DIR
@@ -383,6 +450,11 @@ def parse_verify(out: str) -> dict:
     m = re.search(r"max_ngay=(\d{4}-\d{2}-\d{2})", out)
     if m:
         d["max_ngay"] = m.group(1)
+    # Hai khoá không giẫm nhau: regex trên đòi dấu '=' ngay sau `max_ngay`, còn chuỗi kia là
+    # `max_ngay_sodu=` nên không khớp.
+    m = re.search(r"max_ngay_sodu=(\d{4}-\d{2}-\d{2})", out)
+    if m:
+        d["max_ngay_sodu"] = m.group(1)
     m = re.search(r"van_tay=(\d+:[\d.]+)", out)
     if m:
         d["van_tay"] = m.group(1)
@@ -493,7 +565,26 @@ def main():
                 ly_do="đã xin file nhưng không về, trên đĩa cũng chưa có bản nào")
             continue
         arrived = e["fileName"] in arrived_names
-        af_ok, af_err = autofill(e)
+        af_ok, af_err, af_js = autofill(e)
+        # FILE ẢNH CHỤP SỐ DƯ KHÔNG ĐƯỢC GHI TRẠNG THÁI ĐƠN VỊ (18/09/2026).
+        #
+        # `rec()` ghi theo TỪNG FILE và FILE SAU ĐÈ FILE TRƯỚC, trong khi từ nay một đơn vị có hai
+        # họ file: `...D.<YYYYMM>.` mang P&L (chính là "báo cáo ngày" mà bảng này nói tới) và
+        # `...D.<YYYYMMDD>.` chỉ là ảnh chụp số dư, không có dòng nào mang tên nó trong DB.
+        # Để nó ghi đè thì đơn vị nào cũng kết thúc ở KHONG_CO_DONG_NAO -> `loi_nap`, mất sạch cột
+        # P&L. Đo thật ở lượt 14:25 ngày 18/09: 4 đơn vị đang có số 14–15/09 tụt hết về "-".
+        #
+        # Ảnh chụp HỎNG vẫn nằm trong log cho IT, và số dư về tới đâu thì đọc ở `max_ngay_sodu`
+        # của chính bản ghi đơn vị — không mất thông tin, chỉ là không cướp quyền kết luận.
+        _sd = [d for d in (af_js.get("derived") or [])
+               if d.get("la_nguon_so_du") or d.get("la_anh_chup_so_du")]
+        if _sd:
+            log(f"  [{unit}] {e['fileName']}: ảnh chụp số dư"
+                f"{' (' + str(_sd[0].get('error'))[:80] + ')' if not af_ok else ''}"
+                " — không ghi trạng thái đơn vị, P&L do file kỳ quyết định")
+            if af_ok:
+                ok += 1
+            continue
         if not af_ok:
             # `ly_do` là câu cho LÃNH ĐẠO (agent dùng nguyên văn), `ly_do_ky_thuat` giữ nguyên câu
             # error của deriver cho IT. Trộn hai thứ vào một trường thì tên sheet (D1..D6) lọt vào
@@ -504,12 +595,14 @@ def main():
                 ly_do_ky_thuat=af_err)
             continue
         ok += 1
+        soat_cost_center(e)
         vr = verify(e, yday if yday.startswith(e["_period"]) else "0000-00-00")
         van_tay_cu = st.van_tay_cu.get(unit) if st else None
         state, doi_luc = cron_status.state_from_verify(
             vr, af_ok, today, van_tay_cu, st.doi_luc_cu.get(unit) if st else None)
         rec(unit, state=state, arrived=arrived, so_ngay=vr.get("so_ngay"),
-            max_ngay=vr.get("max_ngay"), verify_code=vr.get("code"),
+            max_ngay=vr.get("max_ngay"), max_ngay_sodu=vr.get("max_ngay_sodu"),
+            verify_code=vr.get("code"),
             van_tay=vr.get("van_tay"), doi_luc=doi_luc,
             ly_do=_ly_do(state, vr, yday, van_tay_cu, doi_luc, today))
 
@@ -517,6 +610,49 @@ def main():
     if st:
         st.set_run(nap_thanh_cong=ok, so_file_keo=len(targets))
     return done(cron_status.RUN_OK, rc=0 if ok else 1)
+
+
+
+# Đơn vị đã có bộ soát cost center. CHỈ Dự án (18/09/2026): layout "duan" là layout DUY NHẤT
+# khớp cột bằng danh sách từ khoá gõ cứng, nên cũng là layout duy nhất có thể làm rơi im lặng
+# một dự án mới. Thêm đơn vị khác thì khai ở đây sau khi đã kiểm bộ soát trên nguồn của họ.
+# CHỈ 4 layout có CỘT COST CENTER trong file ngày -> chỉ 4 đơn vị này có rủi ro "cột mới rơi im
+# lặng". Các đơn vị còn lại (XANHVINHPHUC/HTX×2 layout "kqkd"; GLOBALAI/TRAMSAC "tcode"; HO,
+# HUNGTHINH, ANKHACHSAN) chỉ có MỘT cột giá trị, không tách cost center — khai vào đây chỉ đẻ
+# báo động giả. Đã dump header thật của cả 12 đơn vị để chốt danh sách này (18/09/2026).
+# Phần tử 2 = mẫu source_file của BCTC THÁNG để đối chiếu ngày↔tháng; None = chưa có, chỉ dò cột.
+_SOAT_CC = {
+    "DUAN":   ("duan",   "DUAN::B.4.TC.TCKT.M.{ky}.Baocaotaichinhrieng.xlsx"),
+    "SRVF":   ("srvf",   None),
+    "XDV":    ("xdv",    None),
+    "ANTAXI": ("antaxi", None),
+}
+
+
+def soat_cost_center(e: dict):
+    """Sau khi nạp xong: dò cột dự án CHƯA CÓ MÃ rồi xếp việc chờ admin duyệt.
+
+    Chạy SAU autofill và KHÔNG chặn nó: đây là lớp giám sát, số liệu đã vào DB rồi. Mọi lỗi
+    đều nuốt trong `soat_cost_center.xep_viec` — hỏng lớp giám sát mà làm hỏng lượt nạp thì
+    lợi bất cập hại.
+    """
+    cf = _SOAT_CC.get((e.get("company") or "").upper())
+    if not cf:
+        return
+    layout, mau_thang = cf
+    ky = e["_period"]
+    try:
+        sys.path.insert(0, os.path.join(AGENT, "scripts"))
+        import psycopg
+        import soat_cost_center as _S
+        with psycopg.connect(DATABASE_URL) as conn:
+            _S.xep_viec(conn, xlsx_path(e), ky, e.get("company") or "",
+                        source_file_thang=(mau_thang.format(ky=ky.replace("-", ""))
+                                           if mau_thang else None),
+                        layout=layout, log=log)
+            conn.commit()
+    except Exception as ex:                              # noqa: BLE001
+        log(f"  soát cost center: BỎ QUA ({type(ex).__name__}: {str(ex)[:140]})")
 
 
 def _ly_do(state: str, vr: dict, ngay_can: str, van_tay_cu: str = None,
