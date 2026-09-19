@@ -7,7 +7,10 @@
     "BẢNG PHÂN CẤP, mọi tầng có số ở CÙNG một cột — `dim2` phân biệt Tổng / Nhóm / Chi tiết. Cộng cả bảng là nhân đôi (có chỗ nhân ba): lọc `dim2` trước khi cộng, hoặc đọc thẳng dòng `dim2 = 'Tổng'`.",
     "Tách GIÁ TRỊ / SẢN LƯỢNG thành hai spec vì ĐƠN VỊ khác (`cot_thang.he_so` mỗi spec một giá trị) và vì `_ghi` xoá theo (report_type, source_file) — hai spec cùng report_type trên cùng file thì cái chạy sau xoá sạch cái trước.",
     "Chỉ có kế hoạch sản lượng T7..T12; T1..T6 bỏ trống trong file (dòng 'Dịch vụ khác' trống hoàn toàn cả năm).",
-    "Ô D6/E6/F6 ('Tổng năm' 450 / '6 tháng đầu' 312 / '6 tháng cuối' 1504) MÂU THUẪN với chính dải tháng (Σ T7..T12 = 1.054, và không tháng nào có số trong T1..T6). Ba ô tổng đó nằm NGOÀI dải G..R nên không lọt vào DB — nhưng đừng dùng chúng để soát, chúng sai."
+    "Ô D6/E6/F6 ('Tổng năm' 450 / '6 tháng đầu' 312 / '6 tháng cuối' 1504) MÂU THUẪN với chính dải tháng (Σ T7..T12 = 1.054, và không tháng nào có số trong T1..T6). Ba ô tổng đó nằm NGOÀI dải G..R nên không lọt vào DB — nhưng đừng dùng chúng để soát, chúng sai.",
+    "BỐ CỤC ĐỔI 09/09/2026 — SHEET KHDT BỎ NHÃN 'GIÁ TRỊ'/'SẢN LƯỢNG', CHUYỂN SANG HỆ MÃ T101.x: B3 nay là 'T101' (không còn 'GIÁ TRỊ'), B6 là 'T101.3' (không còn 'SẢN LƯỢNG'). Spec cũ dừng ở `kiem_tra_o` rồi bỏ cả file — kiểu hỏng CÂM, không xoá dữ liệu cũ nên DB đứng ở T7/T8 và tháng 9 lặng lẽ trống. Bố cục mới: dòng 3 = 'Khối KD Trạm sạc Vgreen' (T101, tổng khối), dòng 4-8 = 5 dòng doanh thu chi tiết (T101.1..T101.5), dòng 9 = tiêu đề khối B, dòng 10 = DOANH SỐ bán hàng (KHÔNG phải doanh thu — 88 tỷ, cố ý KHÔNG khai nhãn để bị loại), dòng 11 = 'Doanh thu bán hàng (hoa hồng 12% Doanh số)' nhắc lại vế hoa hồng, dòng 12 = 'SẢN LƯỢNG'.",
+    "GHIM CHIỀU BẰNG `chieu_co_dinh` THAY VÌ HOOK NHÃN: bản mới chỉ còn ĐÚNG MỘT dòng sản lượng và nhãn của nó là 'SẢN LƯỢNG' trần — khai chuỗi đó vào bảng `_KH_KHOI` dùng chung là mọi sheet KHDT của khối khác có dòng tên tương tự cũng bị gán nhầm. Dải dòng 12..12 đã đủ chính xác nên ghim thẳng dim1='TONG' (đúng khoá `app/metrics/tsac.py::_kh_tong` đang đọc cho RT_KH_SL).",
+    "SẢN LƯỢNG là SỐ BỘ trụ sạc, he_so 1.0 — T7 = 156, T8 = 268, T9 = 256."
   ],
   "_kiem_chung": [
     "6 bản ghi Nhóm × 6 bản ghi Chi tiết. T7..T12 = 156 · 268 · 256 · 260 · 114 · (T12 trống).",
@@ -26,8 +29,8 @@
   "header": {
     "dong": 2
   },
-  "dong_bat_dau": 6,
-  "dong_ket_thuc": 8,
+  "dong_bat_dau": 12,
+  "dong_ket_thuc": 12,
   "kiem_tra_o": [
     {
       "o": "C2",
@@ -38,22 +41,18 @@
       "bang": "Tháng 1"
     },
     {
-      "o": "B6",
-      "bang": "SẢN LƯỢNG"
+      "o": "B12",
+      "bang": "SL_T101.5"
     },
     {
-      "o": "C7",
-      "bang": "Trạm sạc"
+      "o": "C12",
+      "bang": "SẢN LƯỢNG"
     }
   ],
   "chieu_co_dinh": {
+    "dim1": "TONG",
+    "dim2": "Tổng",
     "dim3": "SẢN LƯỢNG"
-  },
-  "cot": {
-    "dim1": {
-      "header": "Khối",
-      "chuan_hoa": "kh_khoi_dong"
-    }
   },
   "ban_ghi": "moi_cot_thang",
   "cot_thang": {
@@ -61,12 +60,6 @@
     "den": "R",
     "he_so": 1.0
   },
-  "loc": [
-    {
-      "cot": "dim2",
-      "dieu_kien": "khac_rong"
-    }
-  ],
   "payload_them": {
     "unit": "bo",
     "loai": "kehoach"
