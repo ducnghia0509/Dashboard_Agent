@@ -1,0 +1,68 @@
+{
+  "id": "vhkd_kehoach_ngay_sr_gt_t9",
+  "_mo_ta": "Kế hoạch DOANH THU bán xe theo NGÀY × KÊNH × TỪNG SR (showroom) của khối Showroom, THÁNG 9/2026 trở đi — sheet 'KHT9ngaytheoSR' của 1.SR.OO.M.<yyyymm>.Kehoachthang.xlsx, khối B (dòng 46-82). Report_type `VHKD_KH_SR_NGAY`: cùng hình dạng bản ghi với `VHKD_KH_NGAY` (dim1='A200', dim2=kênh, mỗi ngày một dòng) NHƯNG có thêm `cost_center` — nên mọi chỗ đang đọc kế hoạch ngày theo kênh đều dùng lại được khi người xem lọc MỘT showroom.",
+  "_bay": [
+    "SHEET NÀY LÀ BỐ CỤC MỚI TỪ T9 — kiểm chéo với khối T8 của sheet 'KHngàytheokenh' xác nhận T8 KHÔNG có breakdown theo SR, chỉ 3 dòng kênh. Trước T9 không có nguồn nào để làm spec này.",
+    "ĐỌC ĐỦ CHIỀU KÊNH (sửa 15/09/2026 — bản đầu 14/09 làm PHẲNG mất chiều này): sheet xếp khối B thành 3 khối kênh liên tiếp (B2C dòng 47-58, B2B 59-70, GF 71-82), mỗi khối lặp lại đúng danh sách SR. Bản đầu gộp cả 3 khối rồi cộng theo cost_center nên một SR chỉ còn MỘT con số, không tách được B2C/B2B/GF — trong khi vế thực hiện (KDVH/KDVH_D) có đủ kênh ở dim2 và thanh lọc kênh của dashboard lọc CỨNG theo dim2. Nay dim2 lấy từ dòng tiêu đề kênh bằng `ngu_canh_dong`.",
+    "`ngu_canh_dong` THAY CHO mẹo 'lọc bằng chính phép map cost_center' của bản đầu: dòng tiêu đề kênh ('Kênh B2C'/'Kênh B2B'/'Kênh GF', cột A ghi B2C/B2B/GF) và dòng tổng khối ('B.Tổng Doanh thu bán xe', cột A ghi 'B.') nay bị CHÍNH quy tắc ngữ cảnh nuốt — dòng tiêu đề không tự sinh bản ghi. Cách cũ dựa vào việc các dòng đó KHÔNG map được cost_center: đúng tình cờ, và hỏng ngay khi thêm alias (xem `_cc_showroom`) hoặc khi kế toán đổi nhãn dòng tổng thành tên một đơn vị.",
+    "GIỮ CẢ DÒNG KHÔNG MAP ĐƯỢC (`giu_khi_khong_map`) — bản đầu để `loc: khac_rong` nên ném mất 2 dòng CÓ SỐ THẬT của T9: '+ Vinfast Hạ Long 1S' (B2B, 106,317 tỷ) và '+ P.Kinh doanh B2B' (B2B, 105,171 tỷ). Hậu quả: Σ report_type này = 960,403 tỷ trong khi bản theo kênh `VHKD_KH_NGAY` của CÙNG sheet nguồn = 1.171,891 tỷ — hai con số kế hoạch lệch 211,49 tỷ mà không chỗ nào nói vì sao. Nay: '+ P.Kinh doanh B2B' ĐÃ map được (alias mới -> B2B_SR, đúng cost center mà KDVH đang dùng cho đội bán B2B tập trung), 2 dòng còn lại giữ với cost_center RỖNG + `payload.ten_dong` ghi nguyên nhãn để tra được.",
+    "'+ Vinfast Hạ Long 1S' KHÔNG PHẢI 'Vinfast Hạ Long': là showroom mới, chưa có trong master_data và chưa có dòng nào ở bất kỳ nguồn thực hiện nào (đã soát cả raw_rows). Cố ý để cost_center RỖNG chứ không gộp vào HL_SR — gộp là cộng 106 tỷ kế hoạch vào một đơn vị không nhận chỉ tiêu đó. Bên đọc muốn bảng xếp hạng theo SR thì lọc `cost_center IS NOT NULL` (xem `_theo_showroom`); muốn TỔNG kế hoạch khối thì cộng hết, lúc đó khớp tuyệt đối `VHKD_KH_NGAY`.",
+    "Ô E69 (Hạ Long 1S, khối B2B) lưu dạng CHUỖI có dấu phẩy ngăn nghìn ('106,317,000,000') khác mọi ô số khác của sheet. Không ảnh hưởng vì spec chỉ đọc dải cột NGÀY (F..AJ), cột 'Cộng tháng' không bao giờ được đọc — nhưng đừng đổi sang đọc cột E mà không xử chuỗi này.",
+    "`ky_thang_tu_o` trỏ B7 ('THÁNG 9'), KHÔNG ghim cứng: tháng sau có 'KHT10ngaytheoSR' thì khai spec mới trỏ sheet đó, đừng sửa spec này.",
+    "dim1 ghim 'A200' qua `chieu_co_dinh` cho ĐỒNG DẠNG với `VHKD_KH_NGAY` — sheet này chỉ có doanh thu BÁN XE, không có A230/A250."
+  ],
+  "_kiem_chung": [
+    "Σ TOÀN BỘ (kể cả dòng cost_center rỗng) = 1.171.891.236.108 đ = 1.171,891236 tỷ = đúng Σ `VHKD_KH_NGAY` kỳ 2026-09. LƯU Ý ô E46 'Cộng tháng' của chính sheet này ghi 1.171.890.872.272, lệch 363.836 đ so với Σ 31 ô ngày của cùng dòng — lệch nằm TRONG FILE (cột E là công thức riêng), không phải lỗi trích xuất; spec chỉ đọc dải cột ngày nên khớp bản theo kênh.",
+    "Σ phần CÓ cost_center = 1.065,574 tỷ (= tổng trừ 106,317 tỷ của Hạ Long 1S).",
+    "Theo kênh: B2C 596.890.165.850 · B2B 557.752.000.002 · GF 17.249.070.256 — khớp dòng 47/59/71 cột 'Cộng tháng'.",
+    "Ocean Park (B2C+B2B+GF) = 78.664.445.821 + 44.716.000.000 + 3.264.214.416 = 126.644.660.237.",
+    "B2B_SR (dòng '+ P.Kinh doanh B2B', chỉ có ở kênh B2B) = 105.171.000.002."
+  ],
+  "report_type": "VHKD_KH_SR_NGAY",
+  "giu_ngay_tuong_lai": true,
+  "row_index_base": 8920000,
+  "khoi": "Khối KD Vinfast - Showroom",
+  "nguon": {
+    "folder": "KEHOACH/baocaokehoachthang",
+    "file_glob": "1.SR.*.Kehoachthang.xlsx",
+    "sheet": {
+      "ten": "KHT9ngaytheoSR"
+    }
+  },
+  "kiem_tra_o": [
+    { "o": "A8", "bang": "Mã" },
+    { "o": "B8", "bang": "Kênh" },
+    { "o": "B7", "bang": "THÁNG 9" },
+    { "o": "B46", "bang": "B.Tổng Doanh thu bán xe" },
+    { "o": "B47", "bang": "Kênh B2C" },
+    { "o": "B59", "bang": "Kênh B2B" },
+    { "o": "B71", "bang": "Kênh GF" }
+  ],
+  "ky_thang_tu_o": { "o": "B7" },
+  "header": { "dong": 8 },
+  "dong_bat_dau": 46,
+  "dong_ket_thuc": 82,
+  "chieu_co_dinh": { "dim1": "A200" },
+  "ngu_canh_dong": [
+    {
+      "khi": [{ "cot": "A", "dieu_kien": "regex", "gia_tri": "^\\s*[AB]\\.\\s*$" }],
+      "xoa": ["dim2"]
+    },
+    {
+      "khi": [{ "cot": "A", "dieu_kien": "regex", "gia_tri": "^\\s*(B2C|B2B|GF)\\s*$" }],
+      "gan": { "dim2": { "cot": "A", "chuan_hoa": "hoa" } }
+    }
+  ],
+  "cot": {
+    "cost_center": { "header": "Kênh", "chuan_hoa": "sr_showroom", "giu_khi_khong_map": true },
+    "payload.ten_dong": { "header": "Kênh", "chuan_hoa": "cat" }
+  },
+  "ban_ghi": "moi_cot_ngay",
+  "cot_ngay": { "dong": 8, "tu": "F", "den": "AJ", "he_so": 1e-09 },
+  "loc": [
+    { "cot": "dim2", "dieu_kien": "khac_rong" },
+    { "cot": "payload.ten_dong", "dieu_kien": "khac_rong" }
+  ],
+  "payload_them": { "unit": "ty", "nguon": "kehoach_ngay_sheet_KHT9ngaytheoSR" },
+  "source_file_hau_to": "KHT9ngaytheoSR_SR_GT"
+}

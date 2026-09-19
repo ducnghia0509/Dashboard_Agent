@@ -1,0 +1,61 @@
+{
+  "id": "tsac_phidv",
+  "_mo_ta": "BẢNG KÊ ĐỐI SOÁT PHÍ DỊCH VỤ V-GREEN — nuôi ĐỒNG THỜI hai chỉ tiêu của mapping '3.Tramsac_Mapping_Dashboard.xlsx': CT41 'Phí dịch vụ VG chi trả cho Thịnh Cường' (cột R 'Phí dịch vụ (Chưa VAT)' -> amount, tỷ) và 'Sản lượng bán ra KHÔNG QUA KHO Thịnh Cường' (cột E 'Số lượng trụ' -> amount2, bộ; V-Green xuất hoá đơn trực tiếp cho khách). MỖI SHEET MỘT THÁNG ('Phí DV T1'..'Phí DV T7').",
+  "_bay": [
+    "ĐÂY LÀ NGUỒN DUY NHẤT CỦA CỤM TRẠM SẠC KHÔNG LÊN ĐƯỢC CHẾ ĐỘ NGÀY. Trong dòng không có ô ngày nào dùng được: 'Thời gian xuất hóa đơn' ghi CHỮ ('Tháng 7'), 'Trong khoản (ngày cọc)' là ngày ĐẶT CỌC và viết tự do ('25/03 và 02/05', '06/04 (trong khoản 138.8tr)', '05 và 07/05'). Vì vậy dùng `ky_tu_ten_sheet` -> mọi dòng neo vào NGÀY CUỐI THÁNG của sheet. Backend phải báo `chiCoTheoThang` cho hai chỉ tiêu này ở chế độ Ngày, KHÔNG được trả 0.",
+    "MAPPING TRỎ HAI THƯ MỤC KHÁC NHAU CHO CÙNG MỘT FILE — dòng 22 (sản lượng không qua kho TC) ghi `San luong ban _Kho Vgreen`, dòng 23 (CT41 phí dịch vụ) ghi `Doanh thu hoa hong dich vu-VG xuat HD`; về VPS thành `baocaohoahongsanluongkhovgreen` và `baocaohoahongxuathdvg`. ĐÃ ĐO 06/09/2026: 5 sheet 'Phí DV T*' của hai file GIỐNG NHAU TỪNG Ô (ΣR khớp tuyệt đối ở cả 5 tháng). Chỉ nạp MỘT thư mục, nếu không phí dịch vụ và sản lượng NHÂN ĐÔI.",
+    "MAPPING GHI 'lấy từ dòng 5 - 22' — SAI VỚI FILE THẬT VÀ SPEC KHÔNG THEO. Đo 06/09/2026: T5 có dữ liệu tới dòng 68 (64 dòng, 116 bộ, ΣR 2,507 tỷ), T7 tới dòng 46 (42 dòng, 70 bộ, ΣR 1,259 tỷ). Chặn ở dòng 22 là bỏ mất ~2/3 số của T5 và 1/2 của T7 — im lặng. Vì vậy KHÔNG khai `dong_ket_thuc`; bộ lọc 'Loại trụ khác rỗng' tự dừng ở cuối bảng.",
+    "THIẾU HẲN SHEET T4 VÀ T6 (file chỉ có T1/T2/T3/T5/T7, đo 06/09/2026). Engine không sinh 'kế hoạch 0 giả' nên hai kỳ đó KHÔNG có dòng nào — đừng đọc thành 'phí dịch vụ tháng 4 = 0'.",
+    "CỘT CHẠY LỆCH GIỮA CÁC SHEET: 'Phí DV T2' không có cột T, 'Số tiền V-Green trả cho Thịnh Cường' nhảy sang U và 'Thời gian xuất hóa đơn' sang W (các sheet khác là T và V). D/E/R thì đứng yên. Đây đúng lý do nguyên tắc số 1 của engine — dò theo TÊN HEADER, đừng gõ chữ cột.",
+    "'Số lượng trụ' Ở ĐÂY LÀ SẢN LƯỢNG *KHÔNG* GHI NHẬN DOANH THU BÁN TRỤ (V-Green xuất hoá đơn, Thịnh Cường chỉ ăn phí dịch vụ). ĐỪNG cộng với amount2 của `TSAC_XHD` để ra 'tổng sản lượng bán' rồi chấm với `TSAC_KH_SL` — kế hoạch sản lượng là kế hoạch bán qua kho TC.",
+    "`moi_ky_lay_file_moi_nhat: mot_file` — một file chứa mọi tháng từ đầu năm, xem `tsac_xhd`."
+  ],
+  "_kiem_chung": [
+    "ΣR (đồng) / ΣE (bộ) theo sheet: T1 843.430.000 / 32 · T2 1.113.894.545 / 42 · T3 557.203.636 / 27 · T5 2.507.051.818 / 116 · T7 1.258.763.454 / 70.",
+    "T7: ô T2 của sheet ghi 1.258.763.454,3414545 = đúng ΣR đo được ✓.",
+    "Neo ngày: T7 -> 2026-07-31, T5 -> 2026-05-31 (ngày cuối tháng, năm lấy từ tên file)."
+  ],
+  "report_type": "TSAC_PHIDV",
+  "row_index_base": 8810000,
+  "khoi": "Khối KD Trạm sạc Vgreen",
+  "nguon": {
+    "folder": "TRAMSAC/baocaohoahongxuathdvg",
+    "file_glob": "*.Baocaodoanhthuhoahongdichvu.xlsx",
+    "sheet": {
+      "moi_sheet_chua": "Phí DV T"
+    }
+  },
+  "ky_tu_ten_sheet": {"regex": "T\\s*(\\d{1,2})\\s*$"},
+  "ky_thang_tu_ten_file": {"regex": "\\.(\\d{4})(\\d{2})\\d{2}\\."},
+  "moi_ky_lay_file_moi_nhat": "mot_file",
+  "kiem_tra_o": [
+    {"o": "D4", "bang": "Loại trụ"},
+    {"o": "E4", "bang": "Số lượng trụ"},
+    {"o": "R4", "bang": "Phí dịch vụ (Chưa VAT)"}
+  ],
+  "header": {"dong": 4},
+  "dong_bat_dau": 5,
+  "cot": {
+    "dim1": {"header": "Loại trụ"},
+    "dim2": {"header": "Tên NĐT"},
+    "dim3": {"header": "Phân loại trụ"},
+    "amount": {"header": "Phí dịch vụ (Chưa VAT)", "kieu": "so", "he_so": 1e-09},
+    "amount2": {"header": "Số lượng trụ", "kieu": "so"},
+    "payload.ma_vendor": {"header": "Mã vendor"},
+    "payload.muc_phi_dv": {"header": "Mức phí DV", "kieu": "so"},
+    "payload.thanh_tien_vat": {"header": "Thành tiền (Bom gồm VAT)", "kieu": "so", "he_so": 1e-09}
+  },
+  "chieu_co_dinh": {
+    "cong_ty": "TC"
+  },
+  "ban_ghi": "moi_dong",
+  "loc": [
+    {"cot": "dim1", "dieu_kien": "khac_rong"}
+  ],
+  "payload_them": {
+    "unit": "ty",
+    "unit2": "bo",
+    "chi_co_theo_thang": true,
+    "nguon_he": "Bảng kê đối soát phí dịch vụ V-Green (kho Vgreen)"
+  }
+}
