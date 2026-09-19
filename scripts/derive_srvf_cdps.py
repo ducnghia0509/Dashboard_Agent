@@ -70,9 +70,14 @@ def _cdkt_ma(wbk, norm, ma):
 
 def extract(path, period, cong_ty="TC"):
     wb = bb.fast_load_workbook(path, data_only=True, read_only=True)
-    if "CĐPS" not in wb.sheetnames:
+    # Dò tên sheet KHÔNG DẤU, giống `_cdkt_ma` ngay dưới. BCTC riêng SRVF T08/2026 được lưu sang
+    # Excel 97-2003 và đặt lại tên sheet là "CDPS"/"CDKT" (mất dấu) -> khớp cứng "CĐPS" trượt sạch,
+    # mất PTHU/PTRA/THUE/HH của cả tháng mà lượt nạp vẫn báo ok.
+    sn_cdps = next((s for s in wb.sheetnames if norm(s) in ("cdps", "cd ps")
+                    or "can doi so phat sinh" in norm(s)), None)
+    if not sn_cdps:
         return {"ok": False, "error": "không thấy sheet CĐPS"}
-    rows = [list(r) for r in wb["CĐPS"].iter_rows(values_only=True)]
+    rows = [list(r) for r in wb[sn_cdps].iter_rows(values_only=True)]
     # SỐ DƯ công nợ lấy từ CĐKT (hướng dẫn C Điệp cập nhật: #30 phải thu = CĐKT Mã 131; #36 phải trả
     # = CĐKT Mã 311). CĐPS chỉ dùng cho PS tăng/giảm (#31/#37). CĐPS≠CĐKT ở tháng có phân loại lệch
     # (vd T05: CĐPS 131=198,464 vs CĐKT=198,460). None -> fallback CĐPS (giữ tương thích cũ).
