@@ -17,7 +17,20 @@
     "folder": "XDV/baocaotaichinhrieng",
     "file_glob": "*.[xX]lsx",
     "sheet": {
-      "so": 0
+      "theo_o": [
+        {
+          "o": "A8",
+          "bang": "Mã số"
+        },
+        {
+          "o": "C8",
+          "bang": "Kỳ này"
+        },
+        {
+          "hang": 8,
+          "bang": "XDV Ocean Park"
+        }
+      ]
     }
   },
   "kiem_tra_o": [
@@ -30,7 +43,7 @@
       "bang": "Kỳ này"
     },
     {
-      "o": "I8",
+      "hang": 8,
       "bang": "XDV Ocean Park"
     }
   ],

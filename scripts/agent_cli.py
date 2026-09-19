@@ -1397,6 +1397,7 @@ def _chiphi_recs_srvf(rows, code, name_j, val_j, period):
     comp = _re.findall(r"A\d{3}", _f) or ["A310", "A320", "A325", "A330", "A340", "A350", "A360", "A500"]
     _a360_child_pat = _re.compile(r"A36[0-9]A?")
     recs = []
+    _theo_cd = {}          # mã thành phần -> (giá trị thô, [bản ghi của nó]) để đối chiếu với A300
     for cd in comp:
         r = next((x for x in rows if code(x) == cd), None)
         if r is None:
@@ -1407,9 +1408,11 @@ def _chiphi_recs_srvf(rows, code, name_j, val_j, period):
         nm = str(r[name_j]).strip() if name_j < len(r) and r[name_j] not in (None, "") else cd
         nhom = _nhom_cp(nm, cd)
         if cd == "A310":
-            recs.append({"Kỳ (yyyy-mm)": period, "Nhóm CP (chuẩn mực KT)": nhom,
-                         "Khoản mục chi tiết": nm, "Yếu tố chi phí": "CP Giá vốn",
-                         "Thực hiện (tỷ)": round(val * 1e-9, 9)})
+            _moi = [{"Kỳ (yyyy-mm)": period, "Nhóm CP (chuẩn mực KT)": nhom,
+                     "Khoản mục chi tiết": nm, "Yếu tố chi phí": "CP Giá vốn",
+                     "Thực hiện (tỷ)": round(val * 1e-9, 9)}]
+            _theo_cd[cd] = (val, _moi)      # PHẢI vào sổ như mọi thành phần khác, nếu không
+            recs.extend(_moi)               # chốt khớp tổng A300 ở cuối hàm thiếu mất giá vốn
             continue
         children = []
         if cd == "A360":
@@ -1427,14 +1430,39 @@ def _chiphi_recs_srvf(rows, code, name_j, val_j, period):
                 if abs(_csum - val) > abs(val) * 0.01:
                     children = []
         if children:
-            for cnm, cval in children:
-                recs.append({"Kỳ (yyyy-mm)": period, "Nhóm CP (chuẩn mực KT)": nhom,
-                             "Khoản mục chi tiết": cnm, "Yếu tố chi phí": _yeuto_cp(cnm),
-                             "Thực hiện (tỷ)": round(cval * 1e-9, 9)})
+            _moi = [{"Kỳ (yyyy-mm)": period, "Nhóm CP (chuẩn mực KT)": nhom,
+                     "Khoản mục chi tiết": cnm, "Yếu tố chi phí": _yeuto_cp(cnm),
+                     "Thực hiện (tỷ)": round(cval * 1e-9, 9)} for cnm, cval in children]
         else:
-            recs.append({"Kỳ (yyyy-mm)": period, "Nhóm CP (chuẩn mực KT)": nhom,
-                         "Khoản mục chi tiết": nm, "Yếu tố chi phí": _yeuto_cp(nm),
-                         "Thực hiện (tỷ)": round(val * 1e-9, 9)})
+            _moi = [{"Kỳ (yyyy-mm)": period, "Nhóm CP (chuẩn mực KT)": nhom,
+                     "Khoản mục chi tiết": nm, "Yếu tố chi phí": _yeuto_cp(nm),
+                     "Thực hiện (tỷ)": round(val * 1e-9, 9)}]
+        _theo_cd[cd] = (val, _moi)
+        recs.extend(_moi)
+
+    # CHỐT KHỚP TỔNG A300 — bỏ thành phần bị LỒNG trong thành phần khác.
+    #
+    # `comp` ở trên là DANH SÁCH ĐOÁN khi sheet không ghi công thức (T{mm}BC không có cột
+    # 'Công thức', chỉ sheet T{mm} thường mới có). Danh sách đó đúng với bản 2026 nhưng SAI với
+    # bản 2024: ở đó A360 'CHI PHÍ KHÁC KINH DOANH KHỐI' đã BAO GỒM A500 'CHI PHÍ PHÂN BỔ HO'
+    # (A360 = A360A + A500, kiểm đủ 8 kỳ T05-T12/2024), nên cộng thêm A500 là tính A500 HAI LẦN.
+    # Hậu quả đo được: Σ 02_CHIPHI vượt mã 1047 đúng bằng A500 mỗi kỳ (0,14 tỷ T05 -> 1,9 tỷ T11).
+    #
+    # A300 là số kế toán chốt (chính là mã 1047), nên dùng nó làm trọng tài: Σ thành phần phải
+    # bằng A300. Vượt đúng bằng giá trị của MỘT thành phần -> thành phần đó bị lồng, bỏ đi. Không
+    # khớp theo kiểu khác thì GIỮ NGUYÊN (không suy diễn) — thà lệch còn hơn bịa.
+    _av = _a300[val_j] if (_a300 is not None and val_j < len(_a300)) else None
+    if isinstance(_av, (int, float)) and _av and _theo_cd:
+        _du = sum(v for v, _ in _theo_cd.values()) - _av
+        if abs(_du) > 1:
+            _thua = [cd for cd in comp if cd in _theo_cd and abs(_theo_cd[cd][0] - _du) <= 1]
+            if _thua:
+                # NHIỀU ỨNG VIÊN CÙNG GIÁ TRỊ -> lấy mã ĐỨNG SAU trong `comp`. Tổng ra GIỐNG NHAU
+                # dù bỏ cái nào, khác biệt chỉ là NHÃN nào biến mất; mã đứng sau là mã độc lập
+                # bị gộp vào bucket đứng trước (A500 nằm trong A360), nên bỏ nó mới đúng nghĩa.
+                # Ca thật: T05/2024 có A360 = A500 = 140.124.000 vì A360A (vận hành khối) = 0.
+                _bo = set(id(x) for x in _theo_cd[_thua[-1]][1])
+                recs = [r for r in recs if id(r) not in _bo]
     return recs
 
 
