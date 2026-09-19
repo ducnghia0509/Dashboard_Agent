@@ -1,0 +1,56 @@
+{
+  "id": "tsac_lapdat",
+  "_mo_ta": "DOANH THU DỊCH VỤ THI CÔNG LẮP ĐẶT CHO KHÁCH — sổ chi tiết TK 51121 (mẫu S38-DN), mapping '3.Tramsac_Mapping_Dashboard.xlsx' dòng 28: cột G 'Có' -> amount (tỷ). Cùng khuôn sổ với `tsac_chiase750`/`tsac_tiendien`. Cột N 'Chiều phân tích' = TÊN CÔNG TRÌNH/khách hàng -> dim1 (mapping khai chiều 'Tên khách hàng; Thi công; Gói dịch vụ').",
+  "_bay": [
+    "FILE HIỆN CHỈ CÓ ĐÚNG SHEET 'Tháng 1' VÀ ĐÚNG MỘT DÒNG (07/01/2026, 145.600.255 đ) — đo 06/09/2026. Sáu tháng còn lại KHÔNG CÓ SHEET, tức chưa có số, KHÔNG phải bằng 0. Thiết kế vẽ ô 'Doanh thu thi công lắp đặt' nên tầng đọc phải trả None + `thieuNguon` cho các kỳ đó, đừng vẽ 0.",
+    "MAPPING GHI 'cột G: CÓ lấy dòng 13' — spec KHÔNG khai `dong_ket_thuc` để tháng nào phát sinh nhiều dòng thì vẫn nạp đủ. Hôm nay đúng một dòng ở 13 chỉ vì nghiệp vụ mới có một công trình.",
+    "BA DÒNG CUỐI SỔ KHÔNG PHẢI DOANH THU (số dư đầu/cuối kỳ, 'Kết chuyển doanh thu - Vgreen' TK 911, 'Cộng số phát sinh') — chặn bằng `ngay khac_rong` + `amount khac_rong` + `tk_doi_ung khac 911`. Ở file này dòng 14 chính là bút toán kết chuyển 145.600.255 đ bên NỢ: không chặn là doanh thu gấp ba (13 + 14 + 15).",
+    "`moi_ky_lay_file_moi_nhat: mot_file` — một file chứa mọi tháng từ đầu năm."
+  ],
+  "_kiem_chung": [
+    "T1: 1 dòng, Σ cột G = 145.600.255 đ = đúng ô 'Cộng số phát sinh' cột G (dòng 15) ✓. Khách: CÔNG TY TNHH XÂY DỰNG VÀ VẬN TẢI VIỆT XÔ, chiều phân tích 'CÔNG TRÌNH CHO KHÁCH HÀNG VIỆT XÔ'.",
+    "Ngày 07/01/2026 -> kỳ 2026-01, chế độ Ngày có đúng 1 ngày."
+  ],
+  "report_type": "TSAC_LAPDAT",
+  "row_index_base": 8840000,
+  "khoi": "Khối KD Trạm sạc Vgreen",
+  "nguon": {
+    "folder": "TRAMSAC/baocaodoanhthulapdat",
+    "file_glob": "*.Baocaodoanhthulapdat.xlsx",
+    "sheet": {
+      "moi_sheet_chua": "Tháng "
+    }
+  },
+  "moi_ky_lay_file_moi_nhat": "mot_file",
+  "kiem_tra_o": [
+    {"o": "A5", "bang": "51121"},
+    {"o": "C10", "bang": "Ngày, tháng (8)"},
+    {"o": "G10", "bang": "Có (13)"},
+    {"o": "N9", "bang": "Chiều phân tích"}
+  ],
+  "header": {"dong": [9, 10]},
+  "dong_bat_dau": 12,
+  "cot": {
+    "ngay": {"header": "Ngày, tháng (8)", "kieu": "date"},
+    "dim1": {"header": "Chiều phân tích"},
+    "dim2": {"header": "Tên đối tượng(19)"},
+    "amount": {"header": "Có (13)", "kieu": "so", "he_so": 1e-09},
+    "payload.so_chung_tu": {"header": "Chứng từ"},
+    "payload.dien_giai": {"header": "Diễn giải (9)"},
+    "payload.tk_doi_ung": {"header": "TK đối ứng (10)"}
+  },
+  "chieu_co_dinh": {
+    "cong_ty": "TC"
+  },
+  "ban_ghi": "moi_dong",
+  "loc": [
+    {"cot": "ngay", "dieu_kien": "khac_rong"},
+    {"cot": "amount", "dieu_kien": "khac_rong"},
+    {"cot": "payload.tk_doi_ung", "dieu_kien": "khac", "gia_tri": "911"}
+  ],
+  "payload_them": {
+    "unit": "ty",
+    "loai_dt": "THI_CONG",
+    "nguon_he": "Sổ chi tiết TK 51121 — doanh thu dịch vụ thi công lắp đặt"
+  }
+}

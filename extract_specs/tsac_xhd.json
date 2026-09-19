@@ -1,0 +1,60 @@
+{
+  "id": "tsac_xhd",
+  "_mo_ta": "HOÁ ĐƠN BÁN TRỤ SẠC của khối Trạm sạc Vgreen — nuôi ĐỒNG THỜI hai chỉ tiêu của mapping '3.Tramsac_Mapping_Dashboard.xlsx' sheet '2. Mapping Chỉ tiêu thực tế': CT33 'Doanh thu xuất hóa đơn trụ sạc' (cột J 'Tổng chưa thuế đã ký' -> amount, tỷ) và CT36 'Sản lượng bán' (cột M 'Dòng hóa đơn/Số lượng' -> amount2, bộ). MỖI SHEET MỘT THÁNG ('BC T1'..'BC T7').",
+  "_bay": [
+    "MAPPING TRỎ HAI THƯ MỤC KHÁC NHAU CHO CÙNG MỘT FILE. Dòng 16 (CT36 sản lượng) ghi `San luong ban_Kho TC\\B.3.TC.TCKT.D.20260500.Baocaodoanhthu`, dòng 19 (CT33 doanh thu) ghi `Doanh thu xuat hoa don trụ sac - TC xuat HD\\B.3.TC.TCKT.D.20260500.Baocaodoanhthu` — về VPS thành hai thư mục `baocaodoanhthusanluongkhotc` và `baocaodoanhthuxuathdtrusac`. ĐÃ ĐO 06/09/2026: 7 sheet 'BC T1'..'BC T7' của hai file GIỐNG NHAU TỪNG Ô (48/5/25/24/25/17/9 dòng, ΣJ khớp tuyệt đối). Chỉ nạp MỘT thư mục; nạp cả hai là doanh thu và sản lượng NHÂN ĐÔI, và `_ghi` xoá theo (report_type, source_file) nên hai source_file khác nhau KHÔNG chặn được.",
+    "`moi_ky_lay_file_moi_nhat: mot_file` LÀ BẮT BUỘC — một file chứa TOÀN BỘ các tháng từ đầu năm. Bản tháng sau (`.D.20260800.`) lại có đủ T1..T7 nên hai bản cùng nằm trong thư mục là ghi cùng dữ liệu hai lần dưới hai source_file. Cùng lý do như `hcns_nhansu_phongban`.",
+    "'20260500' TRONG TÊN FILE KHÔNG PHẢI KỲ CỦA SỐ — kỳ lấy từ CỘT C 'Ngày hóa đơn' của từng dòng (`_ghi` gom theo `ngay[:7]`). Ngày 00 ở tên file cũng vì thế mà vô hại.",
+    "SỐ LƯỢNG NẰM Ở CỘT M, KHÔNG PHẢI ĐẾM DÒNG. Một hoá đơn có thể 2-8 bộ (T7 dòng 'CHARGING STATION' 8 bộ). Đếm dòng ra 9 bộ ở T7 trong khi ΣM = 9 chỉ vì tháng đó mỗi hoá đơn 1 bộ; T1 đếm dòng ra 48 còn ΣM = 55.",
+    "CỘT N 'Tháng' TRONG FILE LÀ SỐ THÁNG CỦA SHEET, KHÔNG DÙNG ĐỂ SUY KỲ — đã đo khớp tên sheet ở cả 7 sheet, nhưng nó là ô gõ tay còn cột C là ngày hoá đơn thật. Lấy C.",
+    "'Trạng thái' hiện CHỈ CÓ 'Đã vào sổ' ở cả 7 sheet (đo 06/09/2026) nên spec KHÔNG lọc theo nó — nhưng vẫn ghi vào payload. Ngày nào xuất hiện hoá đơn HUỶ/nháp thì phải thêm `loc`, đừng để nó cộng vào doanh thu.",
+    "MAPPING GHI 'từ dòng 3-50' — spec KHÔNG chặn `dong_ket_thuc`: T1 đã có 48 dòng dữ liệu (tới dòng 50) và tháng nào đông hơn là mất số im lặng. Bộ lọc `ngay khac_rong` đủ để dừng ở cuối bảng."
+  ],
+  "_kiem_chung": [
+    "ΣJ theo sheet (đồng): T1 6.410.357.264 · T2 1.634.581.481 · T3 761.667.162 · T4 2.637.220.867 · T5 1.106.770.361 · T6 2.736.373.228 · T7 84.999.996. Ô J1 của mỗi sheet là chính tổng đó (T7: 84.999.996 ✓).",
+    "ΣM theo sheet (bộ): T1 55 · T2 8 · T3 25 · T4 28 · T5 28 · T6 21 · T7 9.",
+    "Số NGÀY hoá đơn khác nhau trong tháng: T1 5 · T2 2 · T3 2 · T4 3 · T5 1 · T6 1 · T7 2 -> chế độ Ngày lên được, nhưng số dồn vào vài ngày cuối tháng (đặc điểm xuất hoá đơn, không phải lỗi nạp).",
+    "Loại trụ T1: 22kw 32 bộ · 120kw 10 · 60kw 10 · 30kw 2 · 20kw 1 = 55 ✓ (chiều 'Loại thiết bị' của thiết kế)."
+  ],
+  "report_type": "TSAC_XHD",
+  "row_index_base": 8800000,
+  "khoi": "Khối KD Trạm sạc Vgreen",
+  "nguon": {
+    "folder": "TRAMSAC/baocaodoanhthusanluongkhotc",
+    "file_glob": "*.Baocaodoanhthu.xlsx",
+    "sheet": {
+      "moi_sheet_chua": "BC T"
+    }
+  },
+  "moi_ky_lay_file_moi_nhat": "mot_file",
+  "kiem_tra_o": [
+    {"o": "C2", "bang": "Ngày hóa đơn"},
+    {"o": "J2", "bang": "Tổng chưa thuế đã ký"},
+    {"o": "L2", "bang": "Dòng hóa đơn/Sản phẩm"},
+    {"o": "M2", "bang": "Dòng hóa đơn/Số lượng"}
+  ],
+  "header": {"dong": 2},
+  "dong_bat_dau": 3,
+  "cot": {
+    "ngay": {"header": "Ngày hóa đơn", "kieu": "date"},
+    "dim1": {"header": "Dòng hóa đơn/Sản phẩm"},
+    "dim2": {"header": "Hiển thị tên đối tác ở hóa đơn"},
+    "amount": {"header": "Tổng chưa thuế đã ký", "kieu": "so", "he_so": 1e-09},
+    "amount2": {"header": "Dòng hóa đơn/Số lượng", "kieu": "so"},
+    "payload.so_hoa_don": {"header": "Số Hoá đơn GTGT"},
+    "payload.trang_thai": {"header": "Trạng thái"},
+    "payload.tt_thanh_toan": {"header": "Tình trạng thanh toán"}
+  },
+  "chieu_co_dinh": {
+    "cong_ty": "TC"
+  },
+  "ban_ghi": "moi_dong",
+  "loc": [
+    {"cot": "ngay", "dieu_kien": "khac_rong"}
+  ],
+  "payload_them": {
+    "unit": "ty",
+    "unit2": "bo",
+    "nguon_he": "Bảng kê hoá đơn bán trụ sạc (kho Thịnh Cường)"
+  }
+}

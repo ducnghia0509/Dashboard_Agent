@@ -1,0 +1,59 @@
+{
+  "id": "tsac_tiendien",
+  "_mo_ta": "DOANH THU TIỀN ĐIỆN CHI HỘ — sổ chi tiết TK 51132 (mẫu S38-DN), mapping '3.Tramsac_Mapping_Dashboard.xlsx' dòng 27: cột G 'Có' -> amount (tỷ). MỖI SHEET MỘT THÁNG. Cột N 'Chiều phân tích' = ĐỊA ĐIỂM KINH DOANH -> dim1. Cùng khuôn sổ với `tsac_chiase750` và `tsac_lapdat` — ba bẫy giống nhau, xem `_bay` của `tsac_chiase750`.",
+  "_bay": [
+    "BA DÒNG CUỐI SỔ KHÔNG PHẢI DOANH THU (số dư đầu/cuối kỳ, 'Kết chuyển doanh thu - Vgreen' TK 911, 'Cộng số phát sinh') — chặn bằng `ngay khac_rong` + `amount khac_rong` + `tk_doi_ung khac 911`. Đã đối chứng T7: 10 dòng phát sinh Σ 318.702.561 đ, còn dòng kết chuyển ghi 318.702.561 bên NỢ và dòng cộng ghi cả hai bên — cộng bừa ra gấp ba.",
+    "MAPPING GHI 'từ dòng 13-22' — không khai `dong_ket_thuc`: T5 đã chạy tới dòng 23. Chặn cứng 22 là mất dòng cuối, im lặng.",
+    "CÓ DÒNG BỎ TRỐNG 'Chiều phân tích' — T7 dòng 19 (3.198.857 đ) không ghi trạm nào. GIỮ NGUYÊN, tầng đọc gom vào 'Không phân loại'; lọc dim1 là mất doanh thu thật.",
+    "DIỄN GIẢI GHI THÁNG TIÊU THỤ, KHÔNG PHẢI THÁNG GHI SỔ — 'Chi hộ tiền điện Tháng 6/2026' nằm trong sheet 'Tháng 7' (hoá đơn 08/07). Kỳ theo NGÀY GHI SỔ/CHỨNG TỪ (cột C) đúng như mapping và đúng với BCTC; đừng 'sửa' về tháng tiêu thụ.",
+    "SỐ DỒN VÀO 2-4 NGÀY MỖI THÁNG — chế độ Ngày lên được nhưng là vài cột nhọn, xem `tsac_chiase750`.",
+    "`moi_ky_lay_file_moi_nhat: mot_file` — một file chứa mọi tháng từ đầu năm."
+  ],
+  "_kiem_chung": [
+    "Σ cột G theo sheet (đồng): T1 268.500.996 · T2 299.392.508 · T3 275.303.171 · T4 365.307.618 · T5 452.378.006 · T6 407.240.194 · T7 318.702.561.",
+    "T7: 318.702.561 = đúng ô 'Cộng số phát sinh' cột G (dòng 24) ✓ và bằng dòng kết chuyển bên Nợ ✓.",
+    "Số trạm mỗi tháng: T1 5 · T2 5 · T3 9 · T4 9 · T5 10 · T6 10 · T7 10 (T7 gồm 1 nhóm 'Không phân loại')."
+  ],
+  "report_type": "TSAC_TIENDIEN",
+  "row_index_base": 8830000,
+  "khoi": "Khối KD Trạm sạc Vgreen",
+  "nguon": {
+    "folder": "TRAMSAC/baocaodoanhthutiendienchiho",
+    "file_glob": "*.Baocaodoanhthuchihotiendien.xlsx",
+    "sheet": {
+      "moi_sheet_chua": "Tháng "
+    }
+  },
+  "moi_ky_lay_file_moi_nhat": "mot_file",
+  "kiem_tra_o": [
+    {"o": "A5", "bang": "51132"},
+    {"o": "C10", "bang": "Ngày, tháng (8)"},
+    {"o": "G10", "bang": "Có (13)"},
+    {"o": "N9", "bang": "Chiều phân tích"}
+  ],
+  "header": {"dong": [9, 10]},
+  "dong_bat_dau": 12,
+  "cot": {
+    "ngay": {"header": "Ngày, tháng (8)", "kieu": "date"},
+    "dim1": {"header": "Chiều phân tích"},
+    "dim2": {"header": "Tên đối tượng(19)"},
+    "amount": {"header": "Có (13)", "kieu": "so", "he_so": 1e-09},
+    "payload.so_chung_tu": {"header": "Chứng từ"},
+    "payload.dien_giai": {"header": "Diễn giải (9)"},
+    "payload.tk_doi_ung": {"header": "TK đối ứng (10)"}
+  },
+  "chieu_co_dinh": {
+    "cong_ty": "TC"
+  },
+  "ban_ghi": "moi_dong",
+  "loc": [
+    {"cot": "ngay", "dieu_kien": "khac_rong"},
+    {"cot": "amount", "dieu_kien": "khac_rong"},
+    {"cot": "payload.tk_doi_ung", "dieu_kien": "khac", "gia_tri": "911"}
+  ],
+  "payload_them": {
+    "unit": "ty",
+    "loai_dt": "TIEN_DIEN",
+    "nguon_he": "Sổ chi tiết TK 51132 — doanh thu tiền điện chi hộ"
+  }
+}

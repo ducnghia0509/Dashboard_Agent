@@ -1,0 +1,106 @@
+{
+  "id": "xdv_kehoach_ngay_t9",
+  "_mo_ta": "KẾ HOẠCH doanh thu + số lượng RO của XDV theo NGÀY, THÁNG 9/2026 — sheet 'KHT9ngày' của 2.XDV.OO.M.<yyyymm>.Kehoachthang.xlsx. Cùng report_type XDV_DTHU_KH với bản T8 (spec xdv_doanhthu_kehoach_ngay) nên mọi ô 'kế hoạch đến nay' của màn xdv0 tự chạy, KHÔNG cần sửa code.",
+  "_bay": [
+    "VÌ SAO PHẢI CÓ SPEC NÀY: nguồn T8 (`XDV/baocaodoanhthukehoachngay`) ĐÃ CHẾT — file đó chỉ có sheet 'KHDT theo ngày' của tháng 8 và dòng mốc ngày vẫn ghi THÁNG 8 kể cả ở bản làm mới 09/09/2026. Sang tháng 9 mọi ô 'kế hoạch đến nay'/'mục tiêu đến nay' của xdv0 sẽ RỖNG nếu không mở đường này. Kế hoạch ngày T9 nằm SẴN trên VPS từ trước, chỉ là trong file KHÁC: sheet 'KHT9ngày' của file Kehoachthang (chính file mà spec xdv_kehoach_gt/_sl đang đọc).",
+    "TUYỆT ĐỐI KHÔNG khai thêm sheet 'KHT8ngày' vào report_type này (dù cùng file, cùng bố cục): T8 đã nạp từ `XDV::B.2.TC.TCKT.202608.Baocaodoanhthukehoachngay.xlsx` (2.077 dòng). Hai file chở CÙNG một bộ số T8 — đã đối chiếu Ocean Park 01/08 = 179.082.293,396 khớp tới từng chữ số thập phân ở cả hai bản — nên nạp cả hai là CỘNG ĐÔI đúng nghĩa, kế hoạch T8 phình từ 46,2 lên 92,4 tỷ.",
+    "KHÔNG dùng `moi_sheet_chua: \"KHT\"` để một spec ăn mọi tháng: T9 LỆCH T8 ĐÚNG MỘT DÒNG. Sheet KHT8ngày có tiêu đề ở dòng 4 và dữ liệu từ dòng 5; sheet KHT9ngày tách 'Số lượng\\nRO' thành hai dòng (dòng 4 'Số lượng', dòng 5 'RO') nên dữ liệu đẩy xuống dòng 6. `moi_sheet_chua` bắt hai sheet dùng CHUNG một `dong_bat_dau` -> sheet nào cũng lệch. Tháng sau có 'KHT10ngày' thì kiểm lại dòng bắt đầu rồi khai spec mới (hoặc gộp khi bố cục hai sheet đã trùng).",
+    "BLOCK 'Tổng XDV' NẰM Ở ĐẦU SHEET, KHÔNG PHẢI CUỐI — đây là khác biệt lớn nhất so với file cũ. Dòng 6 là 'Tổng XDV' (mã VINFAST_SDV, Ma lenh = 'Tổng') và dòng 7-10 là 4 dòng N/W/I/C CỦA CHÍNH NÓ. Bốn dòng đó TRỐNG cột 'XDV' và trống cột 'Mã Code center', tức là KHÔNG THỂ phân biệt với 4 dòng N/W/I/C của một xưởng bằng bộ lọc nào. Vì thế phải chặn bằng `dong_bat_dau: 11` (dòng đầu của Ocean Park) — bỏ trọn block tổng. Lọc theo giá trị là chắc chắn cộng đôi phần N/W/I/C.",
+    "DÒNG 'Cộng' Ở CUỐI (dòng 81) bị `dong_ket_thuc: 80` chặn. Cùng quy ước với bản T8: đã kiểm 10/08/2026 Σ 14 dòng 'Tổng' của xưởng = dòng 'Cộng' TUYỆT ĐỐI, nạp thêm là đếm đôi — xem app/metrics/xdv.py::_ke_hoach_theo_ngay.",
+    "GIỮ CẢ dòng 'Tổng' LẪN 4 dòng N/W/I/C của TỪNG XƯỞNG (mapping #10 cần kế hoạch theo hình thức thanh toán). Hệ quả bắt buộc nhớ: chúng CỘNG LẠI LÀ ĐẾM ĐÔI, mọi phép tổng phải lọc `dim1 = 'Tổng'` — `_ke_hoach_theo_ngay`/`_ke_hoach_tien_theo_ngay` đã lọc sẵn.",
+    "Tên xưởng chỉ nằm trên dòng 'Tổng' nên 4 dòng N/W/I/C có cost_center NULL — giống hệt bản T8, không phải lỗi đọc.",
+    "GLOB PHẢI GHIM '2.XDV.': cùng thư mục còn 1.SR/3.TS/4.DuAn/5.HT/6.XVP/7.AnTX. File 1.SR cũng có sheet 'KHT9ngaytheoSR' và 3.TS có 'KHT9ngay' — dùng '*.Kehoachthang.xlsx' là ba khối nạp chéo nhau.",
+    "Xưởng HCM ghi 'Quận 12' ở bản kế hoạch (master: 'Vinfast Hồ Chí Minh', bản thực hiện: 'HCM') — alias 'quan 12' đã có trong `_cc_xdv`. Thiếu alias thì xưởng đó lặng lẽ rơi khỏi báo cáo.",
+    "amount2 = KH SỐ LƯỢNG RO (đơn vị LỆNH, he_so_amount2 = 1) — KHÔNG dùng he_so 1e-9 của tiền, nếu không ra 0,0000005 lệnh.",
+    "LỖI NGUỒN T9 — CỘT 'Tổng tháng' SỐ LƯỢNG RO NHỎ 1000 LẦN: ô G6 ghi 14.497 (thay vì 14.497 LỆNH) và từng xưởng cũng vậy (Ocean Park 1.81 thay vì 1.810). Dấu chấm ngàn bị Excel đọc thành dấu thập phân. KHÔNG ảnh hưởng spec này vì `moi_cot_ngay` chỉ đọc các CỘT NGÀY (từ I trở đi) và các cột ngày ghi số nguyên đúng thang (01/09 = 558 lệnh); nhưng nếu sau này ai lấy cột 'Tổng tháng' thì phải nhân 1000. Cùng họ lỗi với 'kế hoạch sản lượng nhỏ 1000 lần' của Xanh Taxi.",
+    "LỖI NGUỒN T9 — TÊN FILE VẪN LÀ '202608': một file cấp kế hoạch cho nhiều tháng, kỳ KHÔNG lấy theo tên file mà lấy từ chính ô ngày ở dòng 3 (`cot_ngay.dong: 3`). Đừng thêm `ky_thang_tu_ten_file`.",
+    "LỖI NGUỒN T9 — KHÔNG CÓ CỘT 'Tỷ lệ' RIÊNG CHO NGÀY: cột F 'Tỷ lệ' là tỷ trọng N/W/I/C của CẢ THÁNG, không phải của ngày. Không khai nó thành chiều nào.",
+    "PHẢI ĐẶT `cot_ngay.ky_tu_o: true`: tên file ghi 202608 nên phép kiểm mặc định 'ngày phải thuộc kỳ của file' loại SẠCH 30 cột tháng 9 rồi bỏ qua cả file (dòng = 0, cảnh báo 'không dựng được dải cột theo ngày'). Ô mốc ở dòng 3 là NGÀY THẬT nên `ky_tu_o` lấy kỳ từ chính ô đó — đúng cách dùng khoá này.",
+    "LỖI NGUỒN T9 (1) — CỘT 'Tổng tháng' SỐ LƯỢNG RO NHỎ 1000 LẦN: ô G6 ghi 14.497 thay vì 14.497 LỆNH, từng xưởng cũng vậy (Ocean Park 1.81 thay vì 1.810) — dấu chấm ngàn bị đọc thành dấu thập phân. KHÔNG ảnh hưởng spec này vì `moi_cot_ngay` chỉ đọc CÁC CỘT NGÀY (từ I) và các cột ngày ghi số nguyên đúng thang (01/09 = 558 lệnh). Ai lấy cột 'Tổng tháng' thì phải nhân 1000. Cùng họ với lỗi 'kế hoạch sản lượng nhỏ 1000 lần' của Xanh Taxi.",
+    "LỖI NGUỒN T9 (2) — SHEET KHÔNG TỰ CÂN, BA TỔNG KHÁC NHAU: ô H6 'Tổng tháng' = 46.249.674.968; Σ 30 cột ngày của CHÍNH dòng 'Tổng XDV' = 42.514.124.307; Σ 14 xưởng × 30 ngày = 45.709.662.944. Spec này nạp mức XƯỞNG (45,71 tỷ) — vừa đúng quy ước cũ (xem `_ke_hoach_theo_ngay`), vừa là mức DUY NHẤT có chi tiết theo xưởng mà bảng xưởng của xdv0 cần, và gần nhất với tổng tháng file tự khai (hụt 0,54 tỷ = 1,17%).",
+    "LỖI NGUỒN T9 (3) — DÒNG TỔNG VÀ DÒNG XƯỞNG DÙNG HAI LỊCH NGHỈ KHÁC NHAU: 24/30 ngày hai mức lệch 0,01% (làm tròn, bỏ qua được), nhưng ĐÚNG 6 NGÀY lệch lớn — 11, 12, 18, 19, 25, 26/09. Dòng 'Tổng XDV' hạ kế hoạch xuống 70%/30% cho cả thứ Sáu lẫn thứ Bảy, còn các dòng xưởng chỉ hạ ~96%/64% (mỗi xưởng một lịch). Hệ quả đang sống: %HT NGÀY của 6 ngày đó lấy mẫu số theo mức xưởng, cao hơn mức dòng tổng tới 36% (11/09) và 114% (12/09). ĐÃ BÁO KẾ TOÁN — đây là chỗ cần chốt lịch nghỉ trước khi tin %HT của 6 ngày này.",
+    "T8 KHÔNG CÓ CẢ BA LỖI TRÊN: Σ 14 xưởng = dòng 'Cộng' lệch 0 tuyệt đối. Đừng suy bố cục/chất lượng T9 từ T8."
+  ],
+  "_kiem_chung": [
+    "2.010 dòng, kỳ 2026-09, dải 01→30/09 (30 ngày), 14/14 xưởng map đủ ('Quận 12' -> HCM_XDV qua alias `_cc_xdv`).",
+    "dim1: Tổng 420 = 14 xưởng × 30 ngày (khớp); W/I/C mỗi loại 420; N chỉ 330 vì Quận 12 / Tuyên Quang / Việt Trì khai tỷ lệ N = 0 và để TRỐNG cả 30 ngày -> thiếu 90 dòng là ĐÚNG THEO FILE, không phải lỗi đọc.",
+    "Σ 14 dòng 'Tổng' ngày 01/09 = 1.778.727.301 đ / 557 lệnh; dòng 'Tổng XDV' của file ghi 1.778.833.653 đ / 558 lệnh -> lệch 106.352 đ (0,01%, làm tròn).",
+    "Σ 14 dòng 'Tổng' cả T9 = 45.709.662.944 đ / 14.677 lệnh."
+  ],
+  "report_type": "XDV_DTHU_KH",
+  "giu_ngay_tuong_lai": true,
+  "row_index_base": 7150000,
+  "khoi": "Khối KD Vinfast - XDV",
+  "nguon": {
+    "folder": "KEHOACH/baocaokehoachthang",
+    "file_glob": "2.XDV.*.Kehoachthang.xlsx",
+    "sheet": {
+      "ten": "KHT9ngày"
+    }
+  },
+  "kiem_tra_o": [
+    {
+      "o": "A4",
+      "bang": "STT"
+    },
+    {
+      "o": "C4",
+      "bang": "XDV"
+    },
+    {
+      "o": "D4",
+      "bang": "Ma lenh"
+    },
+    {
+      "o": "C3",
+      "bang": "THÁNG"
+    },
+    {
+      "o": "C11",
+      "bang": "Ocean Park"
+    }
+  ],
+  "header": {
+    "dong": 4
+  },
+  "dong_bat_dau": 11,
+  "dong_ket_thuc": 80,
+  "cot": {
+    "cost_center": {
+      "header": "XDV",
+      "chuan_hoa": "xdv"
+    },
+    "dim1": {
+      "header": "Ma lenh",
+      "chuan_hoa": "cat"
+    }
+  },
+  "ban_ghi": "moi_cot_ngay",
+  "cot_ngay": {
+    "dong": 3,
+    "tu": "I",
+    "den": "BS",
+    "lech_amount": 1,
+    "lech_amount2": 0,
+    "he_so": 1e-09,
+    "he_so_amount2": 1,
+    "ky_tu_o": true
+  },
+  "loc": [
+    {
+      "cot": "dim1",
+      "dieu_kien": "thuoc",
+      "gia_tri": [
+        "Tổng",
+        "N",
+        "W",
+        "I",
+        "C"
+      ]
+    }
+  ],
+  "payload_them": {
+    "unit": "ty",
+    "loai": "ke_hoach"
+  }
+}

@@ -1,0 +1,74 @@
+{
+  "id": "vhkd_tonkho_hoadon",
+  "_mo_ta": "TỒN KHO XE THEO HOÁ ĐƠN — nguồn TỰ ĐỘNG KD23 'BÁO CÁO NHẬP XUẤT TỒN XE (CHI TIẾT THEO SỐ KHUNG)_HÓA ĐƠN XE' (ổ IT\\TESTBAOCAOTUDONG\\1.VINFAST_SR -> VPS `TEST_SR/baocaonhapxuatxetheosokhung`), mỗi ngày một file. Một bản ghi = MỘT SỐ KHUNG ĐANG TỒN. Dựng cho bản mapping DASHBOARD 4 'QUẢN LÝ TỒN KHO' của VHKD (mục 1, 3, 4-15), thay cho 3 file TAY theo kênh (`vhkd_khoxe_b2c/b2b/gf` -> `VHKD_KHOXE`).\n\nKHÁC KD36 (`vhkd_tonkho_vatly_auto` -> `VHKD_TONVATLY`) là tồn kho xe VẬT LÝ. Hai tập KHÔNG bằng nhau và không được coi là một: 14/09 hoá đơn 1.205 xe, 13/09 vật lý 1.602 xe. Chính hiệu số đó là chỉ tiêu 'chênh lệch vật lý − hoá đơn' của khối B màn vhkd4, nên PHẢI giữ cả hai nguồn.",
+  "_kiem_chung": [
+    "14/09/2026: 21.343 dòng chi tiết (có Số khung), SUM cột K 'Tồn cuối' = 1.205 — KHỚP TUYỆT ĐỐI dòng 'Tổng cộng' (r9) của chính file. Ba cột còn lại cũng khớp: Tồn đầu 1.202 · SL Nhập 19.195 · SL Xuất 19.192.",
+    "Cột theo ĐÚNG chữ cột bản mapping khai: A 'Đơn vị' · G 'Số ngày tồn' · K 'Tồn cuối' · P 'Mã kho'. Dù vậy spec vẫn dò theo TÊN HEADER (nguyên tắc số 1 của engine); `kiem_tra_o` neo 5 ô đó để kế toán chèn cột là hỏng TO chứ không sai âm thầm.",
+    "Cột K chỉ nhận 0 (20.138 dòng) hoặc 1 (1.205 dòng) -> 'lọc K = 1' (mapping mục 4-15) và 'SUM K' (mục 1) RA CÙNG MỘT SỐ. Không cần hai đường tính.",
+    "1.205 xe tồn = 1.205 SỐ KHUNG DUY NHẤT, không trùng dòng nào — sạch hơn KD36 (3 VIN nằm 2 kho trong cùng file). Dù 1.126/1.205 xe có nhiều chân luân chuyển trong năm thì chỉ đúng một chân mang Tồn cuối = 1.",
+    "Lọc 'Số ngày tồn > 30' (chỉ tiêu CT40): 683 xe, và CẢ 683 dòng đều có Tồn cuối = 1 — bộ lọc tuổi tồn không thể kéo theo xe đã xuất. Hai bậc: 31-45 ngày 81 xe · > 45 ngày 602 xe (cộng lại đúng 683).",
+    "Kênh theo `kho_kenh` (14/09): B2C 862 (2001: 731 + 1010: 131) · B2B 168 (2010: 109 + 2011: 59) · GF 27 · Xe demo 148 · Xe ký gửi 0 -> tổng 1.205."
+  ],
+  "_bay": [
+    "GIÁ TRỊ PHẢI LẤY SAU KHI LỌC TỒN CUỐI = 1, VÀ KHÔNG ĐƯỢC ĐỐI CHIẾU VỚI DÒNG 'TỔNG CỘNG'. Cột O 'Dư cuối' là SỐ DƯ RÒNG từng chân: cộng cả 21.343 dòng ra 326,64 tỷ, đúng bằng dòng Tổng cộng nên trông rất 'khớp' — nhưng đó là +579,85 tỷ (dòng Tồn cuối = 1) TRỪ 253,22 tỷ của 6.795 dòng Tồn cuối = 0 mang dư ÂM (giá nhập 233,80 tr ≠ giá xuất 248,73 tr trên cùng một VIN). Giá trị tồn kho THẬT của 1.205 xe là 579,85 tỷ (~481 tr/xe). Phép đối chiếu 'bằng đúng dòng Tổng cộng' mà bản mapping ghi ở mục 1 CHỈ đúng cho SỐ LƯỢNG.",
+    "DÒNG TỔNG NẰM Ở DÒNG 9 — NGAY DƯỚI HEADER, không phải cuối file (giống KD36). TUYỆT ĐỐI KHÔNG dùng `dung_khi`: dòng tổng đứng ĐẦU nên engine dừng ngay và nạp 0 dòng. Ở nguồn này `so_khung khac_rong` CHẶN ĐƯỢC dòng tổng (r9 bỏ trắng cột 'Số khung') — khác KD36 nơi nhãn 'Tổng cộng ' rơi trúng cột chứa VIN nên phải chặn bằng `ma_kieu_xe`. Cùng lớp lọc đó chặn luôn chân trang 'Người lập biểu' / 'Mr Thắng' (nằm ở cột Q).",
+    "CHỈ NẠP XE ĐANG TỒN: file là sổ LUỸ KẾ TỪ 01/01, liệt kê MỌI chân luân chuyển của mọi số khung trong năm — 21.343 dòng ngày 14/09 mà chỉ 1.205 dòng có nghĩa cho màn tồn kho, và nó còn phình thêm ~19 nghìn dòng mỗi năm. Nạp trọn là lặp lại đúng sự cố `vhkd_ton_hosoxe` (81.591 dòng sau 10 ngày). `loc payload.ton_cuoi khac_rong` (điều kiện này loại cả giá trị 0) giữ đúng 1.205 dòng/ngày. Nếu sau này cần dựng rollforward tồn đầu/nhập/xuất thì phải nới lọc — và phải tính lại chi phí bảng trước.",
+    "SỔ LUỸ KẾ NHƯNG BỐN SỐ KHÔNG CÙNG BẢN CHẤT: 'Tồn cuối' và 'Số ngày tồn' là ẢNH CHỤP tại ngày chạy; 'Tồn đầu' / 'SL Nhập' / 'SL Xuất' / 'Giá trị nhập' / 'Giá trị xuất' là LUỸ KẾ từ 01/01. Cộng qua nhiều ngày là đếm đôi ở cả hai nhóm. `moi_ky_lay_file_moi_nhat: \"ngay\"`, bên cron khai `ANH_CHUP_KY`, và `VHKD_TONHD` phải nằm trong `_SNAP_RT` bên API.",
+    "TÊN FILE DÙNG GẠCH DƯỚI trước tên báo cáo ('B.1.TC.OO.D.20260914_Baocaonhapxuatxetheosokhung.xlsx') chứ không phải dấu chấm như KD36/KD73 — `ngay_tu_ten_file` phải kết bằng `_`, dùng regex `\\.D\\.(\\d{4})(\\d{2})(\\d{2})\\.` của các spec cũ là KHÔNG bắt được ngày nào. Tiền tố cũng khác: 'B.1.TC.OO.' thay vì 'B.1.TC.TCKT.'; glob và regex đều cố ý không bám tiền tố.",
+    "BẢN MAPPING KHAI 11 MÃ KHO, FILE NÀY CHỈ CÓ 6. Suốt cả năm luỹ kế không một dòng nào mang 1011, 2013, 2014, 2015 (B2B_KD) hay 2008 (ký gửi) — trong khi KD36 vật lý ngày 13/09 có đủ (2013: 63 · 2014: 15 · 2015: 11 · 2008: 52 · 1011: 20). Danh sách trong mapping là bảng mã kho của KD36 bê sang. HỆ QUẢ: khối 'TỒN KHO HÓA ĐƠN - Ký gửi' của thiết kế sẽ RỖNG, và B2B hoá đơn (168 xe) chỉ phủ 2/5 kho đã khai so với 358 xe B2B vật lý. Chưa hỏi được nghiệp vụ nên spec KHÔNG bịa: cứ nạp đúng cái file có, mã lạ `kho_kenh` tự cho vào 'Khác' để lộ ra.",
+    "92 DÒNG BỎ TRẮNG 'Mã kho' (14/09) — cả 92 đều Tồn cuối = 0 nên bị `loc` chặn và tổng vẫn khớp 1.205, NHƯNG chúng mang 427,69 tr 'Dư cuối'. Ngày nào một dòng như vậy có Tồn cuối = 1 thì nó vào DB với dim2 rỗng (hook `kho_kenh` trả None khi mã rỗng) chứ KHÔNG rơi vào 'Khác'. Tổng theo kênh sẽ hụt so với tổng chung mà không có cảnh báo — nơi tiêu thụ phải đối chiếu SUM(amount) với tổng của 5 nhóm, đừng tin nhóm cộng lại là đủ.",
+    "'Xe demo' (2004) và 'Xe ký gửi' (2008) KHÔNG PHẢI KÊNH BÁN — hook `kho_kenh` để riêng, cùng lý lẽ đã ghi ở `vhkd_tonkho_vatly_auto`. Bản mapping cũng liệt kê chúng thành hai khối riêng, không gộp vào B2B/B2C/GF.",
+    "GIÁ TRỊ XE DEMO LÀ GIÁ TRỊ CÒN LẠI SAU KHẤU HAO, không phải giá xe: 14 xe VF301 trong kho 2004 (2.004 = demo, 656 ngày tồn) mang 'Dư cuối' bình quân 74,7 tr/xe. Số ĐÚNG theo sổ, nhưng cộng thẳng vào 'giá trị tồn kho' là trộn hai cơ sở định giá — nơi tiêu thụ muốn tách thì lọc theo dim2 = 'Xe demo'.",
+    "KHÔNG CÓ CỘT KHÁCH HÀNG. Chỉ tiêu 'chưa ghép khách' mà màn vhkd4 đang chạy (từ 'Tên KH' của file B2C tay và 'TÊN SR XHĐ' của file B2B tay) KHÔNG dựng được từ nguồn này. Cột R 'Số Hợp đồng' chỉ điền 6/21.343 dòng -> không dùng làm phương án thay thế. Bỏ 3 file tay là mất hẳn chỉ tiêu đó.",
+    "'Số ngày tồn' Ở ĐÂY ĐẾM TỪ 'Ngày nhập từ NCC' (cột F), còn màn vhkd4 hiện tại đếm từ ngày xe về Showroom -> con số CT40 sẽ DỊCH khi đổi nguồn. Max 750 ngày. Phải chốt cơ sở với nghiệp vụ trước khi thay, nhất là nếu CT40 có chấm điểm.",
+    "Đơn vị 'Vinfast B2B' (90 xe) và 'CHI NHÁNH VINFAST HÀ NỘI - CÔNG TY CỔ PHẦN THỊNH CƯỜNG' (20 xe) không có trong danh mục cost center — `giu_khi_khong_map: true` để tổng khối vẫn đúng, giống KD36 và KD25. Bản mapping ghi rõ mục 1 và 3 'ko lấy theo costcenter' nên chuyện này chưa ảnh hưởng chỉ tiêu nào.",
+    "REPORT_TYPE RIÊNG `VHKD_TONHD`, CỐ Ý KHÔNG GHI ĐÈ `VHKD_KHOXE`: cùng cách đã làm cho 3 nguồn TEST_SR khai 05/09 — nạp song song, đối chiếu, đổi sau. Ở đây còn thêm ba câu hỏi nghiệp vụ chưa có trả lời (ký gửi/B2B_KD vắng mặt · mất 'chưa ghép khách' · đổi cơ sở tuổi tồn), chưa chốt thì chưa được chuyển màn sang."
+  ],
+  "report_type": "VHKD_TONHD",
+  "row_index_base": 8910000,
+  "khoi": "Khối KD Vinfast - Showroom",
+  "nguon": {
+    "folder": "TEST_SR/baocaonhapxuatxetheosokhung",
+    "file_glob": "*_Baocaonhapxuatxetheosokhung.xlsx",
+    "sheet": {"so": 0}
+  },
+  "kiem_tra_o": [
+    {"o": "A8", "bang": "Đơn vị"},
+    {"o": "C8", "bang": "Số khung"},
+    {"o": "G8", "bang": "Số ngày tồn"},
+    {"o": "K8", "bang": "Tồn cuối"},
+    {"o": "P8", "bang": "Mã kho"}
+  ],
+  "header": {"dong": 8},
+  "dong_bat_dau": 9,
+  "ngay_tu_ten_file": {"regex": "\\.D\\.(\\d{4})(\\d{2})(\\d{2})_", "thu_tu": "ymd"},
+  "moi_ky_lay_file_moi_nhat": "ngay",
+  "cot": {
+    "cost_center": {"header": "Đơn vị", "chuan_hoa": "sr_showroom", "giu_khi_khong_map": true},
+    "amount": {"header": "Tồn cuối", "kieu": "so_co_rong"},
+    "amount2": {"header": "Dư cuối", "kieu": "so_co_rong", "he_so": 1e-9},
+    "dim1": {"header": "Mã kx", "chuan_hoa": "sr_loai_xe", "giu_khi_khong_map": true},
+    "dim2": {"header": "Mã kho", "chuan_hoa": "kho_kenh"},
+    "dim3": {"header": "Tên kho", "chuan_hoa": "cat"},
+    "payload.don_vi": {"header": "Đơn vị"},
+    "payload.so_khung": {"header": "Số khung"},
+    "payload.ma_kx": {"header": "Mã kx"},
+    "payload.mau_xe": {"header": "Màu xe", "bat_buoc": false},
+    "payload.ngay_nhap_ncc": {"header": "Ngày nhập từ NCC", "bat_buoc": false},
+    "payload.so_ngay_ton": {"header": "Số ngày tồn", "kieu": "so_co_rong"},
+    "payload.ton_dau": {"header": "Tồn đầu", "kieu": "so_co_rong"},
+    "payload.sl_nhap": {"header": "SL Nhập", "kieu": "so_co_rong"},
+    "payload.sl_xuat": {"header": "SL Xuất", "kieu": "so_co_rong"},
+    "payload.ton_cuoi": {"header": "Tồn cuối", "kieu": "so_co_rong"},
+    "payload.du_cuoi": {"header": "Dư cuối", "kieu": "so_co_rong"},
+    "payload.ma_kho": {"header": "Mã kho"},
+    "payload.ten_kho": {"header": "Tên kho", "bat_buoc": false},
+    "payload.so_hop_dong": {"header": "Số Hợp đồng", "bat_buoc": false}
+  },
+  "ban_ghi": "moi_dong",
+  "loc": [
+    {"cot": "payload.so_khung", "dieu_kien": "khac_rong"},
+    {"cot": "payload.ton_cuoi", "dieu_kien": "khac_rong"}
+  ],
+  "payload_them": {"unit": "xe", "unit_amount2": "ty"}
+}
