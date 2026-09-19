@@ -1363,10 +1363,64 @@ _CHUAN_HOA = {
 
 
 # ─────────────────────────── đọc spec & sheet ───────────────────────────
+# Cột cost center admin đã duyệt ở chuông 🔔 (bảng `cost_center_map`, migration 0070/0071).
+# Khoá `layout` = "spec:<nguon.folder>" chứ KHÔNG phải id spec: một file nguồn phục vụ NHIỀU spec
+# (TEST_XDV có 5 spec cùng đọc `baocaotaichinhrienghqkd`), khoá theo spec thì admin phải duyệt 5
+# lần cho cùng một xưởng. Khoá theo thư mục: duyệt MỘT lần, mọi spec của file đó cùng đọc được.
+_cot_duyet_cache = None
+
+
+def _cot_da_duyet(folder: str):
+    """[(ten_cot, ma_cost_center)] đã duyệt cho thư mục nguồn này. Lỗi/thiếu bảng -> []."""
+    global _cot_duyet_cache
+    if _cot_duyet_cache is None:
+        _cot_duyet_cache = {}
+    if folder in _cot_duyet_cache:
+        return _cot_duyet_cache[folder]
+    ra = []
+    try:
+        with psycopg.connect(DB_URL) as conn:
+            ra = [(t, cc) for t, cc in conn.execute(
+                "SELECT ten_cot_goc, cost_center FROM cost_center_map "
+                "WHERE layout=%s AND trang_thai='da_duyet'", (f"spec:{folder}",)).fetchall()
+                if t and cc]
+    except Exception:                                    # noqa: BLE001
+        ra = []                                          # nuốt: thiếu bảng/DB không được chặn nạp
+    _cot_duyet_cache[folder] = ra
+    return ra
+
+
+def _them_cot_da_duyet(spec: dict) -> dict:
+    """Bổ sung các cột cost center admin đã duyệt vào `cot_gia_tri`.
+
+    NHÂN BẢN từ một mục cost center CÓ SẴN của chính spec đó thay vì dựng mục mới: mỗi spec có
+    `dim2`/`he_so`/`amount2`… riêng (XDV_PNL_D dùng dim2="Xưởng", he_so=1e-9), dựng tay là sớm
+    muộn lệch một khoá rồi ra số sai đơn vị. Spec nào KHÔNG khai cost center thì bỏ qua hẳn.
+    """
+    mau = next((c for c in (spec.get("cot_gia_tri") or [])
+                if isinstance(c, dict) and c.get("cost_center")), None)
+    if not mau:
+        return spec
+    folder = (spec.get("nguon") or {}).get("folder") or ""
+    da_co = set()
+    for c in spec["cot_gia_tri"]:
+        h = c.get("header")
+        for x in ([h] if isinstance(h, str) else (h or [])):
+            da_co.add(str(x).strip())
+    for ten, cc in _cot_da_duyet(folder):
+        if str(ten).strip() in da_co:
+            continue
+        moi = dict(mau)
+        moi["header"] = ten
+        moi["cost_center"] = cc
+        spec["cot_gia_tri"].append(moi)
+    return spec
+
+
 def load_spec(ref):
     path = ref if os.path.isfile(ref) else os.path.join(SPEC_DIR, f"{ref}.json")
     with open(path, encoding="utf-8") as f:
-        return json.load(f)
+        return _them_cot_da_duyet(json.load(f))
 
 
 def specs_for_path(path):
@@ -1387,7 +1441,12 @@ def specs_for_path(path):
     for f in sorted(glob.glob(os.path.join(SPEC_DIR, "*.json"))):
         try:
             with open(f, encoding="utf-8") as fh:
-                sp = json.load(fh)
+                # PHẢI đi qua `_them_cot_da_duyet` Y NHƯ `load_spec`: đây mới là đường mà
+                # `agent_cli.cmd_autofill` / `template_filler` thực sự nạp file. Bản đầu (19/09)
+                # chỉ vá `load_spec` -> gọi `load_spec` tay thì thấy 15 cột, còn lượt nạp THẬT
+                # vẫn 14 cột và cột vừa duyệt không vào DB. Bắt được vì nghiệm thu bằng dữ liệu
+                # thật thay vì tin con số của hàm vừa sửa.
+                sp = _them_cot_da_duyet(json.load(fh))
         except Exception:
             continue                      # spec hỏng cú pháp KHÔNG được làm chết luồng nạp
         folder = ((sp.get("nguon") or {}).get("folder") or "").strip("/")
