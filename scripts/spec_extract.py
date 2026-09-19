@@ -26,6 +26,8 @@ CẤU TRÚC SPEC (khoá tiếng Việt cho kế toán/BA đọc được):
     "folder": "SRVF/baocaokqkd",         // dưới received_reports/
     "file_glob": "*.xlsx",
     "sheet": {"batdau": "CHI TIẾT XHĐ"}  // | {"ten": "..."} | {"chua": "..."} | {"so": 0}
+                                        // | {"theo_o": [{"o": "A8", "bang": "Mã số"}, ...]} — chọn
+                                        //   sheet theo ô mốc, dùng khi nguồn đổi tên/thứ tự sheet
                                         // | {"theo_thang": "T{mm}"} — file 1 sheet/tháng (BCTC SRVF)
                                         // | {"moi_sheet_chua": "Phí DV T"} — đọc MỌI sheet khớp
                                         // | {"moi_sheet_ngay": true} — mỗi sheet là 1 ngày
@@ -1521,6 +1523,37 @@ def _chon_sheet(wb, cfg, thang=None):
     cfg = cfg or {}
     if "so" in cfg:
         return wb.sheetnames[int(cfg["so"])]
+    if "theo_o" in cfg:
+        # Chọn sheet theo NỘI DUNG Ô MỐC, không theo tên cũng không theo thứ tự.
+        #
+        # VÌ SAO (19/09/2026, sự cố thật): BCTC riêng XDV đổi THỨ TỰ sheet giữa các kỳ —
+        # 2024 T06/T07/T11 để KQKD đầu tiên, còn T08/T09/T10/T12 để CĐPS trước. Spec khai
+        # `sheet.so = 0` nên 4 kỳ đó đọc trúng CĐPS, `kiem_tra_o` bắt được và từ chối cả
+        # file: mất trắng 720 dòng XDV_PNL mỗi kỳ. Khai `sheet.ten` cứng cũng không cứu
+        # được vì tên sheet P&L của nguồn này đổi liên tục theo kỳ: "KQKD" (2024),
+        # "T1".."T12" (2025), "HQKD" (2025-05), "Sheet1"/"Sheet" (2026).
+        #
+        # Thứ duy nhất BẤT BIẾN là bộ ô mốc của chính bảng P&L. Khai LIST nhiều điều kiện
+        # thì mới đủ phân biệt: riêng A8="Mã số" là CĐKT cũng có thể trúng.
+        # Nhận CẢ HAI dạng điều kiện như `kiem_tra_o`: {"o": "A8"} đòi đúng ô, còn
+        # {"hang": 8} chỉ đòi nhãn nằm ĐÂU ĐÓ trong hàng — bắt buộc cho cột cost center,
+        # vì XDV T12/2024 bỏ 5 cột phụ (TK nợ/TK có/Mã phí/Mã NS/Công thức) nên
+        # "XDV Ocean Park" tụt từ I8 về D8 trong khi bảng vẫn y nguyên.
+        def _khop(ws, d):
+            can = _nd(d.get("bang"))
+            if d.get("hang"):
+                return any(can in _nd(c.value) for c in ws[int(d["hang"])])
+            return can in _nd(ws[d["o"]].value)
+
+        dk = cfg["theo_o"] if isinstance(cfg["theo_o"], list) else [cfg["theo_o"]]
+        for name in wb.sheetnames:
+            ws = wb[name]
+            try:
+                if all(_khop(ws, d) for d in dk):
+                    return name
+            except (IndexError, ValueError, TypeError):   # sheet ngắn hơn ô mốc -> không phải
+                continue
+        return None
     if "theo_thang" in cfg:
         if not thang:
             return None
