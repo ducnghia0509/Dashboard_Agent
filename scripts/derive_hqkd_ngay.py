@@ -259,7 +259,23 @@ _UNITS = {
     # Σ 10 ngày = 282.317.354 = đúng số luỹ kế cả tháng của bản file hôm trước.
     "TRAMSAC": {"layout": "tcode", "cong_ty": "TC", "khoi": "Khối KD Trạm sạc Vgreen",
                "profit_pnlt": ("Lợi nhuận sau thuế",), "snapshot_sheet": "BCHQKD"},
-    "DUAN": {"layout": "duan", "cong_ty": "TC", "khoi": "Khối KD Dự án"},
+    # SỐ DƯ THEO NGÀY (20/09/2026) — nuôi 4 màn Công nợ / Tồn kho / Tài sản / Thuế, vốn trống trơn
+    # ở chế độ Ngày vì khối này là khối DUY NHẤT chưa khai `sheet_sodu` (đo trên DB 20/09: 0 dòng
+    # `PTHU_D`/`PTRA_D`/`HH_D`/`TS_D`/`THUE_D`, trong khi 6 khối khác đều có).
+    #
+    # Nguồn là họ file ẢNH CHỤP `B.4.TC.TCKT.D.<YYYYMMDD>.Baocaotaichinhrieng.xlsx` nằm chung thư
+    # mục với file P&L tháng, nên bật `sodu_ho_file_rieng` y như 3 khối Xanh và XDV.
+    # TRƯỚC 20/09 HỌ FILE NÀY LÀ `.xlsb` nên mọi vòng quét bỏ qua từ khâu lọc đuôi (openpyxl từ
+    # chối thẳng: "does not support binary format .xlsb"); kế toán đã đổi sang `.xlsx` cùng ngày.
+    #
+    # `ngay_sodu_tu_ten_file` bắt buộc ở đây: bản BCTC của kế toán Dự án BỎ TRỐNG ô kỳ — dòng 7 của
+    # CĐKT nguyên văn "Tại ngày   tháng   năm ". Xem nhánh 4 của `_sodu_ngay_cua_wb`.
+    #
+    # `cdps` trỏ sheet `CDSPS` (mẫu này viết tắt khác, nội dung vẫn là S06-DN với hai tầng NỢ/CÓ
+    # chuẩn) — nó nuôi HH_D (tồn kho) và THUE_D (thuế).
+    "DUAN": {"layout": "duan", "cong_ty": "TC", "khoi": "Khối KD Dự án",
+             "sodu_ho_file_rieng": True, "ngay_sodu_tu_ten_file": True,
+             "sheet_sodu": {"pthu": "131", "ptra": "331", "cdkt": "CĐKT", "cdps": "CDSPS"}},
     "HO": {"layout": "ho_kqkd", "cong_ty": "TC", "khoi": "Khối hỗ trợ tập đoàn"},
     # XE TẢI HƯNG THỊNH (spec user 2026-08-06) — layout "ht", xem `_ht_facts`.
     "HUNGTHINH": {"layout": "ht", "cong_ty": "HT", "khoi": "Khối KD Xe tải"},
@@ -1149,6 +1165,21 @@ _SHEET_SODU_MAC_DINH = {"pthu": _CONGNO_SHEET["PTHU"][0], "ptra": _CONGNO_SHEET[
                         "cdkt": "BCĐKT", "cdps": "BCĐPS"}
 
 
+# TẦNG DƯỚI GHI THEO NGHIỆP VỤ THAY VÌ NỢ/CÓ (khối Dự án, 20/09/2026). Bảng tổng hợp công nợ của
+# mẫu BCTC mà kế toán Dự án dùng không ghi "Nợ"/"Có" mà ghi thẳng việc: sheet `131` để
+# "PHẢI THU | ĐÃ THU", sheet `331` để "ĐÃ TRẢ | PHẢI TRẢ" (chú ý THỨ TỰ CỘT NGƯỢC NHAU giữa hai
+# sheet — nên phải ánh xạ theo NHÃN, không theo vị trí).
+#
+# Ánh xạ dưới đây là định nghĩa kế toán, không phụ thuộc chiều của report_type: phát sinh phải thu
+# ghi bên NỢ của TK 131, thu tiền ghi bên CÓ; phải trả ghi bên CÓ của TK 331, trả tiền ghi bên NỢ.
+# Đối chứng trên file 18/09: sheet 131 dòng CỘNG có cuối kỳ Nợ 37.378.363.809 − Có 24.660.179.191
+# = 12.718.184.618, khớp đúng ô "Phải thu KH ngắn hạn" của CĐKT.
+#
+# KHÔNG đụng 5 đơn vị đang chạy: chúng ghi "Nợ"/"Có" nên rơi vào hai nhánh `startswith` phía trên,
+# bảng này chỉ được hỏi tới khi cả hai nhánh đó trượt.
+_BEN_THEO_NGHIEP_VU = {"phai thu": "no", "da thu": "co", "phai tra": "co", "da tra": "no"}
+
+
 def _snap_2tang(rows):
     """Dò header 2 tầng Nợ/Có -> (dòng header trên, {dk_no/dk_co/ps_no/ps_co/ck_no/ck_co: cột}).
 
@@ -1174,8 +1205,10 @@ def _snap_2tang(rows):
     col = {}
     for j, c in enumerate(rows[top + 1]):
         v = _nd(c)
-        if j in cum and (v.startswith("no") or v.startswith("co")):
-            col[f"{cum[j]}_{'no' if v.startswith('no') else 'co'}"] = j
+        ben = ("no" if v.startswith("no") else "co" if v.startswith("co")
+               else _BEN_THEO_NGHIEP_VU.get(v))
+        if j in cum and ben:
+            col[f"{cum[j]}_{ben}"] = j
     need = {"dk_no", "dk_co", "ps_no", "ps_co", "ck_no", "ck_co"}
     return (top, col) if need <= set(col) else (None, {})
 
@@ -1220,8 +1253,14 @@ def _snap_congno_facts(rows, rt, chieu):
     top, col = _snap_2tang(rows)
     if top is None:
         return []
-    ma_j = next((j for j, c in enumerate(rows[top]) if _nd(c).startswith("ma dt")), 0)
-    ten_j = next((j for j, c in enumerate(rows[top]) if _nd(c).startswith("ten dt")), ma_j + 1)
+    # Nhãn cột MÃ / TÊN đối tượng khác nhau giữa hai mẫu: S31-DN ghi "Mã ĐT"/"Tên ĐT", còn mẫu của
+    # kế toán Dự án ghi "MÃ"/"TÊN CÔNG NỢ PHẢI THU" (hoặc "...PHẢI TRẢ"). Dò cả hai bộ nhãn, đừng
+    # để rơi xuống mặc định: cột 0 của mẫu Dự án là ô trống và cột kế là số thứ tự, nên `dim1` sẽ
+    # thành "1","2","3"… — một danh sách "khách hàng" toàn số mà không có lỗi nào được ném ra.
+    ma_j = next((j for j, c in enumerate(rows[top])
+                 if _nd(c).startswith("ma dt") or _nd(c) == "ma"), 0)
+    ten_j = next((j for j, c in enumerate(rows[top])
+                  if _nd(c).startswith(("ten dt", "ten cong no"))), ma_j + 1)
 
     pos, neg = ("no", "co") if chieu == "no" else ("co", "no")
     facts = []
@@ -1297,8 +1336,14 @@ def _snap_cdps_facts(rows):
     # CỘT MÃ TK DÒ THEO NHÃN, không gán cứng cột 0 (sửa 16/09/2026). Cùng mẫu S06-DN nhưng An
     # Taxi chèn một cột trống ở đầu: mã nằm ở cột B chứ không phải A. Bản cũ đọc `r[0]` nên ra
     # rỗng tuyệt đối — và rỗng ở đây KHÔNG gây lỗi, chỉ làm hai màn Thuế/Tồn kho trắng trơn.
-    tk_j = next((j for j, c in enumerate(rows[top]) if "so hieu tai khoan" in _nd(c)), 0)
-    gom = {}   # (rt, dim1, dim2, chieu) -> [dau, tang, giam, cuoi]
+    # Thêm alias "SHTK" (khối Dự án, 20/09/2026): cùng mẫu S06-DN nhưng cột mã viết tắt. Rơi xuống
+    # mặc định 0 thì cột đó là ô trống -> hai màn Thuế/Tồn kho trắng trơn, đúng kiểu hỏng lặng lẽ
+    # mà chú thích ngay trên đã cảnh báo.
+    tk_j = next((j for j, c in enumerate(rows[top])
+                 if "so hieu tai khoan" in _nd(c) or _nd(c) == "shtk"), 0)
+    # PHÂN LOẠI TRƯỚC, CỘNG SAU — vì phải biết TK cha có mặt hay không rồi mới quyết cộng dòng nào.
+    theo_key = {}   # (rt, dim1, dim2, key) -> [(tk, row), ...]
+    chieu_cua = {}
     for r in rows[top + 2:]:
         tk = str(r[tk_j]).strip() if tk_j < len(r) and r[tk_j] not in (None, "") else ""
         if not tk[:3].isdigit():
@@ -1311,13 +1356,32 @@ def _snap_cdps_facts(rows):
             if key is None:
                 continue
             rt, dim1, dim2, chieu = "HH_D", _HH_TK[key], None, "no"
-        g = lambda k: (r[col[k]] if col[k] < len(r) and isinstance(r[col[k]], (int, float)) else 0)  # noqa: E731
-        pos, neg = ("no", "co") if chieu == "no" else ("co", "no")
-        acc = gom.setdefault((rt, dim1, dim2, key), [0.0, 0.0, 0.0, 0.0])
-        acc[0] += g(f"dk_{pos}") - g(f"dk_{neg}")
-        acc[1] += g(f"ps_{pos}")
-        acc[2] += g(f"ps_{neg}")
-        acc[3] += g(f"ck_{pos}") - g(f"ck_{neg}")
+        k4 = (rt, dim1, dim2, key)
+        theo_key.setdefault(k4, []).append((tk, r))
+        chieu_cua[k4] = chieu
+
+    gom = {}   # (rt, dim1, dim2, key) -> [dau, tang, giam, cuoi]
+    for k4, ds_dong in theo_key.items():
+        # CÓ DÒNG TK CHA THÌ CHỈ LẤY DÒNG ĐÓ, BỎ HẾT TK CON (khối Dự án, 20/09/2026).
+        #
+        # Bảng cân đối phát sinh của mẫu này liệt kê CẢ HAI cấp: sheet `CDSPS` vừa có dòng `133`
+        # (3.670.571.141) vừa có dòng `1331003` (cũng 3.670.571.141), vừa có `152` vừa có
+        # `1521003.VT`. Bản cũ cộng tuốt vì mọi TK con đều `startswith` khoá cha -> thuế GTGT được
+        # khấu trừ ra ĐÚNG GẤP ĐÔI số của CĐKT (7.341.142.283 so với 3.670.571.141), tồn kho cũng
+        # phồng tương tự. Số vẫn "có", chỉ là sai gấp đôi — kiểu hỏng không ai nhìn ra trên màn.
+        #
+        # Vẫn giữ đường cộng TK con cho mẫu CHỈ có cấp con (5 đơn vị đang chạy rơi vào nhánh này,
+        # nên hành vi của chúng không đổi một ly).
+        chinh = [x for x in ds_dong if x[0] == k4[3]]
+        for _tk, r in (chinh or ds_dong):
+            g = lambda k, _r=r: (_r[col[k]] if col[k] < len(_r)                       # noqa: E731
+                                 and isinstance(_r[col[k]], (int, float)) else 0)
+            pos, neg = ("no", "co") if chieu_cua[k4] == "no" else ("co", "no")
+            acc = gom.setdefault(k4, [0.0, 0.0, 0.0, 0.0])
+            acc[0] += g(f"dk_{pos}") - g(f"dk_{neg}")
+            acc[1] += g(f"ps_{pos}")
+            acc[2] += g(f"ps_{neg}")
+            acc[3] += g(f"ck_{pos}") - g(f"ck_{neg}")
     facts = []
     for (rt, dim1, dim2, tk), (dau, tang, giam, cuoi) in gom.items():
         if not (dau or tang or giam or cuoi):
@@ -1359,7 +1423,7 @@ def _snap_sodu_facts(wb, ten_sheet):
     return out
 
 
-def _sodu_ngay_cua_wb(wb, ten_sheet, ten_file, o_ngay_tu_o=False):
+def _sodu_ngay_cua_wb(wb, ten_sheet, ten_file, o_ngay_tu_o=False, ngay_tu_ten_file=False):
     """Workbook này là ảnh chụp số dư của NGÀY NÀO -> (ngày, None) | (None, lý do loại).
 
     Tách riêng khỏi `_bcqt_per_day` (18/09/2026) để đơn vị KHÔNG ở chế độ snapshot cũng dùng được
@@ -1404,6 +1468,25 @@ def _sodu_ngay_cua_wb(wb, ten_sheet, ten_file, o_ngay_tu_o=False):
                     return datetime.date(y, mm, d).isoformat(), None
                 except ValueError:
                     return None, f"'{sn}' ghi ngày không hợp lệ: {c[:40]}"
+    # 4. FILE KHÔNG KHAI NGÀY Ở ĐÂU CẢ -> lấy 8 số trong TÊN FILE (khối Dự án, 20/09/2026).
+    #    Bản BCTC của kế toán Dự án để TRỐNG ô kỳ: dòng 7 của CĐKT nguyên văn là
+    #    "Tại ngày   tháng   năm " — không điền gì. Ba nhánh trên đều không bắt được nên mọi file
+    #    bị loại với lý do "không khai 'Từ ngày...'", tức cả cụm số dư im lặng không lên số.
+    #
+    #    PHẢI KHAI CỜ MỚI BẬT, không mở mặc định: tin tên file là bỏ mất lớp đối chứng thứ hai mà
+    #    nhánh 2 cố ý dựng lên ("hai nguồn độc lập cùng nói một ngày thì mới nhận"). Chỉ bật ở đơn
+    #    vị đã ĐO được rằng mỗi file đúng là một ảnh chụp riêng: khối Dự án có tồn kho
+    #    23.728.445.510 -> 23.441.719.595 -> 23.268.102.376 -> 23.187.613.859 qua 4 file
+    #    15→18/09, tức số nhúc nhích theo đúng ngày ghi ở tên file.
+    #
+    #    An toàn hơn ở CĐKT so với sheet dòng chảy: số dư là đại lượng THỜI ĐIỂM, nên kể cả file
+    #    có phủ một khoảng thì cột "cuối kỳ" vẫn là số dư tại ngày chốt — khác hẳn doanh thu/chi
+    #    phí, nơi gán số luỹ kế cho một ngày là phóng đại.
+    if ngay_tu_ten_file:
+        ngay_ten = _snap_day_of(ten_file)
+        if ngay_ten:
+            return ngay_ten, None
+        return None, f"'{sn}' không khai kỳ và tên file cũng không có 8 số sau '.D.'"
     if not o_ngay_tu_o:
         return None, f"'{sn}' không khai 'Từ ngày ... Đến ngày ...'"
     ngay_o = {c.date().isoformat() if isinstance(c, datetime.datetime) else c.isoformat()
@@ -1435,6 +1518,7 @@ def _sodu_quet_thu_muc(path, period, unit):
     thu_muc = os.path.dirname(os.path.abspath(path))
     ten_sheet = unit.get("sheet_sodu") or {}
     o_ngay = bool(unit.get("ky_sodu_o_ngay"))
+    ngay_ten_file = bool(unit.get("ngay_sodu_tu_ten_file"))
     gop, bo_qua = {}, []
     for ten in sorted(os.listdir(thu_muc)):
         if not ten.lower().endswith(".xlsx") or ten.startswith("~$"):
@@ -1451,7 +1535,7 @@ def _sodu_quet_thu_muc(path, period, unit):
             bo_qua.append({"file": ten, "vi_sao": f"không mở được ({type(e).__name__})"})
             continue
         try:
-            ngay, vi_sao = _sodu_ngay_cua_wb(wb, ten_sheet, ten, o_ngay)
+            ngay, vi_sao = _sodu_ngay_cua_wb(wb, ten_sheet, ten, o_ngay, ngay_ten_file)
             if not ngay:
                 bo_qua.append({"file": ten, "vi_sao": vi_sao})
                 continue
