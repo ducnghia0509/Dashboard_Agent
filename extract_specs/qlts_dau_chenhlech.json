@@ -5,7 +5,9 @@
     "DÒNG NÀY NẰM Ở VỊ TRÍ KHÁC NHAU TRONG TỪNG FILE: Cao Bằng dòng 149 · Tân Thịnh 116 · Thổ Chu 208 · Quang Sơn 235. Vì vậy KHÔNG neo `dong_bat_dau/dong_ket_thuc` vào một dòng cụ thể mà quét từ dòng 8 rồi lọc theo NHÃN ở cột B.",
     "TRONG CÙNG SHEET CÒN MỘT Ô GẦN GIỐNG: khối 'TỔNG HỢP' (dòng 134/104/194/222) có nhãn 'Chênh Lệch Theo Hóa Đơn' ở cột J, kèm số kiểm kho ở L/M/N/O. Bộ lọc chỉ soi CỘT B nên không vớ nhầm ô đó — đừng đổi sang quét mọi cột.",
     "Chỉ tiêu mục tiêu là 0. Giá trị ÂM/DƯƠNG đều có nghĩa (thiếu/thừa so với hóa đơn) nên giữ nguyên dấu, và KHÔNG lọc `amount khac_rong` — engine coi 0 là rỗng, mà 'chênh lệch = 0' chính là kết quả TỐT cần hiển thị (T7/2026 có 3/4 dự án bằng 0).",
-    "Xem thêm cảnh báo về kỳ ở [[qlts_dau_nxt]]: tên file ghi .M.2026.7. nhưng tiêu đề trong sheet của Cao Bằng/Quang Sơn ghi tháng khác, riêng Quang Sơn ghi năm 2025."
+    "Xem thêm cảnh báo về kỳ ở [[qlts_dau_nxt]]: tên file ghi .M.2026.7. nhưng tiêu đề trong sheet của Cao Bằng/Quang Sơn ghi tháng khác, riêng Quang Sơn ghi năm 2025.",
+    "TÊN DỰ ÁN TRONG TÊN FILE ĐỔI CHÍNH TẢ GIỮA CHỪNG: T7 là `BCDauTanThinh`, từ T8 thành `BCDauTânThinh` (có dấu). `dim1` lấy từ tên file nên Tân Thịnh TÁCH LÀM HAI dòng trên màn ts5 — T7 một dòng, T8/T9 một dòng, không dòng nào là toàn bộ dự án. `doi_gia_tri` gom về một mã; đừng chữa bằng cách thêm nhãn thứ hai vào `TEN_DU_AN` ở backend, làm vậy biểu đồ vẫn hai cột.",
+    "NGUỒN DẦU CŨNG PHÁT HÀNH NHIỀU LẦN TRONG MỘT THÁNG (bắt được 20/09/2026): tháng 9 có cả `*.M.2026.9.15.BCDau*` lẫn `*.M.2026.9.18.BCDau*`, mỗi file là báo cáo CẢ THÁNG tính tới ngày chốt. Hai file = hai `source_file` nên `_ghi` không đè nhau -> cùng 20 ngày của cùng một dự án nằm trong DB HAI LẦN, mà đây là báo cáo DÒNG (cộng dồn) nên ts5 cộng đôi lượng xuất và chi phí. Bật `moi_ky_lay_file_moi_nhat` + `moi_ky_slot_regex` (BẮT BUỘC có regex: một kỳ có 4-5 file, mỗi dự án một file — bật cờ trần là giữ đúng MỘT dự án và vứt im lặng phần còn lại). ⚠️ Cờ này chỉ chặn ĐỌC, KHÔNG xoá dòng của bản cũ đã ghi: đổi spec xong phải dọn tay các `source_file` không còn được đọc (đã dọn 84 dòng bản 9.15 ngày 20/09)."
   ],
   "_kiem_chung": [
     "Kỳ 2026-07: Cao Bằng 31.467 lít (ô D149) · Quang Sơn 0 · Tân Thịnh 0 · Thổ Chu 0.",
@@ -53,5 +55,10 @@
   "ky_tu_ten_file": {
     "regex_nam": "\\.M\\.(\\d{4})\\.",
     "regex_thang": "\\.M\\.\\d{4}\\.(\\d{1,2})\\."
-  }
+  },
+  "doi_gia_tri": {
+    "dim1": { "TânThinh": "TanThinh" }
+  },
+  "moi_ky_lay_file_moi_nhat": true,
+  "moi_ky_slot_regex": "BCDau([A-Za-zÀ-ỹ]+)"
 }

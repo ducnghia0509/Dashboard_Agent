@@ -8,12 +8,18 @@
     "MỖI NGÀY CHIẾM NHIỀU DÒNG (dòng phụ 1a/1b/1c… ở cột P dùng cho tính FIFO). CHỈ dòng đầu của mỗi ngày có số ở cột A. Lọc `ngay khac_rong` giữ đúng dòng ngày; đừng bỏ bộ lọc, nếu không mỗi ngày bị đếm 3-5 lần.",
     "PHÍA DƯỚI BẢNG NGÀY còn khối 'TỔNG HỢP' và dòng 'Chênh lệch theo hóa đơn' ở các dòng KHÁC NHAU theo từng file (149 / 235 / 116 / 208). Chúng không có số ở cột A nên bộ lọc `ngay` tự loại. Chỉ tiêu chênh lệch nằm ở spec riêng `qlts_dau_chenhlech`.",
     "CỘT L tên header là 'Tổng' (nhóm 'Tồn cuối Ngày'), KHÔNG phải 'SL tồn tổng' như mapping #33 viết.",
-    "`kieu: \"ngay_trong_thang\"` (ô chỉ ghi SỐ NGÀY 1..31) lấy năm+tháng qua `_ky_thang`, đọc khoá `ky_thang_tu_ten_file` — KHÁC với `ky_tu_ten_file` (regex_nam/regex_thang) dùng cho kỳ của bản ghi. Phải khai CẢ HAI: thiếu `ky_thang_tu_ten_file` thì regex mặc định `\\.(\\d{4})(\\d{2})\\.` không khớp tên file dạng `.M.2026.7.` và MỌI dòng rớt bộ lọc `ngay khac_rong` -> file ra 0 dòng."
+    "`kieu: \"ngay_trong_thang\"` (ô chỉ ghi SỐ NGÀY 1..31) lấy năm+tháng qua `_ky_thang`, đọc khoá `ky_thang_tu_ten_file` — KHÁC với `ky_tu_ten_file` (regex_nam/regex_thang) dùng cho kỳ của bản ghi. Phải khai CẢ HAI: thiếu `ky_thang_tu_ten_file` thì regex mặc định `\\.(\\d{4})(\\d{2})\\.` không khớp tên file dạng `.M.2026.7.` và MỌI dòng rớt bộ lọc `ngay khac_rong` -> file ra 0 dòng.",
+    "TỒN KHO ĐỌC CỘT 'SL tồn tổng' (L), KHÔNG PHẢI 'Tổng'. Header gộp [7,6] nên dòng 7 thắng: cột L ra 'SL tồn tổng' chứ không ra nhãn nhóm 'Tồn cuối Ngày'. Khai 'Tổng' như bản đầu là KHÔNG cột nào khớp, `bat_buoc: false` nuốt luôn cảnh báo -> `payload.ton` NULL ở 100% dòng và thẻ 'Lượng dầu tồn kho' của ts5 trống suốt từ 17/08/2026. Đúng mục 16 log KT: 'Không lên dữ liệu tồn kho'. Mapping chỉ tiêu 33 cũng khai đúng cột này.",
+    "FILE THÁNG 9/2026 ĐỔI TÊN CỘT (bắt được 20/09/2026): 'SL tồn đầu' -> 'Số lượng tồn đầu', 'SL nhập' -> 'Số lượng nhập', 'SL xuất' -> 'Số lượng xuất', 'SL tồn tổng' -> 'Tổng tồn'. Vị trí cột KHÔNG đổi. Hậu quả trước khi vá: `amount` (SL xuất) không dò được tên và không có phao chữ cột -> NULL ở TOÀN BỘ dòng tháng 9, ts5 báo tổng cấp phát = 0 mà không thẻ nào đỏ. Nay mọi cột khai DANH SÁCH ứng viên + `cot_du_phong` chữ cột. Đây là lần đổi tên thứ hai của nguồn này trong hai tháng — đừng bỏ phao.",
+    "MỖI NGÀY CHIẾM NHIỀU DÒNG (một dòng cho mỗi lô FIFO) và chỉ dòng có số ở cột A 'Ngày' được giữ (bộ lọc `ngay khác_rong`). Trên dòng đó, cột C 'SL tồn đầu' / E 'Thành tiền tồn đầu' là của RIÊNG LÔ ĐẦU, còn cột L 'SL tồn tổng' là tồn cuối CẢ NGÀY (cộng mọi lô). Hệ quả: đẳng thức kho chỉ đóng ở CẤP KỲ (tồn đầu ngày 1 + Σ nhập − Σ xuất = tồn tổng ngày cuối), KHÔNG đóng ở ngày cuối tháng. Backend đối chiếu ở cấp kỳ — đừng khai `dan_xuat` tính tồn cuối theo từng dòng, ngày 31 Cao Bằng sẽ ra 9.969 thay vì 38.199.",
+    "TÊN DỰ ÁN TRONG TÊN FILE ĐỔI CHÍNH TẢ GIỮA CHỪNG (T7 `BCDauTanThinh` -> T8 `BCDauTânThinh`) nên `dim1` tách Tân Thịnh làm hai dòng; `doi_gia_tri` gom về một mã. Và nguồn còn PHÁT HÀNH NHIỀU LẦN TRONG THÁNG (T9 có cả bản 9.15 lẫn 9.18, mỗi bản là báo cáo cả tháng) -> phải bật `moi_ky_lay_file_moi_nhat` KÈM `moi_ky_slot_regex`, vì một kỳ có 4-5 file mỗi dự án một file, bật cờ trần là giữ đúng MỘT dự án. Cờ chỉ chặn ĐỌC, không xoá dòng bản cũ đã ghi — phải dọn tay."
   ],
   "_kiem_chung": [
     "Cao Bằng ngày 1: tồn đầu 20.634 · xuất 2.148 lít · thành tiền xuất 50.005.440 đ · tồn cuối 11.540.",
     "Cao Bằng ngày 2: tồn đầu 11.540 (= tồn cuối ngày 1 ✔) · nhập 28.230 · xuất 2.416 · tồn cuối 9.124.",
-    "4 dự án: CaoBang · ThoChu · TanThinh · QuangSon — khớp đúng 4 dự án ở thiết kế ts5."
+    "4 dự án: CaoBang · ThoChu · TanThinh · QuangSon — khớp đúng 4 dự án ở thiết kế ts5.",
+    "T8/2026 Cao Bằng: 31 dòng ngày, tồn đầu ngày 01 = 11.559 lít / 304.053.980 đ, Σ nhập 91.785, Σ xuất 65.145 -> tồn tổng ngày 31 = 38.199 lít, khớp đúng dòng TỔNG THÁNG của chính file.",
+    "T9/2026 Cao Bằng sau khi vá tên cột: Σ xuất 34.719 lít (trước khi vá là NULL toàn bộ)."
   ],
   "report_type": "QLTS_DAU",
   "row_index_base": 7907000,
@@ -53,29 +59,46 @@
       "kieu": "ngay_trong_thang"
     },
     "amount": {
-      "header": "SL Xuất",
+      "header": ["SL xuất", "Số lượng xuất"],
+      "cot_du_phong": "I",
       "kieu": "so"
     },
     "amount2": {
-      "header": "Thành tiền Xuất",
+      "header": "Thành tiền xuất",
+      "cot_du_phong": "K",
       "kieu": "so",
       "he_so": 1e-09
     },
     "payload.ton": {
-      "header": "Tổng",
+      "header": ["SL tồn tổng", "Tổng tồn", "SL tồn cuối"],
+      "cot_du_phong": "L",
       "kieu": "so",
       "bat_buoc": false
     },
     "payload.tonDau": {
-      "header": "Tồn đầu Ngày",
+      "header": ["SL tồn đầu", "Số lượng tồn đầu", "Tồn đầu Ngày"],
       "cot_du_phong": "C",
       "kieu": "so",
       "bat_buoc": false
     },
+    "payload.gtTonDau": {
+      "header": "Thành tiền tồn đầu",
+      "cot_du_phong": "E",
+      "kieu": "so",
+      "he_so": 1e-09,
+      "bat_buoc": false
+    },
     "payload.slNhap": {
-      "header": "SL Nhập",
+      "header": ["SL nhập", "Số lượng nhập"],
       "cot_du_phong": "F",
       "kieu": "so",
+      "bat_buoc": false
+    },
+    "payload.gtNhap": {
+      "header": "Thành tiền nhập",
+      "cot_du_phong": "H",
+      "kieu": "so",
+      "he_so": 1e-09,
       "bat_buoc": false
     },
     "payload.donGiaTB": {
@@ -99,5 +122,10 @@
   },
   "ky_thang_tu_ten_file": {
     "regex": "\\.M\\.(\\d{4})\\.(\\d{1,2})\\."
-  }
+  },
+  "doi_gia_tri": {
+    "dim1": { "TânThinh": "TanThinh" }
+  },
+  "moi_ky_lay_file_moi_nhat": true,
+  "moi_ky_slot_regex": "BCDau([A-Za-zÀ-ỹ]+)"
 }

@@ -1,0 +1,148 @@
+{
+  "id": "qlts_baohiem_theodoi",
+  "_mo_ta": "QLTS — DANH SÁCH THEO DÕI BẢO HIỂM (bố cục MỚI từ T8/2026), 3 sheet 'DSTD BHMMTB' / 'DSTD BHTNDS' / 'DSTD BHVC' của file QLTS/baocaobaohiem/*Baohiem.xlsx. Mỗi dòng = 1 THIẾT BỊ thuộc diện theo dõi bảo hiểm (KHÔNG phải 1 hợp đồng). dim1 = loại bảo hiểm, dim2 = Thông báo (Còn hạn / Sắp hết hạn / Quá hạn), dim3 = Nội dung tình trạng (LÝ DO chưa/không tham gia). Đây chính là MẪU SỐ mà chỉ tiêu mapping #23 'Tỷ lệ tài sản tham gia bảo hiểm' thiếu suốt từ 17/08/2026.",
+  "_bay": [
+    "ĐỌC DÒNG CHI TIẾT, KHÔNG ĐỌC KHỐI TÓM TẮT. Mỗi sheet có HAI bảng nằm cạnh nhau trên CÙNG các dòng: cột A-E là 'BẢNG TỔNG HỢP THEO BỘ CHỈ TIÊU QUẢN LÝ' (Còn hạn >20 ngày / Sắp đến hạn / Quá hạn + 3.1..3.4 nguyên nhân), cột F trở đi mới là danh sách thiết bị. Khối tóm tắt ĐÃ GỘP nên không mang đơn vị -> bật lọc Công ty/Khối là band rỗng, đúng lỗi đã gặp ở QLTS_TS_DV. Đọc chi tiết rồi tự cộng: đã kiểm khớp TUYỆT ĐỐI với khối tóm tắt (MMTB 81/34/91 · TNDS 101/4/96 · VC 87/5/40).",
+    "MỘT SPEC ĐỌC CẢ 3 SHEET bằng `moi_sheet_chua: 'DSTD '` + `chieu_tu_ten_sheet` lấy dim1. Đừng tách 3 spec cùng report_type trên CÙNG một file — `_ghi` xoá theo (report_type, source_file) nên spec chạy sau xoá sạch spec chạy trước (bẫy đã ghi ở qlts_baoduong_xedemo_th).",
+    "TÊN CỘT LỆCH NHAU GIỮA 3 SHEET nên mọi khai báo dùng DANH SÁCH ứng viên: mã tài sản là 'MÃ CT' ở BHMMTB nhưng 'Mã tài sản' ở BHTNDS/BHVC; tên tài sản là 'Tên' ở BHMMTB, 'Tên tài sản' ở hai sheet kia. Chữ cột cũng lệch (BHMMTB có thêm cột 'Số tháng cấp' nên Thông báo ở T, hai sheet kia ở S) — thêm một lý do nữa để KHÔNG đọc theo chữ cột.",
+    "HEADER GỘP [6, 5] theo đúng thứ tự đó: dòng 5 để nhãn nhóm ('Ngày tháng' phủ 4-5 cột), dòng 6 mới là tên cột thật ('Ngày bắt đầu', 'Ngày hết hạn', 'Thông báo'). Khai [5,6] là cột Thông báo biến thành 'Ngày tháng'.",
+    "THỨ TỰ KHAI CỘT CÓ Ý: khoi -> cong_ty -> cost_center, y hệt qlts_taisan_chitiet. `_cc_qlts` trả dict nên ghi đè 2 cột khai trước khi map được; đảo thứ tự là mất nước lùi cho dòng chưa có mã chuẩn.",
+    "'HO Dự Án' và 'Dự án Bình Phước' CHƯA CÓ trong master_data (63 cost center) nên `_cc_qlts` trả `_khong_map`; `giu_khi_khong_map` giữ dòng để tổng không hụt, nhưng bộ lọc Đơn vị sẽ không thấy chúng. Đây là việc của DANH MỤC nghiệp vụ — xem log KT mục 22, đừng tự đặt mã mới.",
+    "FILE T7/2026 (bố cục CŨ, sheet 'Tổng hợp') KHÔNG có sheet 'DSTD *' nên spec này báo 'không chọn được sheet' cho nó — BÌNH THƯỜNG, kỳ T7 do spec `qlts_baohiem` phụ trách. Đọc cảnh báo theo TỪNG FILE.",
+    "ẢNH CHỤP TẠI THỜI ĐIỂM: nguồn nay phát hành theo TUẦN (`*.D.2026.9.05.*`, `*.9.12.*`, `*.9.19.*`) nên một kỳ có nhiều file. Bật `moi_ky_lay_file_moi_nhat` để chỉ lấy bản mới nhất của kỳ, đúng ghi chú mới của mapping cột K: 'Update báo cáo định kỳ theo tuần vào thứ 7 hàng tuần / Số liệu của những ngày không update = số liệu update gần nhất'."
+  ],
+  "_kiem_chung": [
+    "T8/2026 (F.9.TC.H5.M.2026.8.TheodoiBaohiem.xlsx): BHMMTB 206 thiết bị (Còn hạn 81 · Sắp hết hạn 34 · Quá hạn 91) · BHTNDS 201 (101 · 4 · 96) · BHVC 132 (87 · 5 · 40). Tổng 539 dòng.",
+    "Khối tóm tắt của chính file ghi BHTNDS 'Còn hạn >20 ngày' = 101 và tổng mẫu số 202 — lệch 1 so với 201 dòng chi tiết vì tỷ lệ % của file chia cho 202. Lấy theo DÒNG CHI TIẾT.",
+    "Nguyên nhân quá hạn (dim3) đọc được ngay: 'Thiết bị không hoạt động không phải tham gia bảo hiểm', 'Thiết bị hỏng', 'Thiết bị không sử dụng', 'Thiết bị hoạt động trong phạm vi công trường', 'Thiết bị thế chấp ngân hàng tham gia bảo hiểm'."
+  ],
+  "report_type": "QLTS_BH_TD",
+  "row_index_base": 7907000,
+  "nguon": {
+    "folder": "QLTS/baocaobaohiem",
+    "file_glob": "*Baohiem.xlsx",
+    "sheet": {
+      "moi_sheet_chua": "DSTD "
+    }
+  },
+  "chieu_tu_ten_sheet": {
+    "dim1": {
+      "regex": "^DSTD\\s+(.+)$"
+    }
+  },
+  "header": {
+    "dong": [
+      6,
+      5
+    ]
+  },
+  "dong_bat_dau": 7,
+  "cot": {
+    "khoi": {
+      "header": [
+        "Khối",
+        "Tên khối"
+      ],
+      "chuan_hoa": "khoi_qlts",
+      "bat_buoc": false
+    },
+    "cong_ty": {
+      "header": "Pháp nhân",
+      "chuan_hoa": "cty_qlts",
+      "bat_buoc": false
+    },
+    "cost_center": {
+      "header": [
+        "Coscenter",
+        "Tên Coscenter"
+      ],
+      "chuan_hoa": "cc_qlts_khoi",
+      "giu_khi_khong_map": true,
+      "bat_buoc": false,
+      "ghep_header": [
+        "Tên khối",
+        "Khối"
+      ]
+    },
+    "dim2": {
+      "header": "Thông báo"
+    },
+    "dim3": {
+      "header": "Nội dung tình trạng",
+      "bat_buoc": false
+    },
+    "amount": {
+      "header": [
+        "Số lượng",
+        "SL"
+      ],
+      "kieu": "so",
+      "bat_buoc": false
+    },
+    "payload.maTaiSan": {
+      "header": [
+        "Mã tài sản",
+        "MÃ CT"
+      ],
+      "bat_buoc": false
+    },
+    "payload.tenTaiSan": {
+      "header": [
+        "Tên tài sản",
+        "Tên"
+      ],
+      "bat_buoc": false
+    },
+    "payload.bks": {
+      "header": "BKS",
+      "bat_buoc": false
+    },
+    "payload.batDau": {
+      "header": "Ngày bắt đầu",
+      "kieu": "date",
+      "bat_buoc": false
+    },
+    "payload.ketThuc": {
+      "header": "Ngày hết hạn",
+      "kieu": "date",
+      "bat_buoc": false
+    },
+    "payload.soNgayConLai": {
+      "header": "Số ngày còn lại/quá hạn .",
+      "kieu": "so",
+      "bat_buoc": false
+    },
+    "payload.maCostQlts": {
+      "header": [
+        "Mã coscenter",
+        "Mã Coscenter"
+      ],
+      "bat_buoc": false
+    },
+    "payload.tenDonViQlts": {
+      "header": [
+        "Coscenter",
+        "Tên Coscenter"
+      ],
+      "bat_buoc": false
+    },
+    "payload.maTinhTrang": {
+      "header": "Mã Tình trạng",
+      "bat_buoc": false
+    }
+  },
+  "loc": [
+    {
+      "cot": "dim2",
+      "dieu_kien": "khac_rong"
+    }
+  ],
+  "payload_them": {
+    "unit": "ts"
+  },
+  "ky_tu_ten_file": {
+    "regex_nam": "\\.(?:M|D)\\.(?:TS\\.)?(\\d{4})\\.",
+    "regex_thang": "\\.(?:M|D)\\.(?:TS\\.)?\\d{4}\\.(\\d{1,2})[\\.\\s]"
+  },
+  "moi_ky_lay_file_moi_nhat": true
+}
