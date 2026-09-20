@@ -30,13 +30,7 @@
       "regex": "^DSTD\\s+(.+)$"
     }
   },
-  "header": {
-    "dong": [
-      6,
-      5
-    ]
-  },
-  "dong_bat_dau": 7,
+  "header": { "tim_o": "Ngày bắt đầu", "gop_tren": 1 },
   "cot": {
     "khoi": {
       "header": [

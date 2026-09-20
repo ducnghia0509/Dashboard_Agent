@@ -2734,18 +2734,34 @@ def _extract_vung(spec, path):
             # dòng 8 tại T07 (T07 có thêm 7 dòng tiêu đề đơn vị/địa chỉ phía trên). Khai `dong`
             # cứng thì một trong hai sheet chắc chắn trượt; gộp `dong: [1,8]` cũng sai vì ô đầu
             # dòng 1 của T07 là tên chi nhánh, không phải "Mã số".
-            moc = _nd(hdr_cfg["tim_o"])
+            # `tim_o` nhận CHUỖI hoặc LIST nhãn mốc (thử theo thứ tự) — cùng lý do như `header`
+            # của một cột: nguồn đổi tên nhãn giữa các kỳ thì khai thêm ứng viên, không phải sửa code.
+            moc_ds = hdr_cfg["tim_o"]
+            moc_ds = [_nd(m) for m in (moc_ds if isinstance(moc_ds, list) else [moc_ds])]
             toi_da = int(hdr_cfg.get("toi_da", 30))
             quet = [list(r) for r in ws.iter_rows(min_row=1, max_row=toi_da, values_only=True)]
             max_hdr = 0
-            for i, r in enumerate(quet, start=1):
-                if any(_nd(c) == moc for c in r if c not in (None, "")):
-                    max_hdr = i
+            for moc in moc_ds:
+                for i, r in enumerate(quet, start=1):
+                    if any(_nd(c) == moc for c in r if c not in (None, "")):
+                        max_hdr = i
+                        break
+                if max_hdr:
                     break
             if not max_hdr:
-                return [], [f"không tìm được dòng header chứa '{hdr_cfg['tim_o']}' "
+                return [], [f"không tìm được dòng header chứa {hdr_cfg['tim_o']!r} "
                             f"trong {toi_da} dòng đầu sheet '{sheet}'"]
-            hmap = _map_header(quet[:max_hdr], max_hdr)
+            # `gop_tren` (20/09/2026): header thật gồm HAI TẦNG — dòng mốc là tên cột chi tiết,
+            # dòng ngay trên là nhãn nhóm phủ mấy cột (và mang luôn những cột KHÔNG có tầng hai:
+            # STT, Pháp nhân, Khối, Coscenter…). Không gộp thì mất sạch nhóm cột đó.
+            # VÌ SAO KHÔNG KHAI `dong: [6, 5]` CHO XONG: trong CÙNG MỘT FILE bảo hiểm T9/2026, sheet
+            # "DSTD BHMMTB" để header ở 5-6 còn "DSTD BHTNDS"/"DSTD BHVC" tụt xuống 6-7. Ghim cứng
+            # thì hai sheet sau đọc dòng 7 (vốn là header) thành DỮ LIỆU, và nhãn nhóm "Thông báo"
+            # ở dòng 6 bị khớp nhầm sang cột "Ngày bắt đầu" -> trạng thái hạn bảo hiểm ra NGÀY
+            # THÁNG. Hỏng im lặng: vẫn đủ 599 dòng, chỉ sai nội dung.
+            tren = int(hdr_cfg.get("gop_tren", 0))
+            dong_gop = [max_hdr] + [max_hdr - k for k in range(1, tren + 1) if max_hdr - k >= 1]
+            hmap = _map_header(quet[:max_hdr], dong_gop)
         else:
             hdr_dong = hdr_cfg.get("dong", 1)
             max_hdr = max(hdr_dong) if isinstance(hdr_dong, list) else hdr_dong
