@@ -30,6 +30,9 @@ CẤU TRÚC SPEC (khoá tiếng Việt cho kế toán/BA đọc được):
                                         //   sheet theo ô mốc, dùng khi nguồn đổi tên/thứ tự sheet
                                         // | {"theo_thang": "T{mm}"} — file 1 sheet/tháng (BCTC SRVF)
                                         // | {"moi_sheet_chua": "Phí DV T"} — đọc MỌI sheet khớp
+                                        // | {"moi_sheet_theo_o": [{"o": "A4", "bang": "Ngày"}]} —
+                                        //   đọc MỌI sheet khớp ô mốc; dùng khi TÊN sheet không
+                                        //   tách nổi hai họ bảng (xem HQKD năm khối Dự án)
                                         // | {"moi_sheet_ngay": true} — mỗi sheet là 1 ngày
   },
   "header": {"dong": 1},                 // | {"dong": [1,2]} gộp 2 dòng header (lấy ô đầu khác rỗng)
@@ -1384,7 +1387,27 @@ def _claim_ky_du_lieu(v):
     return {"dim3": f"{nam:04d}-{thang_dl:02d}"}
 
 
+# Tên SHEET của file HQKD năm khối Dự án -> cost center. Phải là BẢN SAO ĐÚNG của
+# `derive_hqkd_ngay._CC_DUAN`: hai nguồn (file tháng qua deriver, file năm qua spec này) cùng ghi
+# vào một khối, lệch một mã là dashboard hiện thành hai dự án khác nhau cho cùng một công trường.
+# Khoá viết theo dạng đã qua `_nd` của FILE NÀY — bỏ dấu VÀ bỏ khoảng trắng ("cao bang" ->
+# "caobang"), khác `_nd` của deriver (giữ khoảng trắng). Chép nhầm dạng là không mã nào khớp.
+_CC_DUAN_SHEET = [("caobang", "CB_DA"), ("tanthinh", "TT_DA"), ("langson", "LS_DA"),
+                  ("yenbinh", "YB_DA"), ("phuquoc", "PQ_DA"), ("quangson", "QS_DA"),
+                  ("nuiphao", "NUIPHAO_DA"), ("quangngai", "QUANGNGAI_DA"), ("thochu", "TC_DA"),
+                  ("binhphuoc", "BINHPHUOC_DA")]
+
+
+def _cc_duan(ten):
+    """Tên sheet dự án -> mã cost center. Không nhận ra -> `_khong_map` để cảnh báo nổ, KHÔNG trả
+    tên sheet thô: mã cost center đi vào mọi bộ lọc, để lọt một chuỗi lạ là sinh ra một "đơn vị"
+    ma trong danh mục mà không ai lần được nguồn."""
+    n = _nd(ten)
+    return next((cc for kw, cc in _CC_DUAN_SHEET if kw in n), None) or {"_khong_map": str(ten)[:60]}
+
+
 _CHUAN_HOA = {
+    "cc_duan": _cc_duan,
     "cc_qlts": _cc_qlts,
     "cc_qlts_khoi": _cc_qlts_khoi,
     "khoi_qlts": _khoi_qlts,
@@ -1567,6 +1590,25 @@ def run_for_path(path, write=False):
     return ket_qua
 
 
+def _sheet_khop_o(ws, dk):
+    """Sheet có khớp TRỌN bộ ô mốc `dk` không. Dùng chung cho `sheet.theo_o` (chọn MỘT sheet) và
+    `sheet.moi_sheet_theo_o` (đọc MỌI sheet khớp).
+
+    Nhận cả hai dạng điều kiện như `kiem_tra_o`: {"o": "A4"} đòi đúng ô, {"hang": 4} chỉ đòi nhãn
+    nằm đâu đó trong hàng.
+    """
+    def _khop(d):
+        can = _nd(d.get("bang"))
+        if d.get("hang"):
+            return any(can in _nd(c.value) for c in ws[int(d["hang"])])
+        return can in _nd(ws[d["o"]].value)
+
+    try:
+        return all(_khop(d) for d in dk)
+    except (IndexError, ValueError, TypeError):   # sheet ngắn hơn ô mốc -> không phải
+        return False
+
+
 def _chon_sheet(wb, cfg, thang=None):
     """Chọn sheet theo cfg. `theo_thang` (vd "T{mm}") dành cho file có MỘT SHEET MỖI THÁNG.
 
@@ -1593,20 +1635,10 @@ def _chon_sheet(wb, cfg, thang=None):
         # {"hang": 8} chỉ đòi nhãn nằm ĐÂU ĐÓ trong hàng — bắt buộc cho cột cost center,
         # vì XDV T12/2024 bỏ 5 cột phụ (TK nợ/TK có/Mã phí/Mã NS/Công thức) nên
         # "XDV Ocean Park" tụt từ I8 về D8 trong khi bảng vẫn y nguyên.
-        def _khop(ws, d):
-            can = _nd(d.get("bang"))
-            if d.get("hang"):
-                return any(can in _nd(c.value) for c in ws[int(d["hang"])])
-            return can in _nd(ws[d["o"]].value)
-
         dk = cfg["theo_o"] if isinstance(cfg["theo_o"], list) else [cfg["theo_o"]]
         for name in wb.sheetnames:
-            ws = wb[name]
-            try:
-                if all(_khop(ws, d) for d in dk):
-                    return name
-            except (IndexError, ValueError, TypeError):   # sheet ngắn hơn ô mốc -> không phải
-                continue
+            if _sheet_khop_o(wb[name], dk):
+                return name
         return None
     if "theo_thang" in cfg:
         if not thang:
@@ -2463,11 +2495,24 @@ def extract_file(spec, path):
     # chứa mốc, mỗi sheet đọc như một file con; kỳ của từng sheet lấy từ chính ô ngày ở dòng tiêu
     # đề (`cot_ngay.ky_tu_o`), không suy từ tên file.
     _sh = (spec.get("nguon") or {}).get("sheet") or {}
-    if "moi_sheet_chua" in _sh:
-        ten_sheet = [n for n in _mo_wb(path).sheetnames
-                     if _nd(_sh["moi_sheet_chua"]) in _nd(n)]
+    if "moi_sheet_chua" in _sh or "moi_sheet_theo_o" in _sh:
+        # `moi_sheet_theo_o` (20/09/2026, HQKD năm khối Dự án): anh em của `moi_sheet_chua` nhưng
+        # lọc sheet theo Ô MỐC thay vì theo TÊN. Bắt buộc ở nguồn này vì tên sheet KHÔNG tách được
+        # hai họ: 7 sheet ngày tên "Cao Bằng", "Phú Quốc "… còn 7 sheet luỹ kế tên "Cao Bằng LK" —
+        # mọi mốc tên khớp sheet ngày đều khớp luôn sheet LK của cùng dự án (là TIỀN TỐ của nó).
+        # Nạp nhầm sheet LK là cộng số luỹ kế THÁNG vào số NGÀY. Hai họ chỉ khác nhau chắc chắn ở
+        # nhãn ô A4: "Ngày" (bảng ngày) vs "Tháng" (bảng luỹ kế).
+        _wb = _mo_wb(path)
+        if "moi_sheet_chua" in _sh:
+            ten_sheet = [n for n in _wb.sheetnames if _nd(_sh["moi_sheet_chua"]) in _nd(n)]
+            thieu = f"không sheet nào chứa '{_sh['moi_sheet_chua']}'"
+        else:
+            _dk = _sh["moi_sheet_theo_o"]
+            _dk = _dk if isinstance(_dk, list) else [_dk]
+            ten_sheet = [n for n in _wb.sheetnames if _sheet_khop_o(_wb[n], _dk)]
+            thieu = f"không sheet nào khớp ô mốc {_dk}"
         if not ten_sheet:
-            return [], [f"không sheet nào chứa '{_sh['moi_sheet_chua']}'"]
+            return [], [thieu]
         recs, warn = [], []
         for ten in ten_sheet:
             con = {**spec, "nguon": {**(spec.get("nguon") or {}), "sheet": {"ten": ten}}}
