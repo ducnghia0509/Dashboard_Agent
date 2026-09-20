@@ -8,7 +8,8 @@
     "⚠️ ĐƠN VỊ ĐO KHÁC NHAU GIỮA CÁC DỰ ÁN: Cao Bằng ghi 'Lít/km' (đội xe), Tân Thịnh ghi 'Lít/giờ' và Thổ Chu ghi 'Lít/Giờ' (máy thi công — lệch cả hoa thường). Vì vậy TUYỆT ĐỐI không cộng hay bình quân mức tiêu hao GIỮA các dự án; chỉ bình quân trong một dự án và luôn hiển thị kèm `payload.dvt`. Thiết kế ts5 gộp chung một cột 'lít/giờ máy' kèm định mức gõ cứng 18,0 là sai ở cả đơn vị lẫn việc gộp — nguồn KHÔNG có bảng định mức nào.",
     "BỐ CỤC 2 PANEL CẠNH NHAU ('2 tờ một trang'): ngày 1-17 ở cột E-U, ngày 18-31 lặp lại ở V-AK với header RIÊNG — nên 'MÃ XE' và 'ĐVT' xuất hiện HAI LẦN ở dòng 4 (A và V, D và W). `_map_header` lấy ô khác rỗng ĐẦU TIÊN nên trúng A/D (panel trái) — đúng ý. Đừng đổi sang dò từ phải sang.",
     "Cột AL 'MỨC THBQ' có XUỐNG DÒNG trong ô ('MỨC\\nTHBQ'); `_nd` bỏ hết ký tự không phải chữ số nên khai 'MỨC THBQ' vẫn khớp.",
-    "Các cột AM-AQ là BQ của những tháng TRƯỚC (BQ T8/2025, T9/2025…) và cột chênh lệch — CỐ Ý không lấy, tránh lẫn kỳ. Nhiều ô trong đó là #VALUE!."
+    "Các cột AM-AQ là BQ của những tháng TRƯỚC (BQ T8/2025, T9/2025…) và cột chênh lệch — CỐ Ý không lấy, tránh lẫn kỳ. Nhiều ô trong đó là #VALUE!.",
+    "TÊN DỰ ÁN TRONG TÊN FILE ĐỔI CHÍNH TẢ GIỮA CHỪNG: T7 là `BCDauTanThinh`, từ T8 thành `BCDauTânThinh` (có dấu). `dim1` lấy từ tên file nên Tân Thịnh TÁCH LÀM HAI dòng trên màn ts5 — T7 một dòng, T8/T9 một dòng, không dòng nào là toàn bộ dự án. `doi_gia_tri` gom về một mã; đừng chữa bằng cách thêm nhãn thứ hai vào `TEN_DU_AN` ở backend, làm vậy biểu đồ vẫn hai cột."
   ],
   "_kiem_chung": [
     "Cao Bằng, xe DT134: mức THBQ = 10,8969 Lít/km (ô AL21), dòng có mã ở cột A và ĐVT 'Lít/km'.",
@@ -72,5 +73,8 @@
     "regex_thang": "\\.M\\.\\d{4}\\.(\\d{1,2})\\."
   },
   "moi_ky_lay_file_moi_nhat": true,
-  "moi_ky_slot_regex": "BCDau([A-Za-zÀ-ỹ]+)"
+  "moi_ky_slot_regex": "BCDau([A-Za-zÀ-ỹ]+)",
+  "doi_gia_tri": {
+    "dim1": { "TânThinh": "TanThinh" }
+  }
 }

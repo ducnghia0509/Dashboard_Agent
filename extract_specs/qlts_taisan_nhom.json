@@ -6,7 +6,8 @@
     "CỘT A VÀ B ĐỀU TÊN 'Mã' ở dòng 2 -> dò theo tên chỉ ra cột A. Vì vậy mã nhóm con (B) khai bằng chữ cột. Không cần B cho màn hình, giữ lại để truy vết.",
     "DÒNG 5 LÀ TỔNG, dòng 6 trống, dữ liệu từ dòng 7. Hai dòng CUỐI sheet (74-75) là khối tự kiểm 'SL bảng chi tiết' / 'chênh lệch' — chúng có cột E nhưng KHÔNG có cột A, nên lọc `payload.maNhom khac_rong` là đủ để loại; đừng neo `dong_ket_thuc` vì số nhóm thay đổi theo kỳ.",
     "File kỳ CŨ (đến T7/2026) đặt tên sheet là 'TH theo Nhóm' và bố cục khác -> spec này CỐ Ý chỉ khớp sheet 'NHÓM', file cũ sẽ bị bỏ qua kèm cảnh báo. Chấp nhận: cơ cấu theo nhóm chỉ có từ T8. Xem [[qlts_taisan_donvi_cu]] để biết cách xử nếu cần bù kỳ cũ.",
-    "Tổng dòng 5 của sheet NHÓM là 21.211, LỆCH 1 so với sheet ĐƠN VỊ (21.212) và lệch 1 ở cột 'SL MỚI' (53 vs 54). Chính file cũng tự phát hiện: dòng 75 'chênh lệch' ghi G=1. Đây là lỗi SỐ LIỆU NGUỒN, không phải lỗi đọc — đừng chỉnh cho khớp, để nguyên và cảnh báo."
+    "Tổng dòng 5 của sheet NHÓM là 21.211, LỆCH 1 so với sheet ĐƠN VỊ (21.212) và lệch 1 ở cột 'SL MỚI' (53 vs 54). Chính file cũng tự phát hiện: dòng 75 'chênh lệch' ghi G=1. Đây là lỗi SỐ LIỆU NGUỒN, không phải lỗi đọc — đừng chỉnh cho khớp, để nguyên và cảnh báo.",
+    "Nguồn tài sản CHUYỂN SANG PHÁT HÀNH THEO TUẦN (20/09/2026): ngoài bản tháng `*.M.2026.8.Taisan.*` nay còn `*.D.2026.9.05.*`, `.9.12.*`, `.9.19.*` — cùng một bảng, chụp lại mỗi thứ Bảy. Regex kỳ cũ chỉ nhận `\\.M\\.` nên 3 file T9 vào tới máy mà engine báo 'không dò được kỳ' rồi BỎ QUA hết: dashboard đứng ở T8 trong khi nguồn đã có T9. Nới regex nhận cả `.D.` VÀ bật `moi_ky_lay_file_moi_nhat` — hai thứ BẮT BUỘC đi cùng nhau, nhận thêm file mà không chốt ảnh chụp là 3 bản T9 cộng dồn gấp ba. Đúng ghi chú mới của mapping cột K: 'Update báo cáo định kỳ theo tuần vào thứ 7 hàng tuần / Số liệu của những ngày không update = số liệu update gần nhất'."
   ],
   "_kiem_chung": [
     "T8/2026: 66 nhóm (dòng 7-72), tổng SL tồn cuối = 21.211, tổng NG tồn cuối = 1.752.844.714.588,38 đ.",
@@ -49,7 +50,8 @@
   ],
   "payload_them": { "unit": "ts" },
   "ky_tu_ten_file": {
-    "regex_nam": "\\.M\\.(\\d{4})\\.",
-    "regex_thang": "\\.M\\.\\d{4}\\.(\\d{1,2})\\."
-  }
+    "regex_nam": "\\.(?:M|D)\\.(\\d{4})\\.",
+    "regex_thang": "\\.(?:M|D)\\.\\d{4}\\.(\\d{1,2})[\\.\\s]"
+  },
+  "moi_ky_lay_file_moi_nhat": true
 }

@@ -1123,6 +1123,59 @@ def _cc_qlts(ten):
     return {"_khong_map": goc}
 
 
+_QLTS_CACHE_TEN = {}
+
+
+def _cc_qlts_khoi(gia_tri):
+    """Như `_cc_qlts` nhưng NHẬN THÊM TÊN KHỐI để phân giải tên đơn vị TRÙNG NHAU.
+
+    Đầu vào là chuỗi ghép `"<tên khối> | <tên đơn vị>"` do `ghep_header` dựng (xem `_resolve_cot`).
+
+    VÌ SAO CẦN (20/09/2026): danh mục có 9 CẶP cost center TRÙNG TÊN HỆT NHAU, chỉ khác khối —
+    `ST_SR`/`ST_XDV` đều tên "Vinfast Sơn Tây", tương tự Cẩm Phả · Hạ Long · Long Biên · Ocean
+    Park · Smart City · Uông Bí · Vĩnh Phúc · Xuân Mai. `_cc_qlts` cố ý KHÔNG đoán khi nhiều ứng
+    viên (bài học "Tài sản Taxi Tuyên Quang" bị gán nhầm `TQ_XDV`), nên với nguồn bảo hiểm/đăng
+    kiểm bố cục mới — vốn ghi tên trơn "Vinfast Sơn Tây" — có tới ~110/201 dòng mỗi sheet rơi khỏi
+    bộ lọc Đơn vị. Chính file đã có cột "Tên khối" ngay cạnh, đủ để phân giải mà không phải đoán.
+
+    Thứ tự: (1) để `_cc_qlts` chạy trước — mọi luật đã có (tiền tố loại, bỏ tỉnh, alias) vẫn
+    thắng; (2) nếu nó không map được thì mới lọc ứng viên theo KHỐI, và CHỈ nhận khi còn ĐÚNG MỘT;
+    (3) nước cuối cho Khối hỗ trợ tập đoàn — khối này đặt tên phòng ban ("Tài sản", "Kiểm soát nội
+    bộ") nên khoá `_qlts_khoa` bóc mất tiền tố "tài sản" và ra chuỗi rỗng; khớp thẳng tên nguyên
+    văn với danh mục.
+    """
+    raw = str(gia_tri or "").strip()
+    if not raw:
+        return None
+    phan = [x.strip() for x in raw.split("|")]
+    ten = phan[-1]
+    khoi_file = phan[0] if len(phan) > 1 else ""
+    kq = _cc_qlts(ten)
+    if not (isinstance(kq, dict) and kq.get("_khong_map")):
+        return kq
+    khoi = _khoi_qlts(khoi_file) or (khoi_file if khoi_file in
+                                     {k for ds in _QLTS_CACHE.values() for _, _, k in ds} else "")
+    if not khoi:
+        return kq
+    ung_vien = [(ma, cty, kh) for (ma, cty, kh) in _QLTS_CACHE.get(_qlts_khoa(ten)) or []
+                if kh == khoi]
+    if len(ung_vien) == 1:
+        ma, cty, kh = ung_vien[0]
+        return {"cost_center": ma, "cong_ty": cty, "khoi": kh}
+    if not _QLTS_CACHE_TEN:
+        master = _master_loader()
+        for cc in master.master_data().get("costCenters", []):
+            _QLTS_CACHE_TEN.setdefault(_nd(cc.get("ten")), []).append(
+                (str(cc.get("ma") or "").strip(),
+                 master.resolve_company_code(cc.get("congTy") or ""), cc.get("khoi") or ""))
+    ung_vien = [(ma, cty, kh) for (ma, cty, kh) in _QLTS_CACHE_TEN.get(_nd(ten)) or []
+                if kh == khoi]
+    if len(ung_vien) == 1:
+        ma, cty, kh = ung_vien[0]
+        return {"cost_center": ma, "cong_ty": cty, "khoi": kh}
+    return kq
+
+
 # ── BÁO CÁO QTVH XANH TAXI (`B.6.XVP.PKDVH.M.*.Baocaotonghop`) ─────────────────────────────
 # Bảng NGANG: cột A = khối/depot (ô GỘP, chỉ ghi ở dòng đầu -> cột khai `lap_lai`), cột B = tên
 # chỉ tiêu, C..AG = mỗi ngày một cột. Mỗi sheet là MỘT THÁNG và tháng mới lại thêm sheet vào chính
@@ -1333,6 +1386,7 @@ def _claim_ky_du_lieu(v):
 
 _CHUAN_HOA = {
     "cc_qlts": _cc_qlts,
+    "cc_qlts_khoi": _cc_qlts_khoi,
     "khoi_qlts": _khoi_qlts,
     "cty_qlts": _cty_qlts,
     "sr_showroom": _cc_showroom,
@@ -1610,13 +1664,27 @@ def _map_header(rows, dong):
 
 
 def _resolve_cot(spec, hmap, warn):
-    """{đích: (chỉ số cột, cfg)} — dò theo TÊN, phao là `cot_du_phong` (chữ cột)."""
+    """{đích: (chỉ số cột, cfg)} — dò theo TÊN, phao là `cot_du_phong` (chữ cột).
+
+    `ghep_header` (20/09/2026): GHÉP THÊM cột phụ vào giá trị trước khi chạy `chuan_hoa`, nối bằng
+    " | ". Sinh ra vì một mình tên đơn vị KHÔNG đủ để suy cost center: nguồn bảo hiểm/đăng kiểm bố
+    cục mới ghi "Vinfast Sơn Tây" mà danh mục có TỚI HAI mã trùng tên (`ST_SR` Showroom và
+    `ST_XDV` Xưởng dịch vụ) — `_cc_qlts` cố ý không đoán nên 9 địa danh Vinfast rơi khỏi bộ lọc
+    Đơn vị. Cột "Tên khối" đứng ngay cạnh phân giải được, nhưng hook chỉ nhận MỘT ô. Khai
+    `"ghep_header": ["Tên khối"]` -> hook nhận "Khối KD Vinfast - XDV | Vinfast Sơn Tây".
+    Cột phụ thiếu thì bỏ qua phần ghép, KHÔNG làm hỏng cột chính.
+    """
     out = {}
     for dich, cfg in (spec.get("cot") or {}).items():
         j = _tim_cot(hmap, cfg, dich, warn)
         if j is None:
             continue
-        out[dich] = (j, cfg)
+        phu = []
+        for h in (cfg.get("ghep_header") or []):
+            jp = _tim_cot(hmap, {"header": h, "bat_buoc": False}, f"{dich}.ghep", warn)
+            if jp is not None:
+                phu.append(jp)
+        out[dich] = (j, {**cfg, "_ghep_j": phu} if phu else cfg)
     return out
 
 
@@ -2983,6 +3051,12 @@ def _extract_vung(spec, path):
                         val = lap_lai_cuoi.get(dich)
                     else:
                         lap_lai_cuoi[dich] = val
+                if cfg.get("_ghep_j") and val not in (None, ""):
+                    # Xem `_resolve_cot`: ghép cột phụ vào TRƯỚC giá trị chính, ngăn bằng " | ".
+                    truoc = [str(row[k]).strip() for k in cfg["_ghep_j"]
+                             if k < len(row) and row[k] not in (None, "")]
+                    if truoc:
+                        val = " | ".join(truoc + [str(val).strip()])
                 hook = cfg.get("chuan_hoa")
                 # `chuan_hoa_khi_rong`: chạy hook CẢ KHI ô trống, vì với cột này "để trống" là
                 # một TRẠNG THÁI chứ không phải thiếu dữ liệu. Cột "số ngày quá hạn" của công nợ

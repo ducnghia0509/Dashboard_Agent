@@ -1,0 +1,52 @@
+{
+  "id": "qlts_dangkiem_theodoi",
+  "_mo_ta": "QLTS — DANH SÁCH THEO DÕI HẠN KIỂM ĐỊNH (bố cục MỚI từ T8/2026), 4 sheet 'DM KĐ ĐK' (đăng kiểm xe) / 'DM KĐAT' (kiểm định an toàn thiết bị) / 'DM KĐ DT' (kiểm định dung tích) / 'DM KĐPC' (hồ sơ phòng cháy) của QLTS/baocaodangkiem/*Dangkiem.xlsx. Mỗi dòng = 1 THIẾT BỊ thuộc diện phải kiểm định. dim1 = tên loại hình kiểm định, dim2 = Thông báo (Còn hạn / Sắp hết hạn / Quá hạn), dim3 = Nội dung tình trạng (LÝ DO quá hạn). Trả lời đúng câu hỏi của KT ở log mục 13: 'bao nhiêu thiết bị đã đăng kiểm, bao nhiêu chưa, chưa vì sao'.",
+  "_bay": [
+    "BỐN SHEET, MỘT SPEC (`moi_sheet_chua: 'DM K'`). Đừng tách 4 spec cùng report_type trên CÙNG file — `_ghi` xoá theo (report_type, source_file) nên spec sau xoá sạch spec trước. `'DM K'` KHÔNG bắt nhầm sheet 'DM' (danh mục) của file bảo hiểm vì đó là folder khác và tên khác.",
+    "dim1 LẤY TỪ CỘT 'Tên loại hình kiểm định' của chính file, KHÔNG lấy từ tên sheet: tên sheet viết tắt ('KĐAT', 'KĐPC') còn cột thì ghi đủ ('Kiểm định an toàn máy móc, thiết bị công trình'), và đây cũng là nhãn mà mapping/thiết kế dùng.",
+    "ĐỌC DÒNG CHI TIẾT (cột F trở đi), BỎ khối tóm tắt A-E. Cùng lý do như `qlts_baohiem_theodoi`: khối tóm tắt đã gộp nên không mang đơn vị, bật lọc là band rỗng. Đã kiểm dòng chi tiết cộng lại khớp tuyệt đối khối tóm tắt của cả 4 sheet.",
+    "CỘT LỆCH NHAU GIỮA 4 SHEET nên khai DANH SÁCH ứng viên: mã tài sản là 'Mã tài sản' ở KĐ ĐK/KĐ DT/KĐPC nhưng 'MÃ CT' ở KĐAT; số lượng là 'SL' / 'SỐ lượng'; tên tài sản là 'Tên tài sản' / 'TÊN'. Thông báo ở cột Y (KĐ ĐK, KĐAT) nhưng W (KĐ DT, KĐPC) — thêm lý do KHÔNG đọc theo chữ cột.",
+    "TÊN ĐƠN VỊ TRÙNG NHAU: dùng `cc_qlts_khoi` + `ghep_header: ['Tên khối']`, xem docstring `_cc_qlts_khoi`. 'HO Dự Án' và 'Dự án Bình Phước' vẫn chưa có trong master_data — việc của danh mục nghiệp vụ.",
+    "FILE T7/2026 (bố cục CŨ, sheet 'Đăng kiểm') không có sheet 'DM K*' -> spec báo 'không sheet nào chứa' cho nó, BÌNH THƯỜNG."
+  ],
+  "_kiem_chung": [
+    "T8/2026 (F.9.TC.H5.M.2026.8.TheodoiDangkiem.xlsx): KĐ ĐK 22 xe (Còn hạn 12 · Sắp đến hạn 0 · Quá hạn 57?? — khối tóm tắt của file ghi 57 nhưng chi tiết chỉ 22 dòng, xem ghi chú dưới) · KĐAT 200 thiết bị (4 · 0 · 196) · KĐ DT 9 (1 · 0 · 8) · KĐPC 11 (2 · 0 · 9). Tổng 242 dòng.",
+    "LỆCH ĐÃ BIẾT ở sheet 'DM KĐ ĐK': khối tóm tắt ghi tổng 12+0+57 = 69 xe trong khi danh sách chi tiết chỉ có 22 dòng. Số trên DASHBOARD lấy theo DÒNG CHI TIẾT (đếm được, lọc được theo đơn vị); chênh lệch này phải hỏi QLTS — khối tóm tắt nhiều khả năng còn tính cả xe của bảng khác."
+  ],
+  "report_type": "QLTS_DK_TD",
+  "row_index_base": 7909500,
+  "nguon": {
+    "folder": "QLTS/baocaodangkiem",
+    "file_glob": "*Dangkiem.xlsx",
+    "sheet": { "moi_sheet_chua": "DM K" }
+  },
+  "header": { "dong": [6, 5] },
+  "dong_bat_dau": 7,
+  "cot": {
+    "khoi":        { "header": "Tên khối", "chuan_hoa": "khoi_qlts", "bat_buoc": false },
+    "cong_ty":     { "header": "Pháp nhân", "chuan_hoa": "cty_qlts", "bat_buoc": false },
+    "cost_center": { "header": "Tên Coscenter", "chuan_hoa": "cc_qlts_khoi", "ghep_header": ["Tên khối"], "giu_khi_khong_map": true, "bat_buoc": false },
+    "dim1":        { "header": "Tên loại hình kiểm định" },
+    "dim2":        { "header": "Thông báo" },
+    "dim3":        { "header": "Nội dung tình trạng", "bat_buoc": false },
+    "amount":      { "header": ["SL", "SỐ lượng", "Số lượng"], "kieu": "so", "bat_buoc": false },
+
+    "payload.maTaiSan":     { "header": ["Mã tài sản", "MÃ CT"], "bat_buoc": false },
+    "payload.tenTaiSan":    { "header": ["Tên tài sản", "TÊN"], "bat_buoc": false },
+    "payload.bks":          { "header": ["BKS mới", "BKS"], "bat_buoc": false },
+    "payload.ketThuc":      { "header": ["Ngày hết hạn", "Hạn cấp"], "kieu": "date", "bat_buoc": false },
+    "payload.soNgayConLai": { "header": "Số ngày còn lại/quá hạn .", "kieu": "so", "bat_buoc": false },
+    "payload.maCostQlts":   { "header": "Mã Coscenter", "bat_buoc": false },
+    "payload.tenDonViQlts": { "header": "Tên Coscenter", "bat_buoc": false },
+    "payload.maTinhTrang":  { "header": "Mã Tình trạng", "bat_buoc": false }
+  },
+  "loc": [
+    { "cot": "dim2", "dieu_kien": "khac_rong" }
+  ],
+  "payload_them": { "unit": "ts" },
+  "ky_tu_ten_file": {
+    "regex_nam": "\\.(?:M|D)\\.(?:TS\\.)?(\\d{4})\\.",
+    "regex_thang": "\\.(?:M|D)\\.(?:TS\\.)?\\d{4}\\.(\\d{1,2})[\\.\\s]"
+  },
+  "moi_ky_lay_file_moi_nhat": true
+}

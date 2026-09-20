@@ -1,0 +1,57 @@
+{
+  "id": "qlts_baohiem_ky",
+  "_mo_ta": "QLTS — HỢP ĐỒNG/PHÍ THAM GIA BẢO HIỂM PHÁT SINH TRONG KỲ (bố cục MỚI từ T8/2026), sheet 'Phí tham gia BH' của QLTS/baocaobaohiem/*Baohiem.xlsx. Mỗi dòng = 1 tài sản được mua bảo hiểm trong tháng. amount = giá trị bảo hiểm tài sản (tỷ), payload.phiBH = phí (tỷ). dim1 = loại BH, dim3 = nhà bảo hiểm. Cấp số cho phần 'chi phí bảo hiểm trong kỳ' của band A màn ts4.",
+  "_bay": [
+    "REPORT_TYPE RIÊNG `QLTS_BH_KY`, KHÔNG dùng lại `QLTS_BH`. Hai bên là HAI GỐC SỐ khác nhau: sheet 'Tổng hợp' của bố cục CŨ (T7) liệt kê 134 hợp đồng LUỸ KẾ còn hiệu lực, sheet này chỉ liệt kê PHÁT SINH TRONG THÁNG (T8 đúng 20 dòng). Trộn chung một report_type là kỳ T7 to gấp 7 lần kỳ T8 mà nhìn như 'sụt giảm' — đúng lớp lỗi 'spec trộn hai gốc số' đã ghi ngày 05/09/2026.",
+    "CỘT 'Tổng phí phải nộp' (Q) CHỈ ĐIỀN Ở DÒNG CUỐI MỖI NHÓM (là ô SUBTOTAL của nhóm loại BH: 19.215.071 ở dòng cuối nhóm BHMMTB, 12.706.716 ở cuối BHTNDS, 27.833.300 ở cuối BHVC). Cộng cột đó ra tổng ĐÚNG nhưng KHÔNG phân bổ được theo đơn vị. Phí của TỪNG dòng nằm ở cột P 'Phí BH' — dùng cột này, Σ = 59.755.087 khớp ô 'Tổng cộng' H9 của bảng phụ.",
+    "HEADER GỘP [12, 11]: dòng 11 là nhãn nhóm ('Giá trị' phủ O-P, 'Ngày tháng năm' phủ L-N), dòng 12 mới là tên cột thật. Dữ liệu từ dòng 13. Bảng phụ dòng 4-9 (tổng phí theo 4 loại BH) nằm PHÍA TRÊN — khai header.dong = 4 là bắt trúng nó.",
+    "TIÊU ĐỀ SHEET T8 ghi 'DANH SÁCH THAM GIA BẢO HIỂM THÁNG 8 NĂM 2026 TẠI KHỐI DỰ ÁN' nhưng dữ liệu CÓ cả dòng khối Showroom/XDV (3 xe demo VinFast). Đừng gán cứng khối theo tiêu đề — đọc cột 'Khối'.",
+    "MẪU SỐ 'tỷ lệ tài sản tham gia bảo hiểm' KHÔNG nằm ở sheet này mà ở 3 sheet 'DSTD *' (spec `qlts_baohiem_theodoi`). Sheet này chỉ nói TRONG KỲ mua thêm bao nhiêu và hết bao nhiêu tiền."
+  ],
+  "_kiem_chung": [
+    "T8/2026: 20 dòng (13-32). Σ giá trị BH = 14.326.607.000 đ. Σ phí BH = 59.755.087,4 đ — khớp ô 'Tổng cộng' của bảng phụ.",
+    "Theo loại (khớp bảng phụ dòng 5-8): BHMMTB 8 dòng / 19.215.071,4 đ · BHVC 3 / 25.118.500 đ · BHTNDS 9 / 15.421.516 đ · BHCN 0.",
+    "Đơn vị: 17/20 dòng thuộc 'Dự án Bình Phước' (chưa có mã trong master_data), 3 dòng còn lại Vinfast Sơn Tây / Hồ Chí Minh / Ocean Park."
+  ],
+  "report_type": "QLTS_BH_KY",
+  "row_index_base": 7908000,
+  "nguon": {
+    "folder": "QLTS/baocaobaohiem",
+    "file_glob": "*Baohiem.xlsx",
+    "sheet": { "ten": "Phí tham gia BH" }
+  },
+  "header": { "dong": [12, 11] },
+  "dong_bat_dau": 13,
+  "kiem_tra_o": [
+    { "o": "O12", "bang": "Giá trị bảo hiểm tài sản" },
+    { "o": "P12", "bang": "Phí BH" },
+    { "o": "Y11", "bang": "Coscenter" }
+  ],
+  "cot": {
+    "khoi":        { "header": "Khối", "chuan_hoa": "khoi_qlts", "bat_buoc": false },
+    "cost_center": { "header": "Coscenter", "chuan_hoa": "cc_qlts_khoi", "ghep_header": ["Khối"], "giu_khi_khong_map": true, "bat_buoc": false },
+    "dim1":        { "header": "Loại" },
+    "dim2":        { "header": "Số HĐ", "bat_buoc": false },
+    "dim3":        { "header": "Đơn vị tham gia BH", "bat_buoc": false },
+    "amount":      { "header": "Giá trị bảo hiểm tài sản", "kieu": "so", "he_so": 1e-9, "bat_buoc": false },
+    "amount2":     { "header": "Phí BH", "kieu": "so", "he_so": 1e-9, "bat_buoc": false },
+
+    "payload.maTaiSan":  { "header": "Mã", "bat_buoc": false },
+    "payload.tenTaiSan": { "header": "Diễn giải", "bat_buoc": false },
+    "payload.soHopDong": { "header": "Số HĐ", "bat_buoc": false },
+    "payload.batDau":    { "header": "Bắt đầu", "kieu": "date", "bat_buoc": false },
+    "payload.ketThuc":   { "header": "Kết thúc", "kieu": "date", "bat_buoc": false },
+    "payload.hoaHong":   { "header": "Hoa hồng", "kieu": "so", "he_so": 1e-9, "bat_buoc": false },
+    "payload.maCostQlts":   { "header": "Mã Cost", "bat_buoc": false },
+    "payload.tenDonViQlts": { "header": "Coscenter", "bat_buoc": false }
+  },
+  "loc": [
+    { "cot": "dim1", "dieu_kien": "khac_rong" }
+  ],
+  "payload_them": { "unit": "ty" },
+  "ky_tu_ten_file": {
+    "regex_nam": "\\.(?:M|D)\\.(?:TS\\.)?(\\d{4})\\.",
+    "regex_thang": "\\.(?:M|D)\\.(?:TS\\.)?\\d{4}\\.(\\d{1,2})[\\.\\s]"
+  },
+  "moi_ky_lay_file_moi_nhat": true
+}
