@@ -1,0 +1,47 @@
+{
+  "id": "vhkd_tonghop_banxe",
+  "_mo_ta": "BÁO CÁO TỔNG HỢP BÁN XE (KD66) — nguồn TỰ ĐỘNG Cyber (ổ IT\\TESTBAOCAOTUDONG\\1.VINFAST_SR -> VPS `TEST_SR/baocaotonghopbanxe`), mỗi ngày một file. Bảng nhỏ: mỗi showroom một dòng, ba trạng thái hợp đồng trong ngày — đã cọc HĐ · thanh toán đủ ĐÃ giao xe · thanh toán đủ CHƯA giao xe. Chỉ tiêu MỚI của mapping VHKD (Báo cáo API_VHKD dòng 14).",
+  "_kiem_chung": [
+    "29/08/2026: dòng 'Tổng cộng' (r9) của chính file ghi Sl đã cọc HĐ 18 · TT đủ đã giao 0 · TT đủ chưa giao 0 · Tổng SL 18 — tổng ba dim1 của spec phải ra đúng 18.",
+    "File chỉ 12 dòng (10-11 showroom + Vinfast B2B), không có cột ngày -> `ngay` suy từ tên file."
+  ],
+  "_bay": [
+    "CỘT 'Tổng SL' LÀ TỔNG CỦA BA CỘT KIA — cố ý KHÔNG nạp. Khai thêm nó thành một dim1 nữa là mọi phép cộng theo report_type này ra gấp đôi.",
+    "Dòng 'Tổng cộng' nằm ở ĐẦU vùng (dòng 9): nhãn ở cột B 'Tên DVCS', cột A 'Mã DVCS' bỏ trắng -> chặn bằng `payload.ma_dvcs khac_rong`.",
+    "MỖI NGÀY MỘT FILE, KHÔNG LUỸ KẾ — `moi_ky_lay_file_moi_nhat: \"ngay\"`, bên cron khai `ANH_CHUP_KY`.",
+    "Đây là ẢNH CHỤP TRẠNG THÁI trong ngày, không phải dòng chảy cộng dồn được: 'TT đủ chưa giao xe' của hai ngày liên tiếp có thể là CÙNG những chiếc xe đó. Cộng qua nhiều ngày là đếm đôi — khi hiển thị nhiều kỳ phải lấy ngày CUỐI, như mọi nguồn tồn kho."
+  ],
+  "report_type": "VHKD_TONGHOP_XE",
+  "row_index_base": 8630000,
+  "khoi": "Khối KD Vinfast - Showroom",
+  "nguon": {
+    "folder": "TEST_SR/baocaotonghopbanxe",
+    "file_glob": "*.Baocaotonghopbanxe.xlsx",
+    "sheet": {"so": 0}
+  },
+  "kiem_tra_o": [
+    {"o": "A8", "bang": "Mã DVCS"},
+    {"o": "C8", "bang": "Sl đã cọc HĐ"},
+    {"o": "F8", "bang": "Tổng SL"}
+  ],
+  "header": {"dong": 8},
+  "dong_bat_dau": 9,
+  "ngay_tu_ten_file": {"regex": "\\.D\\.(\\d{4})(\\d{2})(\\d{2})\\.", "thu_tu": "ymd"},
+  "moi_ky_lay_file_moi_nhat": "ngay",
+  "cot": {
+    "cost_center": {"header": "Tên DVCS", "chuan_hoa": "sr_showroom", "giu_khi_khong_map": true},
+    "payload.ma_dvcs": {"header": "Mã DVCS"},
+    "payload.ten_dvcs": {"header": "Tên DVCS"},
+    "payload.tong_sl": {"header": "Tổng SL", "kieu": "so_co_rong", "bat_buoc": false}
+  },
+  "ban_ghi": "moi_cot_gia_tri",
+  "cot_gia_tri": [
+    {"header": "Sl đã cọc HĐ", "dim1": "Đã cọc HĐ"},
+    {"header": "TT đủ đã giao xe", "dim1": "TT đủ - đã giao xe"},
+    {"header": "TT đủ chưa giao xe", "dim1": "TT đủ - chưa giao xe"}
+  ],
+  "loc": [
+    {"cot": "payload.ma_dvcs", "dieu_kien": "khac_rong"}
+  ],
+  "payload_them": {"unit": "xe"}
+}

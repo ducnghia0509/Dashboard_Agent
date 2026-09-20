@@ -1,0 +1,139 @@
+{
+  "id": "vhkd_tonkho_vatly_auto",
+  "_mo_ta": "Tồn kho xe VẬT LÝ theo SR × KÊNH × DÒNG XE (DASHBOARD 4 chỉ tiêu 14-15, khối B màn vhkd4) — NGUỒN TỰ ĐỘNG KD36 'Báo cáo nhập xuất tồn kho xe (chi tiết theo số khung)_xe vật lý'. Thay cho `vhkd_tonkho_vatly` (nguồn tay `SRVF/baocaotonkhoxevatly`, 3 file/kỳ theo kênh).",
+  "_doi_chieu": [
+    "Đối chiếu bản tay chốt 28/08 với bản tự động CÙNG NGÀY: 1.214/1.214 VIN của bản tay đều có mặt trong bản tự động (0 VIN chỉ có ở bản tay). Bản tự động thừa 146 VIN — chính là xe DEMO (mã kho 2004) và xe KÝ GỬI (2008) mà 3 file kênh cũ đã lọc ra.",
+    "Suy kênh từ 'Mã kho' qua hook `kho_kenh`: trên 1.217 xe đối chiếu được -> 1.217 ĐÚNG / 0 SAI / 0 rỗng. Cột 'Mã kho' có giá trị ở 12.377/12.377 dòng của cả 9 kỳ, còn 'Mã kho tồn' rỗng 224 dòng -> CỐ Ý dùng 'Mã kho'.",
+    "Bảng mã kho đầy đủ (đếm trên cả 9 kỳ): 2001 Kho ô tô showroom · 1010 Xe ô tô Showroom Quảng Ninh · 2006 Kho ô tô cũ · 2010/2011 Xe thương quyền · 2013/2014/2015 Kho B2B_KD · 2004 Kho ô tô demo · 2008 Kho ô tô ký gửi.",
+    "ĐÓNG CÂU HỎI TREO CỦA SPEC TAY (03/09/2026). `_bay` của `vhkd_tonkho_vatly` ghi 'Nhiều khả năng bản kênh đã lọc theo điều kiện Tồn cuối = 1 — CHỜ ĐƠN VỊ XÁC NHẬN'. KHÔNG PHẢI: soi đúng 1.214 VIN của bản tay bên trong file tự động cùng ngày 28/08 thì 1.170 dòng có Tồn cuối = 1 nhưng 47 dòng có Tồn cuối = 0 (33 B2C + 11 B2B + 3 GF). Bản tay GIỮ cả xe Tồn cuối = 0 -> ĐỪNG thêm bộ lọc Tồn cuối vào spec này.",
+    "PHÂN RÃ CHÊNH LỆCH 28/08 (auto 1.363 dòng vs tay 1.214 VIN): +131 xe demo/ký gửi (dim2 riêng, bản tay lọc ra) +15 xe kênh B2C mà bản tay KHÔNG có. 0 VIN chỉ có ở bản tay. Cùng kiểu 'nguồn tự động đầy đủ hơn' đã thấy ở KD73 (thiếu 1 hoá đơn ngày 25/08)."
+  ],
+  "_bay": [
+    "'Xe demo' VÀ 'Xe ký gửi' KHÔNG PHẢI KÊNH BÁN — chúng là dim2 riêng, không gộp vào B2B/B2C/GF. Đây là chênh lệch DUY NHẤT về phạm vi so với bản tay: bản tay lọc chúng ra, bản này giữ lại. Màn lọc theo 3 kênh vẫn ra đúng số cũ; tổng tồn thì đủ hơn. Đừng 'sửa' cho khớp bản tay bằng cách dồn chúng vào một kênh.",
+    "DÒNG TỔNG NẰM Ở DÒNG 9 — NGAY DƯỚI HEADER, không phải cuối file. Nhãn 'Tổng cộng ' (CÓ DẤU CÁCH CUỐI) rơi vào cột B 'Kiểu xe - Màu xe - Số khung', tức ĐÚNG cột chứa số VIN -> lọc `so_vin khac_rong` KHÔNG chặn được nó. Chốt chặn thật là `payload.ma_kieu_xe khac_rong`: dòng tổng bỏ trắng cột 'Mã kiểu xe'. TUYỆT ĐỐI KHÔNG dùng `dung_khi` cho nguồn này — dòng tổng đứng ĐẦU nên engine sẽ dừng ngay và nạp 0 dòng.",
+    "MỖI NGÀY MỘT FILE, ảnh chụp tồn tại thời điểm đó. `moi_ky_lay_file_moi_nhat: \"ngay\"` là bắt buộc; bên cron phải khai `ANH_CHUP_KY`, để `LUY_KE` là 9 file ngày bị coi là 9 bản chốt của một slot rồi xoá 8.",
+    "`VHKD_TONVATLY` nằm trong `_SNAP_RT` (tầng đọc tự lấy ngày chốt MỚI NHẤT theo cong_ty+khoi). Bản tay gán cứng `ngay` = cuối tháng, bản này gán ngày thật -> sau khi nạp, màn vhkd4 sẽ nhảy sang ảnh chụp NGÀY mới nhất thay vì ảnh cuối tháng. Đó là hành vi mong muốn, nhưng phải biết trước khi so với số cũ.",
+    "TÊN FILE CÓ HAI DẠNG TIỀN TỐ ('B1.TC.TCKT.' 25-28/08 và 'B.1.TC.TCKT.' từ 29/08) — glob và `ngay_tu_ten_file` đều không bám tiền tố.",
+    "amount = 1 (ĐẾM XE), không phải tiền — `payload_them.unit` = 'xe'. File có 'Tồn cuối' nhưng KHÔNG dùng làm amount: dòng nào cũng là một VIN, đếm dòng mới ra tồn theo đúng nghĩa bản tay.",
+    "Bản này CÓ 'Kiểu xe' và 'Số ngày tồn' — hai chiều mà `_bay` của spec tay ghi 'cần xin thêm cột' cho chỉ tiêu 15 (chênh lệch tồn vật lý - hoá đơn theo dòng xe). Nay dựng được, chờ thiết kế bật.",
+    "3 VIN xuất hiện HAI DÒNG trong cùng một file (1.217 dòng cho 1.214 VIN, đo 28/08) — xe nằm ở hai kho trong cùng kỳ. Đếm dòng nên tồn nhỉnh hơn đếm VIN đúng 3 xe. Chưa xử vì bản tay cũng không xử; nếu đơn vị xác nhận là lỗi thì khử trùng theo (VIN, ngày)."
+  ],
+  "report_type": "VHKD_TONVATLY",
+  "row_index_base": 8410000,
+  "khoi": "Khối KD Vinfast - Showroom",
+  "nguon": {
+    "folder": "TEST_SR/baocaonhapxuattonkhoxe",
+    "file_glob": "*.Baocaonhapxuattonkhoxe.xlsx",
+    "sheet": {
+      "so": 0
+    }
+  },
+  "kiem_tra_o": [
+    {
+      "o": "A8",
+      "bang": "Đơn vị"
+    },
+    {
+      "o": "B8",
+      "bang": "Kiểu xe - Màu xe - Số khung"
+    },
+    {
+      "o": "C8",
+      "bang": "Mã kiểu xe"
+    },
+    {
+      "o": "W8",
+      "bang": "Mã kho"
+    }
+  ],
+  "header": {
+    "dong": 8
+  },
+  "dong_bat_dau": 9,
+  "ngay_tu_ten_file": {
+    "regex": "\\.D\\.(\\d{4})(\\d{2})(\\d{2})\\.",
+    "thu_tu": "ymd"
+  },
+  "moi_ky_lay_file_moi_nhat": "ngay",
+  "cot": {
+    "cost_center": {
+      "header": "Đơn vị",
+      "chuan_hoa": "sr_showroom",
+      "giu_khi_khong_map": true
+    },
+    "dim1": {
+      "header": "Kiểu xe",
+      "chuan_hoa": "cat"
+    },
+    "dim2": {
+      "header": "Mã kho",
+      "chuan_hoa": "kho_kenh"
+    },
+    "dim3": {
+      "header": "Tên kho",
+      "chuan_hoa": "cat"
+    },
+    "payload.don_vi": {
+      "header": "Đơn vị"
+    },
+    "payload.so_vin": {
+      "header": "Kiểu xe - Màu xe - Số khung"
+    },
+    "payload.ma_kieu_xe": {
+      "header": "Mã kiểu xe"
+    },
+    "payload.ma_kho": {
+      "header": "Mã kho"
+    },
+    "payload.ton_dau": {
+      "header": "Tồn đầu",
+      "kieu": "so_co_rong"
+    },
+    "payload.sl_nhap": {
+      "header": "SL Nhập",
+      "kieu": "so_co_rong"
+    },
+    "payload.sl_xuat": {
+      "header": "SL Xuất",
+      "kieu": "so_co_rong"
+    },
+    "payload.ton_cuoi": {
+      "header": "Tồn cuối",
+      "kieu": "so_co_rong"
+    },
+    "payload.so_ngay_ton": {
+      "header": "Số ngày tồn",
+      "kieu": "so_co_rong"
+    },
+    "payload.ton_sau_ky": {
+      "header": "Tồn sau ký",
+      "kieu": "so_co_rong",
+      "bat_buoc": false
+    },
+    "payload.ngay_nhap": {
+      "header": "Ngày nhập xe từ nhà CC",
+      "bat_buoc": false
+    },
+    "payload.ma_hop_dong": {
+      "header": "Mã hợp đồng",
+      "bat_buoc": false
+    }
+  },
+  "ban_ghi": "moi_dong",
+  "dan_xuat": {
+    "amount": "1"
+  },
+  "loc": [
+    {
+      "cot": "payload.ma_kieu_xe",
+      "dieu_kien": "khac_rong"
+    },
+    {
+      "cot": "payload.so_vin",
+      "dieu_kien": "khac_rong"
+    }
+  ],
+  "payload_them": {
+    "unit": "xe"
+  }
+}

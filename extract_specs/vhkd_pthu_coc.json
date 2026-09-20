@@ -2,6 +2,7 @@
   "id": "vhkd_pthu_coc",
   "_mo_ta": "Công nợ phải thu CHI TIẾT theo hợp đồng: trong hạn/quá hạn × kênh × trạng thái COC (Mapping_Dashboard_VHKD dòng 30, 58, 59, 61 — DASHBOARD mẹ 'Công nợ quá hạn đã có COC' và DASHBOARD 2 'Quản lý phải thu'). Nguồn: SRVF/baocaocongnophaithu, sheet chi tiết.",
   "_bay": [
+    "BẬT `moi_ky_lay_file_moi_nhat` 29/08/2026: đây là ẢNH CHỤP TẠI THỜI ĐIỂM (report_type nằm trong `_SNAP_RT` ở backend). Nghiệp vụ gửi lại bản SỬA của cùng một kỳ dưới TÊN KHÁC thì `_ghi` (xoá theo source_file) không chặn được, và `_SNAP_RT` lấy MAX(ngay) cũng không phá được hoà -> cộng đôi im lặng. Đã kiểm trước khi bật: hiện mỗi kỳ của nguồn này đúng 1 file, bật cờ KHÔNG loại file nào đang có.",
     "SHEET: T7 có BA sheet chứa chữ 'Chi tiết'. Bản 'Chi tiết theo hợp đồng (2)' lệch 1 cột (COC nằm ở AH/AD thay vì AG/AC) và cột COC RỖNG SẠCH 0/4689 — nó đứng ĐẦU file nên mọi cách khớp kiểu 'chua'/'batdau' đều vớ đúng nó và ra một tháng không có COC nào mà không báo lỗi. Phải khai `ten` dạng LIST tên tuyệt đối. Tên sheet đổi giữa các kỳ: 'Chi tiết theo hợp đồng' (T1-T4, T6, T7) -> 'Chi tiết công nợ' (T5, T8).",
     "HEADER: dòng 5 ở T1-T4/T6/T7 nhưng dòng 8 ở T5/T8 -> dùng `tim_o` chứ đừng gõ số dòng.",
     "CỘT: mapping ghi chữ cột C/N/W/AE/AF/AG. Bộ chữ đó đúng với bố cục T1-T7; T8 bỏ cột trống ở A nên 'Tên đơn vị' tụt về B trong khi N/W/AE/AF/AG vẫn y nguyên. Dò theo TÊN là chạy được cả hai, đừng khai chữ cột.",
@@ -45,5 +46,6 @@
     { "cot": "amount", "dieu_kien": "khac_rong" },
     { "cot": "payload.don_vi", "dieu_kien": "khac_rong" }
   ],
-  "payload_them": { "unit": "ty", "nguon": "chi_tiet_theo_hop_dong" }
+  "payload_them": { "unit": "ty", "nguon": "chi_tiet_theo_hop_dong" },
+  "moi_ky_lay_file_moi_nhat": true
 }

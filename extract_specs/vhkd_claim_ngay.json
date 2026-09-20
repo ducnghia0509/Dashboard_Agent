@@ -1,0 +1,46 @@
+{
+  "id": "vhkd_claim_ngay",
+  "_mo_ta": "Claim Showroom KÊNH B2C — BẢN THEO NGÀY PHÁT HÀNH (màn vhkd2 tab Ngày, 17/09/2026). Đọc CÙNG file với `vhkd_claim` nhưng giữ MỌI bản phát hành thay vì chỉ bản mới nhất, và đặt `ngay` = NGÀY PHÁT HÀNH thay vì cuối tháng dữ liệu. Kỳ dữ liệu chuyển sang `dim3`.",
+  "_bay": [
+    "HAI SPEC ĐỌC CÙNG MỘT FILE — KHÔNG được dùng chung report_type với `vhkd_claim`. `_ghi` xoá theo (report_type, source_file) rồi nạp lại, nên cùng report_type là spec chạy SAU xoá sạch dữ liệu của spec chạy TRƯỚC (đúng tai nạn `VHKD_KH_SL_NGAY` ngày 09/09/2026). Khác report_type thì hai phạm vi xoá rời nhau, không cần `source_file_hau_to`.",
+    "TÊN report_type KHÔNG ĐƯỢC KẾT THÚC BẰNG '_D'. `repository._where` có nhánh riêng cho hậu tố '_D' (`_file_bi_thay_the`): mỗi lát (THƯ MỤC NGUỒN, NGÀY) chỉ giữ MỘT file, mà khoá thư mục là `source_file.split('::')[0]` = 'SRVF' cho MỌI file claim. Lô 15/09 có 13 file cùng `ngay = 2026-09-15` (B2B T1..T9 + B2C T6..T9) -> 12 file bị coi là 'bản bị thay thế' và biến mất im lặng. Vì thế đặt '_NGAY' (cùng quy ước với `VHKD_KH_NGAY`, `VHKD_KH_SR_NGAY`).",
+    "`moi_ky_lay_file_moi_nhat` CỐ Ý KHÔNG khai — đây chính là điểm khác duy nhất về dữ liệu so với `vhkd_claim`. Spec này SỐNG BẰNG các bản cũ: không có chúng thì tab Ngày chỉ có đúng một mốc. Kèm theo đó, `cron_qtvh_core` phải chừa report_type này ra khi dọn bản chốt cũ (`giu_report_type` của nguồn `baocaoclaimb2b`/`baocaoclaimb2c`), nếu không rows vừa nạp bị xoá ngay đêm đó.",
+    "`ngay` = NGÀY PHÁT HÀNH, nên KỲ (dataset) là THÁNG PHÁT HÀNH chứ không phải tháng dữ liệu: `_ghi` lấy `period = ngay[:7]`. File `…9.16…_T8` nằm ở kỳ 2026-09 với `dim3 = 2026-08`. Đây là CHỦ Ý — tab Ngày hỏi 'tại ngày D số nào đang hiệu lực', nên phải xếp theo ngày phát hành. Builder `_vhkd2_ngay` vì thế quét MỌI dataset tháng chứ không chỉ dataset mà thanh lọc gửi xuống.",
+    "`bo_qua_file` chặn 2 file `_T11.25` / `_T12.25`: chúng là kỳ 11-12/**2025**, GIỐNG HỆT NHAU (cùng 1.400.312 byte) nên ít nhất một cái sai, và `vhkd_claim` thoát được chỉ nhờ `moi_ky_lay_file_moi_nhat` + cron không kéo kỳ ngoài cửa sổ — spec này không có cả hai lớp đó.",
+    "Mọi bẫy ĐỌC FILE (header 2 dòng + dòng chú thích, tên cột trạng thái đổi giữa các kỳ, cột mồi 'Trạng thái' chứa địa chỉ ở dòng 1, ô #N/A) giống hệt `vhkd_claim` — xem `_bay` của spec đó. Sửa bố cục thì phải sửa CẢ HAI."
+  ],
+  "report_type": "VHKD_CLAIM_NGAY",
+  "row_index_base": 6720000,
+  "khoi": "Khối KD Vinfast - Showroom",
+  "nguon": {
+    "folder": "SRVF/baocaoclaimb2c",
+    "file_glob": "*.xlsx",
+    "bo_qua_file": "_T\\d+\\.\\d+\\.xlsx$",
+    "sheet": { "chua": "HS Claim" }
+  },
+  "header": { "dong": [2, 1] },
+  "dong_bat_dau": 4,
+  "ky_tu_ten_file": {
+    "regex_nam": "M\\.(\\d{4})\\.",
+    "regex_thang": "M\\.\\d{4}\\.(\\d{1,2})\\.",
+    "regex_ngay": "M\\.\\d{4}\\.\\d{1,2}\\.(\\d{1,2})\\."
+  },
+  "chieu_tu_ten_file": {
+    "dim2": { "regex": "BaocaoClaim_(B2C|B2B|GF)", "hoa": true },
+    "dim3": { "regex": "M\\.\\d{4}\\.\\d{1,2}\\.\\d{1,2}\\..*?_T\\d{1,2}", "nhom": 0, "chuan_hoa": "claim_ky_du_lieu" }
+  },
+  "cot": {
+    "cost_center": { "header": "SR", "dong_header": 2, "chuan_hoa": "sr_showroom" },
+    "dim1": { "header": ["Check", "Trạng thái"], "dong_header": 2, "chuan_hoa": "cat" },
+    "amount": { "header": "Số tiền", "dong_header": 2, "kieu": "so", "he_so": 1e-9 },
+    "payload.loai_xe": { "header": "Loại xe" },
+    "payload.so_khung": { "header": "Số khung", "bat_buoc": false },
+    "payload.ma_dms": { "header": "Mã đơn hàng trên DMS", "bat_buoc": false }
+  },
+  "ban_ghi": "moi_dong",
+  "loc": [
+    { "cot": "cost_center", "dieu_kien": "khac_rong" },
+    { "cot": "dim1", "dieu_kien": "khac_rong" }
+  ],
+  "payload_them": { "unit": "ty" }
+}

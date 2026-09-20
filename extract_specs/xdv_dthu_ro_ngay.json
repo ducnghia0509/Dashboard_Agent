@@ -1,0 +1,68 @@
+{
+  "id": "xdv_dthu_ro_ngay",
+  "_mo_ta": "BÁO CÁO DOANH THU XƯỞNG DỊCH VỤ theo RO (DV62) — nguồn TỰ ĐỘNG Cyber (ổ IT\\TESTBAOCAOTUDONG\\2.VINFAST_XDV -> VPS `TEST_XDV/baocaodoanhthuxdvngay`), mỗi ngày một file. Một bản ghi = MỘT LỆNH (R/O) có doanh thu trong ngày, tách sẵn VTPT / công việc / giá vốn / doanh thu phụ tùng theo nhóm. Khai 07/09/2026 theo yêu cầu user, ĐỂ ĐỐI CHIẾU SONG SONG — xem `_bay`.",
+  "_kiem_chung": [
+    "05/09/2026: 619 dòng RO, cột 'Doanh thu tổng' cộng ra 2.254.626.562 đ — KHỚP TUYỆT ĐỐI dòng 'Tổng cộng' (r9) của chính file, VÀ khớp `XDV_HDON_DV` cùng ngày trong DB (2,254627 tỷ / 622 dòng).",
+    "Cùng 05/09: 'Doanh thu VTPT' = 1.783.180.519 · 'Doanh thu CV' = 471.446.043 (cộng lại đúng bằng doanh thu tổng) · 'Giá vốn' = 1.513.937.238 · 'Tổng tiền vốn' = 1.619.487.547 — khớp dòng Tổng cộng.",
+    "Dòng Tổng cộng còn tự khai 'Tổng xe xuất HĐ: 615' ở cột C và 'Xe Chính hãng' = 615 ở cột AH, dùng để đối chiếu số lượng."
+  ],
+  "_bay": [
+    "VÌ SAO TRƯỚC ĐÂY BỊ ĐỂ NGOÀI CRON (rà 03-04/09/2026): số TIN CẬY nhưng đây là CHI TIẾT TỪNG RO, còn ô đích của mapping XDV là dòng theo MÃ CHỈ TIÊU (B100 doanh thu tổng · B110 công việc · B120+B130 phụ tùng...). Muốn lên thẳng ô đó phải AGGREGATE theo mã chỉ tiêu, mà engine `spec_extract` KHÔNG có mode gộp (đã soi lại 07/09/2026: không có khoá `gop_theo`/aggregate nào). Nạp chi tiết vào report_type RIÊNG là cách duy nhất hiện có; muốn ra mã chỉ tiêu thì cộng ở tầng đọc/deriver, đừng chờ engine.",
+    "TRÙNG PHẠM VI VỚI `XDV_PNL_D` (B100 doanh thu tổng, từ HQKD) và `XDV_HDON_DV` (hoá đơn DV01): cả ba cùng mô tả doanh thu xưởng dịch vụ trong ngày. ĐỪNG CỘNG CHÚNG LẠI. Đã đo 05/09: DV62 'Doanh thu tổng' = DV01 tổng hoá đơn = 2,254627 tỷ, tức hai nguồn nói CÙNG một con số theo hai lát cắt.",
+    "DÒNG 'Tổng cộng' NẰM Ở DÒNG 9 (đầu vùng) và cột C của nó mang chuỗi 'Tổng xe xuất HĐ: 615' — tức `khac_rong` trên 'Số RO' KHÔNG chặn được nó. Phải chặn bằng `cost_center khac_rong` (cột A của dòng đó bỏ trắng). Đã kiểm 05/09 lọc đúng.",
+    "'Doanh thu tổng thực tế' (cột H) = 0 ở cả dòng Tổng cộng lẫn mọi dòng — cột chết trong bản hiện tại. Đừng gán `amount` vào nó; `amount` lấy 'Doanh thu tổng' (cột I).",
+    "'Doanh Thu MTBH' âm (-12.039.348 đ ngày 05/09) là ĐÚNG dấu của nguồn (điều chỉnh giảm), đừng đảo dấu khi hiển thị.",
+    "Mỗi ngày một file, KHÔNG luỹ kế -> `moi_ky_lay_file_moi_nhat: \"ngay\"`, bên cron khai `ANH_CHUP_KY`."
+  ],
+  "report_type": "XDV_DTHU_RO_D",
+  "row_index_base": 8880000,
+  "khoi": "Khối KD Vinfast - XDV",
+  "nguon": {
+    "folder": "TEST_XDV/baocaodoanhthuxdvngay",
+    "file_glob": "*.BaocaodoanhthuXDV.xlsx",
+    "sheet": {"so": 0}
+  },
+  "kiem_tra_o": [
+    {"o": "A8", "bang": "Đơn vị cơ sở"},
+    {"o": "C8", "bang": "Số RO"},
+    {"o": "I8", "bang": "Doanh thu tổng"}
+  ],
+  "header": {"dong": 8},
+  "dong_bat_dau": 9,
+  "ngay_tu_ten_file": {"regex": "\\.D\\.(\\d{4})(\\d{2})(\\d{2})\\.", "thu_tu": "ymd"},
+  "moi_ky_lay_file_moi_nhat": "ngay",
+  "cot": {
+    "cost_center": {"header": "Đơn vị cơ sở", "chuan_hoa": "xdv"},
+    "amount": {"header": "Doanh thu tổng", "kieu": "so_co_rong", "he_so": 1e-09},
+    "dim1": {"header": "Trạng thái lệnh", "bat_buoc": false},
+    "dim2": {"header": "Loại hình thanh toán", "bat_buoc": false},
+    "payload.so_ro": {"header": "Số RO"},
+    "payload.bks": {"header": "Biển kiểm soát", "bat_buoc": false},
+    "payload.cvdv": {"header": "Tên CVDV", "bat_buoc": false},
+    "payload.ttcp": {"header": "TTCP", "bat_buoc": false},
+    "payload.dt_vtpt": {"header": "Doanh thu VTPT", "kieu": "so_co_rong", "he_so": 1e-09, "bat_buoc": false},
+    "payload.dt_cv": {"header": "Doanh thu CV", "kieu": "so_co_rong", "he_so": 1e-09, "bat_buoc": false},
+    "payload.thue": {"header": "Tổng thuế", "kieu": "so_co_rong", "he_so": 1e-09, "bat_buoc": false},
+    "payload.dt_sau_thue": {"header": "Doanh thu sau thuế", "kieu": "so_co_rong", "he_so": 1e-09, "bat_buoc": false},
+    "payload.gia_von": {"header": "Giá vốn", "kieu": "so_co_rong", "he_so": 1e-09, "bat_buoc": false},
+    "payload.tong_tien_von": {"header": "Tổng tiền vốn", "kieu": "so_co_rong", "he_so": 1e-09, "bat_buoc": false},
+    "payload.dt_pt_khach_hang": {"header": "Doanh thu PT khách hàng", "kieu": "so_co_rong", "he_so": 1e-09, "bat_buoc": false},
+    "payload.dt_pt_bao_hiem": {"header": "Doanh thu PT bảo hiểm", "kieu": "so_co_rong", "he_so": 1e-09, "bat_buoc": false},
+    "payload.dt_pt_bh": {"header": "Doanh thu PT BH", "kieu": "so_co_rong", "he_so": 1e-09, "bat_buoc": false},
+    "payload.dt_pt_khac": {"header": "Doanh thu PT khác", "kieu": "so_co_rong", "he_so": 1e-09, "bat_buoc": false},
+    "payload.dt_cong_scc": {"header": "Doanh thu công SCC", "kieu": "so_co_rong", "he_so": 1e-09, "bat_buoc": false},
+    "payload.dt_cong_son": {"header": "Doanh Thu công Sơn", "kieu": "so_co_rong", "he_so": 1e-09, "bat_buoc": false},
+    "payload.dt_cong_go": {"header": "Doanh thu công gò", "kieu": "so_co_rong", "he_so": 1e-09, "bat_buoc": false},
+    "payload.dt_cuu_ho": {"header": "Doanh Thu cứu hộ", "kieu": "so_co_rong", "he_so": 1e-09, "bat_buoc": false},
+    "payload.dt_thue_ngoai": {"header": "Doanh thu thuê ngoài", "kieu": "so_co_rong", "he_so": 1e-09, "bat_buoc": false},
+    "payload.dt_mtbh": {"header": "Doanh Thu MTBH", "kieu": "so_co_rong", "he_so": 1e-09, "bat_buoc": false},
+    "payload.xe_chinh_hang": {"header": "Xe Chính hãng", "kieu": "so_co_rong", "bat_buoc": false}
+  },
+  "ban_ghi": "moi_dong",
+  "dan_xuat": {"amount2": "1"},
+  "loc": [
+    {"cot": "cost_center", "dieu_kien": "khac_rong"},
+    {"cot": "payload.so_ro", "dieu_kien": "khac_rong"}
+  ],
+  "payload_them": {"unit": "ty", "dvt2": "ro", "nguon_he": "Doanh thu theo RO ngày XDV (Cyber tự động)", "chua_len_man": "1"}
+}

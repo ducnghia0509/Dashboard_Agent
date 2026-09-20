@@ -2,6 +2,7 @@
   "id": "qlts_kiemke",
   "_mo_ta": "QLTS — KIỂM KÊ TÀI SẢN, sheet 'Data_TaiSan' của QLTS/baocaokiemke/B.9.TC.H5.Q.<yyyy>.<q>.BCKiemke.xlsx. Mỗi dòng = 1 tài sản trong KẾ HOẠCH kiểm kê kỳ đó. amount = SL sổ sách, amount2 = nguyên giá (tỷ). dim1 = Tình trạng kiểm kê, dim2 = tên đơn vị, dim3 = tên loại tài sản. Cấp số cho band B của màn ts2.",
   "_bay": [
+    "BẬT `moi_ky_lay_file_moi_nhat` 29/08/2026: đây là ẢNH CHỤP TẠI THỜI ĐIỂM (report_type nằm trong `_SNAP_RT` ở backend). Nghiệp vụ gửi lại bản SỬA của cùng một kỳ dưới TÊN KHÁC thì `_ghi` (xoá theo source_file) không chặn được, và `_SNAP_RT` lấy MAX(ngay) cũng không phá được hoà -> cộng đôi im lặng. Đã kiểm trước khi bật: hiện mỗi kỳ của nguồn này đúng 1 file, bật cờ KHÔNG loại file nào đang có.",
     "⚠️ MẪU SỐ KHÔNG PHẢI TỔNG TÀI SẢN. Báo cáo này chỉ phủ 418 tài sản / 14 đơn vị, trong khi toàn tập đoàn có 21.212. Thiết kế ts2 tính 'tỷ lệ hoàn thành kiểm kê = đã kiểm kê / TỔNG tài sản' -> ra ~2%, sai nghĩa hoàn toàn. Mẫu số ĐÚNG là số dòng của chính báo cáo này (= kế hoạch kiểm kê kỳ đó), và nhãn trên màn phải ghi rõ 'trên kế hoạch kiểm kê', đừng để lãnh đạo hiểu là toàn tập đoàn.",
     "CHÊNH LỆCH LÀ SỐ ÂM khi thiếu (T7/2026: −6 tài sản, −16.226.178 đ). Thiết kế đang vẽ như số dương -> phải GIỮ DẤU, và 'chênh lệch' gồm cả thừa (dương) lẫn thiếu (âm), không được lấy trị tuyệt đối rồi cộng chung.",
     "DÒNG 2 LÀ TỔNG CỘNG (cột F ghi 'TỔNG CỘNG', cột B/C rỗng). Lọc `dim2 khac_rong` loại được nó. Đừng lọc theo amount — phần lớn dòng có SL chênh lệch = 0 và `khac_rong` coi 0 là rỗng.",
@@ -55,5 +56,6 @@
   "ky_tu_ten_file": {
     "regex_nam": "\\.Q\\.(\\d{4})\\.",
     "regex_thang": "\\.Q\\.\\d{4}\\.(\\d{1,2})\\."
-  }
+  },
+  "moi_ky_lay_file_moi_nhat": true
 }

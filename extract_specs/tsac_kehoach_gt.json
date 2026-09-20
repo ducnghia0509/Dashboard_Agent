@@ -7,7 +7,10 @@
     "BẢNG PHÂN CẤP, mọi tầng có số ở CÙNG một cột — `dim2` phân biệt Tổng / Nhóm / Chi tiết. Cộng cả bảng là nhân đôi (có chỗ nhân ba): lọc `dim2` trước khi cộng, hoặc đọc thẳng dòng `dim2 = 'Tổng'`.",
     "Tách GIÁ TRỊ / SẢN LƯỢNG thành hai spec vì ĐƠN VỊ khác (`cot_thang.he_so` mỗi spec một giá trị) và vì `_ghi` xoá theo (report_type, source_file) — hai spec cùng report_type trên cùng file thì cái chạy sau xoá sạch cái trước.",
     "'3.TS' là TRẠM SẠC, KHÔNG phải TÀI SẢN — thư mục KEHOACH tới nay KHÔNG có file kế hoạch nào cho quản trị tài sản (QLTS/ts1..ts5).",
-    "Hai nhóm doanh thu tách hẳn nguồn: DT_BANHANG (bán bộ sạc) có kế hoạch cả 12 tháng, còn DT_HOAHONG (chia sẻ 750đ/kW, chi hộ, dịch vụ) CHỈ có T1..T6 — 6 tháng cuối năm bỏ trống, engine không sinh 'kế hoạch 0 giả'. Đừng đọc thành 'hoa hồng kế hoạch = 0'."
+    "Hai nhóm doanh thu tách hẳn nguồn: DT_BANHANG (bán bộ sạc) có kế hoạch cả 12 tháng, còn DT_HOAHONG (chia sẻ 750đ/kW, chi hộ, dịch vụ) CHỈ có T1..T6 — 6 tháng cuối năm bỏ trống, engine không sinh 'kế hoạch 0 giả'. Đừng đọc thành 'hoa hồng kế hoạch = 0'.",
+    "BỐ CỤC ĐỔI 09/09/2026 — SHEET KHDT BỎ NHÃN 'GIÁ TRỊ'/'SẢN LƯỢNG', CHUYỂN SANG HỆ MÃ T101.x: B3 nay là 'T101' (không còn 'GIÁ TRỊ'), B6 là 'T101.3' (không còn 'SẢN LƯỢNG'). Spec cũ dừng ở `kiem_tra_o` rồi bỏ cả file — kiểu hỏng CÂM, không xoá dữ liệu cũ nên DB đứng ở T7/T8 và tháng 9 lặng lẽ trống. Bố cục mới: dòng 3 = 'Khối KD Trạm sạc Vgreen' (T101, tổng khối), dòng 4-8 = 5 dòng doanh thu chi tiết (T101.1..T101.5), dòng 9 = tiêu đề khối B, dòng 10 = DOANH SỐ bán hàng (KHÔNG phải doanh thu — 88 tỷ, cố ý KHÔNG khai nhãn để bị loại), dòng 11 = 'Doanh thu bán hàng (hoa hồng 12% Doanh số)' nhắc lại vế hoa hồng, dòng 12 = 'SẢN LƯỢNG'.",
+    "⚠ ĐỊNH NGHĨA KẾ HOẠCH DOANH THU KHỐI ĐÃ MỞ RỘNG, KHÔNG PHẢI LỖI ĐỌC: bản cũ dòng tổng khối chỉ mang vế HOA HỒNG (T7 = 5.944.866.000), bản mới cộng thêm 4 dòng (bán trụ sạc, chia sẻ 750đ/kw, tiền điện chi hộ, dịch vụ thi công) -> T7 = 7.194.866.000 (+21,0%), T8 = 10.697.250.000 -> 11.947.250.000 (+11,7%). Σ 5 dòng chi tiết = ĐÚNG dòng tổng, file tự nhất quán. Hệ quả phải nói ra: ô nào lấy `dim1='TONG'` sẽ có mẫu số to hơn trước, nên %HT tụt — nếu vế THỰC HIỆN của Trạm sạc chỉ đo hoa hồng thì hai vế lệch cơ sở. CT33 KHÔNG bị ảnh hưởng vì nó đọc `DT_BANHANG` (vẫn = hoa hồng). Chờ nghiệp vụ chốt phạm vi vế thực hiện.",
+    "PHẢI CHẶN `dong_ket_thuc: 11`: dòng 12 là SẢN LƯỢNG (256 bộ) — quét tới đó là ghi 256 vào report_type tiền với he_so 1e-9, ra 0,000000256 tỷ. Dòng 12 do `tsac_kehoach_sl` lo."
   ],
   "_kiem_chung": [
     "Σ Nhóm = dòng Tổng ở mọi kỳ. T1: 7,253787264 + 0,493931001 = 7,747718265 tỷ = ô G3.",
@@ -28,7 +31,7 @@
     "dong": 2
   },
   "dong_bat_dau": 3,
-  "dong_ket_thuc": 5,
+  "dong_ket_thuc": 11,
   "kiem_tra_o": [
     {
       "o": "C2",
@@ -40,11 +43,15 @@
     },
     {
       "o": "B3",
-      "bang": "GIÁ TRỊ"
+      "bang": "T101"
     },
     {
       "o": "C3",
       "bang": "Trạm sạc"
+    },
+    {
+      "o": "C10",
+      "bang": "DOANH SỐ BÁN HÀNG"
     }
   ],
   "chieu_co_dinh": {

@@ -12,6 +12,7 @@
     "Sheet 'KHDT_6T cuối năm' TRÔNG RẤT GIỐNG (cũng có cột XDV + kế hoạch doanh thu) nhưng là kế hoạch 6 tháng, KHÔNG theo ngày — chọn sheet bằng 'chua': 'KHDT theo ngày' và kiem_tra_o phải chốt đúng dòng 10, nếu lỡ bắt sheet kia thì số nhân lên hàng chục lần."
   ],
   "report_type": "XDV_DTHU_KH",
+  "giu_ngay_tuong_lai": true,
   "row_index_base": 7100000,
   "khoi": "Khối KD Vinfast - XDV",
   "nguon": {

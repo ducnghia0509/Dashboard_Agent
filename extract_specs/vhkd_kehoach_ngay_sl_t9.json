@@ -1,0 +1,92 @@
+{
+  "id": "vhkd_kehoach_ngay_sl_t9",
+  "_mo_ta": "KẾ HOẠCH SẢN LƯỢNG bán xe theo NGÀY × kênh của khối Showroom, THÁNG 9/2026 — sheet 'KHT9ngaytheoSR' của 1.SR.OO.M.<yyyymm>.Kehoachthang.xlsx. Cùng report_type VHKD_KH_SL_NGAY với bản T8 (spec vhkd_kehoach_ngay_sl) nên CT34 và `_he_so_co` của app/metrics/vhkd.py tự chạy, không cần sửa code.",
+  "_bay": [
+    "VÌ SAO PHẢI CÓ SPEC NÀY: sheet cũ ('KHngàytheokenh') có khối THÁNG 9 nhưng dòng 'Kênh B2C' để 0 trọn 31 ngày -> Σ chỉ 903 xe thay vì 1.796. Sheet 'KHT9ngaytheoSR' là bản T9 ĐẦY ĐỦ: B2C 918 + B2B 863 + GF 40. B2B và GF TRÙNG KHÍT hai sheet, chỉ khác đúng vế B2C -> đây là cùng một bản kế hoạch, bản mới điền thêm B2C.",
+    "KHÔNG nạp cả hai nguồn cho T9: `vhkd_kehoach_ngay_sl` đã được trả về gate theo TÊN FILE (chỉ đọc tháng phát hành = T8) chính vì việc này. Nếu sau này mở lại `ky_thang_tu_o` cho spec đó thì T9 sẽ cộng đôi (903 + 1.821).",
+    "LỆCH CÒN TREO 25 XE: sheet này ghi B2C = 918, còn sheet kế hoạch THÁNG (KHDT) ghi B2C = 893 -> tổng 1.821 so 1.796, lệch 1,4%. Số 918 tự nhất quán (Σ 11 dòng showroom = 918) nên chọn nó cho vế NGÀY; vế THÁNG vẫn giữ 1.796 theo KHDT. Nghĩa là %HT sản lượng chế độ Tháng và chế độ Ngày của T9 đo trên hai mẫu số lệch nhau 25 xe — ĐÃ BÁO, chờ kế toán chốt.",
+    "CHỈ LẤY 3 DÒNG KÊNH (mã B2C/B2B/GF ở cột A), BỎ 11 dòng '+ Vinfast <tên SR>' ngay dưới mỗi kênh — cộng cả hai là đếm đôi. Dòng phụ để TRỐNG cột 'Mã' nên `loc dim2 thuoc [B2C,B2B,GF]` tự loại; dòng 'A. Tổng sản lượng' (mã 'A.') cũng bị loại và vốn = 0.",
+    "PHẢI CÓ `dong_ket_thuc: 45`: sheet có HAI KHỐI dùng CÙNG bộ mã kênh — sản lượng ở dòng 9-45 và DOANH THU ở dòng 46-82 (B2C lại xuất hiện ở dòng 47). Không chặn trên là spec sản lượng quét luôn xuống khối tiền và ghi 596 tỷ vào cột đơn vị 'xe'.",
+    "Sheet BẮT ĐẦU TỪ DÒNG 7 (dims A7:AJ82) — 6 dòng đầu trống hẳn. Tiêu đề ngày ở dòng 8 ('Ngày 01'..'Ngày 31') từ cột F; cột C/D/E là 3 cột 'Cộng tháng' lặp lại, KHÔNG phải ngày.",
+    "`ky_thang_tu_o` trỏ B7 ('THÁNG 9') thay vì ghim cứng tháng: tháng sau file sẽ có 'KHT10ngaytheoSR' — khi đó khai spec mới trỏ sheet đó, đừng sửa spec này.",
+    "PHẢI CÓ `source_file_hau_to`: spec này và `vhkd_kehoach_ngay_sl` CÙNG report_type `VHKD_KH_SL_NGAY` và CÙNG đọc file `1.SR…Kehoachthang.xlsx`. `_ghi` xoá theo (report_type, source_file) nên spec chạy sau XOÁ SẠCH kỳ của spec chạy trước — đã dính đúng lần nạp đầu 09/09/2026: sau khi nạp cả hai thì `VHKD_KH_SL_NGAY` chỉ còn T9, T8 (1.685 xe) bay mất mà cả hai spec đều báo written đúng. Hậu tố tách phạm vi xoá; source_file thành 'KEHOACH::1.SR.OO.M.202608.Kehoachthang.xlsx#KHT9ngaytheoSR'."
+  ],
+  "_kiem_chung": [
+    "3 dòng kênh × 30 ngày, kỳ 2026-09. Σ = 1.821 xe = 918 (B2C) + 863 (B2B) + 40 (GF), khớp đúng cột 'Cộng tháng' của từng dòng.",
+    "Vế doanh thu của chính sheet này (dòng 47/59/71) = 596.890.165.850 + 557.752.000.002 + 17.249.070.256 = 1.171.891.236.108, khớp TUYỆT ĐỐI ô KHDT 'Tháng 9' — chứng minh sheet là bản T9 thật, không phải bản nháp.",
+    "B2B 863 và GF 40 trùng khít khối THÁNG 9 của sheet cũ -> chỉ vế B2C là phần được điền thêm."
+  ],
+  "report_type": "VHKD_KH_SL_NGAY",
+  "giu_ngay_tuong_lai": true,
+  "row_index_base": 6645000,
+  "khoi": "Khối KD Vinfast - Showroom",
+  "nguon": {
+    "folder": "KEHOACH/baocaokehoachthang",
+    "file_glob": "1.SR.*.Kehoachthang.xlsx",
+    "sheet": {
+      "ten": "KHT9ngaytheoSR"
+    }
+  },
+  "kiem_tra_o": [
+    {
+      "o": "A8",
+      "bang": "Mã"
+    },
+    {
+      "o": "B8",
+      "bang": "Kênh"
+    },
+    {
+      "o": "B7",
+      "bang": "THÁNG 9"
+    },
+    {
+      "o": "B10",
+      "bang": "Kênh B2C"
+    },
+    {
+      "o": "B46",
+      "bang": "Tổng Doanh thu"
+    }
+  ],
+  "ky_thang_tu_o": {
+    "o": "B7"
+  },
+  "chieu_co_dinh": {
+    "dim1": "A200"
+  },
+  "header": {
+    "dong": 8
+  },
+  "dong_bat_dau": 9,
+  "dong_ket_thuc": 45,
+  "cot": {
+    "dim2": {
+      "header": "Mã",
+      "chuan_hoa": "hoa"
+    }
+  },
+  "ban_ghi": "moi_cot_ngay",
+  "cot_ngay": {
+    "dong": 8,
+    "tu": "F",
+    "den": "AJ",
+    "he_so": 1.0
+  },
+  "loc": [
+    {
+      "cot": "dim2",
+      "dieu_kien": "thuoc",
+      "gia_tri": [
+        "B2C",
+        "B2B",
+        "GF"
+      ]
+    }
+  ],
+  "payload_them": {
+    "unit": "xe",
+    "nguon": "kehoach_ngay_sheet_KHT9ngaytheoSR"
+  },
+  "source_file_hau_to": "KHT9ngaytheoSR"
+}

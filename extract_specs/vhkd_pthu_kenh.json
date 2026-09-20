@@ -2,6 +2,7 @@
   "id": "vhkd_pthu_kenh",
   "_mo_ta": "Công nợ phải thu theo ĐƠN VỊ × KÊNH × trong hạn/quá hạn (DASHBOARD 2 chỉ tiêu 3-5, màn vhkd3). Nguồn: BaocaoCongno, sheet 'CN theo đơn vị'.",
   "_bay": [
+    "BẬT `moi_ky_lay_file_moi_nhat` 29/08/2026: đây là ẢNH CHỤP TẠI THỜI ĐIỂM (report_type nằm trong `_SNAP_RT` ở backend). Nghiệp vụ gửi lại bản SỬA của cùng một kỳ dưới TÊN KHÁC thì `_ghi` (xoá theo source_file) không chặn được, và `_SNAP_RT` lấy MAX(ngay) cũng không phá được hoà -> cộng đôi im lặng. Đã kiểm trước khi bật: hiện mỗi kỳ của nguồn này đúng 1 file, bật cờ KHÔNG loại file nào đang có.",
     "Header LẶP TÊN ('Công nợ quá hạn'/'Công nợ trong hạn' xuất hiện 4 lần cho TOTAL/B2C/GF/B2B) nên KHÔNG dò được theo tên -> đây là ngoại lệ duy nhất phải chỉ đích danh CHỮ CỘT. Nhóm kênh nằm ở dòng 4, tên cột ở dòng 6.",
     "BỎ cột B/C/D (nhóm TOTAL) — cộng cả TOTAL lẫn 3 kênh là đếm đôi.",
     "Dòng 'Total' (r17) và BÊN DƯỚI còn một bảng phụ 'Công nợ quá hạn đã có COC' cũng liệt kê tên Showroom ở cột A -> phải `dung_khi` gặp Total, nếu không sẽ nuốt luôn bảng phụ.",
@@ -36,5 +37,6 @@
     { "cot": "J", "dim1": "Trong hạn", "dim2": "B2B", "he_so": 1e-9 }
   ],
   "loc": [ { "cot": "amount", "dieu_kien": "khac_rong" } ],
-  "payload_them": { "unit": "ty" }
+  "payload_them": { "unit": "ty" },
+  "moi_ky_lay_file_moi_nhat": true
 }

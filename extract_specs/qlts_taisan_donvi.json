@@ -8,7 +8,8 @@
     "HEADER 3 TẦNG (dòng 2-3-4) và phải đọc NGƯỢC [4,3,2]: cột D dòng 3 ghi 'SL NHẬP' còn dòng 4 ghi 'SL MỚI'. Khai [2,3,4] là cột D bắt trúng 'SL NHẬP' (gồm cả nhận điều chuyển) — sai nghĩa ghi tăng.",
     "KHÔNG CÓ CỘT GIÁ TRỊ CÒN LẠI / HAO MÒN LŨY KẾ ở bất kỳ sheet nào của file này (đã soi cả 11 sheet, 17/08/2026). Màn ts1 phải để GTCL là '—'. Đừng ghép tạm GTCL từ sổ TSCĐ kế toán (received_reports/<ĐV>/baocaotaisancodinhcongcudungcu) — đó là bộ số KHÁC, nguyên giá không khớp.",
     "8 KHỐI Ở ĐÂY LÀ PHÂN LOẠI TÀI SẢN CỦA QLTS, KHÔNG PHẢI KHỐI KINH DOANH của kế toán: 'Khối văn phòng, kho, xưởng', 'Khối hậu mãi', 'Bất động sản'... Không map sang `khoi` của master_data — sẽ sai. Giữ nguyên văn ở dim1/dim2.",
-    "TIỀN LƯU THEO TỶ (he_so 1e-9) cho đồng bộ với các nguồn khác; KHÔNG làm tròn ở đây, chỗ hiển thị mới làm tròn."
+    "TIỀN LƯU THEO TỶ (he_so 1e-9) cho đồng bộ với các nguồn khác; KHÔNG làm tròn ở đây, chỗ hiển thị mới làm tròn.",
+    "Nguồn tài sản CHUYỂN SANG PHÁT HÀNH THEO TUẦN (20/09/2026): ngoài bản tháng `*.M.2026.8.Taisan.*` nay còn `*.D.2026.9.05.*`, `.9.12.*`, `.9.19.*` — cùng một bảng, chụp lại mỗi thứ Bảy. Regex kỳ cũ chỉ nhận `\\.M\\.` nên 3 file T9 vào tới máy mà engine báo 'không dò được kỳ' rồi BỎ QUA hết: dashboard đứng ở T8 trong khi nguồn đã có T9. Nới regex nhận cả `.D.` VÀ bật `moi_ky_lay_file_moi_nhat` — hai thứ BẮT BUỘC đi cùng nhau, nhận thêm file mà không chốt ảnh chụp là 3 bản T9 cộng dồn gấp ba. Đúng ghi chú mới của mapping cột K: 'Update báo cáo định kỳ theo tuần vào thứ 7 hàng tuần / Số liệu của những ngày không update = số liệu update gần nhất'."
   ],
   "_kiem_chung": [
     "T8/2026: tổng SL tồn cuối 8 khối = 21.212 (khớp ô K5 dòng tổng); tổng NG tồn cuối = 1.752.861.079.403,38 đ = 1.752,86 tỷ (khớp ô T5).",
@@ -20,7 +21,7 @@
   "row_index_base": 7900000,
   "nguon": {
     "folder": "QLTS/baocaotaisanqlts",
-    "file_glob": "*.Taisan.xlsb",
+    "file_glob": "*.Taisan.xls*",
     "sheet": { "ten": "ĐƠN VỊ" }
   },
   "header": { "dong": [4, 3, 2] },
@@ -65,7 +66,8 @@
   ],
   "payload_them": { "unit": "ts" },
   "ky_tu_ten_file": {
-    "regex_nam": "\\.M\\.(\\d{4})\\.",
-    "regex_thang": "\\.M\\.\\d{4}\\.(\\d{1,2})\\."
-  }
+    "regex_nam": "\\.(?:M|D)\\.(\\d{4})\\.",
+    "regex_thang": "\\.(?:M|D)\\.\\d{4}\\.(\\d{1,2})[\\.\\s]"
+  },
+  "moi_ky_lay_file_moi_nhat": true
 }

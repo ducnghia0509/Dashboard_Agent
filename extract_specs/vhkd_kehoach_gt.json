@@ -9,7 +9,8 @@
     "Chỉ lấy các dòng CHI TIẾT theo kênh. Dòng tổng ('Doanh thu bán xe', 'Cộng Tổng doanh thu', 'Tổng doanh thu kênh B2C') bị hook loại — cộng vào là đếm đôi.",
     "A230/A250 chỉ có kế hoạch từ T7 trở đi (T1-T6 để trống) — ô rỗng bị bỏ, KHÔNG sinh 'kế hoạch = 0' giả.",
     "Kế hoạch KHÔNG có chiều Showroom và KHÔNG có chiều dòng xe — đừng cố suy ra, xem `thieuNguon` ở app/metrics/vhkd.py.",
-    "CHƯA NẠP (thiết kế chưa vẽ chỗ dùng): sheet 'KHngày' + 3 sheet 'KH ngày Kênh B2B/B2C/GF' có kế hoạch TỪNG NGÀY 01-31. Cần khi muốn %HT LŨY KẾ ĐẾN NGÀY cho tháng đang chạy dở — hiện chưa cần vì dữ liệu thực hiện mới tới hết T7 (tháng đủ). Sheet 'CT Vận hành' cũng chưa nạp: CT33/CT34/CT36 suy được từ chính sheet này, còn CT35/CT38 kẹt vì thiếu số nhân viên bán."
+    "CHƯA NẠP (thiết kế chưa vẽ chỗ dùng): sheet 'KHngày' + 3 sheet 'KH ngày Kênh B2B/B2C/GF' có kế hoạch TỪNG NGÀY 01-31. Cần khi muốn %HT LŨY KẾ ĐẾN NGÀY cho tháng đang chạy dở — hiện chưa cần vì dữ liệu thực hiện mới tới hết T7 (tháng đủ). Sheet 'CT Vận hành' cũng chưa nạp: CT33/CT34/CT36 suy được từ chính sheet này, còn CT35/CT38 kẹt vì thiếu số nhân viên bán.",
+    "BỐ CỤC ĐỔI 09/09/2026 — SHEET KHDT DỊCH LÊN ĐÚNG MỘT DÒNG: dòng tiêu đề từ dòng 2 lên dòng 1, khối 'GIÁ TRỊ' từ dòng 3 lên dòng 2, 'Cộng Tổng doanh thu' từ dòng 16 lên 15, khối 'SẢN LƯỢNG' từ dòng 20 lên 19. Bản spec cũ (`header.dong=2`, `kiem_tra_o` C2='Khối') báo \"THIẾU cột bắt buộc 'Khối' (dim1)\" + \"BỎ QUA — không dựng được dải cột theo tháng\" rồi bỏ cả file, KHÔNG xoá dữ liệu cũ -> DB đứng nguyên ở T1..T8 và tháng 9 lặng lẽ không có kế hoạch. Đó là cách lỗi này lộ ra: màn vhkd1 khối Showroom T9 ghi 'Kế hoạch doanh thu —'. `kiem_tra_o` nay chốt CẢ B2='GIÁ TRỊ' để nếu file lại dịch dòng thì spec dừng có tiếng, không âm thầm đọc lệch nhãn."
   ],
   "_kiem_chung": [
     "T8: tổng KH giá trị = 1.114,691866 tỷ, khớp ô 'Cộng Tổng doanh thu' (N16) của file.",
@@ -21,24 +22,65 @@
   "nguon": {
     "folder": "KEHOACH/baocaokehoachthang",
     "file_glob": "1.SR.*.Kehoachthang.xlsx",
-    "sheet": { "ten": "KHDT" }
+    "sheet": {
+      "ten": "KHDT"
+    }
   },
-  "header": { "dong": 2 },
-  "kiem_tra_o": [{ "o": "C2", "bang": "Khối" }],
+  "header": {
+    "dong": 1
+  },
+  "kiem_tra_o": [
+    {
+      "o": "C1",
+      "bang": "Khối"
+    },
+    {
+      "o": "B2",
+      "bang": "GIÁ TRỊ"
+    }
+  ],
   "ngu_canh_dong": [
     {
-      "khi": [{ "cot": "B", "dieu_kien": "regex", "gia_tri": "^\\s*(GIÁ TRỊ|SẢN LƯỢNG)\\s*$" }],
-      "gan": { "dim3": { "cot": "B", "chuan_hoa": "hoa" } }
+      "khi": [
+        {
+          "cot": "B",
+          "dieu_kien": "regex",
+          "gia_tri": "^\\s*(GIÁ TRỊ|SẢN LƯỢNG)\\s*$"
+        }
+      ],
+      "gan": {
+        "dim3": {
+          "cot": "B",
+          "chuan_hoa": "hoa"
+        }
+      }
     }
   ],
   "cot": {
-    "dim1": { "header": "Khối", "chuan_hoa": "kh_dong" }
+    "dim1": {
+      "header": "Khối",
+      "chuan_hoa": "kh_dong"
+    }
   },
   "ban_ghi": "moi_cot_thang",
-  "cot_thang": { "tu": "G", "den": "R", "he_so": 1e-9 },
+  "cot_thang": {
+    "tu": "G",
+    "den": "R",
+    "he_so": 1e-09
+  },
   "loc": [
-    { "cot": "dim2", "dieu_kien": "khac_rong" },
-    { "cot": "dim3", "dieu_kien": "bang", "gia_tri": "GIÁ TRỊ" }
+    {
+      "cot": "dim2",
+      "dieu_kien": "khac_rong"
+    },
+    {
+      "cot": "dim3",
+      "dieu_kien": "bang",
+      "gia_tri": "GIÁ TRỊ"
+    }
   ],
-  "payload_them": { "unit": "ty", "loai": "kehoach" }
+  "payload_them": {
+    "unit": "ty",
+    "loai": "kehoach"
+  }
 }

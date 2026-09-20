@@ -1,0 +1,67 @@
+{
+  "id": "xdv_lsc_tonghop_ngay",
+  "_mo_ta": "BÁO CÁO TỔNG HỢP LỆNH SỬA CHỮA (DV42) — nguồn TỰ ĐỘNG Cyber (ổ IT\\TESTBAOCAOTUDONG\\2.VINFAST_XDV -> VPS `TEST_XDV/baocaotonghoplsc`), mỗi ngày một file. Một bản ghi = MỘT LỆNH (R/O). Khai 07/09/2026 theo yêu cầu user, ĐỂ ĐỐI CHIẾU SONG SONG với `XDV_LSC_D` (DV41) chứ chưa thay nó — xem `_bay`.",
+  "_kiem_chung": [
+    "05/09/2026: 555 dòng lệnh, cột 'Tổng tiền' cộng ra 1.662.169.857,8 đ — KHỚP TUYỆT ĐỐI dòng 'Tổng cộng' (r9) của chính file, và khớp luôn `XDV_LSC_D` cùng ngày trong DB (1,66217 tỷ / 551 dòng).",
+    "Cùng 05/09: 'Doanh thu (Sau GG)' = 1.537.699.379 đ · 'Tổng tiền phụ tùng' = 1.179.831.443 · 'Tổng tiền công việc' = 357.867.936 · 'Lãi gộp' = 772.462.640,09 — tất cả khớp dòng Tổng cộng."
+  ],
+  "_bay": [
+    "VÌ SAO TRƯỚC ĐÂY BỊ ĐỂ NGOÀI CRON (rà 03-04/09/2026): Cyber kéo DẢI MỘT NGÀY (dòng 6 ghi 'TỪ NGÀY 05/09 ĐẾN NGÀY 05/09'), tức đây là DÒNG CHẢY trong ngày, KHÔNG phải danh sách TREO luỹ kế mà chỉ tiêu DV42 của mapping cần. Đo 31/08: dựng chỉ tiêu treo từ nguồn này ra 578.769.141 đ / 11 xưởng, trong khi bản đang dùng là 31,07 tỷ / 14 xưởng — NHỎ HƠN HÀNG CHỤC LẦN. Nạp vào report_type RIÊNG để đối chiếu là an toàn; GẮN THẲNG vào ô chỉ tiêu treo là sai số nghiêm trọng. Muốn dùng thật phải đề nghị Cyber đổi tham số kéo sang LUỸ KẾ ĐẾN NGÀY BÁO CÁO.",
+    "TRÙNG PHẠM VI VỚI `XDV_LSC_D` (DV41, thư mục `bangkelenhsuachua`): hai nguồn cùng mô tả lệnh sửa chữa trong ngày và cùng tổng tiền. ĐỪNG CỘNG HAI REPORT_TYPE LẠI — sẽ đúng gấp đôi. Giữ riêng để so, khi nào chốt dùng cái nào thì mới gỡ cái kia.",
+    "DÒNG 'Tổng cộng' NẰM Ở DÒNG 9 (đầu vùng dữ liệu, không phải cuối): nhãn rơi vào cột O 'Số R/O', cột A 'Đơn vị' bỏ trắng. Chặn bằng `cost_center khac_rong` — đã kiểm 05/09 lọc đúng dòng đó ra.",
+    "'Ngày tạo lệnh' của dòng Tổng cộng là 1900-01-01 (ngày rỗng của Excel), thêm một lý do đừng lấy `ngay` từ cột này mà không lọc.",
+    "AMOUNT = 'Tổng tiền' (đã gồm thuế) để so thẳng được với `XDV_LSC_D`. Doanh thu chưa thuế nằm ở `payload.dt_sau_gg`. Đừng đổi `amount` sang 'Doanh thu (Sau GG)' rồi so với DV41 — lệch đúng phần thuế 124,47 triệu.",
+    "Mỗi ngày một file, KHÔNG luỹ kế -> `moi_ky_lay_file_moi_nhat: \"ngay\"`, bên cron khai `ANH_CHUP_KY`."
+  ],
+  "report_type": "XDV_LSC_TH_D",
+  "row_index_base": 8860000,
+  "khoi": "Khối KD Vinfast - XDV",
+  "nguon": {
+    "folder": "TEST_XDV/baocaotonghoplsc",
+    "file_glob": "*.BaocaotonghopLSC.xlsx",
+    "sheet": {"so": 0}
+  },
+  "kiem_tra_o": [
+    {"o": "A8", "bang": "Đơn vị"},
+    {"o": "O8", "bang": "Số R/O"},
+    {"o": "AG8", "bang": "Tổng tiền"}
+  ],
+  "header": {"dong": 8},
+  "dong_bat_dau": 9,
+  "ngay_tu_ten_file": {"regex": "\\.D\\.(\\d{4})(\\d{2})(\\d{2})\\.", "thu_tu": "ymd"},
+  "moi_ky_lay_file_moi_nhat": "ngay",
+  "cot": {
+    "cost_center": {"header": "Đơn vị", "chuan_hoa": "xdv"},
+    "amount": {"header": "Tổng tiền", "kieu": "so_co_rong", "he_so": 1e-09},
+    "dim1": {"header": "Trạng thái lệnh", "bat_buoc": false},
+    "dim2": {"header": "Loại hình TT", "bat_buoc": false},
+    "dim3": {"header": "Model xe", "bat_buoc": false},
+    "payload.so_ro": {"header": "Số R/O"},
+    "payload.so_ro_hang": {"header": "Số R/O hãng", "bat_buoc": false},
+    "payload.ngay_ro": {"header": "Ngày R/O", "bat_buoc": false},
+    "payload.ngay_nt": {"header": "Ngày NT", "bat_buoc": false},
+    "payload.bks": {"header": "BKS", "bat_buoc": false},
+    "payload.khach_hang": {"header": "Khách hàng", "bat_buoc": false},
+    "payload.cvdv": {"header": "CVDV", "bat_buoc": false},
+    "payload.ttcp": {"header": "TTCP", "bat_buoc": false},
+    "payload.dt_sau_gg": {"header": "Doanh thu (Sau GG)", "kieu": "so_co_rong", "he_so": 1e-09, "bat_buoc": false},
+    "payload.tien_phu_tung": {"header": "Tông tiền phụ tùng", "kieu": "so_co_rong", "he_so": 1e-09, "bat_buoc": false},
+    "payload.tien_cong_viec": {"header": "Tổng tiền công việc", "kieu": "so_co_rong", "he_so": 1e-09, "bat_buoc": false},
+    "payload.thue": {"header": "Tổng thuế", "kieu": "so_co_rong", "he_so": 1e-09, "bat_buoc": false},
+    "payload.da_thanh_toan": {"header": "Đã thanh toán", "kieu": "so_co_rong", "he_so": 1e-09, "bat_buoc": false},
+    "payload.con_lai_tt": {"header": "Tổng còn lại thanh toán", "kieu": "so_co_rong", "he_so": 1e-09, "bat_buoc": false},
+    "payload.da_viet_hd": {"header": "Đã viết HD", "kieu": "so_co_rong", "he_so": 1e-09, "bat_buoc": false},
+    "payload.con_lai_hd": {"header": "Còn lại HD", "kieu": "so_co_rong", "he_so": 1e-09, "bat_buoc": false},
+    "payload.lai_gop": {"header": "Lãi gộp", "kieu": "so_co_rong", "he_so": 1e-09, "bat_buoc": false},
+    "payload.gv_vtpt": {"header": "GV VTPT", "kieu": "so_co_rong", "he_so": 1e-09, "bat_buoc": false},
+    "payload.dt_vtpt": {"header": "Doanh thu VTPT", "kieu": "so_co_rong", "he_so": 1e-09, "bat_buoc": false},
+    "payload.dt_cv": {"header": "Doanh thu CV", "kieu": "so_co_rong", "he_so": 1e-09, "bat_buoc": false}
+  },
+  "ban_ghi": "moi_dong",
+  "dan_xuat": {"amount2": "1"},
+  "loc": [
+    {"cot": "cost_center", "dieu_kien": "khac_rong"},
+    {"cot": "payload.so_ro", "dieu_kien": "khac_rong"}
+  ],
+  "payload_them": {"unit": "ty", "dvt2": "lenh", "nguon_he": "Tổng hợp LSC ngày XDV (Cyber tự động)", "chua_len_man": "1"}
+}

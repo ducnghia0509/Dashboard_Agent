@@ -856,6 +856,25 @@ def trang_thai(vr: dict, van_tay_cu, doi_luc_cu, today: str):
     return (cron_status.STATE_DU if doi_luc == today else cron_status.STATE_CHAM), doi_luc
 
 
+# ── REPORT_TYPE GIỮ TRỌN LỊCH SỬ PHÁT HÀNH — MIỄN TRỪ MỌI ĐƯỜNG XOÁ BẢN CŨ (17/09/2026) ────
+#
+# Ba hàm dưới đây (`xoa_ban_cu`, `xoa_trung_ban_chot`) và bộ dò `_lat_du_lieu` đều đi từ MỘT giả
+# định: một kỳ chỉ được có MỘT bản chốt, bản cũ còn nằm lại là cộng đôi. Đúng cho mọi nguồn — trừ
+# `VHKD_CLAIM_NGAY`, thứ SINH RA để giữ đủ các bản.
+#
+# Màn Claim tab Ngày trả lời câu "tại ngày D, số nào đang hiệu lực": file claim B2C của kỳ T8 đã
+# qua 4 bản (25/08 = 2,91 tỷ · 07/09 = 9,36 · 15/09 = 15,00 · 16/09 = 17,73), và chính chuỗi bậc
+# thang đó LÀ dữ liệu. Xoá bản cũ là tab Ngày chỉ còn đúng một mốc.
+#
+# XOÁ THEO `source_file` NÊN PHẢI CHỪA THEO `report_type`, không chừa theo file: CÙNG một file
+# claim cấp cả `VHKD_CLAIM` (bản THÁNG — vẫn phải một bản/kỳ, nếu không tab Tháng cộng đôi thật)
+# lẫn `VHKD_CLAIM_NGAY`. Chừa cả file là tab Tháng sai ngay; chừa cả report_type là mất lịch sử.
+#
+# `xoa_rows_bi_bo_qua` CỐ Ý KHÔNG dùng danh sách này: file rơi vào `bo_qua` là file ĐỌC SAI (bản
+# 9.15 của claim B2B T1 lệch cột), lịch sử của một bản sai thì không có giá trị gì để giữ.
+RT_GIU_LICH_SU = ("VHKD_CLAIM_NGAY",)
+
+
 def xoa_ban_cu(ctx: Ctx, losers: list, da_nap_ok: set) -> int:
     """Xoá rows của các bản chốt CŨ cùng slot — chỉ khi bản MỚI của slot đó đã nạp thành công.
 
@@ -877,12 +896,15 @@ def xoa_ban_cu(ctx: Ctx, losers: list, da_nap_ok: set) -> int:
     code = (
         "import sys;sys.path.insert(0,'.');"
         "from app.database.session import get_db;"
-        f"sids={sids!r};db=get_db();n=0;"
+        f"sids={sids!r};giu={list(RT_GIU_LICH_SU)!r};db=get_db();n=0;"
+        # Chừa report_type giữ lịch sử — xem `RT_GIU_LICH_SU`.
+        "w='source_file=? AND report_type NOT IN (%s)'%','.join(['?']*len(giu));"
         "\nfor s in sids:\n"
-        "    r=db.execute('SELECT COUNT(*) c FROM raw_rows WHERE source_file=?',(s,)).fetchone()\n"
+        "    p=tuple([s]+giu)\n"
+        "    r=db.execute('SELECT COUNT(*) c FROM raw_rows WHERE '+w,p).fetchone()\n"
         "    c=(r['c'] if r else 0) or 0\n"
         "    if c:\n"
-        "        db.execute('DELETE FROM raw_rows WHERE source_file=?',(s,))\n"
+        "        db.execute('DELETE FROM raw_rows WHERE '+w,p)\n"
         "    n+=c\n"
         "    print('XOA %s dong | %s'%(c,s))\n"
         "print('TONG_XOA=%s'%n)"
@@ -1077,13 +1099,18 @@ def _lat_du_lieu(ctx: Ctx, ctys: list) -> list:
         "import sys;sys.path.insert(0,'.');"
         "from app.metrics._shared import _SNAP_RT;"
         "from app.database.session import get_db;"
-        f"ctys={sorted(ctys)!r};"
-        "pc=','.join(['?']*len(ctys));"
+        f"ctys={sorted(ctys)!r};giu={list(RT_GIU_LICH_SU)!r};"
+        "pc=','.join(['?']*len(ctys));pg=','.join(['?']*len(giu));"
+        # `RT_GIU_LICH_SU` bị LOẠI KHỎI BỘ DÒ, không chỉ khỏi đường xoá: với `VHKD_CLAIM_NGAY`,
+        # "nhiều bản chốt trong cùng một lát" LÀ trạng thái đúng (lô 15/09 có 13 file cùng kỳ).
+        # Để nguyên thì mỗi đêm bộ dò kêu hàng chục "TRÙNG BẢN CHỐT" cho đúng cái vừa cố ý giữ —
+        # báo động giả đều đặn là cách nhanh nhất làm người ta thôi đọc log.
         "sql=('SELECT report_type rt,cong_ty ct,khoi k,ngay ng,period_month pm,source_file sf,"
-        "COUNT(*) c FROM raw_rows WHERE split_part(source_file,%s,1) IN (%s) AND source_file NOT "
+        "COUNT(*) c FROM raw_rows WHERE split_part(source_file,%s,1) IN (%s) AND report_type NOT "
+        "IN (%s) AND source_file NOT "
         "IN (SELECT source_file FROM hidden_files) GROUP BY 1,2,3,4,5,6')%(chr(39)+'::'+chr(39),"
-        "pc);"
-        "\nfor r in get_db().execute(sql, tuple(ctys)):\n"
+        "pc,pg);"
+        "\nfor r in get_db().execute(sql, tuple(ctys)+tuple(giu)):\n"
         "    snap=r['rt'] in _SNAP_RT\n"
         "    print('LAT|%s|%s|%s|%s|%s|%s|%s'%(r['rt'],r['ct'] or '',r['k'] or '',"
         "(r['ng'] if snap else r['pm']) or '','chốt' if snap else 'kỳ',r['sf'],r['c']))\n"
@@ -1157,7 +1184,10 @@ def ra_soat_cong_doi(ctx: Ctx, nguon_list: list, thu_gom: list = None) -> list:
     return canh_bao
 
 
-def xoa_trung_ban_chot(ctx: Ctx, trung: list) -> int:
+_TI_LE_DONG_TOI_THIEU = 0.6      # ngưỡng của chốt 3 đã nới (xem `xoa_trung_ban_chot`)
+
+
+def xoa_trung_ban_chot(ctx: Ctx, trung: list, nguon_list: list = None) -> int:
     """Xoá rows của BẢN CHỐT CŨ khi cùng một lát có 2+ bản của CÙNG một báo cáo.
 
     VÌ SAO `xoa_ban_cu` KHÔNG GÁNH ĐƯỢC: nó chỉ dọn bản cũ mà lượt chạy NHÌN THẤY Ở NGUỒN (ghép
@@ -1176,13 +1206,37 @@ def xoa_trung_ban_chot(ctx: Ctx, trung: list) -> int:
       2. Bản giữ lại phải CÓ DÒNG (> 0).
       3. Bản giữ lại KHÔNG được ÍT DÒNG HƠN bản định xoá — đó đúng hình dạng tai nạn "bản mới đổi
          bố cục, nạp ra ít/0 dòng". Gặp thì CHỈ cảnh báo, để người xem quyết bằng tay.
+
+    NỚI CHỐT 3 CHO NGUỒN "BẢN MỚI ÍT DÒNG HƠN LÀ BÌNH THƯỜNG" (`ban_moi_it_dong_la_binh_thuong`
+    khai ở nguồn, 16/09/2026; đổi tên từ `anh_chup_so_du` ngày 20/09/2026 — xem bên dưới):
+    công nợ phải thu là SỐ DƯ tại một thời điểm, nên bản chốt muộn hơn ÍT DÒNG HƠN là chuyện bình
+    thường (nợ đã thu xong thì hợp đồng rụng khỏi bảng) — chốt 3 nguyên bản khoá cứng nhóm này lại
+    và bắt xoá tay mỗi kỳ. Ca thật: `…09.05_…T9` (292 dòng / 99,135 tỷ, ảnh chụp 05/09) nằm cạnh
+    `…09.15_…T9` (239 dòng / 87,147 tỷ, ảnh chụp 12/09) -> màn công nợ T9 cộng cả hai = 186 tỷ.
+    Nới KHÔNG phải bỏ: bản giữ lại vẫn phải đạt `_TI_LE_DONG_TOI_THIEU` số dòng của bản cũ nhiều
+    nhất. Hình dạng tai nạn thật (claim B2B T1 lệch cột: 6 dòng còn 278) rơi rất sâu dưới ngưỡng
+    này nên vẫn bị chặn, còn số dư teo dần theo tháng thì không.
+
+    VÌ SAO ĐỔI TÊN KHOÁ (20/09/2026): tính chất được nới KHÔNG phải "đây là số dư" mà là "bản chốt
+    sau ít dòng hơn bản trước là bình thường ở nguồn này" — DANH SÁCH THIẾT BỊ cũng vậy, không chỉ
+    số dư. Ca thật: `QLTS/baocaobaoduong` phát hành lại mỗi thứ Bảy, bản 19/09 còn 102 xe so với
+    104 xe của bản 12/09 (2 xe rời đội, 1 xe đổi đơn vị) -> chốt 3 chặn, 5 lát của xe DEMO cộng đôi
+    và phải xoá tay. Tên cũ `anh_chup_so_du` khiến việc khai cho một nguồn thiết bị trông như khai
+    sai loại dữ liệu, nên không ai khai, nên tuần nào cũng cộng đôi lại.
     """
     # MỘT FILE CÓ THỂ NẰM Ở NHIỀU LÁT (claim T8 dính cả lát TC lẫn lát VFQN). Xoá là xoá TRỌN
     # `source_file`, nên chỉ cần MỘT lát chưa đạt điều kiện an toàn là cấm xoá file đó ở mọi lát —
     # nếu không, một lát "đạt" sẽ xoá mất dữ liệu của lát đang nghi ngờ.
+    # Regex tên file của các nguồn khai `ban_moi_it_dong_la_binh_thuong`. Phải khớp MỌI bản trong
+    # nhóm mới nới — một nhóm lẫn file nguồn khác là trở về chốt 3 nguyên bản.
+    noi_long = [n["ban_moi_it_dong_la_binh_thuong"] for n in (nguon_list or [])
+                if n.get("ban_moi_it_dong_la_binh_thuong")]
     can_xoa, cam_xoa, giu_lai = {}, set(), 0
     for nhom in trung:
         ban = nhom["ban"]
+        noi_chot3 = bool(noi_long) and all(
+            any(re.search(p, sf.split("::")[-1], re.IGNORECASE) for p in noi_long)
+            for sf, _ in ban)
         ngay = {sf: _ngay_phat_hanh(sf) for sf, _ in ban}
         if not all(ngay.values()):
             cam_xoa.update(sf for sf, _ in ban)
@@ -1199,14 +1253,19 @@ def xoa_trung_ban_chot(ctx: Ctx, trung: list) -> int:
             cam_xoa.update(sf for sf, _ in ban)
             giu_lai += 1
             continue
-        cu_nhieu_hon = [sf for sf, c in xep[:-1] if c > moi_c]
-        if cu_nhieu_hon:
+        nguong = max((c for _, c in xep[:-1]), default=0) * (_TI_LE_DONG_TOI_THIEU if noi_chot3 else 1)
+        if moi_c < nguong:
             cam_xoa.update(sf for sf, _ in ban)
             ctx.log(f"  TRÙNG BẢN CHỐT {nhom['lat']}: bản mới {moi_sf.split('::')[-1][:40]}"
-                    f" ({moi_c} dòng) ÍT HƠN bản cũ -> KHÔNG tự xoá, kiểm tay xem bản mới có bị"
-                    " đổi bố cục/nạp thiếu không")
+                    f" ({moi_c} dòng) ÍT HƠN bản cũ"
+                    + (f" quá {int((1 - _TI_LE_DONG_TOI_THIEU) * 100)}%" if noi_chot3 else "")
+                    + " -> KHÔNG tự xoá, kiểm tay xem bản mới có bị đổi bố cục/nạp thiếu không")
             giu_lai += 1
             continue
+        if noi_chot3 and moi_c < max((c for _, c in xep[:-1]), default=0):
+            ctx.log(f"  TRÙNG BẢN CHỐT {nhom['lat']}: bản mới ít dòng hơn bản cũ nhưng nguồn khai"
+                    " `ban_moi_it_dong_la_binh_thuong` (số dư thu bớt / thiết bị rời đội là bình"
+                    " thường) -> vẫn xoá bản cũ")
         for sf, c in xep[:-1]:
             can_xoa[sf] = c
             ctx.log(f"  TRÙNG BẢN CHỐT {nhom['lat']}: xoá bản cũ {sf.split('::')[-1][:46]}"
@@ -1223,16 +1282,87 @@ def xoa_trung_ban_chot(ctx: Ctx, trung: list) -> int:
     code = (
         "import sys;sys.path.insert(0,'.');"
         "from app.database.session import get_db;"
-        f"sids={sids!r};db=get_db();n=0;"
+        f"sids={sids!r};giu={list(RT_GIU_LICH_SU)!r};db=get_db();n=0;"
+        # Chừa report_type giữ lịch sử — xem `RT_GIU_LICH_SU`.
+        "w='source_file=? AND report_type NOT IN (%s)'%','.join(['?']*len(giu));"
         "\nfor s in sids:\n"
-        "    r=db.execute('SELECT COUNT(*) c FROM raw_rows WHERE source_file=?',(s,)).fetchone()\n"
+        "    p=tuple([s]+giu)\n"
+        "    r=db.execute('SELECT COUNT(*) c FROM raw_rows WHERE '+w,p).fetchone()\n"
         "    c=(r['c'] if r else 0) or 0\n"
         "    if c:\n"
-        "        db.execute('DELETE FROM raw_rows WHERE source_file=?',(s,))\n"
+        "        db.execute('DELETE FROM raw_rows WHERE '+w,p)\n"
         "    n+=c\n"
         "    print('XOA %s dong | %s'%(c,s))\n"
         "print('TONG_XOA=%s'%n)"
     )
+    out = _py_sql(ctx, code, timeout=300)
+    for line in out.splitlines():
+        ctx.log(f"  {line[:180]}")
+    m = re.search(r"TONG_XOA=(\d+)", out)
+    return int(m.group(1)) if m else 0
+
+
+def xoa_rows_bi_bo_qua(ctx: Ctx, nguon_list: list) -> int:
+    """Dọn rows của file đã bị `bo_qua` NHƯNG từng được nạp trước khi khai `bo_qua`.
+
+    `bo_qua` mới chỉ chặn từ khâu CHỌN: lượt sau không xin file đó về nữa, còn những dòng đã vào DB
+    từ trước thì nằm lại vĩnh viễn — `xoa_ban_cu` không thấy nó ở nguồn, `xoa_trung_ban_chot` thì
+    đúng ra phải từ chối (bản bị bo_qua thường là bản MỚI HƠN, xoá theo ngày phát hành là xoá nhầm
+    bản đúng). Đây chính là quy trình mà docstring `ra_soat_cong_doi` đã kê cho 'BẢN GỘP ⊃ BẢN
+    TÁCH': "sửa bằng `bo_qua` cho tên bản gộp RỒI XOÁ ROWS CỦA NÓ" — nay làm nốt vế sau.
+
+    Ca thật 16/09/2026: `…9.15. BaocaoClaim_B2B_T1.xlsx` bị nguồn chèn 1 cột từ O trở đi mà KHÔNG
+    chèn ở dòng header -> engine đọc 'Tình trạng hồ sơ' ra số tiền, nạp 6 dòng rác cạnh bản
+    `…8.25.…T1` đúng (278 dòng / 10,0044 tỷ).
+
+    CHỐT AN TOÀN: chỉ xoá khi kỳ đó CÒN bản khác (cùng `_ten_goc`) có dòng > 0 và bản đó KHÔNG bị
+    `bo_qua`. Không còn bản thay thế thì chỉ cảnh báo — xoá là để lại một kỳ trắng.
+    """
+    can = [(n["company"], n["bo_qua"]) for n in nguon_list if n.get("bo_qua")]
+    if not can:
+        return 0
+    cty = sorted({c for c, _ in can})
+    code = ("import sys;sys.path.insert(0,'.');"
+            "from app.database.session import get_db;"
+            f"cty={cty!r};db=get_db();"
+            "\nfor c in cty:\n"
+            "    for r in db.execute('SELECT source_file, COUNT(*) n FROM raw_rows WHERE"
+            " source_file LIKE ? GROUP BY source_file',(c+'::%',)).fetchall():\n"
+            "        print('%s\\t%s'%(r['source_file'], r['n']))")
+    trong_db = {}
+    for line in _py_sql(ctx, code, timeout=180).splitlines():
+        if "\t" in line:
+            sf, n = line.rsplit("\t", 1)
+            if n.strip().isdigit():
+                trong_db[sf] = int(n)
+    bi_bo = {sf: n for sf, n in trong_db.items()
+             if any(sf.startswith(c + "::") and re.search(p, sf.split("::")[-1], re.IGNORECASE)
+                    for c, p in can)}
+    xoa = {}
+    for sf, n in sorted(bi_bo.items()):
+        thay_the = [(o, c) for o, c in trong_db.items()
+                    if o != sf and o not in bi_bo and c > 0 and _ten_goc(o) == _ten_goc(sf)]
+        if not thay_the:
+            ctx.log(f"  BỎ QUA nhưng GIỮ rows {sf.split('::')[-1][:46]} ({n} dòng): không còn bản"
+                    " nào khác của cùng báo cáo -> xoá là để kỳ đó trắng")
+            continue
+        xoa[sf] = n
+        giu = ", ".join(f"{o.split('::')[-1][:40]} ({c} dòng)" for o, c in sorted(thay_the))
+        ctx.log(f"  BỎ QUA -> xoá rows {sf.split('::')[-1][:46]} ({n} dòng), giữ {giu}")
+    if not xoa:
+        return 0
+    sids = sorted(xoa)
+    code = ("import sys;sys.path.insert(0,'.');"
+            "from app.database.session import get_db;"
+            f"sids={sids!r};db=get_db();n=0;"
+            "\nfor s in sids:\n"
+            "    r=db.execute('SELECT COUNT(*) c FROM raw_rows WHERE source_file=?',(s,)).fetchone()\n"
+            "    c=(r['c'] if r else 0) or 0\n"
+            "    if c:\n"
+            "        db.execute('DELETE FROM raw_rows WHERE source_file=?',(s,))\n"
+            "    n+=c\n"
+            "    print('XOA %s dong | %s'%(c,s))\n"
+            "print('TONG_XOA=%s'%n)")
     out = _py_sql(ctx, code, timeout=300)
     for line in out.splitlines():
         ctx.log(f"  {line[:180]}")
@@ -1248,6 +1378,19 @@ def ra_soat(ctx: Ctx, nguon_list: list, st=None, thu_gom: list = None) -> dict:
     chạy" — hỏng cái phụ làm báo động giả cái chính.
     """
     kq = {}
+    # Soát CỘT COST CENTER của nguồn chạy bằng spec JSON. Đặt ở đây vì `ra_soat` đã là chỗ gom
+    # mọi lớp giám sát chạy-sau-khi-nạp, và đã bọc sẵn tinh thần "hỏng cái phụ không được kéo đổ
+    # cái chính". Lớp này bù đúng lỗ hổng 19/09: `soat_cost_center` chỉ canh layout viết tay nên
+    # cột "Vinfast Xuân Mai" của nguồn tự động rơi im lặng 3 ngày liền.
+    try:
+        sys.path.insert(0, os.path.join(AGENT, "scripts"))
+        import psycopg as _pg
+        import soat_cot_spec as _SCS
+        with _pg.connect(ctx.cfg["database_url"]) as _c:
+            _SCS.soat_va_xep(_c, log=ctx.log)
+            _c.commit()
+    except Exception as ex:                              # noqa: BLE001
+        ctx.log(f"RÀ SOÁT cot_spec: LỖI {type(ex).__name__}: {str(ex)[:160]} — bỏ qua")
     for ten, fn, them in (("mo_coi", ra_soat_mo_coi, ()),
                           ("cong_doi", ra_soat_cong_doi, (thu_gom,))):
         try:
@@ -1292,6 +1435,18 @@ def run(job: str, nhan: str, nguon_list: list, schedule_vn: str, argv=None) -> i
     ctx = Ctx(job, args.env, cfg, args.dry_run)
     ctx.log("=" * 70)
     ctx.log(f"{nhan} — MOI TRUONG: {args.env} (DB {cfg['database_url'].rsplit('@', 1)[-1]})")
+
+    # `chi_env` — NGUỒN CHỈ CHẠY Ở MỘT MÔI TRƯỜNG (14/09/2026). `nguon_list` dùng CHUNG cho hai
+    # lượt cron test/prod, nên khai thêm một nguồn mới là đêm đó nó vào luôn PROD, trong khi luật
+    # của nhà là thử ở test xong mới đẩy prod. Không có cổng này thì cách duy nhất giữ luật là
+    # comment nguồn lại — mà comment thì lượt TEST cũng đứng, tức không có gì để mà thử.
+    # Lọc ở ĐÚNG MỘT CHỖ, trước mọi nhánh đọc `nguon_list`: các hàm rà soát cũng phải thấy danh
+    # sách đã lọc, nếu không nguồn test-only bị báo "mồ côi" khi chạy trên prod.
+    # KHÔNG khai khoá này = chạy cả hai môi trường, vẫn là mặc định của mọi nguồn cũ.
+    if bo := [n for n in nguon_list if n.get("chi_env") and n["chi_env"] != args.env]:
+        ctx.log("BO QUA (chi_env): "
+                + ", ".join(f"{n['company']}/{n['rt']}->{n['chi_env']}" for n in bo))
+        nguon_list = [n for n in nguon_list if n.get("chi_env", args.env) == args.env]
 
     # KHÔNG ghi artifact trạng thái ở hai nhánh bỏ lượt dưới đây. Ghi là báo với agent gửi tin lãnh
     # đạo rằng "job vừa chạy xong", trong khi thực tế nó không kéo gì — lượt 00:30 mới là lượt làm
@@ -1438,6 +1593,9 @@ def run(job: str, nhan: str, nguon_list: list, schedule_vn: str, argv=None) -> i
                         + (f" (đổi gần nhất {doi_luc[8:10]}/{doi_luc[5:7]})" if doi_luc else "")))
 
     so_xoa = xoa_ban_cu(ctx, losers, da_nap_ok) if losers else 0
+    # Rows của file đã khai `bo_qua` nhưng lỡ nạp từ trước: dọn TRƯỚC khi rà soát, không thì bộ dò
+    # đếm chúng vào lát và báo cộng đôi cho đúng thứ sắp bị xoá.
+    so_xoa_bo_qua = xoa_rows_bi_bo_qua(ctx, nguon_list) if not args.dry_run else 0
     # SAU khi đã nạp + đã xoá bản chốt cũ: rà lại chính cái vừa để lại trong DB. Đặt ở đây chứ
     # không phải đầu lượt để không báo động cái mà `xoa_ban_cu` của chính lượt này vừa dọn xong.
     trung = []
@@ -1445,13 +1603,14 @@ def run(job: str, nhan: str, nguon_list: list, schedule_vn: str, argv=None) -> i
     # Bản chốt cũ mà nguồn đã đổi tên/xoá: `xoa_ban_cu` ở trên không thấy nên không dọn được, phải
     # dựa vào bộ dò vừa chạy. Xoá xong RÀ LẠI để artifact (agent gửi tin lãnh đạo đọc) không còn
     # báo cộng đôi cho đúng cái vừa dọn xong.
-    so_xoa_trung = xoa_trung_ban_chot(ctx, trung) if (trung and not args.dry_run) else 0
+    so_xoa_trung = xoa_trung_ban_chot(ctx, trung, nguon_list) if (trung and not args.dry_run) else 0
     if trung and args.dry_run:
         ctx.log(f"DRY-RUN: bỏ qua xoá {len(trung)} nhóm trùng bản chốt")
     if so_xoa_trung:
         rs = ra_soat(ctx, nguon_list, st)
     ctx.log(f"XONG — nạp thành công {ok}/{len(targets)} file"
             + (f", xoá {so_xoa} dòng của {len(losers)} bản chốt cũ" if losers else "")
+            + (f", xoá {so_xoa_bo_qua} dòng của file đã khai bo_qua" if so_xoa_bo_qua else "")
             + (f", xoá {so_xoa_trung} dòng bản chốt cũ nguồn đã gỡ" if so_xoa_trung else "")
             + (f", RÀ SOÁT: {len(rs['cong_doi'])} lát cộng đôi / {len(rs['mo_coi'])} nhóm file mồ"
                " côi" if (rs["cong_doi"] or rs["mo_coi"]) else ", rà soát sạch"))

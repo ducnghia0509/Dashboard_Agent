@@ -1,0 +1,177 @@
+{
+  "id": "vhkd_giaoxe_ngay",
+  "_mo_ta": "THỰC HIỆN GIAO XE theo NGÀY × SHOWROOM × DÒNG XE — file 'CHI_TIET_TIEN_DO_TUNG_SHOWROOM_TUNG_DONG_XE_30_NGAY.xlsx', 9 sheet 'SR <tên>'. Cặp THỰC HIỆN của `vhkd_kehoach_giaoxe_ngay`. KHÔNG ĐỌC sheet 'Tổng Hợp 9 Showroom' của file này: ngày 17/09/2026 nó ra 6 xe dồn hết vào Uông Bí trong khi 9 sheet lẻ cộng lại 972 (riêng Uông Bí 92) — sheet tổng chưa refresh. 9 sheet lẻ là nguồn tin cậy và cộng lại đúng bằng sheet 'Toàn Hệ Thống'. CẢNH BÁO NGUỒN: bản nhận 17/09 có số ở CẢ các ngày CHƯA TỚI (18→30/09), nên đây chưa chắc là số thực tế thuần — đang nạp theo đúng yêu cầu 'có ngày nào lấy tới ngày ấy'. | dim1 dùng ĐÚNG mã của sổ bán xe (ECV/LM1/MPV/MNO/VF*) chứ không phải tên hiển thị trong file ('Limo Green', 'VF MPV7', 'Minio Green'): chỉ tiêu phải ghép được vào thực hiện của KDVH/VHKD_HDONG, lệch mã là bảng dòng xe mất mẫu số.",
+  "report_type": "VHKD_TH_GIAOXE_NGAY",
+  "row_index_base": 8560000,
+  "khoi": "Khối KD Vinfast - Showroom",
+  "nguon": {
+    "folder": "SRVF/baocaotiendoshowroomngay",
+    "file_glob": "*30_NGAY*.xlsx"
+  },
+  "ky_thang_tu_o": {
+    "o": "A1",
+    "regex": "(?P<thang>\\d{1,2})/(?P<nam>\\d{4})"
+  },
+  "giu_ngay_tuong_lai": true,
+  "chieu_tu_ten_sheet": {
+    "cost_center": {
+      "regex": "^SR\\s+(.+)$",
+      "chuan_hoa": "sr_showroom"
+    }
+  },
+  "kiem_tra_o": [
+    {
+      "o": "A4",
+      "bang": "Ngày Làm Việc"
+    },
+    {
+      "o": "M4",
+      "bang": "Tổng Giao Ngày"
+    }
+  ],
+  "header": {
+    "dong": 4
+  },
+  "dong_bat_dau": 5,
+  "cot": {
+    "ngay": {
+      "cot": "A",
+      "kieu": "ngay_dd_mm"
+    }
+  },
+  "ban_ghi": "moi_cot_gia_tri",
+  "cot_gia_tri": [
+    {
+      "header": "EC Van (Mũi nhọn)",
+      "dim1": "ECV"
+    },
+    {
+      "header": "VF3 (Mũi nhọn)",
+      "dim1": "VF3"
+    },
+    {
+      "header": "VF5 (Mũi nhọn)",
+      "dim1": "VF5"
+    },
+    {
+      "header": "VF6 (Mũi nhọn)",
+      "dim1": "VF6"
+    },
+    {
+      "header": "Limo (Mũi nhọn)",
+      "dim1": "LM1"
+    },
+    {
+      "header": "VF2",
+      "dim1": "VF2"
+    },
+    {
+      "header": "VF MPV7",
+      "dim1": "MPV"
+    },
+    {
+      "header": "Minio Green",
+      "dim1": "MNO"
+    },
+    {
+      "header": "VF7",
+      "dim1": "VF7"
+    },
+    {
+      "header": "VF8",
+      "dim1": "VF8"
+    },
+    {
+      "header": "VF9",
+      "dim1": "VF9"
+    }
+  ],
+  "chieu_co_dinh": {
+    "dim2": "GIAOXE"
+  },
+  "loc": [
+    {
+      "cot": "ngay",
+      "dieu_kien": "khac_rong"
+    }
+  ],
+  "payload_them": {
+    "unit": "xe",
+    "nguon": "tiendo_showroom_ngay_th",
+    "pham_vi": "showroom"
+  },
+  "vung": [
+    {
+      "ten": "SR OceanPark",
+      "nguon": {
+        "sheet": {
+          "ten": "SR OceanPark"
+        }
+      }
+    },
+    {
+      "ten": "SR Long Biên",
+      "nguon": {
+        "sheet": {
+          "ten": "SR Long Biên"
+        }
+      }
+    },
+    {
+      "ten": "SR Smart City",
+      "nguon": {
+        "sheet": {
+          "ten": "SR Smart City"
+        }
+      }
+    },
+    {
+      "ten": "SR Sơn Tây",
+      "nguon": {
+        "sheet": {
+          "ten": "SR Sơn Tây"
+        }
+      }
+    },
+    {
+      "ten": "SR Xuân Mai",
+      "nguon": {
+        "sheet": {
+          "ten": "SR Xuân Mai"
+        }
+      }
+    },
+    {
+      "ten": "SR Hạ Long",
+      "nguon": {
+        "sheet": {
+          "ten": "SR Hạ Long"
+        }
+      }
+    },
+    {
+      "ten": "SR Vĩnh Phúc",
+      "nguon": {
+        "sheet": {
+          "ten": "SR Vĩnh Phúc"
+        }
+      }
+    },
+    {
+      "ten": "SR Uông Bí",
+      "nguon": {
+        "sheet": {
+          "ten": "SR Uông Bí"
+        }
+      }
+    },
+    {
+      "ten": "SR Cẩm Phả",
+      "nguon": {
+        "sheet": {
+          "ten": "SR Cẩm Phả"
+        }
+      }
+    }
+  ]
+}

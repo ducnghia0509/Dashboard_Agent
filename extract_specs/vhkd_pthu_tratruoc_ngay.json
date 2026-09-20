@@ -1,0 +1,134 @@
+{
+  "id": "vhkd_pthu_tratruoc_ngay",
+  "_mo_ta": "NGƯỜI MUA TRẢ TIỀN TRƯỚC theo ngày — vế dư CÓ của CHÍNH file 'Cân đối phát sinh công nợ theo hợp đồng' (Cyber, TEST_SR/baocaocongnophaithungay) mà `vhkd_pthu_hopdong_ngay` đang đọc vế dư NỢ. Mapping VHKD sửa 15/09/2026, DASHBOARD 2 chỉ tiêu 2: 'Lấy SUM cột Có cuối kỳ' theo từng kênh (lọc 'Tên đơn vị' bỏ blank, tách kênh theo số hiệu tài khoản). Trước bản đó ô này lấy `PTHU_ADV` (dư Có TK 131 trên BCTC khối, không tách kênh, không có bản ngày).",
+  "_kiem_chung": [
+    "14/09/2026: 3.415 dòng có 'Tên đơn vị'; 3.415 dòng có dư Có cuối kỳ khác rỗng -> tổng 58,0738 tỷ, tách kênh B2C 50,9514 (13111+13112) · GF 7,1224 (13115+13116).",
+    "Cùng file, vế dư Nợ (`VHKD_PTHU_HD`) 58,9954 tỷ — HAI SỐ KHÔNG BÙ TRỪ CHO NHAU: mỗi hợp đồng chỉ nằm ở một trong hai vế, cộng/trừ chúng ra một con số không có trong sổ nào."
+  ],
+  "_bay": [
+    "REPORT_TYPE RIÊNG chứ không thêm chiều vào `VHKD_PTHU_HD`: spec kia lọc `amount khac_rong` trên cột 'Nợ cuối kỳ' nên CẮT BỎ đúng những dòng chỉ có dư Có (14/09: giữ 283/3.415 dòng). Nới lớp lọc đó để lấy dư Có là làm tổng dư nợ của màn nhảy thêm mấy nghìn dòng 0 đồng.",
+    "KHÔNG PHẢI SỐ TOÀN KHỐI như `PTHU_ADV`: nguồn này chỉ có những pháp nhân Cyber trả về trong báo cáo công nợ Showroom. Hai số khác phạm vi, đừng so bậc thang giữa tab Tháng (PTHU_ADV) và tab Ngày.",
+    "THIẾU TÀI KHOẢN B2B 1316* y như `vhkd_pthu_hopdong_ngay` — cùng một file. Bao giờ Cyber bổ sung thì cả hai cùng có.",
+    "Là ẢNH CHỤP SỐ DƯ: report_type phải nằm trong `_SNAP_RT` ở backend, nếu không xem nhiều ngày sẽ cộng chồng cùng một hợp đồng.",
+    "DÒNG TỔNG THEO TÀI KHOẢN nằm ngay dưới header và BỎ TRẮNG cột 'Tên đơn vị' -> chặn bằng `loc payload.don_vi khac_rong`. Gỡ lớp lọc đó là cộng đôi toàn bộ."
+  ],
+  "report_type": "VHKD_PTHU_TT",
+  "row_index_base": 8915000,
+  "khoi": "Khối KD Vinfast - Showroom",
+  "chieu_co_dinh": {
+    "dim1": "Người mua trả tiền trước"
+  },
+  "nguon": {
+    "folder": "TEST_SR/baocaocongnophaithungay",
+    "file_glob": "*_Baocaocongnophaithu.xlsx",
+    "sheet": {
+      "so": 0
+    }
+  },
+  "kiem_tra_o": [
+    {
+      "o": "A8",
+      "bang": "Đơn vị"
+    },
+    {
+      "o": "C8",
+      "bang": "Mã Hợp đồng"
+    },
+    {
+      "o": "N8",
+      "bang": "Có cuối kỳ"
+    }
+  ],
+  "header": {
+    "dong": 8
+  },
+  "dong_bat_dau": 9,
+  "ngay_tu_ten_file": {
+    "regex": "\\.D\\.(\\d{4})(\\d{2})(\\d{2})_",
+    "thu_tu": "ymd"
+  },
+  "moi_ky_lay_file_moi_nhat": "ngay",
+  "cot": {
+    "cost_center": {
+      "header": "Tên đơn vị",
+      "chuan_hoa": "sr_showroom",
+      "giu_khi_khong_map": true
+    },
+    "amount": {
+      "header": "Có cuối kỳ",
+      "kieu": "so",
+      "he_so": 1e-09
+    },
+    "dim2": {
+      "header": "Tài khoản",
+      "chuan_hoa": "kenh_tk",
+      "bat_buoc": false
+    },
+    "payload.don_vi": {
+      "header": "Tên đơn vị"
+    },
+    "payload.ma_don_vi": {
+      "header": "Đơn vị",
+      "bat_buoc": false
+    },
+    "payload.ten_khach": {
+      "header": "Tên kh",
+      "bat_buoc": false
+    },
+    "payload.ma_khach": {
+      "header": "Mã khách",
+      "bat_buoc": false
+    },
+    "payload.ma_hop_dong": {
+      "header": "Mã Hợp đồng"
+    },
+    "payload.tai_khoan": {
+      "header": "Tài khoản"
+    },
+    "payload.no_cuoi_ky": {
+      "header": "Nợ cuối kỳ",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09,
+      "bat_buoc": false
+    },
+    "payload.co_dau_ky": {
+      "header": "Có đầu kỳ",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09,
+      "bat_buoc": false
+    },
+    "payload.ngay_hoa_don": {
+      "header": "Ngày hóa đơn",
+      "kieu": "date",
+      "bat_buoc": false
+    },
+    "payload.so_khung": {
+      "header": "Số khung",
+      "bat_buoc": false
+    },
+    "payload.ten_kieu_xe": {
+      "header": "Tên kiểu xe",
+      "bat_buoc": false
+    },
+    "payload.ngay_giao_xe": {
+      "header": "Ngày giao xe",
+      "kieu": "date",
+      "bat_buoc": false
+    }
+  },
+  "ban_ghi": "moi_dong",
+  "loc": [
+    {
+      "cot": "amount",
+      "dieu_kien": "khac_rong"
+    },
+    {
+      "cot": "payload.don_vi",
+      "dieu_kien": "khac_rong"
+    }
+  ],
+  "payload_them": {
+    "unit": "ty",
+    "nguon": "cdps_cong_no_theo_hop_dong_tu_dong_du_co"
+  }
+}

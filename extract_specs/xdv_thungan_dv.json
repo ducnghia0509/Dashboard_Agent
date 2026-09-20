@@ -1,0 +1,60 @@
+{
+  "id": "xdv_thungan_dv",
+  "_mo_ta": "SỔ QUỸ THU NGÂN DỊCH VỤ (DV02) — nguồn TỰ ĐỘNG Cyber (ổ IT\\TESTBAOCAOTUDONG\\2.VINFAST_XDV -> VPS `TEST_XDV/bangkethungandv`), mỗi ngày một file. Mỗi dòng = một phiếu thu của một lệnh sửa chữa: xưởng, ngày phiếu thu, đối tượng, số tiền chia theo hình thức (tiền mặt / chuyển khoản / quẹt thẻ / voucher / VinPoint / bù trừ). Chỉ tiêu MỚI của mapping XDV (Báo cáo API_XDV dòng 19) — đo TIỀN THỰC THU, khác với doanh thu xuất hoá đơn của DV01.",
+  "_kiem_chung": [
+    "26/08/2026: 216 dòng / 12 đơn vị; dòng 'Tổng cộng' (r9) của chính file ghi Tổng cộng = 400.298.964 đ (TM 33.382.948 + CK 355.224.088 + thẻ 11.691.928) — tổng khối chi tiết phải khớp khít số này.",
+    "File 26/08 chứa 148 phiếu ngày 26/08 và 66 phiếu ngày 27/08: 'Ngày PT' KHÔNG luôn bằng ngày trong tên file, nên `ngay` phải lấy từ CỘT chứ không suy từ tên file."
+  ],
+  "_bay": [
+    "DÒNG 'Tổng cộng' NẰM Ở ĐẦU VÙNG (dòng 9) và — khác mọi nguồn anh em — CÓ ghi tên đơn vị ở cột A ('XDV Vĩnh Phúc'), nên lọc theo `cost_center khac_rong` KHÔNG chặn được nó. Nhãn 'Tổng cộng' rơi vào cột G 'Tên đối tượng'; chặn bằng `payload.so_pt khac_rong` + `payload.ten_doi_tuong khac 'Tổng cộng'`.",
+    "MỖI NGÀY MỘT FILE, KHÔNG LUỸ KẾ — `moi_ky_lay_file_moi_nhat: \"ngay\"`, bên cron khai `ANH_CHUP_KY`.",
+    "'Tổng cộng' (cột AI) = Tổng TM + Tổng CK + Tổng thẻ + voucher/VinPoint/bù trừ. Nạp thêm từng cột thành phần vào payload thì ĐỪNG cộng chúng vào amount lần nữa.",
+    "Vì 'Ngày PT' có thể rơi sang ngày hôm sau, hai file ngày liên tiếp CÙNG chứa phiếu của một ngày. Không cộng đôi vì mỗi phiếu chỉ nằm trong ĐÚNG một file (bản ghi khoá theo source_file), nhưng khi đối chiếu tổng theo ngày thì phải cộng cả hai file."
+  ],
+  "report_type": "XDV_THUNGAN",
+  "row_index_base": 8610000,
+  "khoi": "Khối KD Vinfast - XDV",
+  "nguon": {
+    "folder": "TEST_XDV/bangkethungandv",
+    "file_glob": "*.BangkethunganDV.xlsx",
+    "sheet": {"so": 0}
+  },
+  "kiem_tra_o": [
+    {"o": "A8", "bang": "Tên đơn vị"},
+    {"o": "M8", "bang": "Số PT"},
+    {"o": "AI8", "bang": "Tổng cộng"}
+  ],
+  "header": {"dong": 8},
+  "dong_bat_dau": 9,
+  "ngay_tu_ten_file": {"regex": "\\.D\\.(\\d{4})(\\d{2})(\\d{2})\\.", "thu_tu": "ymd"},
+  "moi_ky_lay_file_moi_nhat": "ngay",
+  "cot": {
+    "cost_center": {"header": "Tên đơn vị", "chuan_hoa": "xdv"},
+    "ngay": {"header": "Ngày PT", "kieu": "date"},
+    "amount": {"header": "Tổng cộng", "kieu": "so_co_rong", "he_so": 1e-09},
+    "dim1": {"header": "Trạng thái lệnh", "bat_buoc": false},
+    "dim2": {"header": "Tên đối tượng", "bat_buoc": false},
+    "payload.so_pt": {"header": "Số PT"},
+    "payload.ten_doi_tuong": {"header": "Tên đối tượng", "bat_buoc": false},
+    "payload.ten_kh": {"header": "Tên khách hàng", "bat_buoc": false},
+    "payload.so_ro": {"header": "Số R/O", "bat_buoc": false},
+    "payload.bks": {"header": "BKS", "bat_buoc": false},
+    "payload.so_hd": {"header": "Số HĐ", "bat_buoc": false},
+    "payload.thu_ngan": {"header": "Thu ngân", "bat_buoc": false},
+    "payload.tk_no": {"header": "Tk nợ", "bat_buoc": false},
+    "payload.tong_tm": {"header": "Tổng TM", "kieu": "so_co_rong", "he_so": 1e-09, "bat_buoc": false},
+    "payload.tong_ck": {"header": "Tổng CK", "kieu": "so_co_rong", "he_so": 1e-09, "bat_buoc": false},
+    "payload.tong_the": {"header": "Tổng thẻ", "kieu": "so_co_rong", "he_so": 1e-09, "bat_buoc": false},
+    "payload.thu_voucher": {"header": "Thu voucher", "kieu": "so_co_rong", "he_so": 1e-09, "bat_buoc": false},
+    "payload.thu_vpoint": {"header": "Thu tiền Vpoint", "kieu": "so_co_rong", "he_so": 1e-09, "bat_buoc": false},
+    "payload.thu_bu_tru": {"header": "Thu bù trừ", "kieu": "so_co_rong", "he_so": 1e-09, "bat_buoc": false}
+  },
+  "ban_ghi": "moi_dong",
+  "dan_xuat": {"amount2": "1"},
+  "loc": [
+    {"cot": "payload.so_pt", "dieu_kien": "khac_rong"},
+    {"cot": "payload.ten_doi_tuong", "dieu_kien": "khac", "gia_tri": "Tổng cộng"},
+    {"cot": "ngay", "dieu_kien": "khac_rong"}
+  ],
+  "payload_them": {"unit": "ty", "dvt2": "phieu_thu"}
+}

@@ -1,0 +1,141 @@
+{
+  "id": "vhkd_dthu_nhom_ngay",
+  "_mo_ta": "Doanh thu THEO NHÓM A200 (bán xe) / A230 (khác) / A250 (claim) theo NGÀY — nguồn tự động thay cho việc CHỜ BCTC tháng (`DTHU_NHOM`). Đọc CÙNG file `Baocaotaichinhrieng-HQKD` với 4 spec anh em (`vhkd_hqkd_ngay` etc.), lấy thẳng 3 dòng TỔNG A200/A230/A250 (không cần tách kênh — khác `vhkd_kdvh_ngay`). Dùng làm ĐƯỜNG LÙI cho bảng 'Thực hiện doanh thu theo nhóm' (vhkd.py::_thuc_hien_theo_nhom) khi tháng đang xem CHƯA có BCTC — cùng logic 3-cấp đã áp cho ô doanh thu A100 (xem `_dt_cua_ky` trong vhkd.py, cấp 2 dùng `PNLT_D`).",
+  "_kiem_chung": [
+    "A100 'Kỳ này' = A200+A230+A250 'Kỳ này', LỆCH 0 trên cả 5 ngày kiểm (01,04,08,09,10/09/2026). Ví dụ 10/09: 44.686.617.726 + 22.934.833 + 1.170.000.000 = 45.879.552.559 = đúng A100. Ba mã này là TỔNG, không phải mã con — không cần hook chuyển kênh/đổi dấu như `vhkd_kdvh_ngay` (không có A211A tương đương ở cấp tổng)."
+  ],
+  "_bay": [
+    "GIỮ NGUYÊN MÃ A200/A230/A250 (KHÔNG `doi_gia_tri`) — `vhkd.py::_KH_NHOM`/`_thuc_hien_theo_nhom` đọc thẳng ba mã này làm `dim1`, đổi tên là bảng mất dữ liệu.",
+    "CÙNG QUY ƯỚC NGÀY/THÁNG VỚI 4 SPEC ANH EM + `vhkd_kdvh_ngay` — `ngay_du_lieu_lui: 0`, `tru_ngay_truoc: true` (chỉ trừ trong cùng tháng), `chi_nap_tu_ngay: 2026-09-01`. Đổi lệch mốc với nhóm spec kia là hai nguồn đè/lệch ngày nhau.",
+    "REPORT_TYPE RIÊNG (`DTHU_NHOM_D`, không phải `DTHU_NHOM`) — `DTHU_NHOM` là số BCTC CHÍNH THỨC (sổ kế toán đã khoá sổ), còn spec này là số Cyber CHƯA CHỐT. Trộn chung report_type là xoá mất ranh giới hai cơ sở đo — khi BCTC tháng thật về, phải phân biệt được đâu là số tạm/đâu là số chính thức. BE quyết định khi nào dùng cái nào ở hàm `_thuc_hien_theo_nhom` (ưu tiên `DTHU_NHOM`, thiếu mới rơi về `DTHU_NHOM_D`), KHÔNG tự ý gộp ở tầng nạp.",
+    "LỌC `dim1 thuộc [A200, A230, A250]` để bỏ mọi dòng khác của sheet (A100 tổng, A210..A254A mã con, A300, U302...). Không cần hook vì cột 'Mã số' đã đúng dạng cần dùng."
+  ],
+  "report_type": "DTHU_NHOM_D",
+  "row_index_base": 8720000,
+  "khoi": "Khối KD Vinfast - Showroom",
+  "cong_ty": "TC",
+  "nguon": {
+    "folder": "TEST_SR/baocaotaichinhrienghqkd",
+    "file_glob": "*.Baocaotaichinhrieng-HQKD.xlsx",
+    "sheet": {
+      "so": 0
+    }
+  },
+  "kiem_tra_o": [
+    {
+      "o": "A8",
+      "bang": "Mã số"
+    },
+    {
+      "o": "C8",
+      "bang": "Lũy kế"
+    },
+    {
+      "o": "D8",
+      "bang": "Kỳ này"
+    },
+    {
+      "o": "AB8",
+      "bang": "Showroom OceanPark"
+    }
+  ],
+  "header": {
+    "dong": 8
+  },
+  "dong_bat_dau": 9,
+  "ngay_tu_ten_file": {
+    "regex": "\\.D\\.(\\d{4})(\\d{2})(\\d{2})\\.",
+    "thu_tu": "ymd"
+  },
+  "ngay_du_lieu_lui": 0,
+  "moi_ky_lay_file_moi_nhat": "ngay",
+  "tru_ngay_truoc": true,
+  "chi_nap_tu_ngay": "2026-09-01",
+  "cot": {
+    "dim1": {
+      "header": "Mã số"
+    },
+    "payload.chi_tieu": {
+      "header": "Chỉ tiêu"
+    }
+  },
+  "ban_ghi": "moi_cot_gia_tri",
+  "cot_gia_tri": [
+    {
+      "header": "Showroom OceanPark",
+      "cost_center": "OCP_SR",
+      "cong_ty": "TC",
+      "he_so": 1e-09
+    },
+    {
+      "header": "Showroom Long Biên",
+      "cost_center": "LB_SR",
+      "cong_ty": "TC",
+      "he_so": 1e-09
+    },
+    {
+      "header": "Showroom Smart City",
+      "cost_center": "SMC_SR",
+      "cong_ty": "TC",
+      "he_so": 1e-09
+    },
+    {
+      "header": "Showroom Hạ Long",
+      "cost_center": "HL_SR",
+      "cong_ty": "TC",
+      "he_so": 1e-09
+    },
+    {
+      "header": "Showroom Cẩm Phả",
+      "cost_center": "CP_SR",
+      "cong_ty": "TC",
+      "he_so": 1e-09
+    },
+    {
+      "header": "Showroom Vĩnh Phúc",
+      "cost_center": "VP_SR",
+      "cong_ty": "TC",
+      "he_so": 1e-09
+    },
+    {
+      "header": "Showroom Sơn Tây",
+      "cost_center": "ST_SR",
+      "cong_ty": "TC",
+      "he_so": 1e-09
+    },
+    {
+      "header": "Showroom Xuân Mai",
+      "cost_center": "XM_SR",
+      "cong_ty": "TC",
+      "he_so": 1e-09
+    },
+    {
+      "header": "Showroom Uông Bí",
+      "cost_center": "UB_SR",
+      "cong_ty": "VFQN",
+      "he_so": 1e-09
+    },
+    {
+      "header": "Vinfast B2B",
+      "cost_center": "B2B_SR",
+      "cong_ty": "TC",
+      "he_so": 1e-09
+    }
+  ],
+  "loc": [
+    {
+      "cot": "dim1",
+      "dieu_kien": "thuoc",
+      "gia_tri": [
+        "A200",
+        "A230",
+        "A250"
+      ]
+    }
+  ],
+  "payload_them": {
+    "unit": "ty",
+    "goc_so": "luy_ke_trong_thang",
+    "nguon_he": "HQKD ngày Showroom (Cyber tự động) — CHƯA phải BCTC chính thức"
+  }
+}

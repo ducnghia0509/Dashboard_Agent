@@ -1,0 +1,51 @@
+{
+  "id": "vhkd_claim_b2b_ngay",
+  "_mo_ta": "Claim Showroom KÊNH B2B — BẢN THEO NGÀY PHÁT HÀNH (màn vhkd2 tab Ngày, 17/09/2026). Anh em của `vhkd_claim_ngay`: cùng report_type `VHKD_CLAIM_NGAY`, phân kênh bằng `dim2`, nhưng bố cục file khác hẳn nên cột khai riêng — xem `vhkd_claim_b2b`.",
+  "_bay": [
+    "Đọc `_bay` của `vhkd_claim_ngay` TRƯỚC: lý do không dùng chung report_type với bản tháng, lý do tên không được kết thúc '_D', và lý do cố ý không khai `moi_ky_lay_file_moi_nhat` đều nằm ở đó.",
+    "`bo_qua_file` chặn bản `9.15` của T1 — nguồn chèn thêm một cột từ O trở đi trong vùng DỮ LIỆU mà KHÔNG chèn ở dòng header, nên mọi cột lệch phải 1 ('Tình trạng hồ sơ' ra SỐ TIỀN). Cron đã chặn KÉO nó bằng `bo_qua`, nhưng file đã nằm sẵn trên đĩa nên spec phải tự chặn. GỠ khi nghiệp vụ phát hành lại T1 — nhớ gỡ ở CẢ `cron_srvf_daily.py`.",
+    "Mọi bẫy ĐỌC FILE (số cột đổi theo kỳ nên tuyệt đối dò theo TÊN header, 'Số tiền Claim' có dấu xuống dòng trong ô, 'Vinfast B2B' là hồ sơ THẬT chưa phân về SR, mỗi file một sheet tên đổi theo kỳ) giống hệt `vhkd_claim_b2b` — sửa bố cục thì phải sửa CẢ HAI.",
+    "Từ vựng trạng thái B2B ('Đã được cấn trừ' / 'Chưa được cấn trừ' / 'Chưa Claim') KHÁC HOÀN TOÀN B2C. Quy ước gộp về 4 nhóm thiết kế nằm ở `app/metrics/vhkd.py::_CLAIM_NHOM_THEO_KENH`, tra theo (kênh, trạng thái) — dùng chung cho cả tab Tháng lẫn tab Ngày."
+  ],
+  "report_type": "VHKD_CLAIM_NGAY",
+  "row_index_base": 6730000,
+  "khoi": "Khối KD Vinfast - Showroom",
+  "nguon": {
+    "folder": "SRVF/baocaoclaimb2b",
+    "file_glob": "*.xlsx",
+    "bo_qua_file": "\\.9\\.15\\.\\s*BaocaoClaim_B2B_T1\\.",
+    "sheet": { "so": 0 }
+  },
+  "kiem_tra_o": [
+    { "o": "A1", "bang": "STT" },
+    { "o": "B1", "bang": "Tên khách hàng" },
+    { "o": "C1", "bang": "Số khung" },
+    { "o": "D1", "bang": "Loại xe" }
+  ],
+  "header": { "dong": 1 },
+  "dong_bat_dau": 2,
+  "ky_tu_ten_file": {
+    "regex_nam": "M\\.(\\d{4})\\.",
+    "regex_thang": "M\\.\\d{4}\\.(\\d{1,2})\\.",
+    "regex_ngay": "M\\.\\d{4}\\.\\d{1,2}\\.(\\d{1,2})\\."
+  },
+  "chieu_tu_ten_file": {
+    "dim2": { "regex": "BaocaoClaim_(B2C|B2B|GF)", "hoa": true },
+    "dim3": { "regex": "M\\.\\d{4}\\.\\d{1,2}\\.\\d{1,2}\\..*?_T\\d{1,2}", "nhom": 0, "chuan_hoa": "claim_ky_du_lieu" }
+  },
+  "cot": {
+    "cost_center": { "header": "Tên DVCS", "chuan_hoa": "sr_showroom" },
+    "dim1": { "header": "Tình trạng hồ sơ", "chuan_hoa": "cat" },
+    "amount": { "header": "Số tiền Claim (Ưu đãi hoàn)", "kieu": "so", "he_so": 1e-9 },
+    "payload.loai_xe": { "header": "Loại xe" },
+    "payload.so_khung": { "header": "Số khung", "bat_buoc": false },
+    "payload.bo_ho_so": { "header": "Bộ hồ sơ", "bat_buoc": false },
+    "payload.ten_csbh": { "header": "Tên CSBH", "bat_buoc": false }
+  },
+  "ban_ghi": "moi_dong",
+  "loc": [
+    { "cot": "cost_center", "dieu_kien": "khac_rong" },
+    { "cot": "dim1", "dieu_kien": "khac_rong" }
+  ],
+  "payload_them": { "unit": "ty" }
+}

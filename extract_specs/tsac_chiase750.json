@@ -1,0 +1,59 @@
+{
+  "id": "tsac_chiase750",
+  "_mo_ta": "DOANH THU CHIA SẺ 750đ/kW — sổ chi tiết TK 51131 (mẫu S38-DN), mapping '3.Tramsac_Mapping_Dashboard.xlsx' dòng 26: cột G 'Có' -> amount (tỷ). MỖI SHEET MỘT THÁNG ('Tháng 1'..'Tháng 7'). Cột N 'Chiều phân tích' = ĐỊA ĐIỂM KINH DOANH (tên trạm) -> dim1, đúng chiều phân tích mà mapping khai và đúng biểu đồ 'Doanh thu chia sẻ 750đ/kW theo địa điểm' của thiết kế.",
+  "_bay": [
+    "BA DÒNG CUỐI SỔ KHÔNG PHẢI DOANH THU: '- Số dư đầu kỳ (16)' (dòng 12), 'Kết chuyển doanh thu - Vgreen' (TK đối ứng 911, ghi bên NỢ), '- Cộng số phát sinh (18)' và '- Số dư cuối kỳ (19)'. Cộng cả bảng là GẤP ĐÔI (dòng cộng) rồi cộng thêm cả bút toán kết chuyển. Ba lớp chặn: `ngay khac_rong` (dòng tổng không có ô ngày ở cột C), `amount khac_rong` (dòng kết chuyển có Có = 0), và `tk_doi_ung khac 911`.",
+    "MAPPING GHI 'cột G: CÓ lấy từ dòng 13-45' — spec KHÔNG khai `dong_ket_thuc`. T1 chạy tới dòng 44, các tháng khác ngắn hơn, nhưng chặn cứng 45 là tháng nào đông hơn thì mất số im lặng. Bộ lọc tự dừng ở cuối bảng.",
+    "SỐ DỒN VÀO 1-5 NGÀY MỖI THÁNG (đo 06/09/2026: T2/T5/T6 chỉ có ĐÚNG MỘT ngày, T1 có 5). Chế độ Ngày lên được thật, nhưng biểu đồ theo ngày sẽ là vài cột nhọn cuối tháng — đó là nhịp xuất hoá đơn chia sẻ doanh thu, KHÔNG phải lỗi nạp. Đừng 'làm mượt' bằng cách rải đều.",
+    "MỘT SỐ DÒNG BỎ TRỐNG 'Chiều phân tích' (đã thấy ở sổ tiền điện T7). GIỮ NGUYÊN dòng đó (không lọc dim1) — bỏ đi là mất doanh thu thật; tầng đọc gom vào nhóm 'Không phân loại'.",
+    "`moi_ky_lay_file_moi_nhat: mot_file` — một file chứa mọi tháng từ đầu năm, xem `tsac_xhd`.",
+    "KỲ LẤY TỪ CỘT C (ngày chứng từ) CỦA TỪNG DÒNG, KHÔNG từ tên sheet: sổ đã tự khoá dải ngày ở dòng 6 ('Từ ngày 01/07/2026 Đến ngày 31/07/2026') nên hai vế luôn khớp; lấy cột C thì chế độ Ngày có số thật."
+  ],
+  "_kiem_chung": [
+    "Σ cột G theo sheet (đồng): T1 79.829.580 · T2 71.574.274 · T3 65.152.496 · T4 85.281.634 · T5 72.017.972 · T6 61.944.318 · T7 77.962.324. Mỗi số bằng đúng ô 'Cộng số phát sinh' cột G của sheet đó.",
+    "Số trạm (Chiều phân tích) mỗi tháng: T1 8 · T2 8 · T3 9 · T4 10 · T5 9 · T6 9 · T7 10.",
+    "T7 có 19 dòng phát sinh trong 2 ngày (14/07 và 30/07)."
+  ],
+  "report_type": "TSAC_CHIASE",
+  "row_index_base": 8820000,
+  "khoi": "Khối KD Trạm sạc Vgreen",
+  "nguon": {
+    "folder": "TRAMSAC/baocaodoanhthuchiase750d",
+    "file_glob": "*.Baocaodoanhthuchiase750d.xlsx",
+    "sheet": {
+      "moi_sheet_chua": "Tháng "
+    }
+  },
+  "moi_ky_lay_file_moi_nhat": "mot_file",
+  "kiem_tra_o": [
+    {"o": "A5", "bang": "51131"},
+    {"o": "C10", "bang": "Ngày, tháng (8)"},
+    {"o": "G10", "bang": "Có (13)"},
+    {"o": "N9", "bang": "Chiều phân tích"}
+  ],
+  "header": {"dong": [9, 10]},
+  "dong_bat_dau": 12,
+  "cot": {
+    "ngay": {"header": "Ngày, tháng (8)", "kieu": "date"},
+    "dim1": {"header": "Chiều phân tích"},
+    "dim2": {"header": "Tên đối tượng(19)"},
+    "amount": {"header": "Có (13)", "kieu": "so", "he_so": 1e-09},
+    "payload.so_chung_tu": {"header": "Chứng từ"},
+    "payload.dien_giai": {"header": "Diễn giải (9)"},
+    "payload.tk_doi_ung": {"header": "TK đối ứng (10)"}
+  },
+  "chieu_co_dinh": {
+    "cong_ty": "TC"
+  },
+  "ban_ghi": "moi_dong",
+  "loc": [
+    {"cot": "ngay", "dieu_kien": "khac_rong"},
+    {"cot": "amount", "dieu_kien": "khac_rong"},
+    {"cot": "payload.tk_doi_ung", "dieu_kien": "khac", "gia_tri": "911"}
+  ],
+  "payload_them": {
+    "unit": "ty",
+    "loai_dt": "CHIASE_750",
+    "nguon_he": "Sổ chi tiết TK 51131 — doanh thu chia sẻ 750đ/kW"
+  }
+}

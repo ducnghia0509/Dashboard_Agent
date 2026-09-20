@@ -23,7 +23,10 @@ CÁC DÒNG NÀY KHÔNG LÀM SAI SỐ THỰC HIỆN:
     `AND dim1 IS NOT NULL` nên loại hẳn dòng kế hoạch, không đẻ ra hạng mục lạ.
 
 Mỗi tháng ghi vào ĐÚNG dataset kind='month' của kỳ đó. Tháng chưa có dataset -> bỏ qua và báo
-trong `skipped` (không tự tạo dataset rỗng).
+trong `skipped` (KHÔNG tự tạo dataset rỗng). Từ 03/09/2026 quy tắc đó nằm ở
+`servers/common/dataset_ky.py` dưới dạng cờ `tao=False`, dùng chung với hai đường ghi kia
+(báo cáo ngày và spec_extract) — hai đường ấy ghi SỐ THỰC TẾ nên ĐƯỢC khai sinh kỳ, còn kế
+hoạch thì không: file này phủ trọn 12 kỳ, cho tạo là mọc ra các kỳ chưa tới.
 """
 import argparse
 import json
@@ -38,6 +41,8 @@ _ROOT = os.path.normpath(os.path.join(_HERE, ".."))
 sys.path.insert(0, _ROOT)
 
 from dotenv import load_dotenv  # noqa: E402
+
+from servers.common import dataset_ky as _DSK  # noqa: E402
 
 load_dotenv(os.path.join(_ROOT, ".env"))
 
@@ -145,12 +150,15 @@ def derive(path, write=False):
         payload = json.dumps({"unit": "ty", "loai": "ke_hoach"}, ensure_ascii=False)
         recs, skipped, i = [], [], 0
         for period, by_khoi in sorted(plan.items()):
-            cur.execute("SELECT id FROM datasets WHERE kind='month' AND period=%s "
-                        "ORDER BY created_at DESC LIMIT 1", (period,))
-            row = cur.fetchone()
-            if not row:
+            # `tao=False` CỐ Ý: kế hoạch KHÔNG được khai sinh kỳ. File này ghi trọn 12 kỳ
+            # trong một lần nạp, cho tạo là đẻ ngay các kỳ chưa tới, rỗng số thực tế, mà vẫn
+            # nằm trong ô chọn kỳ. Xem servers/common/dataset_ky.py (nguyên tắc: chỉ SỐ THỰC
+            # TẾ của kỳ ĐÃ TỚI mới khai sinh được kỳ).
+            ds_ky, _tt = _DSK.lay_hoac_tao_ky(cur, period, nguon=source_file, tao=False)
+            if not ds_ky:
                 skipped.append(period)
                 continue
+            row = (ds_ky,)
             for ten, v in by_khoi.items():
                 i += 1
                 recs.append((row[0], REPORT_TYPE, ROW_INDEX_BASE + i, None, None, ten, None,

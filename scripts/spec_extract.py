@@ -26,14 +26,30 @@ CẤU TRÚC SPEC (khoá tiếng Việt cho kế toán/BA đọc được):
     "folder": "SRVF/baocaokqkd",         // dưới received_reports/
     "file_glob": "*.xlsx",
     "sheet": {"batdau": "CHI TIẾT XHĐ"}  // | {"ten": "..."} | {"chua": "..."} | {"so": 0}
+                                        // | {"theo_o": [{"o": "A8", "bang": "Mã số"}, ...]} — chọn
+                                        //   sheet theo ô mốc, dùng khi nguồn đổi tên/thứ tự sheet
                                         // | {"theo_thang": "T{mm}"} — file 1 sheet/tháng (BCTC SRVF)
+                                        // | {"moi_sheet_chua": "Phí DV T"} — đọc MỌI sheet khớp
+                                        // | {"moi_sheet_theo_o": [{"o": "A4", "bang": "Ngày"}]} —
+                                        //   đọc MỌI sheet khớp ô mốc; dùng khi TÊN sheet không
+                                        //   tách nổi hai họ bảng (xem HQKD năm khối Dự án)
+                                        // | {"moi_sheet_ngay": true} — mỗi sheet là 1 ngày
   },
   "header": {"dong": 1},                 // | {"dong": [1,2]} gộp 2 dòng header (lấy ô đầu khác rỗng)
                                          // | {"tim_o": "Mã số"} tự dò dòng header theo nhãn mốc
                                          //   (dùng khi vị trí header khác nhau giữa các sheet)
   "dong_bat_dau": 3,                     // tuỳ chọn — mặc định = dòng header cuối + 1
   "dong_ket_thuc": 19,                   // tuỳ chọn — chặn trên của dải dòng (bắt buộc khi dùng `vung`)
+  "ky_tu_ten_sheet": {"regex": "T(\\d{1,2})$"},   // CHỈ đi kèm `moi_sheet_chua` — THÁNG lấy từ
+                                         // TÊN SHEET (năm từ tên file), mọi dòng của sheet neo
+                                         // vào ngày CUỐI THÁNG đó. Cho nguồn 1 sheet/tháng mà
+                                         // trong dòng không có ô ngày dùng được (xem
+                                         // `_ky_tu_ten_sheet`).
   "nam_tu_ten_file": {"regex": "\\.M\\.(\\d{4})\\."},   // cho `kieu: "thang_cuoi"`
+  "ky_thang_tu_o": {"o": "B13"},         // THÁNG đọc từ ô nhãn khối ("THÁNG 9"), năm từ tên file
+                                         // — cho sheet xếp NHIỀU KHỐI THÁNG, khai trong từng `vung`
+                                         // `regex` có nhóm tên `nam` -> ô mang TRỌN năm+tháng và
+                                         // tên file thôi phải mang kỳ (họ file tiến độ Showroom)
   "vung": [                              // NHIỀU KHỐI trong CÙNG 1 sheet (xem `extract_file`).
     {"ten": "Sơn Tây", "header": {"dong": [6, 7]}, "dong_bat_dau": 8, "dong_ket_thuc": 19,
      "chieu_co_dinh": {"cost_center": "ST_AT"}, "cot": {"amount": {"header": "TXTX"}}}
@@ -41,6 +57,9 @@ CẤU TRÚC SPEC (khoá tiếng Việt cho kế toán/BA đọc được):
   "chieu_tu_ten_file": {"dim2": {"regex": "Xuathoadon_(B2B|B2C|GF)", "hoa": true},
                         // `chuan_hoa` chạy trên chính tên bắt được; hook trả dict thì trộn cả dict
                         "cost_center": {"regex": "BCDau(\\w+)", "chuan_hoa": "cc_qlts"}},
+  "chieu_tu_ten_sheet": {"cost_center": {"regex": "^SR\\s+(.+)$", "chuan_hoa": "sr_showroom"}},
+                                         // y hệt `chieu_tu_ten_file` nhưng đọc TÊN SHEET — cho file
+                                         // xếp MỖI ĐƠN VỊ MỘT SHEET, trong sheet không còn cột tên
   "ngay_tu_ten_file": {"regex": "M\\.(\\d{4})\\.(\\d{1,2})\\.(\\d{1,2})", "thu_tu": "ymd"},
   "cot": {                               // đích -> cách lấy. Đích: ngay/cost_center/cong_ty/
     "cost_center": {"header": "Tên DVCS", "chuan_hoa": "sr_showroom"},   // amount/amount2/dim1..3/
@@ -48,22 +67,50 @@ CẤU TRÚC SPEC (khoá tiếng Việt cho kế toán/BA đọc được):
     "amount": {"header": "Giá bán", "kieu": "so", "he_so": 1e-9}
   },                                     // `kieu` khác: "thang_cuoi" (ô là SỐ THÁNG 1..12, năm
                                          // lấy từ tên file -> ngày cuối tháng) · "ngay_trong_thang"
+                                         // · "ngay_dd_mm" (ô ghi "01/09 (Thứ 3)" — năm từ tên
+                                         // file, tháng trong ô phải khớp tháng của file)
                                          // (ô là SỐ NGÀY, năm+tháng từ tên file). Hai kiểu này cho
                                          // báo cáo xếp mỗi kỳ MỘT DÒNG thay vì một cột.
   "cot_thang": {"tu": "E", "den": "J", "he_so": 1.0,
                 "kieu": "nguong"},       // tuỳ chọn — ô là ngưỡng có toán tử ("≥95%", "<4%"):
                                          // amount = số, payload.toan_tu = '>='/'<='/'<'/'='
+  "khong_tru_lien_thang_dim2": ["Xưởng"],  // các dim2 giữ nguyên khi bản trước KHÁC THÁNG
+                                        // (dùng khi một spec trộn cột luỹ kế liên tháng với
+                                        //  cột reset theo tháng)
+  "cot_ngay_dau_thang": "Kỳ này",       // bản ĐẦU THÁNG không có gì để trừ -> đọc cột này thay
+                                        // (chỉ có nghĩa khi đi kèm `tru_ngay_truoc`)
+  "doi_gia_tri": {"dim1": {"A100": "1000", "A300": "1047"}},   // đổi TÊN giá trị khi đổi nguồn
+                                        // mà phải giữ hình dạng bản ghi cũ; mã ngoài bản đồ GIỮ
+                                        // NGUYÊN, muốn lọc thì dùng `loc` điều kiện `thuoc`.
+  "tinh_han_no": {"ngay_hoa_don": "payload.ngay_hoa_don", "cong_ngay": 15,   // suy đến hạn +
+                  "den_han": "payload.den_han",            // số ngày quá hạn cho nguồn công nợ
+                  "so_ngay_qua_han": "payload.so_ngay_qua_han", "phan_loai": "dim1",
+                  "qua_han_tu": 0},                        // số ngày quá hạn >= mức này -> "Quá
+                                                           // hạn" (mặc định 1)
+  "ngay_du_lieu_lui": 1,                 // TÊN FILE là ngày KÉO, số bên trong là của ngày TRƯỚC
+                                         // -> lùi N ngày khi suy `ngay`. Mặc định 0.
+                                         // Xem `ngay_tu_ten_file`. Báo cáo tự động Cyber
+                                         // chạy 12h trưa ngày N, chỉ có số tới hết N-1.
+  "chi_lay_ngay_cua_file": true,         // bỏ dòng có `ngay` khác ngày suy từ TÊN FILE — cho nguồn
+                                         // ngày cho lẫn sang hôm sau (xem chỗ dùng bên dưới)
+  "giu_ngay_tuong_lai": true,            // GIỮ dòng có `ngay` > hôm nay. CHỈ kế hoạch mới được bật.
+                                         // Mặc định (không khai) = CẮT — xem `_bo_ngay_tuong_lai`.
+  "tru_ngay_truoc": true,                // ô nguồn là LUỸ KẾ từ đầu tháng -> lấy hiệu với file
+                                         // ngày trước để ra số CỦA RIÊNG NGÀY (xem `_tru_ngay_truoc`)
   "ban_ghi": "moi_dong",                 // | "moi_cot_gia_tri" | "moi_cot_ngay"
                                          // | "moi_cot_thang" (xem dưới)
   "cot_gia_tri": [                       // chỉ dùng khi ban_ghi = "moi_cot_gia_tri":
     {"header": "Công nợ trong hạn", "dim1": "Trong hạn", "he_so": 1e-9},
+    {"header": "XDV Ocean Park", "cost_center": "OCP_XDV", "he_so": 1e-9},
     {"cot": "R", "dim1": "App An", "he_so": 1e-9,
      "amount2": {"cot": "M"}}            // tuỳ chọn — ĐO THỨ HAI của cùng cột giá trị, ghi vào
   ],                                     // amount2 (nhận "cot"/"header"/"he_so" như khai báo cột
                                          // thường). Cần khi một chiều mang HAI số đi liền nhau
                                          // (doanh thu + số cuốc của mỗi kênh An Taxi) và bản
                                          // NGÀY của cùng chiều đó đã dùng amount/amount2.
-                                         // -> mỗi dòng nguồn đẻ N bản ghi, amount lấy từng cột
+                                         // -> mỗi dòng nguồn đẻ N bản ghi, amount lấy từng cột;
+                                         // ngoài dim1..3 còn gán được cost_center/cong_ty/khoi
+                                         // khi CHIỀU ĐƠN VỊ nằm ở cột (mỗi xưởng một cột)
   "loc": [{"cot": "ngay", "dieu_kien": "khac_rong"}],
   "dan_xuat": {"payload.lng": "amount - payload.gia_von"},
   "payload_them": {"unit": "ty"}
@@ -105,6 +152,8 @@ sys.path.insert(0, _ROOT)
 
 from dotenv import load_dotenv  # noqa: E402
 
+from servers.common import dataset_ky as _DSK  # noqa: E402
+
 load_dotenv(os.path.join(_ROOT, ".env"))
 
 DB_URL = os.environ.get("DATABASE_URL")
@@ -142,6 +191,22 @@ def _o_loi(v):
 _W_BO_LOC = "dòng không qua bộ lọc"
 
 
+def _bo_dau_ngan_vn(s):
+    """'51.664.739.958' -> '51664739958'. CHỈ nhận chuỗi CHỈ CÓ dấu chấm ngàn, TỪ 2 NHÓM TRỞ LÊN.
+
+    VÌ SAO CÓ (09/09/2026): bản kế hoạch 6.XVP phát hành lại với các ô GIÁ TRỊ lưu dạng VĂN BẢN
+    ('51.664.739.958') thay vì số. `_so` chỉ bỏ dấu chấm khi chuỗi có phần thập phân kiểu VN
+    (',89' ở cuối), nên chuỗi thuần dấu chấm ngàn rơi vào `float()` -> ValueError -> 0.0, và spec
+    `xvp_kehoach_gt` trả 0 dòng trong im lặng (phần SẢN LƯỢNG cùng sheet vẫn là số nên _sl chạy
+    bình thường — đúng kiểu hỏng khó thấy nhất).
+
+    VÌ SAO ĐÒI TỪ 2 NHÓM: một nhóm thì KHÔNG phân biệt được ('1.234' có thể là 1234 kiểu VN hoặc
+    1,234 kiểu Anh). Từ hai nhóm trở lên ('1.234.567') thì không còn cách đọc nào khác. Hàm này
+    chỉ chạm những chuỗi TRƯỚC ĐÂY trả 0.0, nên không đổi hành vi của bất kỳ spec đang chạy.
+    """
+    return s.replace(".", "") if re.fullmatch(r"-?\d{1,3}(?:\.\d{3}){2,}", s) else s
+
+
 def _so(v, he_so=1.0):
     if isinstance(v, bool):
         return 0.0
@@ -152,6 +217,7 @@ def _so(v, he_so=1.0):
         return 0.0
     # '1.234.567,89' (VN) và '1,234,567.89' (EN) đều gặp trong file kế toán
     s = s.replace(".", "").replace(",", ".") if re.search(r",\d{1,2}$", s) else s.replace(",", "")
+    s = _bo_dau_ngan_vn(s)
     try:
         return float(s) * he_so
     except ValueError:
@@ -177,6 +243,7 @@ def _so_co_rong(v, he_so=1.0):
         return float(v) * he_so
     s = str(v).strip().replace(" ", "")
     s = s.replace(".", "").replace(",", ".") if re.search(r",\d{1,2}$", s) else s.replace(",", "")
+    s = _bo_dau_ngan_vn(s)
     try:
         return float(s) * he_so
     except ValueError:
@@ -296,9 +363,14 @@ def _cc_xdv(ten):
     # "Chi tiết") gọi nó là "Trung tâm Sửa chữa Pin, Động cơ Thành phố Hồ Chí Minh". Không khai
     # thì đúng 1 trong 14 xưởng rơi và mẫu số "nhân sự xưởng" hụt 35 người (~6,7%) — kiểu thiếu
     # vừa đủ nhỏ để không ai thấy.
+    # Alias thứ TƯ (04/09/2026): bộ nguồn TỰ ĐỘNG của Cyber (TEST_XDV/DV01, DV02, DV41, DV42,
+    # DV44) ghi đủ pháp nhân — "Chi nhánh Vinfast Hồ Chí Minh- Công ty CP Thịnh Cường" (chú ý
+    # thiếu dấu cách trước gạch nối). Thiếu alias thì HCM là xưởng DUY NHẤT rơi khỏi mọi nguồn
+    # ngày mới, mà tổng khối vẫn trông hợp lý nên rất khó thấy.
     return _cc_theo_khoi(ten, "Khối KD Vinfast - XDV",
                          {"hcm": ("HCM_XDV", "TC"), "quan12": ("HCM_XDV", "TC"),
-                          "trungtamsuachuapindongcothanhphohochiminh": ("HCM_XDV", "TC")})
+                          "trungtamsuachuapindongcothanhphohochiminh": ("HCM_XDV", "TC"),
+                          "chinhanhvinfasthochiminhcongtycpthinhcuong": ("HCM_XDV", "TC")})
 
 
 def _master_loader():
@@ -536,7 +608,18 @@ _KH_KHOI = {
     "doanhthukhac": ("DT_KHAC", "Nhóm"),
     "soluongxechay": ("SL_XE", "Nhóm"),
     # ── 3.TS — Khối KD Trạm sạc Vgreen ──
-    "doanhthubanhang": ("DT_BANHANG", "Nhóm"),
+    # BỐ CỤC 09/09/2026: sheet KHDT bỏ hai dòng nhãn 'GIÁ TRỊ'/'SẢN LƯỢNG' và chuyển sang hệ mã
+    # T101.x, đồng thời TÁCH doanh thu khối thành 5 dòng (trước chỉ có hoa hồng). Bốn nhãn dưới
+    # đây là phần MỚI — khai để Σ dim2='Nhóm' = dòng 'Khối KD Trạm sạc Vgreen' (T101), đúng chốt
+    # an toàn ghi trong docstring `_kh_khoi_dong`. Màn Trạm sạc chưa vẽ 4 nhóm này (nó đọc TONG /
+    # DT_BANHANG / DT_HOAHONG) — vẫn lưu để bật sau, không tính vào chỗ nào.
+    "doanhthubantrusac": ("DT_BANTRU", "Nhóm"),
+    "doanhthuchiase750dkw": ("DT_CHIASE", "Nhóm"),
+    "doanhthutiendienchiho": ("DT_TIENDIEN", "Nhóm"),
+    "doanhthudichvuthiconglapdatchokhach": ("DT_THICONG", "Nhóm"),
+    # 'Doanh thu bán hàng' là DÒNG NHẮC LẠI của hoa hồng, nằm trong khối B "CHI TIẾT DOANH SỐ" ->
+    # dim2 = 'Chi tiết' (KHÔNG phải 'Nhóm'), nếu không Σ Nhóm cộng đôi vế hoa hồng.
+    "doanhthubanhang": ("DT_BANHANG", "Chi tiết"),
     "tramsac": ("SL_TRAMSAC", "Chi tiết"),
     "dichvukhac": ("SL_DVKHAC", "Chi tiết"),
     # ── 6.XVP — Khối KD Vận tải Taxi XVP ──
@@ -566,6 +649,12 @@ _KH_KHOI = {
 # Nhãn quá dài để gõ nguyên văn (kèm cả công thức trong ngoặc) -> khớp theo TIỀN TỐ.
 _KH_KHOI_TIEN_TO = (
     ("doanhthuhoahong", ("DT_HOAHONG", "Nhóm")),   # "…được hưởng( chia sẻ 750đ/kw, chi hộ, DV…)"
+    # BẮT BUỘC LÀ TIỀN TỐ (09/09/2026): bản mới ghi "Doanh thu bán hàng (hoa hồng 12% Doanh số)"
+    # -> `_nd` ra 'doanhthubanhanghoahong12doanhso', KHÔNG khớp khoá tuyệt đối 'doanhthubanhang'
+    # nữa. Thiếu dòng này thì `DT_BANHANG` biến mất, mà đó CHÍNH LÀ mẫu số CT33 của màn Trạm sạc
+    # (`app/metrics/tsac.py`: `kh_ct33 = n["khNhom"].get("DT_BANHANG")`) -> %HT doanh thu về None
+    # trong im lặng.
+    ("doanhthubanhang", ("DT_BANHANG", "Chi tiết")),
 )
 
 
@@ -647,22 +736,128 @@ def _xdv_kh_cong(v):
     return {"dim2": "Tổng"} if _nd(v) in ("cong", "tong", "tongcong") else {}
 
 
-_KENH_TK = [("13111", "B2C"), ("13116", "GF"), ("1316", "B2B")]
+_KHO_KENH = {
+    "2001": "B2C",          # Kho ô tô showroom
+    "1010": "B2C",          # Xe ô tô Showroom Quảng Ninh
+    "1011": "B2C",          # Xe ô tô Showroom Hạ Long 1_Uông Bí QN — kho MỚI MỞ 12/09/2026
+    "2006": "GF",           # Kho ô tô cũ
+    "2010": "B2B",          # Kho ô tô (Xe thương quyền)_Vinfast TC
+    "2011": "B2B",          # Kho ô tô (Xe thương quyền)_Xanh Vĩnh Phúc
+    "2013": "B2B",          # Kho ô tô B2B_KD Mạnh
+    "2014": "B2B",          # Kho ô tô B2B_KD Quỳnh
+    "2015": "B2B",          # Kho ô tô B2B_KD Hiếu
+    "2004": "Xe demo",      # Kho ô tô demo      — KHÔNG thuộc 3 kênh bán
+    "2008": "Xe ký gửi",    # Kho ô tô ký gửi    — KHÔNG thuộc 3 kênh bán
+}
+
+
+def _kho_kenh(v):
+    """Mã kho -> kênh bán, cho báo cáo tồn kho xe TỰ ĐỘNG (KD36).
+
+    VÌ SAO CẦN: bản tay `Tonkhoxevatly_T{n}_{kênh}.xlsx` mang kênh trong TÊN FILE (3 file/kỳ);
+    bản tự động gộp một file và KHÔNG có cột kênh nào. Mã kho là thứ duy nhất suy ra được.
+
+    ĐỘ TIN CẬY (đo 03/09/2026, đối chiếu bản tay chốt 28/08 với bản tự động cùng ngày): 1.217 xe
+    khớp VIN -> 1.217 ĐÚNG / 0 SAI. Không mã kho nào chứa hai kênh khác nhau. Toàn bộ 1.214 VIN
+    của bản tay đều có mặt trong bản tự động.
+
+    "Xe demo" (2004) VÀ "Xe ký gửi" (2008) LÀ NHÓM RIÊNG, KHÔNG PHẢI KÊNH BÁN — cùng lý lẽ với
+    `_coc_trang_thai` (ba nhóm chứ không phải hai). Chính chúng là 146 VIN mà bản tay không có:
+    3 file kênh cũ đã lọc chúng ra. Dồn vào B2B/B2C là thổi phồng tồn kênh; bỏ hẳn là hụt tồn
+    tổng. Để riêng thì màn lọc theo 3 kênh vẫn đúng mà tổng tồn vẫn đủ.
+
+    Mã lạ -> "Khác" (nhìn thấy được trên màn), KHÔNG im lặng gán về một kênh: kho mới mở là
+    chuyện bình thường và phải lộ ra để bổ sung vào bảng trên.
+
+    LẦN ĐẦU CƠ CHẾ ĐÓ CHẠY THẬT (14/09/2026): mã 1011 "Xe ô tô Showroom Hạ Long 1_Uông Bí QN"
+    mở ngày 12/09 (KD36: 0 xe ngày 11/09 -> 12 xe ngày 12/09 -> 20 xe ngày 13/09), rơi vào rổ
+    "Khác" đúng như thiết kế cho tới khi được bổ sung là B2C. Nguồn xác nhận kênh: bản mapping
+    DASHBOARD 4 của VHKD khai 1011 cùng nhóm B2C với 2001/1010.
+    """
+    s = re.sub(r"\D", "", str(v or ""))
+    if not s:
+        return None
+    return _KHO_KENH.get(s, "Khác")
+
+
+# BẢNG KÊNH THEO SỐ HIỆU TÀI KHOẢN — chép đúng bản mapping VHKD sửa 15/09/2026 (sheet "Cách lấy
+# BC tự động_SR", DASHBOARD 2 mục 1). Trước bản đó mapping chỉ khai ba tài khoản (13111 B2C ·
+# 13116 GF · 1316* B2B) nên mọi mã còn lại rơi vào rổ "Khác": 13112 nằm im trong rổ đó suốt
+# (14/09/2026: 5,44 tỷ dư nợ ở bản ngày, 4,84 tỷ ở bản tháng T09) trong khi nghiệp vụ coi nó là
+# B2C. Nay khai đủ 5 kênh, KHỚP TUYỆT ĐỐI theo mã.
+_KENH_TK = {
+    "13110": "Demo",
+    "13111": "B2C", "13112": "B2C",
+    "13113": "Khác", "13114": "Khác", "13118": "Khác",
+    "13115": "GF", "13116": "GF",
+    "13161": "B2B", "13162": "B2B", "13163": "B2B",
+}
+# Lưới cuối cho TÀI KHOẢN CON mở sau này (13111x…): giữ lối khớp TIỀN TỐ của bản cũ, nhưng chỉ
+# cho những tiền tố mapping đã nêu. "13116"/"13115" (GF) phải đứng TRƯỚC "1316" (B2B) — nếu không
+# GF bị tiền tố B2B nuốt.
+_KENH_TK_TIEN_TO = [("13110", "Demo"), ("13111", "B2C"), ("13112", "B2C"),
+                    ("13113", "Khác"), ("13114", "Khác"), ("13118", "Khác"),
+                    ("13115", "GF"), ("13116", "GF"), ("1316", "B2B")]
 
 
 def _kenh_tk(v):
-    """Số hiệu tài khoản -> kênh bán. Khớp theo TIỀN TỐ, không khớp tuyệt đối.
+    """Số hiệu tài khoản -> kênh bán, theo bảng mapping DASHBOARD 2.
 
-    Mapping ghi kênh B2B = "1316" nhưng tài khoản THẬT trong file là 13161 và 13163 (1.053 dòng
-    trên tổng 1.911). Khớp tuyệt đối "1316" thì toàn bộ B2B rơi vào nhóm "Khác" mà vẫn chạy trơn.
-    Thứ tự trong `_KENH_TK` quan trọng: "13116" (GF) phải đứng TRƯỚC "1316" (B2B), nếu không GF
-    bị tiền tố B2B nuốt.
+    KHỚP TUYỆT ĐỐI TRƯỚC, tiền tố sau. Bản trước 15/09/2026 chỉ khớp tiền tố với ba mục, nên mọi
+    mã ngoài ba mục đó — kể cả 13112 mà mapping nay xếp vào B2C — im lặng thành "Khác".
+
+    Mã LẠ vẫn ra "Khác" chứ không None: rổ "Khác" là một kênh CÓ THẬT trong mapping (13113 +
+    13114 + 13118), nên mã mới mở sẽ nằm lẫn trong đó cho tới khi được khai. Muốn soi thì so
+    `payload.tai_khoan` (engine vẫn lưu nguyên số hiệu) với bảng trên.
     """
     s = re.sub(r"\D", "", str(v or ""))
-    for tien_to, kenh in _KENH_TK:
+    if not s:
+        return None
+    if s in _KENH_TK:
+        return _KENH_TK[s]
+    for tien_to, kenh in _KENH_TK_TIEN_TO:
         if s.startswith(tien_to):
             return kenh
-    return "Khác" if s else None
+    return "Khác"
+
+
+def _hd_kenh_b2b(v):
+    """Cột "HD B2B" của KD60 -> `dim2` = "B2B" nếu Checked, ngược lại "B2C".
+
+    ## Vì sao cần hook này
+
+    `VHKD_HDONG` (hợp đồng ký mới) có `dim2` = kênh ở bản THÁNG — suy từ TÊN FILE
+    (`Kymoi_B2B_T8.xlsx`), xem `chieu_tu_ten_file` của `vhkd_hopdong_thang.json`. Bản NGÀY
+    gộp cả ba kênh vào một file nên không còn đường đó, và `dim2` bỏ trống từ 25/08/2026.
+    Hệ quả: "ký mới theo B2C/B2B/GF theo ngày" không lên số được — đúng cột mà báo cáo
+    ngày của 9 nhóm SR cần.
+
+    ## Vì sao phải HAI hook chứ không một
+
+    Kênh nằm ở HAI cột cờ ("HD B2B" và "HD Xe GF"), mà một hook chỉ nhìn được MỘT ô. Nên
+    hook này đặt mặc định B2C/B2B, rồi `_hd_kenh_gf` (khai SAU trong spec) ghi đè lên khi
+    cờ GF bật. Thứ tự cột trong JSON được giữ nguyên khi áp dụng, nên khai ngược là GF
+    không bao giờ thắng.
+
+    ## Đã đối chiếu, không phải suy đoán
+
+    Ngày 25/08/2026 hai bản (tháng + ngày) chồng nhau. So kênh-từ-tên-file với kênh-từ-cờ
+    trên cùng bộ số hợp đồng: **48/48 khớp** (43 B2C + 5 B2B, 0 lệch). Đo trên prod
+    14/09/2026. Và trong 1.072 hợp đồng từ 25/08 tới nay KHÔNG có dòng nào bật cả hai cờ
+    (811 B2C / 258 B2B / 3 GF), nên nhánh "cả hai cùng Checked" chưa từng xảy ra — vẫn
+    định nghĩa GF thắng để kết quả xác định, chứ không để nó phụ thuộc thứ tự.
+    """
+    return {"dim2": "B2B" if str(v or "").strip() == "Checked" else "B2C"}
+
+
+def _hd_kenh_gf(v):
+    """Cột "HD Xe GF" -> ghi đè `dim2` = "GF" khi Checked. Xem `_hd_kenh_b2b`.
+
+    Trả **dict RỖNG** khi không Checked, không phải None: engine chỉ bỏ qua khi hook trả
+    dict rỗng, còn None sẽ đi tiếp vào `_dat(...)` và GHI ĐÈ đích bằng None — tức xoá mất
+    kênh mà `_hd_kenh_b2b` vừa đặt cho 1.069/1.072 dòng.
+    """
+    return {"dim2": "GF"} if str(v or "").strip() == "Checked" else {}
 
 
 def _qua_han(v):
@@ -674,6 +869,37 @@ def _qua_han(v):
     """
     n = _so(v)
     return "Quá hạn" if n is not None and n > 0 else "Trong hạn"
+
+
+def _tk_cap(v):
+    """Số hiệu tài khoản -> "Cấp 1".."Cấp 4" theo SỐ CHỮ SỐ (111 -> Cấp 1, 1111 -> Cấp 2…).
+
+    Bảng CĐPS liệt kê CẢ CÂY tài khoản: dòng 111 rồi 1111 rồi 11114, mỗi cấp đã bao trọn cấp
+    dưới. Cộng hết là gấp 3-4 lần. File phân cấp bằng ĐỘ THỤT ĐẦU DÒNG, mà engine `strip()` ô
+    text trước khi tới hook nên không đọc được thụt lề — dùng số chữ số thay, quy tắc hệ thống
+    tài khoản Việt Nam là cố định nên tương đương. Màn hình phải lọc theo cấp, đừng SUM cả cột.
+    """
+    s = re.sub(r"\D", "", str(v or ""))
+    if not s:
+        return None
+    return f"Cấp {max(1, len(s) - 2)}"
+
+
+def _coc_ngay(v):
+    """Cột "Ngày nhập COC" của nguồn TỰ ĐỘNG -> "Đã có COC" / "Chưa có COC".
+
+    Khác `_coc_trang_thai`: bên bản TAY cột COC là ô TỰ DO (kế toán gõ đủ kiểu chữ) nên phải đoán
+    qua 15 biến thể; bản tự động của Cyber là một cột NGÀY sạch, có ngày = đã nhập COC, bỏ trắng =
+    chưa. Đưa ô trắng vào `_coc_trang_thai` sẽ ra "Không xác định" (nhánh cuối) — đúng cho bản tay
+    (ô trắng ở đó thật sự là không biết) nhưng SAI cho bản tự động, và sẽ dồn gần hết dòng vào một
+    nhóm vô nghĩa.
+    """
+    if isinstance(v, (dt.datetime, dt.date)):
+        return "Đã có COC"
+    s = str(v if v is not None else "").strip()
+    if not s:
+        return "Chưa có COC"
+    return "Đã có COC" if _date(s) else _coc_trang_thai(v)
 
 
 _COC_CHUA = ("chuacococ", "chuave", "cocchuave", "chuaco", "chua", "xechuacococ",
@@ -779,6 +1005,13 @@ _QLTS_KHOI = {
     "khoitaxi": "Khối KD Vận tải Taxi Xanh",
     # "Bất động sản" (5 tài sản) KHÔNG có khối chuẩn tương ứng -> để trống, không nhét bừa vào
     # "Khối hỗ trợ tập đoàn" cho đủ.
+    #
+    # BA FILE BẢO DƯỠNG (31/08/2026) ghi khối theo CÁCH KHÁC sheet tài sản — phải khai riêng,
+    # KHÔNG lấy nguyên văn: "Khối KD Dự án" tình cờ đã đúng tên chuẩn, nhưng "Khối KD xe điện
+    # Vinfast - SR" thì KHÔNG (chuẩn là "Khối KD Vinfast - Showroom"). Lấy nguyên văn là đẻ thêm
+    # một tên khối thứ 11 trong DB, bộ lọc Khối tách làm hai dòng cho cùng một khối.
+    "khoikdduan": "Khối KD Dự án",
+    "khoikdxedienvinfastsr": "Khối KD Vinfast - Showroom",
 }
 
 
@@ -891,6 +1124,59 @@ def _cc_qlts(ten):
     # Bản đầu có nhánh đó và nó gán "Tài sản Taxi Tuyên Quang" vào `TQ_XDV` (xưởng dịch vụ) —
     # sai khối, sai cả cách đọc số. Không map được thì để nguyên tên còn hơn gán bừa.
     return {"_khong_map": goc}
+
+
+_QLTS_CACHE_TEN = {}
+
+
+def _cc_qlts_khoi(gia_tri):
+    """Như `_cc_qlts` nhưng NHẬN THÊM TÊN KHỐI để phân giải tên đơn vị TRÙNG NHAU.
+
+    Đầu vào là chuỗi ghép `"<tên khối> | <tên đơn vị>"` do `ghep_header` dựng (xem `_resolve_cot`).
+
+    VÌ SAO CẦN (20/09/2026): danh mục có 9 CẶP cost center TRÙNG TÊN HỆT NHAU, chỉ khác khối —
+    `ST_SR`/`ST_XDV` đều tên "Vinfast Sơn Tây", tương tự Cẩm Phả · Hạ Long · Long Biên · Ocean
+    Park · Smart City · Uông Bí · Vĩnh Phúc · Xuân Mai. `_cc_qlts` cố ý KHÔNG đoán khi nhiều ứng
+    viên (bài học "Tài sản Taxi Tuyên Quang" bị gán nhầm `TQ_XDV`), nên với nguồn bảo hiểm/đăng
+    kiểm bố cục mới — vốn ghi tên trơn "Vinfast Sơn Tây" — có tới ~110/201 dòng mỗi sheet rơi khỏi
+    bộ lọc Đơn vị. Chính file đã có cột "Tên khối" ngay cạnh, đủ để phân giải mà không phải đoán.
+
+    Thứ tự: (1) để `_cc_qlts` chạy trước — mọi luật đã có (tiền tố loại, bỏ tỉnh, alias) vẫn
+    thắng; (2) nếu nó không map được thì mới lọc ứng viên theo KHỐI, và CHỈ nhận khi còn ĐÚNG MỘT;
+    (3) nước cuối cho Khối hỗ trợ tập đoàn — khối này đặt tên phòng ban ("Tài sản", "Kiểm soát nội
+    bộ") nên khoá `_qlts_khoa` bóc mất tiền tố "tài sản" và ra chuỗi rỗng; khớp thẳng tên nguyên
+    văn với danh mục.
+    """
+    raw = str(gia_tri or "").strip()
+    if not raw:
+        return None
+    phan = [x.strip() for x in raw.split("|")]
+    ten = phan[-1]
+    khoi_file = phan[0] if len(phan) > 1 else ""
+    kq = _cc_qlts(ten)
+    if not (isinstance(kq, dict) and kq.get("_khong_map")):
+        return kq
+    khoi = _khoi_qlts(khoi_file) or (khoi_file if khoi_file in
+                                     {k for ds in _QLTS_CACHE.values() for _, _, k in ds} else "")
+    if not khoi:
+        return kq
+    ung_vien = [(ma, cty, kh) for (ma, cty, kh) in _QLTS_CACHE.get(_qlts_khoa(ten)) or []
+                if kh == khoi]
+    if len(ung_vien) == 1:
+        ma, cty, kh = ung_vien[0]
+        return {"cost_center": ma, "cong_ty": cty, "khoi": kh}
+    if not _QLTS_CACHE_TEN:
+        master = _master_loader()
+        for cc in master.master_data().get("costCenters", []):
+            _QLTS_CACHE_TEN.setdefault(_nd(cc.get("ten")), []).append(
+                (str(cc.get("ma") or "").strip(),
+                 master.resolve_company_code(cc.get("congTy") or ""), cc.get("khoi") or ""))
+    ung_vien = [(ma, cty, kh) for (ma, cty, kh) in _QLTS_CACHE_TEN.get(_nd(ten)) or []
+                if kh == khoi]
+    if len(ung_vien) == 1:
+        ma, cty, kh = ung_vien[0]
+        return {"cost_center": ma, "cong_ty": cty, "khoi": kh}
+    return kq
 
 
 # ── BÁO CÁO QTVH XANH TAXI (`B.6.XVP.PKDVH.M.*.Baocaotonghop`) ─────────────────────────────
@@ -1038,8 +1324,13 @@ def _sr_loai_xe(v):
     Đường lùi `VF<số>` cho model VinFast MỚI ra sau bảng này (VF3xx/VF9xx đã có 12 mã, hãng còn
     thêm): bắt được thì im lặng cho qua, đúng dòng xe. Mã ngoài cả hai -> giữ nguyên để số không
     hụt, kèm cảnh báo để người bổ sung bảng — thà hiện "MPV702" lạ mắt còn hơn mất doanh thu.
+
+    BỎ LUÔN DẤU CÁCH BÊN TRONG MÃ (14/09/2026): nguồn KD23 ghi lẫn "EC VAN" và "ECVAN" cho cùng
+    một dòng xe (2 dòng vs 44 dòng ngày 14/09), y như nó ghi lẫn "Vf301"/"VF301" mà `.upper()` đã
+    xử. Không mã kiểu xe nào có dấu cách thật, nên gộp là an toàn; để nguyên thì "EC VAN" rơi vào
+    nhánh `_khong_map` và đẻ thêm một cột dòng xe ma trên biểu đồ.
     """
-    ma = str(v or "").strip().upper()
+    ma = re.sub(r"\s+", "", str(v or "")).upper()
     if not ma:
         return {}
     if ma in _SR_LOAI_XE:
@@ -1049,14 +1340,87 @@ def _sr_loai_xe(v):
     return {"dim1": ma, "_khong_map": ma}
 
 
+# Mã CON của A200 (bán xe) trong file tự động `Baocaotaichinhrieng-HQKD` -> kênh bán, dùng cho
+# `vhkd_kdvh_ngay` (report_type KDVH_D, thay nguồn tay `SRVF/baocaohqkdngay` bị cutover 01/09/2026,
+# xem `derive_hqkd_ngay.py::_UNITS["SRVF"]["bo_tu_ngay"]`). Đối chiếu 3 ngày độc lập (08/09, 09/09,
+# 10/09/2026): A200 'Kỳ này' = A210+A211+A212+A213+A214 - A211A, LỆCH 0 CẢ BA NGÀY. A211A đứng
+# TRÁI DẤU với A211 (cột TK nợ/có của nó bị ĐẢO so với A211 — 91112/511231 thay vì 511231/91112),
+# tức là một dòng ĐIỀU CHỈNH GIẢM, không phải một khoản bán xe B2B cộng thêm. Bản srvf tay cũ
+# (`derive_hqkd_ngay._SRVF_BANXE`) gộp A211A dương cùng chiều A211 — KHÔNG áp dụng công thức đó ở
+# đây, vì A211A trong nguồn tự động là số ÂM thật (đã kiểm 3 ngày, không phải trùng hợp).
+_A200_KENH_TU_DONG = {"A210": "B2C", "A211": "B2B", "A212": "GF", "A213": "B2B", "A214": "B2C"}
+
+
+def _a200_kenh_tu_dong(v):
+    ma = str(v or "").strip().upper()
+    if ma == "A211A":
+        return {"dim1": "A200", "dim2": "B2B", "dim3": "A211A", "he_so_dau": -1}
+    if ma in _A200_KENH_TU_DONG:
+        return {"dim1": "A200", "dim2": _A200_KENH_TU_DONG[ma], "dim3": ma, "he_so_dau": 1}
+    return {"he_so_dau": 1}
+
+
+def _claim_ky_du_lieu(v):
+    """Tên file claim -> `dim3` = KỲ DỮ LIỆU ('2026-08'), tách khỏi NGÀY PHÁT HÀNH.
+
+    File claim mang HAI mốc thời gian khác nhau, và chính chỗ đó là lý do màn Claim cần tab Ngày:
+        `B.1.TC.OO.M.2026.9.16.Baocaoclaim_B2C_T8.xlsx`
+                   └ ngày PHÁT HÀNH 16/09        └ kỳ DỮ LIỆU = tháng 8
+    Spec NGÀY (`vhkd_claim_ngay`/`_b2b_ngay`) đặt `ngay` = ngày phát hành để dựng chuỗi "số nào
+    đang hiệu lực tại ngày nào"; kỳ dữ liệu vì thế phải có chỗ đứng RIÊNG, nếu không mọi bản phát
+    hành của mọi tháng dồn thành một đống không tách lại được.
+
+    Nhận group(0) của regex (khai `"nhom": 0` trong spec) vì hook chỉ thấy MỘT chuỗi, mà ở đây cần
+    cả năm phát hành lẫn số tháng dữ liệu.
+
+    NĂM CỦA KỲ = năm phát hành, LÙI MỘT NĂM khi tháng dữ liệu > tháng phát hành: bản chốt T12 luôn
+    ra vào tháng 1 năm sau. Không có luật này thì file phát hành 01/2027 cho kỳ T12/2026 sẽ ghi
+    thành 2027-12 — một kỳ tương lai, và `_ghi` lặng lẽ bỏ nó (`bo_qua_ky_khong_tao_duoc`).
+    """
+    m = re.search(r"M\.(\d{4})\.(\d{1,2})\.\d{1,2}\..*?_T(\d{1,2})\b", str(v or ""), re.I)
+    if not m:
+        return {"_khong_map": str(v or "")[:60]}
+    nam_ph, thang_ph, thang_dl = (int(x) for x in m.group(1, 2, 3))
+    if not 1 <= thang_dl <= 12:
+        return {"_khong_map": str(v or "")[:60]}
+    nam = nam_ph - 1 if thang_dl > thang_ph else nam_ph
+    return {"dim3": f"{nam:04d}-{thang_dl:02d}"}
+
+
+# Tên SHEET của file HQKD năm khối Dự án -> cost center. Phải là BẢN SAO ĐÚNG của
+# `derive_hqkd_ngay._CC_DUAN`: hai nguồn (file tháng qua deriver, file năm qua spec này) cùng ghi
+# vào một khối, lệch một mã là dashboard hiện thành hai dự án khác nhau cho cùng một công trường.
+# Khoá viết theo dạng đã qua `_nd` của FILE NÀY — bỏ dấu VÀ bỏ khoảng trắng ("cao bang" ->
+# "caobang"), khác `_nd` của deriver (giữ khoảng trắng). Chép nhầm dạng là không mã nào khớp.
+_CC_DUAN_SHEET = [("caobang", "CB_DA"), ("tanthinh", "TT_DA"), ("langson", "LS_DA"),
+                  ("yenbinh", "YB_DA"), ("phuquoc", "PQ_DA"), ("quangson", "QS_DA"),
+                  ("nuiphao", "NUIPHAO_DA"), ("quangngai", "QUANGNGAI_DA"), ("thochu", "TC_DA"),
+                  ("binhphuoc", "BINHPHUOC_DA")]
+
+
+def _cc_duan(ten):
+    """Tên sheet dự án -> mã cost center. Không nhận ra -> `_khong_map` để cảnh báo nổ, KHÔNG trả
+    tên sheet thô: mã cost center đi vào mọi bộ lọc, để lọt một chuỗi lạ là sinh ra một "đơn vị"
+    ma trong danh mục mà không ai lần được nguồn."""
+    n = _nd(ten)
+    return next((cc for kw, cc in _CC_DUAN_SHEET if kw in n), None) or {"_khong_map": str(ten)[:60]}
+
+
 _CHUAN_HOA = {
+    "cc_duan": _cc_duan,
     "cc_qlts": _cc_qlts,
+    "cc_qlts_khoi": _cc_qlts_khoi,
     "khoi_qlts": _khoi_qlts,
     "cty_qlts": _cty_qlts,
     "sr_showroom": _cc_showroom,
     "kenh_tk": _kenh_tk,
+    "kho_kenh": _kho_kenh,
+    "hd_kenh_b2b": _hd_kenh_b2b,
+    "hd_kenh_gf": _hd_kenh_gf,
     "qua_han": _qua_han,
     "coc_trang_thai": _coc_trang_thai,
+    "coc_ngay": _coc_ngay,
+    "tk_cap": _tk_cap,
     "xdv": _cc_xdv,
     "hcns_xdv": _cc_hcns_xdv,
     "kh_dong": _kh_dong,
@@ -1070,16 +1434,72 @@ _CHUAN_HOA = {
     "xvp_ma_doanh_thu": _xvp_ma_doanh_thu,
     "xvp_don_vi": _xvp_don_vi,
     "sr_loai_xe": _sr_loai_xe,
+    "claim_ky_du_lieu": _claim_ky_du_lieu,
+    "a200_kenh_tu_dong": _a200_kenh_tu_dong,
     "hoa": lambda v: str(v or "").strip().upper() or None,
     "cat": lambda v: str(v or "").strip() or None,
 }
 
 
 # ─────────────────────────── đọc spec & sheet ───────────────────────────
+# Cột cost center admin đã duyệt ở chuông 🔔 (bảng `cost_center_map`, migration 0070/0071).
+# Khoá `layout` = "spec:<nguon.folder>" chứ KHÔNG phải id spec: một file nguồn phục vụ NHIỀU spec
+# (TEST_XDV có 5 spec cùng đọc `baocaotaichinhrienghqkd`), khoá theo spec thì admin phải duyệt 5
+# lần cho cùng một xưởng. Khoá theo thư mục: duyệt MỘT lần, mọi spec của file đó cùng đọc được.
+_cot_duyet_cache = None
+
+
+def _cot_da_duyet(folder: str):
+    """[(ten_cot, ma_cost_center)] đã duyệt cho thư mục nguồn này. Lỗi/thiếu bảng -> []."""
+    global _cot_duyet_cache
+    if _cot_duyet_cache is None:
+        _cot_duyet_cache = {}
+    if folder in _cot_duyet_cache:
+        return _cot_duyet_cache[folder]
+    ra = []
+    try:
+        with psycopg.connect(DB_URL) as conn:
+            ra = [(t, cc) for t, cc in conn.execute(
+                "SELECT ten_cot_goc, cost_center FROM cost_center_map "
+                "WHERE layout=%s AND trang_thai='da_duyet'", (f"spec:{folder}",)).fetchall()
+                if t and cc]
+    except Exception:                                    # noqa: BLE001
+        ra = []                                          # nuốt: thiếu bảng/DB không được chặn nạp
+    _cot_duyet_cache[folder] = ra
+    return ra
+
+
+def _them_cot_da_duyet(spec: dict) -> dict:
+    """Bổ sung các cột cost center admin đã duyệt vào `cot_gia_tri`.
+
+    NHÂN BẢN từ một mục cost center CÓ SẴN của chính spec đó thay vì dựng mục mới: mỗi spec có
+    `dim2`/`he_so`/`amount2`… riêng (XDV_PNL_D dùng dim2="Xưởng", he_so=1e-9), dựng tay là sớm
+    muộn lệch một khoá rồi ra số sai đơn vị. Spec nào KHÔNG khai cost center thì bỏ qua hẳn.
+    """
+    mau = next((c for c in (spec.get("cot_gia_tri") or [])
+                if isinstance(c, dict) and c.get("cost_center")), None)
+    if not mau:
+        return spec
+    folder = (spec.get("nguon") or {}).get("folder") or ""
+    da_co = set()
+    for c in spec["cot_gia_tri"]:
+        h = c.get("header")
+        for x in ([h] if isinstance(h, str) else (h or [])):
+            da_co.add(str(x).strip())
+    for ten, cc in _cot_da_duyet(folder):
+        if str(ten).strip() in da_co:
+            continue
+        moi = dict(mau)
+        moi["header"] = ten
+        moi["cost_center"] = cc
+        spec["cot_gia_tri"].append(moi)
+    return spec
+
+
 def load_spec(ref):
     path = ref if os.path.isfile(ref) else os.path.join(SPEC_DIR, f"{ref}.json")
     with open(path, encoding="utf-8") as f:
-        return json.load(f)
+        return _them_cot_da_duyet(json.load(f))
 
 
 def specs_for_path(path):
@@ -1100,7 +1520,12 @@ def specs_for_path(path):
     for f in sorted(glob.glob(os.path.join(SPEC_DIR, "*.json"))):
         try:
             with open(f, encoding="utf-8") as fh:
-                sp = json.load(fh)
+                # PHẢI đi qua `_them_cot_da_duyet` Y NHƯ `load_spec`: đây mới là đường mà
+                # `agent_cli.cmd_autofill` / `template_filler` thực sự nạp file. Bản đầu (19/09)
+                # chỉ vá `load_spec` -> gọi `load_spec` tay thì thấy 15 cột, còn lượt nạp THẬT
+                # vẫn 14 cột và cột vừa duyệt không vào DB. Bắt được vì nghiệm thu bằng dữ liệu
+                # thật thay vì tin con số của hàm vừa sửa.
+                sp = _them_cot_da_duyet(json.load(fh))
         except Exception:
             continue                      # spec hỏng cú pháp KHÔNG được làm chết luồng nạp
         folder = ((sp.get("nguon") or {}).get("folder") or "").strip("/")
@@ -1136,6 +1561,24 @@ def run_for_path(path, write=False):
     Từng spec bọc riêng try/except: một spec lỗi không được kéo theo các spec còn lại, và tuyệt
     đối không được ném ra ngoài — hàm này nằm trên đường nạp CHUNG của mọi báo cáo.
     """
+    # `.xlsb` -> CHẠY TRÊN BẢN ĐÃ CHUYỂN, không chạy trên chính nó. `quet_nguon` (đường quét cả
+    # thư mục) đã quy `.xlsb` về `.xlsx` từ 17/08/2026, nhưng hàm này nhận ĐÍCH DANH một file và
+    # cron autofill luôn đưa vào file VỪA KÉO VỀ — tức bản `.xlsb` gốc, vì bản `.xlsx` là do engine
+    # sinh ra chứ không có ở nguồn. Hậu quả đo trên prod 20/09/2026, nguồn QLTS/baocaotaisanqlts:
+    #   · spec có `moi_ky_lay_file_moi_nhat` -> `quet_nguon` trả danh sách toàn `.xlsx`, đường dẫn
+    #     `.xlsb` không nằm trong đó nên LẦN NÀO CŨNG rơi vào nhánh "BỎ QUA — đã có bản MỚI HƠN";
+    #   · spec không có cờ đó (`qlts_taisan_donvi_cu`) -> openpyxl ném InvalidFileException.
+    # Cả 4 spec Taisan vì vậy KHÔNG BAO GIỜ ghi được dòng nào qua cron: rows T9 trong DB là của một
+    # lượt nạp tay cũ, còn mỗi lượt cron chỉ để lại 2 dòng cảnh báo trông như nhiễu. Đây đúng hình
+    # dạng "im lặng mà trễ" của `cron_qlts_daily` — nguồn phát hành hằng tuần mà dashboard đứng yên.
+    # Đặt Ở ĐẦU hàm để mọi đường vào (autofill, "Nạp lại tất cả", nút Phân tích AI) cùng được chữa.
+    if path.lower().endswith(".xlsb"):
+        moi = _chuyen_xlsb(path)
+        if not moi:
+            return [{"file": os.path.basename(path), "dong": 0,
+                     "canh_bao": [f"{os.path.basename(path)}: .xlsb và CHUYỂN ĐỔI HỎNG"
+                                  " — file này chưa vào DB"]}]
+        path = moi
     ket_qua = []
     for sp in specs_for_path(path):
         # BỎ QUA BẢN ĐÃ BỊ THAY THẾ. Hàm này nạp ĐÚNG file được đưa vào, không nhìn sang các file
@@ -1165,6 +1608,25 @@ def run_for_path(path, write=False):
     return ket_qua
 
 
+def _sheet_khop_o(ws, dk):
+    """Sheet có khớp TRỌN bộ ô mốc `dk` không. Dùng chung cho `sheet.theo_o` (chọn MỘT sheet) và
+    `sheet.moi_sheet_theo_o` (đọc MỌI sheet khớp).
+
+    Nhận cả hai dạng điều kiện như `kiem_tra_o`: {"o": "A4"} đòi đúng ô, {"hang": 4} chỉ đòi nhãn
+    nằm đâu đó trong hàng.
+    """
+    def _khop(d):
+        can = _nd(d.get("bang"))
+        if d.get("hang"):
+            return any(can in _nd(c.value) for c in ws[int(d["hang"])])
+        return can in _nd(ws[d["o"]].value)
+
+    try:
+        return all(_khop(d) for d in dk)
+    except (IndexError, ValueError, TypeError):   # sheet ngắn hơn ô mốc -> không phải
+        return False
+
+
 def _chon_sheet(wb, cfg, thang=None):
     """Chọn sheet theo cfg. `theo_thang` (vd "T{mm}") dành cho file có MỘT SHEET MỖI THÁNG.
 
@@ -1175,6 +1637,27 @@ def _chon_sheet(wb, cfg, thang=None):
     cfg = cfg or {}
     if "so" in cfg:
         return wb.sheetnames[int(cfg["so"])]
+    if "theo_o" in cfg:
+        # Chọn sheet theo NỘI DUNG Ô MỐC, không theo tên cũng không theo thứ tự.
+        #
+        # VÌ SAO (19/09/2026, sự cố thật): BCTC riêng XDV đổi THỨ TỰ sheet giữa các kỳ —
+        # 2024 T06/T07/T11 để KQKD đầu tiên, còn T08/T09/T10/T12 để CĐPS trước. Spec khai
+        # `sheet.so = 0` nên 4 kỳ đó đọc trúng CĐPS, `kiem_tra_o` bắt được và từ chối cả
+        # file: mất trắng 720 dòng XDV_PNL mỗi kỳ. Khai `sheet.ten` cứng cũng không cứu
+        # được vì tên sheet P&L của nguồn này đổi liên tục theo kỳ: "KQKD" (2024),
+        # "T1".."T12" (2025), "HQKD" (2025-05), "Sheet1"/"Sheet" (2026).
+        #
+        # Thứ duy nhất BẤT BIẾN là bộ ô mốc của chính bảng P&L. Khai LIST nhiều điều kiện
+        # thì mới đủ phân biệt: riêng A8="Mã số" là CĐKT cũng có thể trúng.
+        # Nhận CẢ HAI dạng điều kiện như `kiem_tra_o`: {"o": "A8"} đòi đúng ô, còn
+        # {"hang": 8} chỉ đòi nhãn nằm ĐÂU ĐÓ trong hàng — bắt buộc cho cột cost center,
+        # vì XDV T12/2024 bỏ 5 cột phụ (TK nợ/TK có/Mã phí/Mã NS/Công thức) nên
+        # "XDV Ocean Park" tụt từ I8 về D8 trong khi bảng vẫn y nguyên.
+        dk = cfg["theo_o"] if isinstance(cfg["theo_o"], list) else [cfg["theo_o"]]
+        for name in wb.sheetnames:
+            if _sheet_khop_o(wb[name], dk):
+                return name
+        return None
     if "theo_thang" in cfg:
         if not thang:
             return None
@@ -1231,13 +1714,27 @@ def _map_header(rows, dong):
 
 
 def _resolve_cot(spec, hmap, warn):
-    """{đích: (chỉ số cột, cfg)} — dò theo TÊN, phao là `cot_du_phong` (chữ cột)."""
+    """{đích: (chỉ số cột, cfg)} — dò theo TÊN, phao là `cot_du_phong` (chữ cột).
+
+    `ghep_header` (20/09/2026): GHÉP THÊM cột phụ vào giá trị trước khi chạy `chuan_hoa`, nối bằng
+    " | ". Sinh ra vì một mình tên đơn vị KHÔNG đủ để suy cost center: nguồn bảo hiểm/đăng kiểm bố
+    cục mới ghi "Vinfast Sơn Tây" mà danh mục có TỚI HAI mã trùng tên (`ST_SR` Showroom và
+    `ST_XDV` Xưởng dịch vụ) — `_cc_qlts` cố ý không đoán nên 9 địa danh Vinfast rơi khỏi bộ lọc
+    Đơn vị. Cột "Tên khối" đứng ngay cạnh phân giải được, nhưng hook chỉ nhận MỘT ô. Khai
+    `"ghep_header": ["Tên khối"]` -> hook nhận "Khối KD Vinfast - XDV | Vinfast Sơn Tây".
+    Cột phụ thiếu thì bỏ qua phần ghép, KHÔNG làm hỏng cột chính.
+    """
     out = {}
     for dich, cfg in (spec.get("cot") or {}).items():
         j = _tim_cot(hmap, cfg, dich, warn)
         if j is None:
             continue
-        out[dich] = (j, cfg)
+        phu = []
+        for h in (cfg.get("ghep_header") or []):
+            jp = _tim_cot(hmap, {"header": h, "bat_buoc": False}, f"{dich}.ghep", warn)
+            if jp is not None:
+                phu.append(jp)
+        out[dich] = (j, {**cfg, "_ghep_j": phu} if phu else cfg)
     return out
 
 
@@ -1305,6 +1802,28 @@ def _ngay_trong_thang(v, ky):
         return None
 
 
+def _ngay_dd_mm(v, ky):
+    """Ô ghi 'dd/mm' CÓ ĐUÔI -> 'YYYY-MM-DD'. Năm lấy từ tên file (`_ky_thang`); THÁNG trong ô
+    phải khớp tháng của file, lệch thì trả None.
+
+    Anh em theo-DÒNG của phần `moi_cot_ngay` đọc tiêu đề 'dd/mm (thứ)': kế hoạch xuất hoá đơn 15
+    ngày xếp mỗi ngày một DÒNG ở sheet tổng hợp ('01/09 (Thứ 3)', '05/09 (Thứ 7 - Cao điểm)') và
+    mỗi dòng xe một CỘT, nên chiều ngày nằm ở cột A chứ không ở tiêu đề.
+
+    Khác `ngay_trong_thang` ở chỗ ô có SẴN tháng: phải kiểm nó, vì một file kế hoạch tràn sang
+    tháng sau mà vẫn nạp theo tháng của tên file là gán số vào sai kỳ, im lặng.
+    """
+    if not ky:
+        return None
+    m = re.match(r"^\s*(\d{1,2})\s*/\s*(\d{1,2})\b", str(v if v is not None else "").strip())
+    if not m or int(m.group(2)) != ky[1]:
+        return None
+    try:
+        return dt.date(ky[0], ky[1], int(m.group(1))).isoformat()
+    except ValueError:
+        return None
+
+
 def _lay_o(row, j, cfg, dem_loi=None):
     v = row[j] if j < len(row) else None
     if _o_loi(v):
@@ -1323,6 +1842,8 @@ def _lay_o(row, j, cfg, dem_loi=None):
         return _thang_cuoi(v, cfg.get("_nam"))
     if kieu == "ngay_trong_thang":
         return _ngay_trong_thang(v, cfg.get("_ky"))
+    if kieu == "ngay_dd_mm":
+        return _ngay_dd_mm(v, cfg.get("_ky"))
     s = str(v).strip() if v is not None else None
     return s or None
 
@@ -1418,6 +1939,78 @@ def _dan_xuat(rec, cong_thuc):
             rec.setdefault("_loi", []).append(f"{dich}: {ex}")
 
 
+def _doi_gia_tri(rec, cfg):
+    """Đổi giá trị một trường theo bản đồ khai trong spec — dùng khi ĐỔI NGUỒN nhưng phải GIỮ
+    NGUYÊN hình dạng bản ghi của nguồn cũ.
+
+    Bối cảnh: mapping VHKD chốt "file A bị thay bởi file B". File B mang mã riêng của nó (A100,
+    A300, A600…) trong khi mọi màn hình đang đọc mã của file A ('1000', '1047', '1112'). Không có
+    khoá này thì phải viết một hook Python cho MỖI report_type — bốn hook gần giống hệt nhau chỉ
+    khác vài dòng bản đồ.
+
+    Giá trị KHÔNG có trong bản đồ được GIỮ NGUYÊN (không bỏ trắng): bản đồ ở đây là phép ĐỔI TÊN,
+    không phải bộ lọc. Muốn giữ đúng vài mã thì lọc bằng `loc` với điều kiện `thuoc` — tách hai
+    việc ra để đọc spec là thấy ngay mã nào lên, mã nào không.
+    """
+    for truong, bando in (cfg or {}).items():
+        v = _lay(rec, truong)
+        if v is None:
+            continue
+        k = str(v).strip()
+        if k in bando:
+            _dat(rec, truong, bando[k])
+
+
+def _tinh_han_no(rec, cfg, ngay_file):
+    """Suy `đến hạn` + `số ngày quá hạn` cho nguồn công nợ KHÔNG có sẵn hai cột đó.
+
+    Bản công nợ TAY (`SRVF/baocaocongnophaithu`) do kế toán tính sẵn hai cột này trong sheet chi
+    tiết. Bản TỰ ĐỘNG của Cyber (`TEST_SR/baocaocongnophaithungay`) chỉ có `Ngày hóa đơn` — đúng
+    quy ước nghiệp vụ đã đối chiếu 03/09/2026: `đến hạn` = Ngày hoá đơn + 15 ngày (khớp 472/472
+    dòng của bản tay), `số ngày quá hạn` = ngày chốt của FILE − đến hạn.
+
+    Vì sao là một khoá riêng chứ không phải `dan_xuat`: `dan_xuat` chạy `eval` trên môi trường
+    CHỈ CÓ SỐ (`isinstance(v, (int, float))`) nên không đụng được vào ngày, và nó cũng không biết
+    ngày chốt của file. Hai thứ đó đều bắt buộc ở đây.
+
+    Chưa tới hạn -> `so_ngay_qua_han` ÂM (giữ nguyên dấu, không kẹp về 0): hook `qua_han` phân loại
+    theo `> 0` nên số âm ra "Trong hạn", đúng như ô rỗng của bản tay; giữ dấu để sau này dựng được
+    "còn mấy ngày tới hạn" mà không phải đọc lại nguồn.
+    """
+    if not cfg:
+        return
+    hd = _lay(rec, cfg.get("ngay_hoa_don", "payload.ngay_hoa_don"))
+    d_hd = _date(hd)
+    dich_dh = cfg.get("den_han", "payload.den_han")
+    dich_qh = cfg.get("so_ngay_qua_han", "payload.so_ngay_qua_han")
+    if not d_hd:
+        # Không có ngày hoá đơn -> để trống chứ KHÔNG đoán. Dòng vẫn vào DB (số dư vẫn đúng),
+        # chỉ mất chiều tuổi nợ — giống hệt cách bản tay xử ô "đến hạn" bỏ trắng.
+        _dat(rec, dich_dh, None)
+        _dat(rec, dich_qh, None)
+        if cfg.get("phan_loai"):
+            _dat(rec, cfg["phan_loai"], _qua_han(None))
+        return
+    y, mo, d = (int(x) for x in d_hd.split("-"))
+    den_han = dt.date(y, mo, d) + dt.timedelta(days=int(cfg.get("cong_ngay", 15)))
+    _dat(rec, dich_dh, den_han.isoformat())
+    moc = _date(cfg.get("_moc") or ngay_file)
+    so_ngay = None
+    if moc:
+        ym, mm, dd = (int(x) for x in moc.split("-"))
+        so_ngay = (dt.date(ym, mm, dd) - den_han).days
+    _dat(rec, dich_qh, so_ngay)
+    if cfg.get("phan_loai"):
+        # NGƯỠNG QUÁ HẠN LÀ THAM SỐ, mặc định 1 (giữ nguyên hành vi `_qua_han`: quá hạn khi cột
+        # "số ngày quá hạn" > 0). Nguồn TỰ ĐỘNG khai `qua_han_tu: 0` vì mapping 15/09/2026 định
+        # nghĩa dải theo A = ngày chốt − ngày hoá đơn: "A < 15: Trong hạn · 15 <= A < 45: Quá hạn
+        # 1-30 ngày". Tức A = 15 (so_ngay_qua_han = 0, đúng ngày đến hạn) ĐÃ là quá hạn — khác
+        # bản tay, nơi kế toán chỉ điền số dương vào cột quá hạn.
+        tu = int(cfg.get("qua_han_tu", 1))
+        _dat(rec, cfg["phan_loai"],
+             "Quá hạn" if (so_ngay is not None and so_ngay >= tu) else "Trong hạn")
+
+
 def _tuan_truoc(bc):
     """Ngày phát hành báo cáo -> (thứ Hai, Chủ nhật) của TUẦN LIỀN TRƯỚC.
 
@@ -1454,7 +2047,30 @@ def chu_ky_tuan(spec, path):
 
 
 def ngay_tu_ten_file(spec, path):
-    """-> ('YYYY-MM-DD' | None, [cảnh báo]). Dùng cho bảng ẢNH CHỤP (không có cột ngày từng dòng).
+    """NGÀY CỦA DỮ LIỆU suy từ tên file — đã áp `ngay_du_lieu_lui` nếu spec khai.
+
+    Bọc quanh `_ngay_tu_ten_file_tho`. Tách ra vì có nguồn mà TÊN FILE là ngày KÉO chứ không
+    phải ngày của số: báo cáo tự động của Cyber chạy 12h trưa ngày N và chỉ chứa số tới hết
+    ngày N−1 — mapping VHKD/XDV ghi thẳng "Báo cáo kéo tự động 12h trưa ngày N - Dữ liệu là
+    của ngày N-1". Đối chứng 06/09/2026 với số nghiệp vụ đưa: hiệu của bản `.D.20260904.` ở
+    XDV ra doanh thu 5.950.507.762 · chi phí 4.688.749.745 · LNST 1.261.785.225, đúng bằng
+    số của NGÀY 03/09.
+
+    ÁP CHO MỌI CHỖ DÙNG, CỐ Ý VẬY — ba chỗ gọi hàm này đều nên nói cùng một thứ ngày:
+      · ghép bản ngày trước của `_tru_ngay_truoc` — lùi đều nên thứ tự không đổi, ghép y cũ;
+      · chốt "cùng tháng" của phép trừ — nay so THÁNG CỦA DỮ LIỆU, đúng chỗ cột luỹ kế reset;
+      · `chi_nap_tu_ngay` — nay đọc là "chỉ nạp dữ liệu TỪ ngày này", tự nhiên hơn ngày kéo.
+    Mặc định 0 nên mọi spec khác không đổi hành vi một chút nào.
+    """
+    ngay, warn = _ngay_tu_ten_file_tho(spec, path)
+    lui = spec.get("ngay_du_lieu_lui") or 0
+    if ngay and lui:
+        ngay = (dt.date.fromisoformat(ngay) - dt.timedelta(days=int(lui))).isoformat()
+    return ngay, warn
+
+
+def _ngay_tu_ten_file_tho(spec, path):
+    """-> ('YYYY-MM-DD' | None, [cảnh báo]) — ngày GHI TRONG TÊN FILE, chưa lùi. Dùng cho bảng ẢNH CHỤP (không có cột ngày từng dòng).
 
     `ky_tu_ten_file` tách RIÊNG regex năm và tháng — file công nợ đặt tên
     "…M.2026.07.22_Baocaocongnophaithu_T1.xlsx": cụm 2026.07.22 là NGÀY LẬP báo cáo (giống hệt
@@ -1511,11 +2127,104 @@ def ngay_tu_ten_file(spec, path):
 def _ky_thang(spec, path):
     """-> ((năm, tháng), [cảnh báo]) cho `ban_ghi = moi_cot_ngay`. Kỳ lấy từ TÊN FILE
     (vd '...202608.Baocaodoanhthungay.xlsx'), vì các cột chỉ ghi số ngày, không ghi tháng."""
+    # ── `ky_thang_tu_o` (09/09/2026): THÁNG đọc từ CHÍNH Ô NHÃN của khối, năm vẫn từ tên file ──
+    #
+    # VÌ SAO CÓ: các sheet kế hoạch ngày của Showroom / An Taxi / Xanh VP xếp NĂM KHỐI THÁNG nối
+    # tiếp trong MỘT sheet ("THÁNG 8" @dòng 2, "THÁNG 9" @13, T10 @24, T11 @35, T12 @46), mỗi khối
+    # khai một `vung`. Tháng lại suy từ TÊN FILE ('.M.202608.' -> 8) nên hễ tên file không lăn
+    # tháng — mà nó KHÔNG lăn, một bản kế hoạch phát hành một lần cho nhiều tháng — thì chỉ khối
+    # trùng tháng phát hành được đọc, T9-T12 nằm im trong file. Ngày 09/09/2026 chuyện đó thành
+    # lỗi thấy được: kế hoạch NGÀY của Showroom dừng ở T8, nên chế độ Ngày tháng 9 lấy kế hoạch
+    # CẢ THÁNG làm mẫu số (thực hiện 9,34 tỷ / kế hoạch 1.154,64 tỷ).
+    #
+    # VÌ SAO ĐỌC Ô CHỨ KHÔNG GHIM CỨNG THÁNG VÀO TỪNG `vung`: thứ tự khối chạy theo tháng PHÁT
+    # HÀNH (bản tháng 8 mở đầu bằng THÁNG 8, bản tháng 10 sẽ mở đầu bằng THÁNG 10). Ghim "vùng
+    # @dòng 2 = tháng 8" là sang bản sau mọi `vung` đều trượt gate và MẤT SẠCH DỮ LIỆU trong im
+    # lặng. Đọc nhãn thì khối nào nói tháng nào, engine ghi đúng tháng đó — thứ tự khối đổi bao
+    # nhiêu lần cũng không sai.
+    #
+    # Khối RỖNG / hết khối (ô nhãn trống) -> trả cảnh báo và None, `_extract_vung` bỏ vùng đó.
+    c_o = spec.get("ky_thang_tu_o")
+    if c_o:
+        # `regex` CÓ NHÓM TÊN `nam` -> ô mang TRỌN năm + tháng, KHÔNG cần tên file (17/09/2026).
+        #
+        # VÌ SAO CÓ: họ file tiến độ Showroom
+        # (`CHI_TIET_TIEN_DO_TUNG_SHOWROOM_TUNG_DONG_XE_13_NGAY.xlsx`) không có một chữ số kỳ nào
+        # trong tên, và cũng KHÔNG lăn tên theo tháng — sang tháng 10 vẫn đúng cái tên đó, chỉ nội
+        # dung đổi. Kỳ chỉ nằm ở dòng tiêu đề ("(03/09–30/09/2026)"). Suy năm từ tên file là bất
+        # khả; ghim cứng năm/tháng vào spec thì tháng sau nạp ĐÈ lên tháng trước trong im lặng —
+        # đúng cái bẫy `ky_khai_sinh_tu_so_thuc_te`. Spec cũ không khai `?P<nam>` nên không đổi.
+        tu_o_du_ky = "?P<nam>" in (c_o.get("regex") or "")
+        if tu_o_du_ky:
+            goc, w = None, []
+        else:
+            goc, w = _ky_thang({k: v for k, v in spec.items() if k != "ky_thang_tu_o"}, path)
+            if not goc:
+                return None, w
+        sh = (spec.get("nguon") or {}).get("sheet") or {}
+        ten_sh = _chon_sheet(_mo_wb(path), sh, goc[1] if goc else None)
+        if not ten_sh:
+            return None, [*w, f"`ky_thang_tu_o`: không chọn được sheet ({sh})"]
+        txt = str(_mo_wb(path)[ten_sh][c_o["o"]].value or "")
+        m = re.search(c_o.get("regex") or r"TH[ÁA]NG\s*(\d{1,2})", txt, re.I)
+        if not m:
+            return None, [*w, f"`ky_thang_tu_o`: ô {c_o['o']} của sheet {ten_sh!r} = {txt.strip()!r}"
+                              f" — không dò được số tháng -> bỏ khối"]
+        g = m.groupdict()
+        thang = int(g["thang"]) if g.get("thang") else int(m.group(1))
+        if not 1 <= thang <= 12:
+            return None, [*w, f"`ky_thang_tu_o`: ô {c_o['o']} ra tháng {thang}, ngoài 1..12"]
+        nam = int(g["nam"]) if g.get("nam") else goc[0]
+        if not 2000 <= nam <= 2100:
+            return None, [*w, f"`ky_thang_tu_o`: ô {c_o['o']} ra năm {nam}, ngoài 2000..2100"]
+        return (nam, thang), w
     c = spec.get("ky_thang_tu_ten_file") or {"regex": r"\.(\d{4})(\d{2})\."}
     m = re.search(c["regex"], os.path.basename(path))
     if not m:
         return None, [f"không dò được kỳ (năm/tháng) từ tên file: {os.path.basename(path)}"]
+    # NHÓM CÓ TÊN `nam`/`thang` (04/09/2026) — cho nguồn ghi THÁNG TRƯỚC NĂM trong tên file
+    # ('Kế hoạch xhđ 15 ngày T9.2026.xlsx'). Mặc định vẫn là nhóm 1 = năm, nhóm 2 = tháng, nên
+    # mọi spec cũ không đổi một ly. Không có đường nào khác: thứ tự nhóm của regex là thứ tự
+    # xuất hiện trong chuỗi, không đảo được.
+    g = m.groupdict()
+    if g.get("nam") and g.get("thang"):
+        return (int(g["nam"]), int(g["thang"])), []
     return (int(m.group(1)), int(m.group(2))), []
+
+
+def _ky_tu_ten_sheet(spec, path, ten_sheet):
+    """-> ('YYYY-MM-<ngày cuối tháng>', [cảnh báo]) khi spec khai `ky_tu_ten_sheet`, ngược lại
+    (None, []). Chỉ có nghĩa cùng `sheet.moi_sheet_chua`.
+
+    VÌ SAO CÓ (06/09/2026, ba nguồn Trạm sạc): bảng kê đối soát phí dịch vụ V-Green xếp MỘT SHEET
+    MỖI THÁNG trong cùng một file ("Phí DV T1".."Phí DV T7") và TRONG DÒNG KHÔNG CÓ Ô NGÀY nào
+    dùng được — cột "Thời gian xuất hóa đơn" ghi chữ "Tháng 7", còn cột "Trong khoản (ngày cọc)"
+    là ngày ĐẶT CỌC, viết tự do ("25/03 và 02/05", "06/04 (trong khoản 138.8tr)"). `_ghi` bỏ mọi
+    bản ghi không có `ngay`, nên không suy kỳ từ TÊN SHEET thì cả nguồn không vào được DB.
+
+    KHÔNG dùng `theo_thang` thay: nó chỉ lấy ĐÚNG tháng của tên file, mà một file ở đây chứa cả
+    T1..T7 — các tháng còn lại nằm im, không dòng nào vào DB và cũng không cảnh báo gì.
+
+    Ngày neo là NGÀY CUỐI THÁNG, cùng quy ước với `moi_cot_thang` (nguồn kế hoạch): kỳ tháng thì
+    mọi dòng đứng ở một mốc duy nhất, chế độ Tháng cộng đúng, chế độ Ngày không rải số bừa vào
+    những ngày nguồn không hề khai.
+    """
+    c = spec.get("ky_tu_ten_sheet")
+    if not c:
+        return None, []
+    m = re.search(c["regex"], str(ten_sheet))
+    if not m:
+        return None, [f"không dò được THÁNG từ tên sheet {ten_sheet!r} "
+                      f"(regex {c['regex']!r}) -> bỏ sheet"]
+    thang = int(m.group(int(c.get("nhom", 1))))
+    if not 1 <= thang <= 12:
+        return None, [f"tháng {thang} từ tên sheet {ten_sheet!r} không hợp lệ -> bỏ sheet"]
+    # NĂM lấy từ tên file: tên sheet chỉ ghi tháng. File đổi năm là kỳ tự đúng theo.
+    ky, w = _ky_thang(spec, path)
+    if not ky:
+        return None, w
+    nam = ky[0]
+    return dt.date(nam, thang, calendar.monthrange(nam, thang)[1]).isoformat(), w
 
 
 def _chuyen_xls_cu(duong_dan):
@@ -1544,6 +2253,7 @@ def _chuyen_xls_cu(duong_dan):
     except ImportError:
         return None
     try:
+        from openpyxl.cell.cell import ILLEGAL_CHARACTERS_RE
         nguon = xlrd.open_workbook(duong_dan)
         wb = openpyxl.Workbook()
         wb.remove(wb.active)
@@ -1563,6 +2273,15 @@ def _chuyen_xls_cu(duong_dan):
                             pass                                       # số ngày hỏng -> để nguyên
                     elif o.ctype == xlrd.XL_CELL_BOOLEAN:
                         v = bool(v)
+                    elif isinstance(v, str):
+                        # Giống hệt `_chuyen_xlsb`: ô kế toán gõ tay hay dính ký tự điều khiển
+                        # (BCTC riêng SRVF T08/2026 có tên tài sản "Cầu nâng cắt kéo …\x07…").
+                        # XML của .xlsx cấm nhóm này -> openpyxl ném IllegalCharacterError và
+                        # HỎNG CẢ BẢN CHUYỂN chỉ vì một ô, `except` nuốt lỗi trả None nên file
+                        # nằm im không cảnh báo. Bỏ ký tự đó đi, phần chữ giữ nguyên.
+                        v = ILLEGAL_CHARACTERS_RE.sub("", v)
+                        if not v:
+                            continue
                     ws.cell(row=r + 1, column=c + 1, value=v)
         wb.save(dich)
     except Exception:                                                  # noqa: BLE001
@@ -1636,6 +2355,23 @@ def quet_nguon(spec):
     # File tạm Excel sinh ra khi ai đó đang MỞ file trên máy chia sẻ. Khớp "*.xlsx" nhưng không
     # phải workbook thật -> đọc vào là ném lỗi khó hiểu giữa lượt nạp.
     ten = [n for n in ten if not n.startswith("~$")]
+    # `bo_qua_file` (17/09/2026) — regex LOẠI HẲN file khỏi spec này. Mặc định không khai nên mọi
+    # spec cũ giữ nguyên hành vi.
+    #
+    # VÌ SAO Ở TẦNG SPEC chứ không chỉ ở cron: `bo_qua` của `cron_qtvh_core` chỉ chặn việc XIN FILE
+    # VỀ, còn file đã nằm sẵn trên đĩa thì mọi đường nạp khác (nút "Phân tích AI", "Nạp lại tất
+    # cả", chạy tay `spec_extract.py <id> --write`) vẫn đọc nó. Hai file claim B2C `_T11.25` /
+    # `_T12.25` là kỳ 11-12/**2025** nhưng tên mang cụm 'M.2026' (xem `_bay` của `vhkd_claim`), và
+    # bản `9.15` của claim B2B T1 lệch cột — cả ba đều phải chặn ở đây, nếu không spec NGÀY (lấy
+    # MỌI bản phát hành, không có `moi_ky_lay_file_moi_nhat` che chắn) sẽ nạp thẳng chúng vào.
+    bo_qua = (spec.get("nguon") or {}).get("bo_qua_file")
+    if bo_qua:
+        giu = [n for n in ten if not re.search(bo_qua, n, re.IGNORECASE)]
+        if len(giu) != len(ten):
+            warn.append("bo_qua_file: bỏ %d file (%s)"
+                        % (len(ten) - len(giu),
+                           ", ".join(n for n in ten if re.search(bo_qua, n, re.IGNORECASE))[:180]))
+        ten = giu
     out = [os.path.join(thu_muc, n) for n in ten if fnmatch.fnmatch(n.lower(), mau)]
     if mau.endswith(".xlsx"):
         da_co = {os.path.splitext(p)[0].lower() for p in out}
@@ -1681,34 +2417,64 @@ def loc_file_moi_nhat(spec, files):
     độ trên không cứu được vì mỗi file suy ra một kỳ KHÁC NHAU nên đều được giữ -> nạp 6 file là
     ghi cùng dữ liệu 6 lần dưới 6 `source_file`, và `_ghi` (xoá theo source_file) không chặn nổi:
     tổng nhân sự phình 6 lần.
+
+    `"moi_ky_slot_regex"` (29/08/2026) — MỘT KỲ CÓ NHIỀU LÁT SONG SONG, mỗi lát vẫn phải giữ bản
+    mới nhất của RIÊNG nó. Không có nó thì cờ trên là con dao hai lưỡi: `vhkd_tonkho_vatly` có
+    3 kênh (B2B/B2C/GF) × nhiều ảnh chụp trong tháng 8, `qlts_dau_bqnl` có 4 trạm cùng kỳ tháng 7
+    — bật cờ trần là giữ ĐÚNG MỘT file rồi vứt 2 kênh / 3 trạm dữ liệu thật, im lặng. Khai regex
+    bắt phần định danh lát (kênh, trạm…); các nhóm bắt được ghép vào khoá gộp. KHÔNG khớp -> lát
+    đứng RIÊNG một mình (theo tên file), không bị gộp vào lát khác: tên lạ mà gộp nhầm là mất
+    nguyên một lát. Cùng quy ước với `slot` của `cron_qtvh_core._slot`.
     """
     che_do = spec.get("moi_ky_lay_file_moi_nhat")
     if not che_do:
         return files, []
+    pat = spec.get("moi_ky_slot_regex")
+    ky_pat = spec.get("moi_ky_ky_regex")
     giu, bo = {}, []
     for f in files:
         ngay, _ = ngay_tu_ten_file(spec, f)
+        tu_ky_pat = False
+        if not ngay and ky_pat:
+            # `moi_ky_ky_regex` — KỲ LẤY TỪ TÊN FILE CHỈ ĐỂ GỘP BẢN CHỐT, không đụng gì tới `ngay`
+            # của từng dòng. Cần cho nguồn suy kỳ từ CỘT NGÀY (`vhkd_kqkd`): `ngay_tu_ten_file`
+            # trả None nên trước đây hàm này giữ nguyên MỌI file, và chạy tay
+            # `spec_extract.py vhkd_kqkd --write` nạp cả 7 bản luỹ kế T8 chồng lên nhau — đúng 7
+            # lần số thật (dính 29/08/2026 trên DB test, phải xoá 3.047 dòng). Cron `LUY_KE` vốn
+            # chặn được, nhưng luật chống trùng nằm ở MỘT đường vào thì đường kia là cửa mở.
+            # Khai `ky_tu_ten_file` để lấp chỗ này thì KHÔNG được: khoá đó đổi luôn cách gán ngày
+            # cho từng dòng, tức đổi số của nguồn đang chạy đúng.
+            m = re.search(ky_pat, os.path.basename(f), re.IGNORECASE)
+            if m:
+                ngay = "|".join(x or "" for x in (m.groups() or (m.group(0),)))
+                tu_ky_pat = True
         if not ngay:
-            giu[f] = f            # không suy được kỳ -> giữ nguyên, đừng im lặng loại
+            giu[f] = (f, "")      # không suy được kỳ -> giữ nguyên, đừng im lặng loại
             continue
-        ky = "" if che_do == "mot_file" else (ngay if che_do == "ngay" else ngay[:7])
+        # `tu_ky_pat`: khoá đã LÀ định danh kỳ rồi (vd "2026|8"), cắt [:7] là băm nát nó.
+        ky = ("" if che_do == "mot_file"
+              else ngay if (che_do == "ngay" or tu_ky_pat) else ngay[:7])
+        if pat:
+            m = re.search(pat, os.path.basename(f), re.IGNORECASE)
+            ky = (ky, tuple(x or "" for x in m.groups()) if m else os.path.basename(f))
         cu = giu.get(ky)
         # HOÀ ngày chốt -> lấy file VỀ SAU (mtime). Nghiệp vụ gửi lại bản SỬA của cùng một kỳ với
         # tên khác (claim T3-T6: "…7.24. BaocaoClaim_B2C_T3" rồi "…8.11. BaocaoClaim_B2C_T3"),
         # hai tên cùng suy ra một kỳ nên so ngày là hoà. Không phá hoà thì thứ tự sorted() quyết
         # định, mà "7.24" đứng trước "8.11" -> giữ đúng bản CŨ và vứt bản đã sửa.
+        # Giữ KÈM khoá đã suy được (`cu[1]`) chứ không suy lại từ tên file: với `moi_ky_ky_regex`
+        # thì `ngay_tu_ten_file` trả None, suy lại là so `str > None` -> TypeError giữa chừng mẻ.
         if cu is None:
             moi_hon = True
         else:
-            ngay_cu = ngay_tu_ten_file(spec, cu)[0]
-            moi_hon = (ngay, os.path.getmtime(f)) > (ngay_cu, os.path.getmtime(cu))
+            moi_hon = (ngay, os.path.getmtime(f)) > (cu[1], os.path.getmtime(cu[0]))
         if moi_hon:
             if cu is not None:
-                bo.append(os.path.basename(cu))
-            giu[ky] = f
+                bo.append(os.path.basename(cu[0]))
+            giu[ky] = (f, ngay)
         else:
             bo.append(os.path.basename(f))
-    return sorted(giu.values()), bo
+    return sorted(v[0] for v in giu.values()), bo
 
 
 # ─────────────────────────── trích 1 file ───────────────────────────
@@ -1747,14 +2513,33 @@ def extract_file(spec, path):
     # chứa mốc, mỗi sheet đọc như một file con; kỳ của từng sheet lấy từ chính ô ngày ở dòng tiêu
     # đề (`cot_ngay.ky_tu_o`), không suy từ tên file.
     _sh = (spec.get("nguon") or {}).get("sheet") or {}
-    if "moi_sheet_chua" in _sh:
-        ten_sheet = [n for n in _mo_wb(path).sheetnames
-                     if _nd(_sh["moi_sheet_chua"]) in _nd(n)]
+    if "moi_sheet_chua" in _sh or "moi_sheet_theo_o" in _sh:
+        # `moi_sheet_theo_o` (20/09/2026, HQKD năm khối Dự án): anh em của `moi_sheet_chua` nhưng
+        # lọc sheet theo Ô MỐC thay vì theo TÊN. Bắt buộc ở nguồn này vì tên sheet KHÔNG tách được
+        # hai họ: 7 sheet ngày tên "Cao Bằng", "Phú Quốc "… còn 7 sheet luỹ kế tên "Cao Bằng LK" —
+        # mọi mốc tên khớp sheet ngày đều khớp luôn sheet LK của cùng dự án (là TIỀN TỐ của nó).
+        # Nạp nhầm sheet LK là cộng số luỹ kế THÁNG vào số NGÀY. Hai họ chỉ khác nhau chắc chắn ở
+        # nhãn ô A4: "Ngày" (bảng ngày) vs "Tháng" (bảng luỹ kế).
+        _wb = _mo_wb(path)
+        if "moi_sheet_chua" in _sh:
+            ten_sheet = [n for n in _wb.sheetnames if _nd(_sh["moi_sheet_chua"]) in _nd(n)]
+            thieu = f"không sheet nào chứa '{_sh['moi_sheet_chua']}'"
+        else:
+            _dk = _sh["moi_sheet_theo_o"]
+            _dk = _dk if isinstance(_dk, list) else [_dk]
+            ten_sheet = [n for n in _wb.sheetnames if _sheet_khop_o(_wb[n], _dk)]
+            thieu = f"không sheet nào khớp ô mốc {_dk}"
         if not ten_sheet:
-            return [], [f"không sheet nào chứa '{_sh['moi_sheet_chua']}'"]
+            return [], [thieu]
         recs, warn = [], []
         for ten in ten_sheet:
             con = {**spec, "nguon": {**(spec.get("nguon") or {}), "sheet": {"ten": ten}}}
+            ky, w0 = _ky_tu_ten_sheet(spec, path, ten)
+            warn += [f"[sheet {ten}] {x}" for x in w0]
+            if spec.get("ky_tu_ten_sheet") and not ky:
+                continue                      # cảnh báo đã ghi ở trên — bỏ sheet, không nạp mù
+            if ky:
+                con["chieu_co_dinh"] = {**(spec.get("chieu_co_dinh") or {}), "ngay": ky}
             r, w = extract_file(con, path)
             recs += r
             warn += [f"[sheet {ten}] {x}" for x in w]
@@ -1788,15 +2573,148 @@ def extract_file(spec, path):
             warn += [f"[sheet {ten}] {x}" for x in w2]
         return recs, _gop_canh_bao(warn)
 
+    # `chi_nap_tu_ngay`: chặn NẠP các bản cũ hơn mốc, nhưng KHÔNG chặn khi đang được
+    # `_tru_ngay_truoc` đọc làm mốc trừ — bản ngay trước mốc vẫn phải đọc được, nếu không thì
+    # ngày đầu tiên sau mốc mất số trừ và ôm trọn phần luỹ kế từ đầu tháng.
+    if spec.get("chi_nap_tu_ngay") and not spec.get("_dang_doc_ngay_truoc"):
+        _nf, _ = ngay_tu_ten_file(spec, path)
+        if _nf and _nf < spec["chi_nap_tu_ngay"]:
+            return [], [f"BỎ QUA — bản {_nf} cũ hơn mốc `chi_nap_tu_ngay` "
+                        f"{spec['chi_nap_tu_ngay']}"]
+
     vung = spec.get("vung")
     if not vung:
-        return _extract_vung(spec, path)
-    recs, warn = [], []
-    for i, v in enumerate(vung, 1):
-        r, w = _extract_vung(_tron_vung(spec, v), path)
-        recs += r
-        warn += [f"[vùng {v.get('ten') or i}] {x}" for x in w]
+        recs, warn = _extract_vung(spec, path)
+    else:
+        recs, warn = [], []
+        for i, v in enumerate(vung, 1):
+            r, w = _extract_vung(_tron_vung(spec, v), path)
+            recs += r
+            warn += [f"[vùng {v.get('ten') or i}] {x}" for x in w]
+    if spec.get("tru_ngay_truoc") and not spec.get("_dang_doc_ngay_truoc"):
+        recs, w3 = _tru_ngay_truoc(spec, path, recs)
+        warn += w3
     return recs, warn
+
+
+def _tru_ngay_truoc(spec, path, recs):
+    """Ô nguồn là LUỸ KẾ TỪ ĐẦU THÁNG -> đổi thành số CỦA RIÊNG NGÀY bằng hiệu hai file liên tiếp.
+
+    Vì sao phải làm ở tầng nạp chứ không để tầng đọc trừ: `raw_rows` là sổ CỘNG ĐƯỢC — mọi màn đều
+    SUM theo kỳ/đơn vị. Nạp thẳng luỹ kế vào là chọn 3 ngày bất kỳ rồi cộng lại ra gấp mấy lần số
+    thật, và không có chỗ nào chặn được. Trừ ngay lúc nạp thì DB chứa đúng "số phát sinh trong
+    ngày", cộng bao nhiêu ngày cũng đúng.
+
+    Đây chính là cách kế toán chốt trong mapping XDV/VHKD (cột "Mô tả cách lấy API từ Cyber"):
+    "Lấy mã số B100: Báo cáo ngày sau - báo cáo ngày hôm trước". Đã đối chứng 30->31/08/2026 trên
+    báo cáo lợi nhuận khối XDV: hiệu luỹ kế = hiệu cột 'Kỳ này', LỆCH 0 ở cả B100/B110/B120/B130/
+    B410, và tách được tới từng xưởng.
+
+    BA QUY TẮC, đừng bỏ cái nào:
+      1. CHỈ TRỪ TRONG CÙNG MỘT THÁNG khi `tru_ngay_truoc: true`. Cột luỹ kế reset về 0 đầu mỗi
+         tháng, nên file ngày 01 phải giữ nguyên giá trị (nó ĐÃ là số của ngày), trừ với ngày 31
+         tháng trước là ra số âm khổng lồ.
+         NGOẠI LỆ `tru_ngay_truoc: "lien_thang"` — cho cột luỹ kế KHÔNG reset theo tháng (cột
+         "Lũy kế" của báo cáo LN toàn khối, luỹ kế từ khi thành lập). Ở đó CHÍNH ngày 01 mới cần
+         trừ với bản cuối tháng trước, còn giữ nguyên là nạp cả nghìn tỷ vào một ngày. Khai nhầm
+         khoá này cho cột reset theo tháng thì ngày 01 ra số ÂM bằng cả tháng trước — kiểm bằng
+         cách xem giá trị bản ngày 01 có nhỏ hơn bản ngày 31 tháng trước hay không.
+      2. FILE TRƯỚC = file có ngày LỚN NHẤT còn nhỏ hơn ngày đang nạp, KHÔNG phải "hôm qua".
+         Nguồn nghỉ cuối tuần/lễ nên chuỗi ngày đứt quãng; lấy cứng d-1 là mất trắng phần phát
+         sinh giữa hai lần nộp. Khi khoảng cách > 1 ngày thì hiệu là số GỘP của cả quãng, gán vào
+         ngày cuối quãng — có cảnh báo để người soi biết, vì phân bố theo ngày lúc đó không thật.
+      3. DÒNG BIẾN MẤT so với file trước vẫn phải đẻ bản ghi ÂM: nếu kỳ trước một xưởng có số mà
+         kỳ này hết (bị điều chỉnh giảm về 0), bỏ qua là để lại phần dôi vĩnh viễn trong DB.
+    """
+    warn = []
+    ngay_nay, _ = ngay_tu_ten_file(spec, path)
+    if not ngay_nay:
+        return recs, ["tru_ngay_truoc: không đọc được ngày từ tên file -> giữ nguyên luỹ kế"]
+    nguon = spec.get("nguon") or {}
+    thu_muc = os.path.dirname(path)
+    ung_vien = []
+    for f in glob.glob(os.path.join(thu_muc, nguon.get("file_glob") or "*.xlsx")):
+        d, _ = ngay_tu_ten_file(spec, f)
+        cung_thang = spec.get("tru_ngay_truoc") != "lien_thang"
+        if d and d < ngay_nay and (d[:7] == ngay_nay[:7] or not cung_thang):
+            ung_vien.append((d, f))
+    if not ung_vien:
+        # NGÀY ĐẦU THÁNG KHÔNG CÓ GÌ ĐỂ TRỪ (user chốt 05/09/2026: "cái của ngày đầu tháng thì
+        # không cần trừ đi"). Nhưng nếu cột đang đọc là luỹ kế LIÊN THÁNG thì ô của chính nó là
+        # luỹ kế từ khi thành lập — hàng nghìn tỷ, không phải số của ngày. `cot_ngay_dau_thang`
+        # khai cột thay thế CHỈ dùng cho bản đầu tháng: trên bản ngày 01, cột "Kỳ này" CHÍNH LÀ
+        # luỹ kế trong tháng tính tới ngày 01, tức đúng con số mà phép trừ lẽ ra phải cho ra.
+        # Không phải trộn hai thước đo — vẫn là "luỹ kế trong tháng", chỉ đọc ở cột mang nó.
+        cot_dt = spec.get("cot_ngay_dau_thang")
+        if cot_dt:
+            spec2 = json.loads(json.dumps({k: v for k, v in spec.items()
+                                           if k not in ("tru_ngay_truoc",)}))
+            for c in spec2.get("cot_gia_tri") or []:
+                c["header"] = cot_dt
+            recs, _w2 = extract_file({**spec2, "_dang_doc_ngay_truoc": True}, path)
+            return ([r for r in recs if abs(r.get("amount") or 0) > 1e-9],
+                    [f"tru_ngay_truoc: {ngay_nay} là bản đầu tiên có trong tháng -> KHÔNG trừ, "
+                     f"đọc cột '{cot_dt}' của chính bản này (xem `cot_ngay_dau_thang`)"])
+        return ([r for r in recs if abs(r.get("amount") or 0) > 1e-9],
+                [f"tru_ngay_truoc: {ngay_nay} là bản đầu tiên "
+                 + ("có trong thư mục" if spec.get("tru_ngay_truoc") == "lien_thang"
+                    else "có trong tháng")
+                 + " -> giữ nguyên luỹ kế"
+                 + ("" if spec.get("tru_ngay_truoc") != "lien_thang" else
+                    " — VỚI CỘT LUỸ KẾ LIÊN THÁNG ĐÂY LÀ SỐ RÁC (luỹ kế từ khi thành lập), "
+                    "đặt `chi_nap_tu_ngay` sau bản này để bỏ nó")])
+    ngay_truoc, file_truoc = max(ung_vien)
+    # MỘT SPEC CÓ THỂ TRỘN HAI GỐC SỐ. `xdv_pnl_ngay` khai 15 cột giá trị: cột "Lũy kế" của KHỐI
+    # (luỹ kế từ khi thành lập, phải trừ vắt tháng) và 14 cột ĐƠN VỊ (chạy theo gốc "Kỳ này",
+    # reset đầu tháng, KHÔNG được trừ vắt tháng). Trừ tất bằng một luật là ngày 01 mỗi tháng các
+    # xưởng bị trừ với bản cuối tháng trước và ra ÂM cả chục tỷ — đã xảy ra 05/09/2026, ngày 01/09
+    # ra −44,2572 tỷ. `khong_tru_lien_thang_dim2` liệt kê các `dim2` giữ nguyên giá trị của chính
+    # mình khi bản liền trước thuộc THÁNG KHÁC; trong cùng tháng thì mọi dòng vẫn trừ như nhau.
+    mien = set(spec.get("khong_tru_lien_thang_dim2") or ())
+    vat_thang = mien and ngay_truoc[:7] != ngay_nay[:7]
+    if vat_thang:
+        giu = [r for r in recs if r.get("dim2") in mien]
+        recs = [r for r in recs if r.get("dim2") not in mien]
+        warn.append(f"tru_ngay_truoc: bản liền trước ({ngay_truoc}) khác tháng -> giữ nguyên "
+                    f"{len(giu)} dòng có dim2 thuộc {sorted(mien)} (gốc số reset theo tháng)")
+    else:
+        giu = []
+    truoc, _w = extract_file({**spec, "_dang_doc_ngay_truoc": True}, file_truoc)
+    if vat_thang:
+        truoc = [r for r in truoc if r.get("dim2") not in mien]
+    if (dt.date.fromisoformat(ngay_nay) - dt.date.fromisoformat(ngay_truoc)).days > 1:
+        warn.append(f"tru_ngay_truoc: bản liền trước là {ngay_truoc}, cách {ngay_nay} hơn 1 ngày "
+                    f"-> số ghi vào {ngay_nay} là GỘP của cả quãng")
+
+    def khoa(r):
+        return (r.get("cost_center"), r.get("cong_ty"), r.get("khoi"),
+                r.get("dim1"), r.get("dim2"), r.get("dim3"))
+    cu = {}
+    for r in truoc:
+        cu[khoa(r)] = cu.get(khoa(r), 0.0) + (r.get("amount") or 0.0)
+    ra, EPS = [r for r in giu if abs(r.get("amount") or 0) > 1e-9], 1e-9
+    for r in recs:
+        k = khoa(r)
+        r["amount"] = (r.get("amount") or 0.0) - cu.pop(k, 0.0)
+        if abs(r["amount"]) > EPS:
+            ra.append(r)
+    # Khoá còn sót trong `cu` = có ở file trước, mất ở file này -> phần giảm, phải ghi âm (quy tắc 3)
+    mat = 0
+    for k, v in cu.items():
+        if abs(v) <= EPS:
+            continue
+        mau = dict(recs[0]) if recs else {}
+        mau.pop("payload", None)
+        r = {**mau, "cost_center": k[0], "cong_ty": k[1], "khoi": k[2],
+             "dim1": k[3], "dim2": k[4], "dim3": k[5], "amount": -v,
+             "payload": {**(spec.get("payload_them") or {}), "chi_con_o_ban_truoc": True}}
+        r["ngay"] = ngay_nay
+        ra.append(r)
+        mat += 1
+    if mat:
+        warn.append(f"tru_ngay_truoc: {mat} chỉ tiêu có ở bản {ngay_truoc} nhưng mất ở bản "
+                    f"{ngay_nay} -> ghi bản ghi ÂM để tổng luỹ kế vẫn khớp")
+    return ra, warn
 
 
 # Bộ nhớ đệm MỘT workbook (19/08/2026). `vung` và hai chế độ `moi_sheet_*` đọc CÙNG một file
@@ -1879,18 +2797,34 @@ def _extract_vung(spec, path):
             # dòng 8 tại T07 (T07 có thêm 7 dòng tiêu đề đơn vị/địa chỉ phía trên). Khai `dong`
             # cứng thì một trong hai sheet chắc chắn trượt; gộp `dong: [1,8]` cũng sai vì ô đầu
             # dòng 1 của T07 là tên chi nhánh, không phải "Mã số".
-            moc = _nd(hdr_cfg["tim_o"])
+            # `tim_o` nhận CHUỖI hoặc LIST nhãn mốc (thử theo thứ tự) — cùng lý do như `header`
+            # của một cột: nguồn đổi tên nhãn giữa các kỳ thì khai thêm ứng viên, không phải sửa code.
+            moc_ds = hdr_cfg["tim_o"]
+            moc_ds = [_nd(m) for m in (moc_ds if isinstance(moc_ds, list) else [moc_ds])]
             toi_da = int(hdr_cfg.get("toi_da", 30))
             quet = [list(r) for r in ws.iter_rows(min_row=1, max_row=toi_da, values_only=True)]
             max_hdr = 0
-            for i, r in enumerate(quet, start=1):
-                if any(_nd(c) == moc for c in r if c not in (None, "")):
-                    max_hdr = i
+            for moc in moc_ds:
+                for i, r in enumerate(quet, start=1):
+                    if any(_nd(c) == moc for c in r if c not in (None, "")):
+                        max_hdr = i
+                        break
+                if max_hdr:
                     break
             if not max_hdr:
-                return [], [f"không tìm được dòng header chứa '{hdr_cfg['tim_o']}' "
+                return [], [f"không tìm được dòng header chứa {hdr_cfg['tim_o']!r} "
                             f"trong {toi_da} dòng đầu sheet '{sheet}'"]
-            hmap = _map_header(quet[:max_hdr], max_hdr)
+            # `gop_tren` (20/09/2026): header thật gồm HAI TẦNG — dòng mốc là tên cột chi tiết,
+            # dòng ngay trên là nhãn nhóm phủ mấy cột (và mang luôn những cột KHÔNG có tầng hai:
+            # STT, Pháp nhân, Khối, Coscenter…). Không gộp thì mất sạch nhóm cột đó.
+            # VÌ SAO KHÔNG KHAI `dong: [6, 5]` CHO XONG: trong CÙNG MỘT FILE bảo hiểm T9/2026, sheet
+            # "DSTD BHMMTB" để header ở 5-6 còn "DSTD BHTNDS"/"DSTD BHVC" tụt xuống 6-7. Ghim cứng
+            # thì hai sheet sau đọc dòng 7 (vốn là header) thành DỮ LIỆU, và nhãn nhóm "Thông báo"
+            # ở dòng 6 bị khớp nhầm sang cột "Ngày bắt đầu" -> trạng thái hạn bảo hiểm ra NGÀY
+            # THÁNG. Hỏng im lặng: vẫn đủ 599 dòng, chỉ sai nội dung.
+            tren = int(hdr_cfg.get("gop_tren", 0))
+            dong_gop = [max_hdr] + [max_hdr - k for k in range(1, tren + 1) if max_hdr - k >= 1]
+            hmap = _map_header(quet[:max_hdr], dong_gop)
         else:
             hdr_dong = hdr_cfg.get("dong", 1)
             max_hdr = max(hdr_dong) if isinstance(hdr_dong, list) else hdr_dong
@@ -1911,18 +2845,28 @@ def _extract_vung(spec, path):
                 _nam = int(mn.group(1))
             else:
                 warn.append(f"không dò được NĂM từ tên file: {os.path.basename(path)}")
-        if any(c.get("kieu") == "ngay_trong_thang" for _, c in cot.values()):
+        if any(c.get("kieu") in ("ngay_trong_thang", "ngay_dd_mm") for _, c in cot.values()):
             _ky_ngay, w5 = _ky_thang(spec, path)
             warn.extend(w5)
         for dich, (j, c) in list(cot.items()):
             if c.get("kieu") == "thang_cuoi":
                 cot[dich] = (j, {**c, "_nam": _nam})
-            elif c.get("kieu") == "ngay_trong_thang":
+            elif c.get("kieu") in ("ngay_trong_thang", "ngay_dd_mm"):
                 cot[dich] = (j, {**c, "_ky": _ky_ngay})
 
         chieu = {}
-        for dich, cfg in (spec.get("chieu_tu_ten_file") or {}).items():
-            m = re.search(cfg["regex"], os.path.basename(path), re.I)
+        # `chieu_tu_ten_sheet` (17/09/2026) — ANH EM của `chieu_tu_ten_file`, đọc TÊN SHEET đang
+        # mở thay vì tên file. Báo cáo tiến độ Showroom xếp MỖI SHOWROOM MỘT SHEET ("SR OceanPark"
+        # … "SR Cẩm Phả"); trong sheet không còn cột nào ghi tên đơn vị -> không hook được ở `cot`.
+        # Ghim thẳng `cost_center` vào từng `vung` thì vẫn chạy, nhưng phải chép tay cả `cong_ty`
+        # (UB_SR thuộc VFQN, 8 mã còn lại thuộc TC) và mã sẽ đứng im khi master đổi. Đi qua
+        # `chuan_hoa` thì master vẫn là nguồn sự thật duy nhất, y như mọi spec khác.
+        _muc_chieu = [(d, c, os.path.basename(path), "tên file")
+                      for d, c in (spec.get("chieu_tu_ten_file") or {}).items()]
+        _muc_chieu += [(d, c, str(sheet), "tên sheet")
+                       for d, c in (spec.get("chieu_tu_ten_sheet") or {}).items()]
+        for dich, cfg, _van_ban, _nhan_nguon in _muc_chieu:
+            m = re.search(cfg["regex"], _van_ban, re.I)
             v = (m.group(int(cfg.get("nhom", 1))) if m else cfg.get("mac_dinh"))
             v = (str(v).upper() if v and cfg.get("hoa") else v)
             # `chuan_hoa` (17/08/2026): CHÍNH cái tên bắt được từ file cũng cần chuẩn hoá. Báo cáo
@@ -1935,7 +2879,8 @@ def _extract_vung(spec, path):
                 res = _CHUAN_HOA[hook](v)
                 if isinstance(res, dict):
                     if res.get("_khong_map"):
-                        warn.append(f"{dich}: không map được {res['_khong_map']!r} (từ tên file)")
+                        warn.append(f"{dich}: không map được {res['_khong_map']!r} "
+                                    f"(từ {_nhan_nguon})")
                     chieu.update({k: x for k, x in res.items() if k != "_khong_map"})
                     continue
                 v = res
@@ -1945,9 +2890,35 @@ def _extract_vung(spec, path):
         # file công nợ T1 và T7 tuy cùng tên sheet nhưng bố cục KHÁC HẲN (T1 không có phân tách
         # kênh, header ở dòng 5). Không có chốt này thì T1 vẫn "chạy được" và đẻ ra 9,86 tỷ vô
         # nghĩa, im lặng — kiểu sai nguy hiểm nhất.
+        # Hai cách khai, chọn theo cách SPEC ĐỌC CỘT:
+        #   {"o": "R8", ...}    -> ô ĐÚNG VỊ TRÍ. Bắt buộc cho spec địa chỉ cột bằng CHỮ CỘT.
+        #   {"hang": 8, ...}    -> nhãn nằm ĐÂU ĐÓ trong hàng 8. Cho spec đọc cột theo HEADER.
+        #
+        # VÌ SAO CẦN CÁCH THỨ HAI (15/09/2026, sự cố thật). Cyber chèn thêm cột "Thanh toán
+        # VinPoint" vào giữa bảng kê hoá đơn bán xe: file từ 56 lên 57 cột, mọi cột từ P trở đi
+        # dịch phải một ô. `vhkd_kqkd_auto` địa chỉ cột theo TÊN HEADER nên việc đọc số hoàn toàn
+        # không hề gì — nhưng cái neo `R8 = "Ngày hóa đơn"` thành "Tư vấn bán hàng" và chốt từ
+        # chối cả file. Hậu quả: 61 hoá đơn ngày 14/09 không vào DB, bản tin sáng hôm sau báo
+        # XHĐ = 0 cho cả 9 showroom, đỏ toàn bảng — một báo động giả gửi thẳng tới giám đốc.
+        #
+        # Nói cách khác: chốt chặt hơn thứ nó cần chặn. Việc nó phải phát hiện là "file này KHÁC
+        # LOẠI báo cáo" (bảng công nợ T1 header ở dòng 5, không có cột kênh — nạp bừa là đẻ ra
+        # 9,86 tỷ vô nghĩa). Đòi nhãn phải nằm ĐÚNG ô thì mỗi lần nguồn chèn một cột vô hại là
+        # mất trắng một ngày dữ liệu.
+        #
+        # Kiểm theo HÀNG vẫn giữ nguyên sức mạnh đó: phải có ĐỦ các nhãn mốc trong đúng hàng
+        # header. File khác loại, hay header nằm dòng khác, vẫn trượt như cũ.
         for ktr in spec.get("kiem_tra_o") or []:
+            can = _nd(ktr.get("bang"))
+            if ktr.get("hang"):
+                hang = int(ktr["hang"])
+                if not any(can in _nd(c.value) for c in ws[hang]):
+                    co = [str(c.value)[:18] for c in ws[hang] if c.value][:8]
+                    return [], [f"BỎ QUA — layout khác spec: hàng {hang} không có nhãn "
+                                f"{ktr.get('bang')!r} (thấy: {co})"]
+                continue
             thuc = ws[ktr["o"]].value
-            if _nd(ktr.get("bang")) not in _nd(thuc):
+            if can not in _nd(thuc):
                 return [], [f"BỎ QUA — layout khác spec: ô {ktr['o']} = "
                             f"{str(thuc)[:40]!r}, cần chứa {ktr.get('bang')!r}"]
 
@@ -2031,13 +3002,33 @@ def _extract_vung(spec, path):
                     else:
                         # Chấp cả "01" lẫn "Ngày 01": bản kế hoạch ngày của Showroom ghi tiêu
                         # đề cột là "Ngày 01".."Ngày 31" chứ không phải số trần.
+                        txt = str(raw or "")
                         m = None if ky_tu_o else \
-                            re.match(r"^\s*(?:ng[àa]y\s*)?(\d{1,2})\s*$", str(raw or ""), re.I)
+                            re.match(r"^\s*(?:ng[àa]y\s*)?(\d{1,2})\s*$", txt, re.I)
+                        thang_cot = None
+                        if m is None and not ky_tu_o:
+                            # DẠNG "dd/mm" CÓ ĐUÔI (04/09/2026): kế hoạch xuất hoá đơn 15 ngày ghi
+                            # tiêu đề cột là "01/09 (T3)", "05/09 (T7)*" — có cả thứ trong tuần và
+                            # dấu * đánh dấu ngày cao điểm. Mẫu cũ neo `$` nên không khớp, và cột
+                            # ngày không dựng được thì spec BỎ QUA CẢ FILE.
+                            # Bắt buộc có dấu `/`: KHÔNG nới mẫu cũ thành "số + rác phía sau", vì
+                            # thế là mọi tiêu đề bắt đầu bằng chữ số ("15 Ngày", "9 Showroom")
+                            # đều thành một cột ngày và bảng đẻ ra ngày không có thật.
+                            m = re.match(r"^\s*(\d{1,2})\s*/\s*(\d{1,2})\b", txt)
+                            if m:
+                                thang_cot = int(m.group(2))
                         if m:
-                            try:
-                                ngay_cot = dt.date(y, mo, int(m.group(1))).isoformat()
-                            except ValueError:
-                                ngay_cot = None   # ngày 30/31 ở tháng ngắn -> cột thừa, bỏ qua
+                            # Có tháng trong chính tiêu đề thì PHẢI khớp tháng của file — cùng
+                            # phép kiểm mà nhánh ô-ngày-thật ở trên đang làm. Bỏ qua bước này là
+                            # cột của tháng khác lặng lẽ rơi vào kỳ này.
+                            if thang_cot is not None and thang_cot != mo:
+                                warn.append(f"cột {get_column_letter(j + 1)} ghi {txt.strip()!r} "
+                                            f"không thuộc tháng {mo:02d} của file -> bỏ cột")
+                            else:
+                                try:
+                                    ngay_cot = dt.date(y, mo, int(m.group(1))).isoformat()
+                                except ValueError:
+                                    ngay_cot = None   # ngày 30/31 ở tháng ngắn -> cột thừa, bỏ
                     if ngay_cot:
                         ngay_theo_cot.append((j, ngay_cot))
             if not ngay_theo_cot:
@@ -2077,6 +3068,7 @@ def _extract_vung(spec, path):
                 return [], [*warn, "BỎ QUA — không dựng được dải cột theo tháng"]
 
         khong_map, khong_map_giu, bo_loc, o_loi = {}, {}, 0, {}
+        bo_khac_ngay = 0       # xem `chi_lay_ngay_cua_file`
         ngu_canh = {}          # ngữ cảnh mang từ dòng tiêu đề xuống, xem `ngu_canh_dong`
         lap_lai_cuoi = {}      # giá trị gần nhất của cột khai `lap_lai`, xem ngay dưới
         nc_cfg = spec.get("ngu_canh_dong")
@@ -2138,6 +3130,12 @@ def _extract_vung(spec, path):
                         val = lap_lai_cuoi.get(dich)
                     else:
                         lap_lai_cuoi[dich] = val
+                if cfg.get("_ghep_j") and val not in (None, ""):
+                    # Xem `_resolve_cot`: ghép cột phụ vào TRƯỚC giá trị chính, ngăn bằng " | ".
+                    truoc = [str(row[k]).strip() for k in cfg["_ghep_j"]
+                             if k < len(row) and row[k] not in (None, "")]
+                    if truoc:
+                        val = " | ".join(truoc + [str(val).strip()])
                 hook = cfg.get("chuan_hoa")
                 # `chuan_hoa_khi_rong`: chạy hook CẢ KHI ô trống, vì với cột này "để trống" là
                 # một TRẠNG THÁI chứ không phải thiếu dữ liệu. Cột "số ngày quá hạn" của công nợ
@@ -2237,13 +3235,19 @@ def _extract_vung(spec, path):
                         if j2 is not None:
                             r2["amount2"] = _so(row[j2] if j2 < len(row) else None,
                                                 float(c["amount2"].get("he_so", 1.0)))
-                    for k2 in ("dim1", "dim2", "dim3"):
+                    # `cost_center`/`cong_ty`/`khoi` trong khai báo cột (20/08/2026): báo cáo lợi
+                    # nhuận khối XDV xếp MỖI XƯỞNG MỘT CỘT (I->V) bên phải cột "Kỳ này" của cả
+                    # khối, còn chiều "chỉ tiêu" thì nằm ở CỘT MÃ SỐ của từng dòng. Không có khoá
+                    # này thì phải khai 14 spec gần giống hệt nhau, mỗi spec một xưởng.
+                    for k2 in ("dim1", "dim2", "dim3", "cost_center", "cong_ty", "khoi"):
                         if c.get(k2):
                             r2[k2] = c[k2]
                     outs.append(r2)
             else:
                 outs.append(base)
             for r2 in outs:
+                _doi_gia_tri(r2, spec.get("doi_gia_tri"))
+                _tinh_han_no(r2, spec.get("tinh_han_no"), ngay_file)
                 _dan_xuat(r2, spec.get("dan_xuat"))
                 hong = r2.pop("_khong_map", None)
                 giu = r2.pop("_khong_map_giu", None)
@@ -2258,10 +3262,24 @@ def _extract_vung(spec, path):
                     khong_map[hong] = khong_map.get(hong, 0) + 1
                 elif hong or not _qua_loc(r2, spec.get("loc")):
                     bo_loc += 1
+                elif (spec.get("chi_lay_ngay_cua_file") and ngay_file
+                        and r2.get("ngay") and r2["ngay"] != ngay_file):
+                    # CHỈ GIỮ DÒNG THUỘC ĐÚNG NGÀY CỦA FILE (04/09/2026). Vài nguồn ngày của Cyber
+                    # cho lẫn sang ngày HÔM SAU: `TEST_XDV/bangkehoadondv` bản 26/08 chứa 61 hoá
+                    # đơn ghi ngày 27/08, mà bản 27/08 cũng có đủ 61 cái đó -> ngày 27/08 bị cộng
+                    # đôi 178.253.949 đ. Không khử được bằng `loc` vì `loc` không biết ngày file.
+                    # Dòng bị bỏ ở đây LUÔN xuất hiện lại trong file của đúng ngày nó, nên không
+                    # mất số; đã kiểm 61/61 số hoá đơn đều có trong bản 27/08.
+                    bo_khac_ngay += 1
                 else:
                     recs.append(r2)
         if bo_loc:
             warn.append(f"bỏ {bo_loc} {_W_BO_LOC}")
+        if bo_khac_ngay:
+            # Đếm RIÊNG chứ không gộp vào `bo_loc`: đây là dòng ĐÚNG dữ liệu nhưng thuộc file
+            # khác, số phải nhìn thấy được để biết nguồn đang lẫn ngày tới mức nào.
+            warn.append(f"bỏ {bo_khac_ngay} dòng thuộc ngày khác ngày của file "
+                        f"(chi_lay_ngay_cua_file, ngày file = {ngay_file})")
         if o_loi:
             # Ô lỗi Excel đã bị coi là trống ở trên — báo ra để biết FILE NGUỒN chưa cập nhật
             # xong, đừng đi tìm lỗi ở spec/deriver.
@@ -2289,6 +3307,18 @@ def _source_id(path):
 
 def _ghi(spec, path, recs):
     source_file = _source_id(path)
+    # ── `source_file_hau_to` (09/09/2026): TÁCH PHẠM VI XOÁ khi HAI SPEC cùng report_type đọc
+    # CÙNG một file ────────────────────────────────────────────────────────────────────────────
+    # `_ghi` xoá theo (report_type, source_file) rồi nạp lại. Hai spec cùng report_type trên cùng
+    # một file thì spec chạy SAU xoá sạch dữ liệu của spec chạy TRƯỚC — đúng ca bắt được hôm nay:
+    # `vhkd_kehoach_ngay_sl` (sheet 'KHngàytheokenh', kỳ T8) và `vhkd_kehoach_ngay_sl_t9` (sheet
+    # 'KHT9ngaytheoSR', kỳ T9) đều là `VHKD_KH_SL_NGAY` trên `1.SR…Kehoachthang.xlsx` -> nạp xong
+    # `VHKD_KH_SL_NGAY` chỉ còn T9, T8 bay mất KHÔNG một cảnh báo nào (mỗi spec vẫn báo
+    # "written=80" / "written=78" đúng như nó ghi).
+    # Khai hậu tố -> source_file thành "<FOLDER>::<file>#<hậu tố>", hai spec có phạm vi xoá riêng.
+    # Đặt hậu tố theo TÊN SHEET để bảng "Nguồn" đọc ra được đang xem lát nào của file.
+    if spec.get("source_file_hau_to"):
+        source_file = f"{source_file}#{spec['source_file_hau_to']}"
     conn = psycopg.connect(DB_URL)
     try:
         cur = conn.cursor()
@@ -2302,13 +3332,18 @@ def _ghi(spec, path, recs):
             by_ky.setdefault(r["ngay"][:7], []).append(r)
         rows, skipped, i = [], [], 0
         base_i = int(spec.get("row_index_base", 6500000))
+        ky_moi = []
         for period, items in sorted(by_ky.items()):
-            cur.execute("SELECT id FROM datasets WHERE kind='month' AND period=%s "
-                        "ORDER BY created_at DESC LIMIT 1", (period,))
-            got = cur.fetchone()
-            if not got:
+            # KỲ: nguồn spec là SỐ THỰC TẾ -> được khai sinh kỳ đã tới. Kỳ TƯƠNG LAI vẫn bị chặn
+            # (nguồn KẾ HOẠCH NĂM ghi trọn 12 kỳ trong một lần nạp — cho tạo là hôm nay mọc ngay
+            # 2026-10/11/12 rỗng). Chi tiết 4 chốt: servers/common/dataset_ky.py.
+            ds_ky, _tt = _DSK.lay_hoac_tao_ky(cur, period, nguon=source_file)
+            if not ds_ky:
                 skipped.append(period)
                 continue
+            if _tt == _DSK.MOI_TAO:
+                ky_moi.append(period)
+            got = (ds_ky,)
             for r in items:
                 i += 1
                 rows.append((got[0], spec["report_type"], base_i + i, r.get("ngay"),
@@ -2323,17 +3358,215 @@ def _ghi(spec, path, recs):
                 "source_file) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)", rows)
         conn.commit()
         return {"written": len(rows),
-                **({"bo_qua_chua_co_dataset": skipped} if skipped else {}),
+                **({"ky_moi_tao": ky_moi} if ky_moi else {}),
+                # Sau 03/09/2026 khoá này CHỈ còn chứa kỳ KHÔNG ĐƯỢC PHÉP tự tạo (tương lai / cũ
+                # hơn 24 tháng / sai dạng) — không còn nghĩa "kỳ chưa ai nạp báo cáo tháng" như
+                # tên cũ `bo_qua_chua_co_dataset`. Đổi tên để đọc log không kết luận nhầm.
+                **({"bo_qua_ky_khong_tao_duoc": skipped} if skipped else {}),
                 **({"bo_qua_khong_co_ngay": thieu_ky} if thieu_ky else {})}
     finally:
         conn.close()
 
 
+_W_LECH_THANG = "SỐ TRONG FILE KHÔNG THUỘC THÁNG MÀ TÊN FILE KHAI"
+_W_CONG_DOI = "CỘNG ĐÔI TRONG MỘT FILE"
+_TEN_DON_VI_CACHE = {}
+
+
+def _moi_ten_don_vi():
+    """Khoá tên đã chuẩn hoá của MỌI cost center trong master_data (mọi khối) -> mã.
+
+    Dùng `_bo_tien_to(_nd(...))` đúng như `_cc_theo_khoi` để hai vế cùng một dạng khoá.
+    Hỏng master_data thì trả rỗng -> chốt ở `_kiem_cong_doi` tự tắt, KHÔNG được chặn đường nạp.
+    """
+    if not _TEN_DON_VI_CACHE:
+        _TEN_DON_VI_CACHE["_da_nap"] = ""
+        try:
+            for cc in _master_loader().master_data().get("costCenters", []):
+                k = _bo_tien_to(_nd(cc.get("ten")))
+                if len(k) >= 4:
+                    _TEN_DON_VI_CACHE[k] = str(cc.get("ma") or "").strip()
+        except Exception:                                          # noqa: BLE001
+            pass
+    return _TEN_DON_VI_CACHE
+
+
+def _spec_phan_cap(spec):
+    """Các quy tắc `ngu_canh_dong` GÁN cost_center — tức spec tự khai "file này phân cấp:
+    tên đơn vị nằm ở DÒNG TIÊU ĐỀ riêng, các dòng số bên dưới thuộc về nó"."""
+    nc = spec.get("ngu_canh_dong")
+    return [r for r in ([nc] if isinstance(nc, dict) else (nc or []))
+            if "cost_center" in (r.get("gan") or {})]
+
+
+def _kiem_cong_doi(spec, recs):
+    """Chốt CỘNG ĐÔI TRONG MỘT FILE cho spec phân cấp. Trả cảnh báo, hoặc None.
+
+    VÌ SAO (bắt 31/08/2026, `Baocaodoanhthungay` khối I): kế toán đổi bố cục — dòng tên xưởng
+    trước ở `cột A = "3S có đồng sơn" · cột B = "Ocean Park"` (KHÔNG mã), nay mang luôn mã
+    `B100` ở cột A. Quy tắc "dòng tên xưởng" đòi cột A KHÔNG khớp mẫu mã `^B[0-9]+$` nên nay
+    không nổ nữa:
+    (1) cả khối I mất cost_center, (2) chính dòng đó thành một dòng SỐ, nằm chung xô cấp khối
+    với dòng tổng của file -> doanh thu XDV T8 lên 85,098 tỷ trong khi file ghi 42,549 tỷ,
+    ĐÚNG GẤP ĐÔI vì hai vế bằng nhau tuyệt đối.
+
+    KHÔNG một lớp nào cũ bắt được: `_ghi` xoá theo `source_file` rồi nạp lại nên không phải nạp
+    chồng; `moi_ky_lay_file_moi_nhat` chỉ soi nhiều file cùng kỳ; bước "RÀ SOÁT CỘNG ĐÔI" của cron
+    chỉ hỏi "có 2 file cùng đóng góp một lát không"; `kiem_tra_o` thì ô mốc A9/C9 vẫn nguyên. Sai
+    số 2× sống nửa ngày trên dashboard chủ tịch mà không có một dòng cảnh báo nào.
+
+    HAI BẤT BIẾN, chỉ áp cho spec CÓ khai `ngu_canh_dong` gán cost_center (hôm nay là 3 spec của
+    file doanh thu XDV) — spec phẳng không có khái niệm "dòng tiêu đề đơn vị" nên không đụng tới:
+      1. Đã khai dòng tiêu đề đơn vị thì phải có ÍT NHẤT một dòng nhận được cost_center.
+      2. Dòng ở CẤP KHỐI (cost_center rỗng) KHÔNG được mang nhãn của một đơn vị trong master_data.
+         Ở trạng thái lành, nhãn cấp khối là "TỔNG DOANH THU XDV" / "Doanh thu công việc (XHĐ)" /
+         "Lệnh bảo hành (W)" — không cái nào là tên xưởng.
+    Vi phạm -> `run()` trả rỗng kèm cảnh báo và KHÔNG ghi, tức GIỮ NGUYÊN dữ liệu cũ đang đúng.
+    Cùng triết lý `_kiem_thang_ten_file`: thà đứng lại ở số của hôm qua còn hơn ghi đè bằng số
+    gấp đôi mà không ai biết.
+    """
+    if not recs or not _spec_phan_cap(spec):
+        return None
+    if not any(r.get("cost_center") for r in recs):
+        return (f"{_W_CONG_DOI}: spec khai dòng tiêu đề đơn vị nhưng KHÔNG MỘT dòng nào trong "
+                f"{len(recs)} dòng nhận được cost_center -> file đã đổi bố cục, mọi dòng đang "
+                f"đứng ở cấp khối và sẽ cộng chung với dòng tổng. BỎ QUA cả file: sửa "
+                f"`ngu_canh_dong` của spec cho khớp bố cục mới rồi nạp lại.")
+    ten_dv = _moi_ten_don_vi()
+    if len(ten_dv) <= 1:
+        return None           # không đọc được master_data -> không chấm, đừng chặn đường nạp
+    lac = {}
+    for r in recs:
+        if r.get("cost_center"):
+            continue
+        for k in ("dim1", "dim2", "dim3"):
+            v = r.get(k)
+            if v and _bo_tien_to(_nd(v)) in ten_dv:
+                lac[f"{k}={v}"] = lac.get(f"{k}={v}", 0) + 1
+                break
+    if not lac:
+        return None
+    top = ", ".join(f"{k!r} ({v} dòng)" for k, v in sorted(lac.items(), key=lambda x: -x[1])[:6])
+    return (f"{_W_CONG_DOI}: {sum(lac.values())} dòng ở CẤP KHỐI (cost_center rỗng) lại mang nhãn "
+            f"của một ĐƠN VỊ — {top}. Dòng tiêu đề đơn vị đã lọt vào dữ liệu, cộng nó cùng dòng "
+            f"tổng của file là gấp đôi. BỎ QUA cả file: sửa `ngu_canh_dong` của spec cho khớp bố "
+            f"cục mới rồi nạp lại.")
+
+
+def _kiem_thang_ten_file(spec, path, recs):
+    """Tên file khai tháng nào thì file phải CÓ số của tháng đó. Trả cảnh báo, hoặc None.
+
+    VÌ SAO (bắt 29/08/2026, `Xuathoadon_GF_T7.xlsx`): file mang tên T7 nhưng ruột là BẢN SAO của
+    T6 — 11 hoá đơn, 5,5331 tỷ, ngày hoá đơn toàn tháng 6. Kỳ của nguồn này suy từ CỘT NGÀY chứ
+    không từ tên file, nên nó nạp "thành công" và cộng thêm một lần nữa vào tháng 6 (GF tháng 6
+    hiện 11,0662 = đúng gấp đôi), còn tháng 7 thì trống trơn. Không một lớp nào bắt được: tên file
+    khác nhau nên `_ghi` không đè, kỳ suy ra khác nhau nên `moi_ky_lay_file_moi_nhat` coi là hai
+    kỳ độc lập, và `_SNAP_RT` thì KDVH vốn là báo cáo dòng nên không đụng tới.
+
+    Chốt LỎNG có chủ ý — chỉ từ chối khi KHÔNG MỘT DÒNG NÀO rơi vào tháng được khai. Hoá đơn xuất
+    tràn sang đầu tháng sau là chuyện bình thường, siết chặt hơn là chặn nhầm dữ liệu thật; còn
+    "không có lấy một dòng của chính tháng mình" thì chắc chắn là file gửi nhầm.
+    """
+    pat = spec.get("thang_tu_ten_file_regex")
+    if not pat or not recs:
+        return None
+    m = re.search(pat, os.path.basename(path), re.IGNORECASE)
+    if not m:
+        return None
+    try:
+        thang = int(m.group(1))
+    except (ValueError, IndexError):
+        return None
+    co = sorted({(r.get("ngay") or "")[:7] for r in recs if r.get("ngay")})
+    if not co or any(k[5:7] == f"{thang:02d}" for k in co):
+        return None
+    return (f"{_W_LECH_THANG}: tên khai T{thang} nhưng {len(recs)} dòng đọc được đều thuộc "
+            f"{', '.join(co)} -> BỎ QUA cả file. Đây là lỗi FILE NGUỒN (gửi nhầm bản của tháng "
+            f"khác), nạp vào là cộng đôi tháng kia và để trống tháng này. Báo kế toán gửi lại.")
+
+
+_W_NGAY_TUONG_LAI = "NGÀY CHƯA TỚI TRONG FILE NGUỒN"
+
+# Giờ VN cố định +07 — KHÔNG dùng `dt.date.today()`: crontab trên máy này chạy giờ UTC (xem
+# `crontab-252-dung-gio-utc`), nên từ 00:00 đến 07:00 giờ VN `today()` còn đứng ở HÔM QUA và sẽ
+# cắt nhầm đúng ngày dữ liệu mới nhất — cắt nhầm số thật tệ hơn hẳn giữ thừa số rỗng.
+_TZ_VN = dt.timezone(dt.timedelta(hours=7))
+
+
+def _hom_nay_vn():
+    return dt.datetime.now(_TZ_VN).date().isoformat()
+
+
+def _ngay_theo_vi_tri(spec):
+    """Spec suy `ngay` từ VỊ TRÍ trong khuôn tháng (cột / sheet / dòng = số ngày) hay không?
+
+    Đây là ranh giới của phép cắt ngày tương lai, và nó theo CƠ CHẾ chứ không theo report_type:
+      · VỊ TRÍ (`moi_cot_ngay`, `moi_sheet_ngay`, `ngay_trong_thang`, `ngay_dd_mm`) — khuôn có sẵn
+        đủ 28-31 ô/sheet/dòng cho cả tháng NGAY TỪ NGÀY 01. Ô của ngày chưa tới không rỗng: nguồn
+        điền sẵn hằng số (An Taxi để "Tổng số xe" = 91 cả 30 dòng), công thức luỹ kế bám số cuối
+        (Xanh VP giữ nguyên GMV luỹ kế 11,34 tỷ tới 30/09), hoặc 0. Bộ trích xuất không phân biệt
+        được "ô điền sẵn" với "số thật" nên phải chặn bằng MỐC NGÀY.
+      · NGÀY THẬT ĐỌC ĐƯỢC (`kieu: "date"` — ngày hoá đơn/hợp đồng) hoặc `ngay_tu_ten_file`: KHÔNG
+        cắt. Ngày ở đây là dữ liệu, không phải chỉ số ô; hợp đồng/hoá đơn ghi ngày sau hôm nay là
+        chuyện có thật, cắt đi là mất số.
+      · `thang_cuoi` (mốc CUỐI THÁNG của nguồn tháng): KHÔNG cắt, và đây là lý do không được viết
+        luật thành "mọi ngay > hôm nay". Nguồn tháng gắn `ngay` = ngày cuối kỳ, nên suốt tháng 9
+        mọi dòng THÁNG đều mang 2026-09-30 — cắt theo mốc là xoá trắng SDT/VAY/VHKD_PTHU/QLTS…
+        của chính kỳ đang chạy.
+    """
+    if spec.get("giu_ngay_tuong_lai"):
+        return False
+    _KIEU = ("ngay_trong_thang", "ngay_dd_mm")
+
+    def _co(cfg):
+        if cfg.get("ban_ghi") == "moi_cot_ngay" or cfg.get("cot_ngay"):
+            return True
+        return ((cfg.get("cot") or {}).get("ngay") or {}).get("kieu") in _KIEU
+
+    if ((spec.get("nguon") or {}).get("sheet") or {}).get("moi_sheet_ngay"):
+        return True
+    return _co(spec) or any(_co(v) for v in (spec.get("vung") or []))
+
+
+def _bo_ngay_tuong_lai(spec, recs):
+    """Bỏ bản ghi mang `ngay` > hôm nay ở các spec suy ngày theo VỊ TRÍ (`_ngay_theo_vi_tri`).
+
+    VÌ SAO Ở TẦNG NẠP chứ không kẹp ở tầng đọc (chốt 15/09/2026, sau khi dashboard hiện ngày 15 và
+    16 trong lúc số thật mới tới 13): `raw_rows` là sổ CỘNG ĐƯỢC. Dòng ngày chưa tới không chỉ làm
+    lệch dải ngày mặc định — nó cộng thẳng vào mọi phép luỹ kế theo khoảng (chọn 01→16 là ăn thêm
+    một ngày doanh thu ma), và những ô hằng số điền sẵn còn ra số RÁC chứ không phải 0 (Xanh VP để
+    "Tổng nhân sự" = 89 ở mọi ngày từ 14/09, số thật ~1.225). Chặn một lần lúc nạp thì mọi màn,
+    mọi báo cáo, mọi truy vấn tay đều sạch; kẹp ở tầng đọc thì phải nhớ kẹp ở từng chỗ.
+
+    Kế hoạch là ngoại lệ DUY NHẤT và phải khai tường minh `giu_ngay_tuong_lai` trong spec: kế
+    hoạch vốn rải trọn tháng, ngày chưa tới mới là phần có ích nhất của nó.
+    """
+    if not recs or not _ngay_theo_vi_tri(spec):
+        return recs, []
+    moc = _hom_nay_vn()
+    bo = sorted({r["ngay"] for r in recs if (r.get("ngay") or "") > moc})
+    if not bo:
+        return recs, []
+    giu = [r for r in recs if not ((r.get("ngay") or "") > moc)]
+    return giu, [f"{_W_NGAY_TUONG_LAI}: bỏ {len(recs) - len(giu)} dòng của {len(bo)} ngày chưa tới "
+                 f"({bo[0]}..{bo[-1]}, mốc hôm nay {moc}). Khuôn tháng có sẵn ô cho cả tháng, ô "
+                 f"ngày chưa tới là hằng số/công thức điền trước — không phải số thật."]
+
+
 def run(spec, path, write=False):
     try:
         recs, warn = extract_file(spec, path)
+        recs, w_tl = _bo_ngay_tuong_lai(spec, recs)
+        warn = [*warn, *w_tl]
     finally:
         _dong_wb()          # xong một file thì nhả workbook trong đệm (xem `_mo_wb`)
+    lech = _kiem_thang_ten_file(spec, path, recs) or _kiem_cong_doi(spec, recs)
+    if lech:
+        # Trả rỗng KÈM cảnh báo và KHÔNG có `_W_BO_LOC` -> nhánh ghi ở dưới bỏ qua, dữ liệu cũ của
+        # chính file này (nếu có) giữ nguyên. Xoá là việc của người đọc cảnh báo, không phải của
+        # một chốt tự động: file có thể từng nạp đúng rồi mới bị gửi đè bằng bản nhầm.
+        return {"file": os.path.basename(path), "dong": 0, "ky": {},
+                "canh_bao": [lech, *warn]}
     by_ky = {}
     for r in recs:
         by_ky.setdefault((r.get("ngay") or "?")[:7], []).append(r)

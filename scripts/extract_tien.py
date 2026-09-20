@@ -295,8 +295,32 @@ def _val_col(rows):
 
 
 _HT_SUBS = (("TM", "Tiền mặt"), ("NH", "Tiền gửi"), ("TVAY", "Tiền vay"))
-# Offset cột CẢ KỲ so với cột tổng D (vc): E=TM, F=NH, G=TVAY — dùng để đối chiếu bản ngày.
+# Offset cột CẢ KỲ so với cột tổng (vc) — CHỈ còn là bản lùi khi không dò được header theo text.
 _HT_PERIOD_OFF = ((1, "Tiền mặt"), (2, "Tiền gửi"), (3, "Tiền vay"))
+
+
+def _period_cols(hdr_row, vc, ndays=31) -> dict:
+    """{hình thức: cột} của khối CẢ KỲ (lũy kế) — dò theo TEXT 'TM'/'NH'/'TVAY' đứng TRƯỚC cột
+    ngày đầu tiên, KHÔNG dùng offset cố định so với cột tổng.
+
+    Bắt buộc dò theo text: sheet 'BC THU CHI_T*_TC' từ T08/2026 ĐẢO 2 cột đầu ('TM + TG + T.VAY'
+    ở C, 'T/MINH' ở D) trong khi mọi sheet khác vẫn 'T/MINH' ở C, tổng ở D -> offset vc+1/2/3 của
+    riêng sheet TC trượt sang T/MINH|TM|NH, đọc NH thành 'Tiền vay'. Ở chế độ ngày hậu quả là 32
+    cảnh báo recon GIẢ mỗi lượt chạy (số nạp vẫn đúng vì cột ngày dò theo text); ở chế độ tháng
+    thì SAI SỐ THẬT. Không dò được (header lạ) -> rơi về offset cũ để không đổi hành vi."""
+    if hdr_row is None:
+        return {}
+    hdr = {i: str(x).strip() for i, x in enumerate(hdr_row) if x is not None and str(x).strip() != ""}
+    out = {}
+    for i in sorted(hdr):
+        if i <= vc:
+            continue
+        if re.fullmatch(r"\d{1,2}", hdr[i]) and 1 <= int(hdr[i]) <= ndays:
+            break                                    # tới khối ngày đầu tiên -> dừng
+        for lbl, name in _HT_SUBS:
+            if hdr[i] == lbl and name not in out:
+                out[name] = i
+    return out
 
 
 def _thuchi_extract(wb, period):
@@ -324,6 +348,7 @@ def _thuchi_extract(wb, period):
         hdr_row = next((r for r in rows[:12]
                         if any(isinstance(c, str) and "TM" in c.upper() and "VAY" in c.upper() for c in r)), None)
         dcols = _day_cols(hdr_row, nd, _HT_SUBS) if (daily and hdr_row is not None) else {}
+        pcols = _period_cols(hdr_row, vc, nd)        # cột lũy kế TM/NH/TVAY (dò theo text)
         sec = None                                       # 'A' (thu, mục I) / 'B' (chi, mục II)
         for r in rows:
             c0 = str(r[0]).strip() if r[0] not in (None, "") else ""
@@ -350,9 +375,10 @@ def _thuchi_extract(wb, period):
                             _sum[_ht] = _sum.get(_ht, 0.0) + _v
                             recs.append({_COL_KY: f"{period}-{_d:02d}", _COL_CTY: co, _COL_LOAI: loai,
                                          _COL_KM: c1, _COL_HT: _ht, _COL_TH: round(_v / 1e9, 9)})
-                    # đối chiếu với cột CẢ KỲ (vc+1/2/3) — ngưỡng 1.000đ để bỏ nhiễu làm tròn
+                    # đối chiếu với cột CẢ KỲ (dò theo text, xem _period_cols) — ngưỡng 1.000đ
+                    # để bỏ nhiễu làm tròn
                     for _off, _ht in _HT_PERIOD_OFF:
-                        _j = vc + _off
+                        _j = pcols.get(_ht, vc + _off)
                         _p = r[_j] if _j < len(r) and isinstance(r[_j], (int, float)) else 0.0
                         _delta = _sum.get(_ht, 0.0) - (_p or 0.0)
                         if abs(_delta) > 1e3:
@@ -361,8 +387,8 @@ def _thuchi_extract(wb, period):
                                           "ca_ky": round((_p or 0.0) / 1e9, 9),
                                           "lech": round(_delta / 1e9, 9)})
                     continue
-                for _off, _ht in ((1, "Tiền mặt"), (2, "Tiền gửi"), (3, "Tiền vay")):
-                    _j = vc + _off
+                for _off, _ht in _HT_PERIOD_OFF:
+                    _j = pcols.get(_ht, vc + _off)
                     _v = r[_j] if _j < len(r) and isinstance(r[_j], (int, float)) else None
                     if not _v:
                         continue

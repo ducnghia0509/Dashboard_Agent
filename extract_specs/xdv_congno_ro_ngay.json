@@ -1,0 +1,60 @@
+{
+  "id": "xdv_congno_ro_ngay",
+  "_mo_ta": "CÂN ĐỐI PHÁT SINH CÔNG NỢ THEO R/O (DV04) — nguồn TỰ ĐỘNG Cyber (ổ IT\\TESTBAOCAOTUDONG\\2.VINFAST_XDV -> VPS `TEST_XDV/cdpscongnotheoro`), mỗi ngày một file. Một bản ghi = MỘT DÒNG CÔNG NỢ theo R/O: nợ/có đầu kỳ, phát sinh, nợ/có cuối kỳ. Khai 07/09/2026 theo yêu cầu user, ĐỂ ĐỐI CHIẾU SONG SONG — xem `_bay`.",
+  "_kiem_chung": [
+    "05/09/2026: 24.220 dòng có 'Tài khoản', Σ 'Nợ cuối kỳ' = 73.420.947.706,5 đ và Σ 'Có cuối kỳ' = 8.621.843.088,48 đ — KHỚP TUYỆT ĐỐI dòng 'Tổng cộng' (r9) của chính file ở CẢ HAI cột.",
+    "Cùng 05/09: Σ 'Nợ đầu kỳ' = 71.426.769.602,5 · Σ 'Phát sinh nợ' = 2.034.527.316 · Σ 'Phát sinh có' = 143.619.622 — khớp dòng Tổng cộng.",
+    "24.220/24.220 dòng đều TÀI KHOẢN 13131. Cột 'Đơn vị' có dữ liệu và khớp tên xưởng XDV (Ocean Park 3.374 · Smart City 3.332 · Xuân Mai 2.663 · Vĩnh Phúc 2.002 · Đài Tư 1.940 · Sơn Tây 1.832 …)."
+  ],
+  "_bay": [
+    "LÝ DO ĐỂ NGOÀI CRON TRƯỚC ĐÂY ĐÃ ĐƯỢC SỬA LẠI HAI LẦN, ĐỌC KỸ: bản rà 03-04/09/2026 ghi 'nguồn rỗng'; bản rà 06/09/2026 sửa thành 'SAI BỘ TÀI KHOẢN' (11 ngày tới 04/09 thì rỗng 10/11, riêng 04/09 có 3 dòng và cả 3 đều TK 13131). Đo lại 07/09/2026 trên bản 05/09: file ĐÃ ĐẦY (24.220 dòng, 73,42 tỷ). Tức nguồn đã tự lành từ 05/09 — nhưng bộ tài khoản vẫn là 13131, KHÔNG PHẢI 13112/13117/13119/13812 mà mapping XDV khai. ĐỪNG gắn thẳng vào ô công nợ của mapping khi chưa chốt lại danh sách tài khoản với kế toán.",
+    "ĐÂY LÀ SỐ DƯ CÔNG NỢ (ảnh chụp tại ngày), KHÔNG PHẢI SỐ PHÁT SINH — KHÔNG bật `tru_ngay_truoc`. `amount` = 'Nợ cuối kỳ', `amount2` = 'Có cuối kỳ'; phát sinh trong kỳ đã nạp riêng ở `payload.ps_no` / `payload.ps_co`.",
+    "DÒNG 'Tổng cộng' NẰM Ở DÒNG 9 (đầu vùng), nhãn rơi vào cột J 'Tên đối tượng', cột A 'Tài khoản' bỏ trắng -> `dim1 khac_rong` gạt đúng nó. Đã kiểm 05/09: lọc xong Σ khớp tuyệt đối dòng Tổng cộng.",
+    "FILE RẤT LỚN (24k dòng/ngày, gấp ~40 lần các nguồn XDV ngày khác). Giữ đủ chuỗi ngày là DB phình nhanh — theo dõi dung lượng, và nếu chỉ cần số dư mới nhất thì cân nhắc `_SNAP_RT` thay vì giữ mọi ngày.",
+    "CÓ DÒNG RÁC Ở ĐẦU: 4 dòng đầu mang 'Số R/O' là 0000 / 00000000 / 01.00000000 / 01.000000000 (không phải R/O thật) nhưng vẫn có tiền ở 'Có cuối kỳ'. Chúng nằm trong dòng Tổng cộng của file nên spec GIỮ LẠI để khớp tổng — đừng lọc bỏ rồi thắc mắc sao lệch.",
+    "Mỗi ngày một file, KHÔNG luỹ kế -> `moi_ky_lay_file_moi_nhat: \"ngay\"`, bên cron khai `ANH_CHUP_KY`."
+  ],
+  "report_type": "XDV_CN_RO_D",
+  "row_index_base": 8890000,
+  "khoi": "Khối KD Vinfast - XDV",
+  "nguon": {
+    "folder": "TEST_XDV/cdpscongnotheoro",
+    "file_glob": "*.CDPSCongnotheoRO.xlsx",
+    "sheet": {"so": 0}
+  },
+  "kiem_tra_o": [
+    {"o": "A8", "bang": "Tài khoản"},
+    {"o": "L8", "bang": "Nợ đầu kỳ"},
+    {"o": "P8", "bang": "Nợ cuối kỳ"}
+  ],
+  "header": {"dong": 8},
+  "dong_bat_dau": 9,
+  "ngay_tu_ten_file": {"regex": "\\.D\\.(\\d{4})(\\d{2})(\\d{2})\\.", "thu_tu": "ymd"},
+  "moi_ky_lay_file_moi_nhat": "ngay",
+  "cot": {
+    "dim1": {"header": "Tài khoản"},
+    "cost_center": {"header": "Đơn vị", "chuan_hoa": "xdv", "bat_buoc": false},
+    "amount": {"header": "Nợ cuối kỳ", "kieu": "so_co_rong", "he_so": 1e-09},
+    "amount2": {"header": "Có cuối kỳ", "kieu": "so_co_rong", "he_so": 1e-09},
+    "dim2": {"header": "Tên nhóm khách hàng", "bat_buoc": false},
+    "dim3": {"header": "Trạng thái lệnh", "bat_buoc": false},
+    "payload.so_ro": {"header": "Số R/O", "bat_buoc": false},
+    "payload.so_ro_hang": {"header": "Số R/O hãng", "bat_buoc": false},
+    "payload.bks": {"header": "Biển số xe", "bat_buoc": false},
+    "payload.ma_doi_tuong": {"header": "Mã đối tượng", "bat_buoc": false},
+    "payload.ten_doi_tuong": {"header": "Tên đối tượng", "bat_buoc": false},
+    "payload.ngay_hd": {"header": "Ngày HĐ", "bat_buoc": false},
+    "payload.so_hd": {"header": "Số HĐ", "bat_buoc": false},
+    "payload.so_hddt": {"header": "Số HĐĐT", "bat_buoc": false},
+    "payload.cvdv": {"header": "Cố vấn dịch vụ", "bat_buoc": false},
+    "payload.no_dau_ky": {"header": "Nợ đầu kỳ", "kieu": "so_co_rong", "he_so": 1e-09, "bat_buoc": false},
+    "payload.co_dau_ky": {"header": "Có đầu kỳ", "kieu": "so_co_rong", "he_so": 1e-09, "bat_buoc": false},
+    "payload.ps_no": {"header": "Phát sinh nợ", "kieu": "so_co_rong", "he_so": 1e-09, "bat_buoc": false},
+    "payload.ps_co": {"header": "Phát sinh có", "kieu": "so_co_rong", "he_so": 1e-09, "bat_buoc": false},
+    "payload.tam_thu": {"header": "Tạm thu", "kieu": "so_co_rong", "he_so": 1e-09, "bat_buoc": false},
+    "payload.noi_dung": {"header": "Nội dung", "bat_buoc": false}
+  },
+  "ban_ghi": "moi_dong",
+  "loc": [{"cot": "dim1", "dieu_kien": "khac_rong"}],
+  "payload_them": {"unit": "ty", "nguon_he": "CĐPS công nợ theo RO ngày XDV (Cyber tự động)", "chua_len_man": "1"}
+}

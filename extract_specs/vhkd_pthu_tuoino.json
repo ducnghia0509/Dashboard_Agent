@@ -2,6 +2,7 @@
   "id": "vhkd_pthu_tuoino",
   "_mo_ta": "Tuổi nợ phải thu khối Showroom (DASHBOARD 2 chỉ tiêu 3-5, màn vhkd3 'Quản lý phải thu'). Nguồn: 1.VINFAST_SR/QUANTRINOIBO_VHKD/BaocaoCongno, sheet 'Tuổi nợ phải thu'.",
   "_bay": [
+    "BẬT `moi_ky_lay_file_moi_nhat` 29/08/2026: đây là ẢNH CHỤP TẠI THỜI ĐIỂM (report_type nằm trong `_SNAP_RT` ở backend). Nghiệp vụ gửi lại bản SỬA của cùng một kỳ dưới TÊN KHÁC thì `_ghi` (xoá theo source_file) không chặn được, và `_SNAP_RT` lấy MAX(ngay) cũng không phá được hoà -> cộng đôi im lặng. Đã kiểm trước khi bật: hiện mỗi kỳ của nguồn này đúng 1 file, bật cờ KHÔNG loại file nào đang có.",
     "Header nằm trên 2 DÒNG: dòng 2 ghi nhóm ('Công nợ quá hạn'), dòng 3 ghi dải thật ('1-30 ngày', '>30-90'…). Khai header.dong = [3, 2] để dòng 3 THẮNG — nếu để [2,3] thì cột H sẽ mang tên nhóm và 4 dải quá hạn dồn hết vào 1.",
     "Dòng 1 có ô tổng, NHƯNG ở file T7 các ô đó KHÔNG khớp tổng cộng dồn từng dòng (1,857 tỷ vs 34,6 tỷ) — công thức cũ/chỉ phủ 1 phần vùng. Luôn cộng từ dòng chi tiết, đừng đọc dòng tổng.",
     "Kỳ lấy từ hậu tố _T<m> của tên file, KHÔNG lấy cụm '2026.07.22' (đó là ngày lập báo cáo, giống nhau ở mọi kỳ).",
@@ -38,5 +39,6 @@
   "loc": [
     { "cot": "amount", "dieu_kien": "khac_rong" }
   ],
-  "payload_them": { "unit": "ty", "nguon": "aging_theo_khach_hang" }
+  "payload_them": { "unit": "ty", "nguon": "aging_theo_khach_hang" },
+  "moi_ky_lay_file_moi_nhat": true
 }

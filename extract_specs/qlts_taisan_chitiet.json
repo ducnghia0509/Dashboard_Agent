@@ -13,7 +13,8 @@
     "THU TU KHAI COT QUYET DINH KET QUA — `khoi` roi `cong_ty` roi `cost_center`. `_cc_qlts` tra ve dict (cost_center + cong_ty + khoi) nen no GHI DE hai cot khai truoc; dat `cong_ty` sau `cost_center` la cot Phap nhan de len cong ty van hanh, sai nghia va lam lech 2.171 dong. Dat truoc thi thanh nuoc lui dung y: va 3.687 dong ma don vi chua co ma chuan (chu yeu 2.738 tai san 'Son Tay (gom van phong, xuong, Nha Xanh...)') -> bo loc Cong ty cua man tai san phu 99% thay vi 81%.",
     "264 DONG VAN KHONG CO PHAP NHAN va DE NGUYEN nhu vay: cot nay lan ca ca nhan dung ten (BUI HUNG THINH 143), ben cho thue tai chinh (Chailease 8, BIDV SumiTrust 2), rac `0x2a` (90) va 9 o trong. Theo chot cua user: ngoai danh muc phap nhan tap doan thi KHONG tinh. Ban nguyen van giu o payload.phapNhanFile de truy vet.",
     "CHIEU PHAN TICH theo mapping (cot G sheet '2. Mapping chi tieu'): Cong ty; Don vi; Phong ban; Du an; Loai tai san; Thang; Quy; Nam. Anh xa: cong_ty + cost_center (Don vi/Du an — du an CHINH LA mot don vi, vd CB_DA 'Du an Cao Bang'), dim1 Loai tai san, dim3 Phong ban. dim2 giu Trang thai vi ty le su dung can no.",
-    "LAY LUON 8 cau phan SL + 8 cau phan NG (cung ten header voi sheet DON VI) de ts1/ts2/ts3 tinh THANG tu day. Bat buoc phai vay moi loc duoc theo mapping: sheet DON VI da gop san 8 dong khoi nen KHONG mang cong_ty/cost_center, ai chon loc Cong ty la man RONG. CHI TIET tai lap DUNG sheet DON VI theo tung khoi (da kiem 8/8 khoi, ca SL lan NG) nen doi nen khong doi mot con so nao."
+    "LAY LUON 8 cau phan SL + 8 cau phan NG (cung ten header voi sheet DON VI) de ts1/ts2/ts3 tinh THANG tu day. Bat buoc phai vay moi loc duoc theo mapping: sheet DON VI da gop san 8 dong khoi nen KHONG mang cong_ty/cost_center, ai chon loc Cong ty la man RONG. CHI TIET tai lap DUNG sheet DON VI theo tung khoi (da kiem 8/8 khoi, ca SL lan NG) nen doi nen khong doi mot con so nao.",
+    "Nguồn tài sản CHUYỂN SANG PHÁT HÀNH THEO TUẦN (20/09/2026): ngoài bản tháng `*.M.2026.8.Taisan.*` nay còn `*.D.2026.9.05.*`, `.9.12.*`, `.9.19.*` — cùng một bảng, chụp lại mỗi thứ Bảy. Regex kỳ cũ chỉ nhận `\\.M\\.` nên 3 file T9 vào tới máy mà engine báo 'không dò được kỳ' rồi BỎ QUA hết: dashboard đứng ở T8 trong khi nguồn đã có T9. Nới regex nhận cả `.D.` VÀ bật `moi_ky_lay_file_moi_nhat` — hai thứ BẮT BUỘC đi cùng nhau, nhận thêm file mà không chốt ảnh chụp là 3 bản T9 cộng dồn gấp ba. Đúng ghi chú mới của mapping cột K: 'Update báo cáo định kỳ theo tuần vào thứ 7 hàng tuần / Số liệu của những ngày không update = số liệu update gần nhất'."
   ],
   "_kiem_chung": [
     "T8/2026: 21.247 dòng; Σ cột 'SL TỒN CUỐI' = 21.212 (khớp ô AO5 và khớp sheet ĐƠN VỊ); Σ 'NG TỒN CUỐI' = 1.752.861.079.403,40 đ (khớp ô AZ5 và sheet ĐƠN VỊ).",
@@ -27,7 +28,7 @@
   "row_index_base": 7902000,
   "nguon": {
     "folder": "QLTS/baocaotaisanqlts",
-    "file_glob": "*.Taisan.xlsb",
+    "file_glob": "*.Taisan.xls*",
     "sheet": {
       "ten": "CHI TIẾT"
     }
@@ -217,11 +218,12 @@
     "unit": "ts"
   },
   "ky_tu_ten_file": {
-    "regex_nam": "\\.M\\.(\\d{4})\\.",
-    "regex_thang": "\\.M\\.\\d{4}\\.(\\d{1,2})\\."
+    "regex_nam": "\\.(?:M|D)\\.(\\d{4})\\.",
+    "regex_thang": "\\.(?:M|D)\\.\\d{4}\\.(\\d{1,2})[\\.\\s]"
   },
   "dan_xuat": {
     "payload.slGiam": "payload.slBan + payload.slThatThoat + payload.slHuy + payload.slTraLai",
     "payload.ngGiam": "payload.ngBan + payload.ngThatThoat + payload.ngHuy + payload.ngTraLai"
-  }
+  },
+  "moi_ky_lay_file_moi_nhat": true
 }

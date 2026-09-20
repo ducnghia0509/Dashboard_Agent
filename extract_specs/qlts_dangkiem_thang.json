@@ -1,0 +1,53 @@
+{
+  "id": "qlts_dangkiem_thang",
+  "_mo_ta": "QLTS — LƯỢT KIỂM ĐỊNH PHÁT SINH TRONG KỲ (bố cục MỚI từ T8/2026), sheet 'Báo cáo tháng' của QLTS/baocaodangkiem/*Dangkiem.xlsx. Mỗi dòng = 1 lượt kiểm định có chi phí. amount = tổng chi phí (tỷ). Thay sheet 'Đăng kiểm' của bố cục CŨ (spec `qlts_dangkiem`, chỉ còn đọc được file T7).",
+  "_bay": [
+    "CÙNG report_type `QLTS_DK` với spec cũ vì CÙNG NGHĨA (lượt kiểm định + chi phí trong kỳ), nhưng PHẢI khai `source_file_hau_to` để hai spec có phạm vi xoá riêng — `_ghi` xoá theo (report_type, source_file), không tách là spec chạy sau xoá sạch spec chạy trước (bẫy đã ghi 09/09/2026).",
+    "HEADER GỘP [6, 5], DỮ LIỆU TỪ DÒNG 8 — dòng 7 TRỐNG HOÀN TOÀN. Khai `dong_bat_dau` mặc định (header cuối + 1 = 7) thì dòng đầu là dòng rỗng, vô hại nhưng đừng tưởng mất dòng.",
+    "SHEET NÀY KHÔNG CÓ CỘT ĐƠN VỊ NÀO (chỉ mã tài sản, biển số, trung tâm đăng kiểm) — y hệt bố cục cũ. Chiều Công ty/Đơn vị của band đăng kiểm phải lấy từ `QLTS_DK_TD` (danh sách theo dõi), nơi có đủ Khối/Coscenter.",
+    "'Tổng chi phí' (O) KHÔNG phải lúc nào cũng bằng tổng 3 cấu phần: T8/2026 có dòng ghi tổng 2.700.000 và riêng 'Chi phí khác' 2.160.000 (chi phí đi lại) mà không có phí kiểm định/đường bộ. Lấy cột Tổng chi phí làm số chính, 3 cấu phần chỉ để diễn giải."
+  ],
+  "_kiem_chung": [
+    "T8/2026: 4 lượt kiểm định an toàn máy móc (EX29, EX32 (QN), EX51, EX52), mỗi lượt 2.700.000 đ -> Σ 10.800.000 đ; riêng EX52 thêm 2.160.000 đ chi phí đi lại. Tất cả do CÔNG TY CỔ PHẦN DỊCH VỤ VÀ KIỂM ĐỊNH ASIA thực hiện, đều '1 lần'."
+  ],
+  "report_type": "QLTS_DK",
+  "source_file_hau_to": "BCthang",
+  "row_index_base": 7909700,
+  "nguon": {
+    "folder": "QLTS/baocaodangkiem",
+    "file_glob": "*Dangkiem.xlsx",
+    "sheet": { "ten": "Báo cáo tháng" }
+  },
+  "header": { "dong": [6, 5] },
+  "dong_bat_dau": 8,
+  "kiem_tra_o": [
+    { "o": "O6", "bang": "Tổng chi phí" },
+    { "o": "C5", "bang": "Loại kiểm định" }
+  ],
+  "cot": {
+    "dim1":   { "header": "Loại kiểm định" },
+    "dim3":   { "header": "Số lần thực hiện", "bat_buoc": false },
+    "amount": { "header": "Tổng chi phí", "kieu": "so", "he_so": 1e-9, "bat_buoc": false },
+
+    "payload.maTaiSan":    { "header": "Mã tài sản" },
+    "payload.tenTaiSan":   { "header": "Tên tài sản", "bat_buoc": false },
+    "payload.bks":         { "header": "Biển kiểm soát", "bat_buoc": false },
+    "payload.soKiemDinh":  { "header": "Số kiểm định", "bat_buoc": false },
+    "payload.batDau":      { "header": "Bắt đầu", "kieu": "date", "bat_buoc": false },
+    "payload.ketThuc":     { "header": "Kết thúc", "kieu": "date", "bat_buoc": false },
+    "payload.phiKiemDinh": { "header": "Phí kiểm định xe cơ giới", "kieu": "so", "he_so": 1e-9, "bat_buoc": false },
+    "payload.phiDuongBo":  { "header": "Phí sử dụng đường bộ", "kieu": "so", "he_so": 1e-9, "bat_buoc": false },
+    "payload.cpKhac":      { "header": "Chi phí khác", "kieu": "so", "he_so": 1e-9, "bat_buoc": false },
+    "payload.trungTam":    { "header": "Trung tâm đăng kiểm", "bat_buoc": false }
+  },
+  "loc": [
+    { "cot": "payload.maTaiSan", "dieu_kien": "khac_rong" },
+    { "cot": "dim1", "dieu_kien": "khac_rong" }
+  ],
+  "payload_them": { "unit": "ty" },
+  "ky_tu_ten_file": {
+    "regex_nam": "\\.(?:M|D)\\.(?:TS\\.)?(\\d{4})\\.",
+    "regex_thang": "\\.(?:M|D)\\.(?:TS\\.)?\\d{4}\\.(\\d{1,2})[\\.\\s]"
+  },
+  "moi_ky_lay_file_moi_nhat": true
+}
