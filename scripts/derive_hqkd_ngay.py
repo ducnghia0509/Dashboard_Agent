@@ -123,6 +123,9 @@ DB_URL = (os.environ.get("DATABASE_URL") or os.environ.get("TC_DATABASE_URL")
           or "postgresql://tc:tc@localhost:5433/tc_dashboard")
 
 RT_HQKD, RT_PNLT, RT_CHIPHI, RT_DTHU = "HQKD_D", "PNLT_D", "CHIPHI_D", "DTHU_D"
+# Cơ cấu GIÁ VỐN theo 7 khoản mục, riêng layout "duan" — xem `_DUAN_GV_CT` để biết vì sao phải là
+# report_type riêng thay vì thêm dim1 vào RT_CHIPHI.
+RT_DUAN_GV = "DUAN_GV_D"
 # Doanh thu BÁN XE theo ngày × kênh (chỉ layout "srvf"). Tách khỏi RT_DTHU vì đó là doanh
 # thu thuần toàn khối, còn cái này là cụm A200 chia B2C/B2B/GF — vế thực hiện của bảng
 # điểm vhkd0. Tên khớp `KDVH` (bản THÁNG, nguồn BaocaoKQKD) + hậu tố _D theo quy ước ngày.
@@ -1939,6 +1942,28 @@ _DUAN_ANCHOR = {
 }
 # Tổng chi phí = IV + VI + VIII + IX.2 + X.2 (đúng công thức "E25+E46+E74+E80+E83" của Mapping) —
 # 5 nhóm Y HỆT ANTAXI (không có mục "phân bổ chung" cấp I riêng, đã lồng trong "Chi phí khác").
+# 7 KHOẢN MỤC CON CỦA GIÁ VỐN (mục IV.1.1 -> IV.1.7 của sheet ngày) — nuôi khối "Cơ cấu giá vốn
+# theo khoản mục" của màn `duan2`, đúng dòng 25 (GIÁ VỐN) tới dòng 32 của Mapping Dự án.
+#
+# VÌ SAO `RT_DUAN_GV` LÀ REPORT_TYPE RIÊNG, KHÔNG PHẢI THÊM `dim1` VÀO `CHIPHI_D`: giá vốn cấp I
+# ("Giá vốn hàng bán", đã có trong `_DUAN_CP`) BẰNG TỔNG 7 dòng con này. Mọi màn đều cộng các dòng
+# cùng report_type, nên nhét chung là ĐẾM ĐÔI toàn bộ giá vốn — đúng cái bẫy đã ghi ở `_bay` của
+# `xdv_hqkd_ngay` ("dòng Khối + 14 dòng xưởng trong cùng một report_type").
+#
+# (từ khoá đã qua `_nd`, nhãn chuẩn). `_nd` ở file này GIỮ khoảng trắng và dấu hai chấm — từ khoá
+# phải viết rời chữ ("nhan cong truc tiep"), đừng chép kiểu dính liền của `spec_extract._nd`.
+# Từ khoá phải ĐỦ DÀI để không bắt nhầm nhau: "nhan cong truc tiep" chứ không phải "nhan cong",
+# vì mục VI.1 "Chi phí nhân sự" và bảng lương đều có "nhân công".
+_DUAN_GV_CT = [
+    ("nvl", "Chi phí NVL"),
+    ("nhan cong truc tiep", "Chi phí nhân công trực tiếp"),
+    ("nhien lieu", "Chi phí nhiên liệu"),
+    ("khau hao", "Chi phí khấu hao"),
+    ("vtsc", "Chi phí VTSC"),
+    ("thau phu", "Chi phí thầu phụ"),
+    ("khac tai du an", "Chi phí khác tại dự án"),
+]
+
 _DUAN_CP = [
     ("gia_von", "Giá vốn hàng bán", "Giá vốn hàng bán"),
     ("cp_bien_doi", "Chi phí biến đổi", "Chi phí biến đổi"),
@@ -2020,7 +2045,7 @@ def _duan_facts(rows):
     if len(cols) < 3:
         return []
 
-    anchored = {}
+    anchored, gv_ct = {}, {}
     for r in rows[ten_i + 1:]:
         if not r or ten_j >= len(r):
             continue
@@ -2028,6 +2053,14 @@ def _duan_facts(rows):
         for key, (pref, exact) in _DUAN_ANCHOR.items():
             if key not in anchored and (n == pref if exact else n.startswith(pref)):
                 anchored[key] = r
+        # 7 dòng con của IV.1, nhãn "Giá vốn: Chi phí ..." — dò theo TỪ KHOÁ chứ không khớp hệt
+        # vì nhãn đổi nhẹ theo tháng. Cổng `startswith("gia von")` giữ cho từ khoá ngắn không bắt
+        # nhầm dòng khác: "thau phu" cũng nằm trong "Doanh thu bán dầu thầu phụ" (khối I) và
+        # "khau hao" nằm trong "CP Khấu hao và phân bổ" (khối VIII).
+        if n.startswith("gia von"):
+            for kw, _ten in _DUAN_GV_CT:
+                if kw in n and kw not in gv_ct:
+                    gv_ct[kw] = r
     if "dt_thuan" not in anchored:
         return []
 
@@ -2098,6 +2131,11 @@ def _duan_facts(rows):
         gv = val("gia_von", j)
         if gv:
             facts.append((cc, RT_PNLT, "Giá vốn hàng bán", "Giá vốn hàng bán", gv))
+        for kw, ten in _DUAN_GV_CT:
+            r_gv = gv_ct.get(kw)
+            v = _num(r_gv[j]) if r_gv is not None and j < len(r_gv) else None
+            if v:
+                facts.append((cc, RT_DUAN_GV, ten, ten, v, "Giá vốn"))
         ln_gop = val("ln_gop", j)
         if ln_gop:
             facts.append((cc, RT_PNLT, "Lợi nhuận gộp", "Lợi nhuận gộp", ln_gop))

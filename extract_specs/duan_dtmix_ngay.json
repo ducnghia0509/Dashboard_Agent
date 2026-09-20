@@ -1,0 +1,87 @@
+{
+  "id": "duan_dtmix_ngay",
+  "_mo_ta": "CƠ CẤU DOANH THU khối Dự án theo NGÀY × DỰ ÁN — 3 dòng 'Doanh thu bán hàng / dịch vụ / khác' của file HQKD NĂM `DUAN/baocaohqkdngay/B.4.TC.TCKT.D.2026.BaocaoHQKD.xlsx`. Nuôi đúng 3 dòng 26-28 của Mapping Dự án (nhóm 'CƠ CÂU DOANH THU BCQT') và khối 'Cơ cấu doanh thu' của màn `duan1`. Mỗi dự án một sheet ngày (cột A ngày, B/C/D ba loại doanh thu).",
+  "_kiem_chung": [
+    "Σ 3 cột doanh thu của một ngày = cột E 'Tổng DT ngày' của chính sheet đó, và = số mã 1000 (`HQKD_D`) mà `derive_hqkd_ngay` bóc từ FILE THÁNG. Đo 16/09/2026: Cao Bằng 167.425.863 + 82.702.849 + 0 = 250.128.712 = đúng ô E của sheet 'Cao Bằng' và đúng ô E4 sheet '16' của file tháng.",
+    "Luỹ kế 01/01→16/09/2026 toàn khối: 30.806.835.826 đ, khớp tổng cột E của cả 7 sheet ngày và khớp dòng 'TỔNG CỘNG' cột 'Tổng doanh thu' của sheet 'Tổng hợp'."
+  ],
+  "_bay": [
+    "REPORT_TYPE PHẢI RIÊNG, ĐỪNG GHI VÀO `HQKD_D`/`DTHU_D`. Cùng một ngày × cùng cost center đã có số doanh thu do `derive_hqkd_ngay` bóc từ FILE THÁNG; ghi chung là CỘNG ĐÔI toàn bộ doanh thu khối Dự án. `_resolve_per_file` chỉ khử trùng TRONG một file, không khử xuyên file — đúng cái bẫy đã ghi ở `_bay` của `xdv_hqkd_ngay`. Spec này CHỈ nuôi biểu đồ cơ cấu; con số tổng doanh thu mọi màn vẫn đọc `HQKD_D`.",
+    "FILE GLOB PHẢI CHẶN 4 CHỮ SỐ. Cùng thư mục có 5 file `B.4.TC.TCKT.D.<YYYYM>.BaocaoHQKD.xlsx` (file THÁNG, 5 chữ số sau `.D.`) — khuôn hoàn toàn khác (sheet tên '1'..'31', bảng P&L dọc). `*.D.????.BaocaoHQKD.xlsx` khớp đúng 4 ký tự nên chỉ trúng file NĂM. Nới thành `*.BaocaoHQKD.xlsx` là engine đọc file tháng bằng khuôn file năm và trả 0 dòng trong im lặng.",
+    "LỌC SHEET THEO Ô MỐC, KHÔNG THEO TÊN (`moi_sheet_theo_o`). 7 sheet ngày tên 'Cao Bằng', 'Phú Quốc '… còn 7 sheet luỹ kế tên 'Cao Bằng LK' — mọi mốc TÊN khớp sheet ngày đều khớp luôn sheet LK của cùng dự án. Nạp nhầm sheet LK là cộng số luỹ kế THÁNG vào số NGÀY. Hai họ chỉ khác chắc chắn ở nhãn A4: 'Ngày' vs 'Tháng'. Mốc A4 cũng loại luôn 'Tổng hợp' (A4 = 'Dự án') và 'Odoo ngày' (A4 trống).",
+    "SHEET NGÀY CÓ ĐỦ 365 DÒNG CẢ NĂM, PHẦN LỚN LÀ 0. `loc` trên `amount` với `khac_rong` cắt chúng (hàm `_qua_loc` coi 0 là rỗng) — không cắt thì mỗi lượt nạp đẻ ~7.600 dòng 0 đ và bảng cơ cấu hiện đủ 7 dự án trong đó 4 dự án toàn số 0.",
+    "ĐƠN VỊ GHI SAI Ở CHÍNH FILE NGUỒN: ô A2 ghi 'Đơn vị tính: nghìn đồng (VNĐ)' nhưng giá trị là ĐỒNG (đối chiếu 16/09 với file tháng và với sổ). `he_so` 1e-09 là đổi ĐỒNG -> TỶ, đúng. Đừng thấy dòng chú thích đó rồi nhân thêm 1.000.",
+    "DỮ LIỆU CHỈ CÓ TỪ THÁNG 7/2026. T01→T06 trống sạch ở mọi dự án — không phải lỗi nạp. File tháng trong thư mục cũng chỉ có T8 và T9, nên riêng T7 hiện chỉ spec này có số."
+  ],
+  "report_type": "DUAN_DTMIX_D",
+  "row_index_base": 8930000,
+  "khoi": "Khối KD Dự án",
+  "chieu_co_dinh": {
+    "cong_ty": "TC"
+  },
+  "nguon": {
+    "folder": "DUAN/baocaohqkdngay",
+    "file_glob": "*.D.????.BaocaoHQKD.xlsx",
+    "sheet": {
+      "moi_sheet_theo_o": [
+        {
+          "o": "A4",
+          "bang": "Ngày"
+        },
+        {
+          "o": "B4",
+          "bang": "Doanh thu bán hàng"
+        }
+      ]
+    }
+  },
+  "header": {
+    "dong": 4
+  },
+  "dong_bat_dau": 5,
+  "chieu_tu_ten_sheet": {
+    "cost_center": {
+      "regex": "^(.+)$",
+      "chuan_hoa": "cc_duan"
+    }
+  },
+  "cot": {
+    "ngay": {
+      "header": "Ngày",
+      "kieu": "date"
+    }
+  },
+  "ban_ghi": "moi_cot_gia_tri",
+  "cot_gia_tri": [
+    {
+      "header": "Doanh thu bán hàng",
+      "dim1": "Doanh thu bán hàng",
+      "he_so": 1e-09
+    },
+    {
+      "header": "Doanh thu dịch vụ",
+      "dim1": "Doanh thu dịch vụ",
+      "he_so": 1e-09
+    },
+    {
+      "header": "Doanh thu khác",
+      "dim1": "Doanh thu khác",
+      "he_so": 1e-09
+    }
+  ],
+  "loc": [
+    {
+      "cot": "ngay",
+      "dieu_kien": "khac_rong"
+    },
+    {
+      "cot": "amount",
+      "dieu_kien": "khac_rong"
+    }
+  ],
+  "payload_them": {
+    "unit": "ty",
+    "grain": "day",
+    "nguon_he": "HQKD năm khối Dự án (file kế toán Dự án)"
+  }
+}
