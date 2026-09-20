@@ -20,8 +20,7 @@
     "file_glob": "*Dangkiem.xlsx",
     "sheet": { "moi_sheet_chua": "DM K" }
   },
-  "header": { "dong": [6, 5] },
-  "dong_bat_dau": 7,
+  "header": { "tim_o": "Thông báo", "gop_tren": 1 },
   "cot": {
     "khoi":        { "header": "Tên khối", "chuan_hoa": "khoi_qlts", "bat_buoc": false },
     "cong_ty":     { "header": "Pháp nhân", "chuan_hoa": "cty_qlts", "bat_buoc": false },
