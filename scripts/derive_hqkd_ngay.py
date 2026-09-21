@@ -2000,8 +2000,14 @@ def _xdv_facts(rows):
 # "Yên Bình 3"). Mã CC lấy Y HỆT bản THÁNG (agent_cli._DA_PROJECT_CC) — kể cả quy ước NGƯỢC viết
 # tắt Tân Thịnh<->Yên Bình đã xác nhận nguồn, xem docstring đầu file. "Bình phước" mới, chưa có
 # trong master_data -> mã tự đặt (giống Núi Pháo/Quảng Ngãi bản tháng).
+# "Phú Quốc" -> TC_DA: GỘP VÀO THỔ CHU (21/09/2026, KT tài sản xác nhận). Cùng MỘT công
+# trường mà mỗi họ file gọi một tên — sổ tài sản + nhiên liệu ghi "Thổ Chu", còn bảo dưỡng /
+# bảo hiểm / đăng kiểm ghi "Phú Quốc". Soát trước khi gộp: KHÔNG cặp (report_type, kỳ) nào nằm
+# ở cả hai mã, KHÔNG file nguồn nào chứa cả hai tên, và 37/45 mã thiết bị bảo dưỡng của "Phú
+# Quốc" nằm ngay trong sổ tài sản "Thổ Chu" (bảo hiểm 45/46, đăng kiểm 43/51) -> gộp là đổi
+# nhãn thuần tuý, không cộng đôi số nào. 1.164 dòng đã chuyển sang TC_DA ở cả 2 DB.
 _CC_DUAN = [("cao bang", "CB_DA"), ("tan thinh", "TT_DA"), ("lang son", "LS_DA"),
-            ("yen binh", "YB_DA"), ("phu quoc", "PQ_DA"), ("quang son", "QS_DA"),
+            ("yen binh", "YB_DA"), ("phu quoc", "TC_DA"), ("quang son", "QS_DA"),
             ("nui phao", "NUIPHAO_DA"), ("quang ngai", "QUANGNGAI_DA"), ("tho chu", "TC_DA"),
             ("binh phuoc", "BINHPHUOC_DA")]
 
