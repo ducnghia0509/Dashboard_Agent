@@ -890,10 +890,16 @@ def _derive_kqkd_duan(rows, period, cong_ty, file_path):
     # phân bổ HO 17.386.990, LNTT -126.050.367) — phát hiện 18/09/2026 khi đối chiếu tháng vs Σ
     # ngày, và nó cũng chính là 621.080.352 đ "không cột nào giải thích" ở cột Tổng của sheet
     # ngày 31. Thêm "tho chu" cùng lượt cho khớp hẳn bản ngày, dù nguồn T8 chưa có cột đó.
+    # "Phú Quốc" -> TC_DA: GỘP VÀO THỔ CHU (21/09/2026, KT tài sản xác nhận). Cùng MỘT công
+    # trường mà mỗi họ file gọi một tên — sổ tài sản + nhiên liệu ghi "Thổ Chu", còn bảo dưỡng /
+    # bảo hiểm / đăng kiểm ghi "Phú Quốc". Soát trước khi gộp: KHÔNG cặp (report_type, kỳ) nào nằm
+    # ở cả hai mã, KHÔNG file nguồn nào chứa cả hai tên, và 37/45 mã thiết bị bảo dưỡng của "Phú
+    # Quốc" nằm ngay trong sổ tài sản "Thổ Chu" (bảo hiểm 45/46, đăng kiểm 43/51) -> gộp là đổi
+    # nhãn thuần tuý, không cộng đôi số nào. 1.164 dòng đã chuyển sang TC_DA ở cả 2 DB.
     _DA_PROJECT_CC = [
         ("cao bang", "CB_DA"), ("tan thinh", "TT_DA"), ("lang son", "LS_DA"),
         ("nui phao", "NUIPHAO_DA"), ("quang son", "QS_DA"), ("quang ngai", "QUANGNGAI_DA"),
-        ("yen binh", "YB_DA"), ("phu quoc", "PQ_DA"), ("binh phuoc", "BINHPHUOC_DA"),
+        ("yen binh", "YB_DA"), ("phu quoc", "TC_DA"), ("binh phuoc", "BINHPHUOC_DA"),
         ("tho chu", "TC_DA"),
     ]
     # Bản đồ admin đã duyệt ở chuông 🔔 (bảng `cost_center_map`, migration 0070) — dùng CHUNG với

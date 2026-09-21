@@ -985,7 +985,13 @@ _QLTS_ALIAS = {"saigon": "hochiminh", "ocenpark": "oceanpark"}
 # xe đứng tên đơn vị nào — nhưng cột đó đọc theo đơn vị GIỮ xe chứ không phải bên đứng tên, và
 # danh mục có sẵn `BLĐ` "Ban lãnh đạo". Để trống thì 10 xe rơi khỏi mọi bộ lọc Đơn vị mà mapping
 # QLTS đòi cho nhóm chỉ tiêu bảo trì (#14-#17) — kế toán báo thiếu ngày 26/08/2026.
-_QLTS_CC_TRUC_TIEP = {"anangarden": "ST_GD", "xelanhdao": "BLĐ"}
+# `phuquoc` -> TC_DA: xem ghi chú ở `_CC_DUAN_SHEET`. PHẢI khai ở ĐÂY nữa chứ không chỉ ở đó:
+# `_cc_qlts` khớp theo TÊN trong master_data, mà danh mục vẫn còn mục "Dự án Phú Quốc" nên nó tự
+# tìm ra PQ_DA — bảng gán thẳng này chạy TRƯỚC phép khớp tên nên chặn được. Cố ý KHÔNG xoá
+# PQ_DA khỏi master_data: xoá thì tên không khớp được gì và rơi vào `_khong_map`, giữ nguyên
+# chữ "Phú Quốc" thay vì về đúng Thổ Chu. Ô lọc dựng TỪ DỮ LIỆU (repository._cost_center_
+# options) nên mã không còn dòng nào là tự biến mất khỏi thanh lọc.
+_QLTS_CC_TRUC_TIEP = {"anangarden": "ST_GD", "xelanhdao": "BLĐ", "phuquoc": "TC_DA"}
 _QLTS_CACHE = {}
 
 # 8 khối của file QLTS -> 10 khối chuẩn của master_data. QLTS phân loại theo BẢN CHẤT TÀI SẢN nên
@@ -1392,8 +1398,14 @@ def _claim_ky_du_lieu(v):
 # vào một khối, lệch một mã là dashboard hiện thành hai dự án khác nhau cho cùng một công trường.
 # Khoá viết theo dạng đã qua `_nd` của FILE NÀY — bỏ dấu VÀ bỏ khoảng trắng ("cao bang" ->
 # "caobang"), khác `_nd` của deriver (giữ khoảng trắng). Chép nhầm dạng là không mã nào khớp.
+# "Phú Quốc" -> TC_DA: GỘP VÀO THỔ CHU (21/09/2026, KT tài sản xác nhận). Cùng MỘT công
+# trường mà mỗi họ file gọi một tên — sổ tài sản + nhiên liệu ghi "Thổ Chu", còn bảo dưỡng /
+# bảo hiểm / đăng kiểm ghi "Phú Quốc". Soát trước khi gộp: KHÔNG cặp (report_type, kỳ) nào nằm
+# ở cả hai mã, KHÔNG file nguồn nào chứa cả hai tên, và 37/45 mã thiết bị bảo dưỡng của "Phú
+# Quốc" nằm ngay trong sổ tài sản "Thổ Chu" (bảo hiểm 45/46, đăng kiểm 43/51) -> gộp là đổi
+# nhãn thuần tuý, không cộng đôi số nào. 1.164 dòng đã chuyển sang TC_DA ở cả 2 DB.
 _CC_DUAN_SHEET = [("caobang", "CB_DA"), ("tanthinh", "TT_DA"), ("langson", "LS_DA"),
-                  ("yenbinh", "YB_DA"), ("phuquoc", "PQ_DA"), ("quangson", "QS_DA"),
+                  ("yenbinh", "YB_DA"), ("phuquoc", "TC_DA"), ("quangson", "QS_DA"),
                   ("nuiphao", "NUIPHAO_DA"), ("quangngai", "QUANGNGAI_DA"), ("thochu", "TC_DA"),
                   ("binhphuoc", "BINHPHUOC_DA")]
 
