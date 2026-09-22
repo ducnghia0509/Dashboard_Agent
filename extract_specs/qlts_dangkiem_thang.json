@@ -27,7 +27,7 @@
   "cot": {
     "dim1":   { "header": "Loại kiểm định" },
     "dim3":   { "header": "Số lần thực hiện", "bat_buoc": false },
-    "amount": { "header": "Tổng chi phí", "kieu": "so", "he_so": 1e-9, "bat_buoc": false },
+    "amount": { "header": ["Tổng chi phí", "Tổng chi phí gồm VAT"], "kieu": "so", "he_so": 1e-9, "bat_buoc": false },
 
     "payload.maTaiSan":    { "header": "Mã tài sản" },
     "payload.tenTaiSan":   { "header": "Tên tài sản", "bat_buoc": false },
