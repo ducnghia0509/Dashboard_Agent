@@ -2083,6 +2083,34 @@ def _anks_b02_facts(wb, sheet):
     return facts
 
 
+def _la_neo_ky(path, period):
+    """File ảnh chụp này có phải NEO của kỳ không — tức kỳ KHÔNG có file tháng, và nó là file ngày
+    MỚI NHẤT của kỳ trong thư mục. Chỉ hỏi cho đơn vị khai `pl_ho_file_rieng`.
+
+    LÝ DO (23/09/2026): `_pl_quet_thu_muc` + `_sodu_quet_thu_muc` chỉ chạy ở lượt nạp FILE THÁNG.
+    An KS và 2 HTX đã ngừng cập nhật file tháng từ 16/09 — sang kỳ mới mà kế toán không tạo file
+    `.D.<YYYYMM>.` nữa thì không lượt nào gọi hai hàm quét, P&L cả kỳ biến mất và cũng không có
+    dòng lỗi nào (file ngày vẫn "nạp tốt" với vai ảnh chụp số dư).
+
+    CHỈ MỘT FILE NEO mỗi kỳ, không phải mọi file ngày: mọi file cùng kỳ đều được cron gọi, để file
+    nào cũng quét cả thư mục là N² lần mở workbook, và vô ích vì cùng ghi một khoá. Ghi dưới
+    `period_source_key` nên hôm sau file mới nhất đổi tên vẫn xoá được dòng hôm trước.
+    CÓ FILE THÁNG THÌ FILE THÁNG THẮNG — hành vi 16/09→ giữ nguyên, và lượt nạp file tháng dọn khoá
+    kỳ (xem chỗ ghi DB) để không cộng đôi nếu file tháng xuất hiện muộn."""
+    thu_muc = os.path.dirname(os.path.abspath(path))
+    ngay_file = []
+    for ten in os.listdir(thu_muc):
+        if not ten.lower().endswith(".xlsx") or ten.startswith("~$"):
+            continue
+        if _period_of(ten, True) != period:
+            continue
+        n = _snap_day_of(ten)
+        if not n:
+            return False                      # có file tháng cùng kỳ -> nó là chủ P&L
+        ngay_file.append((n, ten))
+    return bool(ngay_file) and max(ngay_file)[1] == os.path.basename(path)
+
+
 def _pl_quet_thu_muc(path, period, unit, da_co):
     """Quét họ file ảnh chụp để vét P&L cho những ngày file THÁNG chưa có -> ({ngày: [fact]}, chẩn đoán).
 
@@ -3140,6 +3168,15 @@ def derive(path, write=False):
     if bcqt_mode:
         per_day, snap_diag = _bcqt_per_day(path, period, unit)
 
+    # KỲ KHÔNG CÓ FILE THÁNG (23/09/2026) — file ngày mới nhất đứng ra làm file tháng: quét cả
+    # thư mục như lượt nạp file tháng vẫn làm, ghi dưới khoá kỳ. Xem `_la_neo_ky`. Bỏ `per_day`
+    # của chính workbook: file ngày không có khuôn P&L của layout gốc (An KS sheet đầu là "331"),
+    # mọi số của nó đã đi vào qua hai lượt quét bên dưới.
+    neo_ky = bool(unit.get("pl_ho_file_rieng") and not (snap_mode or bcqt_mode)
+                  and _snap_day_of(os.path.basename(path)) and _la_neo_ky(path, period))
+    if neo_ky:
+        per_day = []
+
     # SỐ DƯ THEO NGÀY CHO ĐƠN VỊ KHÔNG Ở CHẾ ĐỘ SNAPSHOT (3 khối Xanh, 18/09/2026) — P&L và số dư
     # nằm ở HAI HỌ FILE tách rời nên phải quét thư mục thêm một lượt, xem `_sodu_quet_thu_muc`.
     #
@@ -3159,7 +3196,7 @@ def derive(path, write=False):
     # 01/09 cắt sạch chúng ngay sau đó — tức an toàn nhờ một con số không liên quan.
     sodu_diag = {}
     if (unit.get("sodu_ho_file_rieng") and not (snap_mode or bcqt_mode)
-            and not _snap_day_of(os.path.basename(path))):
+            and (neo_ky or not _snap_day_of(os.path.basename(path)))):
         gop_sd, bo_qua_sd, luy_ke_sd = _sodu_quet_thu_muc(path, period, unit)
         if gop_sd:
             theo_ngay = {n: list(f) for n, f in per_day}
@@ -3197,7 +3234,7 @@ def derive(path, write=False):
     # `DELETE ... WHERE source_file=%s` dọn được trọn vẹn. Xem `_pl_quet_thu_muc`.
     pl_diag = {}
     if (unit.get("pl_ho_file_rieng") and not (snap_mode or bcqt_mode)
-            and not _snap_day_of(os.path.basename(path))):
+            and (neo_ky or not _snap_day_of(os.path.basename(path)))):
         da_co = {n for n, f in per_day if any(x[1] in _RT_DONG_CHAY for x in f)}
         gop_pl, bo_qua_pl = _pl_quet_thu_muc(path, period, unit, da_co)
         if gop_pl:
@@ -3375,6 +3412,7 @@ def derive(path, write=False):
            **({"la_nguon_so_du": {"ngay": sorted(n for n, _ in per_day)[-1],
                                   "nap_boi": "chính file này"}} if _chi_so_du else {}),
            **snap_diag, **sodu_diag, **pl_diag,
+           **({"neo_ky": period_source_key(folder, period)} if neo_ky else {}),
            "tong_theo_ngay": {
                # `x[:5]` chứ không giải nén cứng 5 phần tử: fact của layout "srvf" có thêm
                # dim2 (kênh bán) ở vị trí thứ 6.
@@ -3394,7 +3432,7 @@ def derive(path, write=False):
     # của kỳ từ cả bộ snapshot, nên nếu vẫn khoá theo tên file thì file 09/09 chỉ xoá được dòng
     # do chính nó ghi, còn dòng file 08/09 ghi hôm trước nằm lại -> mỗi ngày bị đếm 2 lần.
     # `bcqt_mode` y hệt, xem `_bcqt_per_day` — 12 file cùng kỳ đều khai đủ các ngày đã qua.
-    if snap_mode or bcqt_mode:
+    if snap_mode or bcqt_mode or neo_ky:
         source_file = period_source_key(folder, period)
     conn = psycopg.connect(DB_URL)
     try:
@@ -3429,6 +3467,11 @@ def derive(path, write=False):
                         (source_file, list(_rt_ngay)))
         else:
             cur.execute("DELETE FROM raw_rows WHERE source_file=%s", (source_file,))
+        if unit.get("pl_ho_file_rieng") and not _snap_day_of(os.path.basename(path)):
+            # FILE THÁNG VỀ MUỘN SAU KHI FILE NGÀY ĐÃ NEO KỲ -> dọn khoá kỳ, file tháng làm chủ.
+            # Không dọn thì cùng ngày có hai bộ P&L/số dư dưới hai khoá = cộng đôi. Xem `_la_neo_ky`.
+            cur.execute("DELETE FROM raw_rows WHERE source_file=%s",
+                        (period_source_key(folder, period),))
         if snap_mode:
             # Dọn nốt dòng mang khoá THEO FILE của cùng kỳ: mỗi snapshot từng đi qua pipeline
             # THÁNG (gate `is_daily_report` chỉ nhận khi đơn vị đã khai `_UNITS`) và để lại dòng
