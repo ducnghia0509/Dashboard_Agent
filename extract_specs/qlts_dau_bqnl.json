@@ -14,9 +14,10 @@
   "_kiem_chung": [
     "Cao Bằng, xe DT134: mức THBQ = 10,8969 Lít/km (ô AL21), dòng có mã ở cột A và ĐVT 'Lít/km'.",
     "Xe không phát sinh (DT01-CB, DT02-CB…) có dòng nhưng MỨC THBQ rỗng — giữ dòng, để trống, đừng coi là 0.",
-    "Đơn vị theo dự án (kỳ 2026-07): Cao Bằng Lít/km 14,59 · Tân Thịnh Lít/giờ 25,92 · Thổ Chu Lít/Giờ 15,86 · Quang Sơn không có xe nào phát sinh."
+    "ĐƠN VỊ: đo lại kỳ 2026-09 thì CẢ BỐN dự án đều là Lít/giờ (Cao Bằng 13,55 · Tân Thịnh 13,29 · Thổ Chu 15,47 · Bình Phước 16,16; Quang Sơn không có xe nào phát sinh) — ghi chú cũ ở đây ghi 'Cao Bằng Lít/km' là SAI và đã làm người đọc kết luận nhầm rằng các dự án đo lệch đơn vị nên không cộng/bình quân được. Cột ĐVT của DÒNG CHI TIẾT có cả 'Lít' lẫn 'Giờ' (bố cục 3 dòng một xe), nhưng spec chỉ lấy DÒNG VÀNG tổng hợp của từng xe, và dòng đó luôn ghi Lít/giờ. Đối chiếu lại bằng chính dữ liệu, đừng trích ghi chú cũ."
   ],
   "report_type": "QLTS_DAU_BQ",
+  "_bay_header_troi": "BỐ CỤC LỆCH MỘT DÒNG GIỮA CÁC DỰ ÁN (23/09/2026). Sheet BQ-NL của Cao Bằng / Thổ Chu / Tân Thịnh để header ở dòng 4, riêng BÌNH PHƯỚC chèn thêm dòng tiêu đề \"DỰ ÁN BÌNH PHƯỚC\" nên header tụt xuống dòng 5. Ghim cứng `header.dong: 4` + `kiem_tra_o` A4/D4 khiến CẢ FILE Bình Phước bị bỏ — dừng an toàn, không ghi bừa, nhưng mức tiêu hao của dự án đó mất hẳn khỏi màn ts5 (mapping chỉ tiêu #32) mà không ai thấy. Nay `tim_o` tự dò dòng chứa \"MÃ XE\", và bỏ `dong_bat_dau` ghim cứng vì nó cũng lệch theo — engine lấy header+1, hai dòng đệm tự bị `loc` (dim2 khác rỗng) gạt ra. `tim_o` CHÍNH LÀ chốt chặn thay cho `kiem_tra_o`: không thấy \"MÃ XE\" thì spec dừng và KÊU.",
   "row_index_base": 7908000,
   "nguon": {
     "folder": "QLTS/baocaodau",
@@ -26,19 +27,8 @@
     }
   },
   "header": {
-    "dong": 4
+    "tim_o": "MÃ XE"
   },
-  "dong_bat_dau": 7,
-  "kiem_tra_o": [
-    {
-      "o": "A4",
-      "bang": "MÃ XE"
-    },
-    {
-      "o": "D4",
-      "bang": "ĐVT"
-    }
-  ],
   "chieu_tu_ten_file": {
     "dim1": {
       "regex": "BCDau(\\w+)"
