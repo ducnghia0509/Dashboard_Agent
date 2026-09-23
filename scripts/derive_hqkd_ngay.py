@@ -84,9 +84,9 @@ Backend chọn `_D` hay bản tháng theo `grain` của request (xem app/metrics
     "phân bổ chung" cấp I riêng — đã nằm lồng trong "Chi phí khác"). Mã cost center Cao Bằng/
     Lạng Sơn/Phú Quốc/Quang Sơn lấy y hệt bản THÁNG (agent_cli._DA_PROJECT_CC: CB_DA/LS_DA/
     PQ_DA/QS_DA); "Tân Thịnh"→TT_DA và "Yên Bình"→YB_DA — ĐÃ VỀ XUÔI 28/08/2026, trước đó ngược
-    (xem chú thích ở `agent_cli._DA_PROJECT_CC`). "Bình phước" CHƯA có trong master_data
-    (giống Núi Pháo/Quảng Ngãi bản tháng) → mã tự đặt BINHPHUOC_DA, backfill cong_ty qua
-    import_filled.
+    (xem chú thích ở `agent_cli._DA_PROJECT_CC`). "Bình phước" → BP_DA, mã CHÍNH THỨC do
+    "Danh Mục Mã hệ thống.xlsx" (bản 18/09) cấp; từ 18/09→21/09/2026 tạm mang mã tự đặt
+    BINHPHUOC_DA, dump lấy trong khoảng đó mang mã cũ. cong_ty backfill qua import_filled.
 
 Neo dòng chỉ tiêu của layout "kqkd" theo TIỀN TỐ SỐ LA MÃ / số mục đã chuẩn hoá bỏ dấu, KHÔNG theo
 "Mã số" và KHÔNG theo địa chỉ ô cứng (C17/C28/C100… như ghi chú trong file mapping): mã số bị TRÙNG
@@ -126,6 +126,9 @@ RT_HQKD, RT_PNLT, RT_CHIPHI, RT_DTHU = "HQKD_D", "PNLT_D", "CHIPHI_D", "DTHU_D"
 # Cơ cấu GIÁ VỐN theo 7 khoản mục, riêng layout "duan" — xem `_DUAN_GV_CT` để biết vì sao phải là
 # report_type riêng thay vì thêm dim1 vào RT_CHIPHI.
 RT_DUAN_GV = "DUAN_GV_D"
+# Cụm DÒNG CHẢY (cộng được theo khoảng), đối lại cụm SỐ DƯ đọc qua `snapshot_sum`. Dùng để hỏi
+# "ngày này đã có P&L chưa" mà không đếm nhầm dòng số dư của cùng ngày — xem `_pl_quet_thu_muc`.
+_RT_DONG_CHAY = frozenset((RT_HQKD, RT_PNLT, RT_CHIPHI, RT_DTHU))
 # Doanh thu BÁN XE theo ngày × kênh (chỉ layout "srvf"). Tách khỏi RT_DTHU vì đó là doanh
 # thu thuần toàn khối, còn cái này là cụm A200 chia B2C/B2B/GF — vế thực hiện của bảng
 # điểm vhkd0. Tên khớp `KDVH` (bản THÁNG, nguồn BaocaoKQKD) + hậu tố _D theo quy ước ngày.
@@ -177,10 +180,23 @@ _UNITS = {
                      # `_sodu_ngay_cua_wb` nhánh 2 và hai chốt chặn của nó.
                      "ky_sodu_o_ngay": True, "sodu_ho_file_rieng": True,
                      "sheet_sodu": {"cdkt": "CĐKT"}},
+    # HAI HTX dùng mẫu CĐKT **B01-HTX** (TT 71/2024) chứ không phải B01-DN: cột giá trị ghi "Kỳ
+    # này", tổng tài sản là mã 200 (không phải 270), TSCĐ là 150/151/152 (không phải 221/222/223)
+    # — xem `_MAU_CDKT`. Khai `mau_cdkt` rồi thì `cdkt` dùng được, không phải viết hàm bóc mới.
+    # Không có sổ công nợ chi tiết -> `_snap_sodu_facts` tự lấy TỔNG TK 131/331 từ CĐPS.
+    # Kiểm chứng 19/09/2026: CĐKT ba ngày 15-16-17 CÂN TUYỆT ĐỐI (mã 200 = mã 500, lệch 0 đồng).
+    # Từ 16/09/2026 họ file ảnh chụp `.D.<YYYYMMDD>.` của 2 HTX gánh LUÔN cả P&L: file tháng dừng
+    # ở sheet "15" và không được xuất lại nữa, còn file ngày mọc thêm sheet "BC KQKD" (B02-HTX,
+    # khai "Từ ngày 16/09 Đến ngày 16/09") + "HQKD" (cùng khuôn với sheet ngày của file tháng).
+    # `pl_ho_file_rieng` bật `_pl_quet_thu_muc` vét những ngày file tháng còn thiếu.
     "HTXXANHTUYENQUANG": {"layout": "kqkd", "cong_ty": "HTX_XTQ", "khoi": "Khối KD Vận tải Taxi Xanh",
-                          "sodu_ho_file_rieng": True, "sheet_sodu": {"cdps": "CĐPS"}},
+                          "sodu_ho_file_rieng": True, "mau_cdkt": "b01htx",
+                          "pl_ho_file_rieng": {"sheet": "HQKD", "sheet_ky": "BC KQKD"},
+                          "sheet_sodu": {"cdps": "CĐPS", "cdkt": "CĐKT"}},
     "HTXXANHVINHPHUC": {"layout": "kqkd", "cong_ty": "HTX_XVP", "khoi": "Khối KD Vận tải Taxi Xanh",
-                        "sodu_ho_file_rieng": True, "sheet_sodu": {"cdps": "CĐPS"}},
+                        "sodu_ho_file_rieng": True, "mau_cdkt": "b01htx",
+                        "pl_ho_file_rieng": {"sheet": "HQKD", "sheet_ky": "BC KQKD"},
+                        "sheet_sodu": {"cdps": "CĐPS", "cdkt": "CĐKT"}},
     # HAI HỌ FILE trong CÙNG thư mục `ANTAXI/baocaohqkdngay/`, chọn theo NỘI DUNG chứ không theo
     # tên (tên `.M.`/`.D.` ngược hẳn nội dung — xem khối chú thích của layout "antaxi_bcqt"):
     #   · có sheet "BCQT PT."  -> `layout_phu` = "antaxi_bcqt" (họ `.D.<YYYYMMDD>`, NGUỒN MỚI)
@@ -197,17 +213,26 @@ _UNITS = {
                "sheet_sodu": {"pthu": "131", "ptra": "331", "cdkt": "CDKT", "cdps": "CDPS"}},
     # AN KHÁCH SẠN — P&L ở file `.D.<YYYYMM>.` (layout "anks", mỗi ngày MỘT CỘT), số dư ở họ file
     # `.D.<YYYYMMDD>.` riêng, giống 3 khối Xanh nên cũng bật `sodu_ho_file_rieng` (18/09/2026).
-    # KHÔNG khai `cdkt`: sheet đó là B01-DN nhưng cột giá trị ghi "Số cuối NĂM"/"Số đầu NĂM" thay vì
-    # "cuối kỳ", `_snap_cdkt_facts`/`_snap_tsnv_facts` dò theo nhãn nên trả rỗng -> khai vào chỉ đẻ
-    # dòng "bị loại" mỗi lượt. Ba sheet còn lại đúng mẫu chuẩn và chạy thẳng, lại có ĐỦ hai sổ công
-    # nợ nên An KS ra được công nợ CHI TIẾT theo đối tượng (3 khối Xanh không có).
+    # `cdkt` BẬT LẠI 20/09/2026 (18/09 từng tắt vì cột ghi "Số cuối NĂM"): bộ file mới 15→18/09
+    # cân tuyệt đối — 270 = 440 cả 4 ngày, và đầu kỳ ngày sau = cuối kỳ ngày trước không lệch đồng
+    # nào. Nhãn vẫn lúc "cuối kỳ" (15-16) lúc "cuối năm" (17-18) nhưng CÙNG ô r7c3, cùng cấu trúc
+    # -> xử ở `_MAU_CDKT["b01dn"]["nhan"]`, không fork riêng cho An KS.
+    # Ba sheet còn lại đúng mẫu chuẩn và chạy thẳng, lại có ĐỦ hai sổ công nợ nên An KS ra được
+    # công nợ CHI TIẾT theo đối tượng (3 khối Xanh không có).
     "ANKHACHSAN": {"layout": "anks", "cong_ty": "AAG", "khoi": "Khối KD Dịch vụ An KS",
                    "sodu_ho_file_rieng": True,
-                   "sheet_sodu": {"pthu": "131", "ptra": "331", "cdps": "CDPS"}},
+                   "sheet_sodu": {"pthu": "131", "ptra": "331", "cdps": "CDPS", "cdkt": "CDKT"}},
     # pnlt_skip T101: GA bản THÁNG chạy extractor TT200 (không phải T-series) -> không có dim1
     # 'Doanh thu bán hàng'; xem `_tcode_facts`.
+    # `sodu_trong_chinh_file` (21/09/2026): từ kỳ 2026-09 nguồn BỎ HẲN dải sheet "D1".."D31" nên
+    # mọi file tháng 9 rơi vào nhánh lỗi "KHÔNG PHẢI BÁO CÁO NGÀY" — P&L đứt, và cụm số dư thì
+    # chưa từng được khai. File mới lại có `CĐKT` đúng mẫu B01-DN, cân TUYỆT ĐỐI (270 = 440, lệch
+    # 0 đồng cả 3 ngày 16-18/09), khai kỳ ở dòng 7 bằng nhãn + ô ngày (xem `_ky_theo_nhan_o_ngay`).
+    # CHỈ khai `cdkt`: `TC_CDPS` dùng tiêu đề riêng ("MÃ TK | NO | CO | TÊN TÀI KHOẢN | Số dư"),
+    # không phải mẫu S06-DN mà `_snap_cdps_facts` dò — khai vào chỉ đẻ dòng "bị loại".
     "GLOBALAI": {"layout": "tcode", "cong_ty": "GA", "khoi": "Khối KD Công nghệ",
-                 "pnlt_skip": ("T101",)},
+                 "pnlt_skip": ("T101",),
+                 "sodu_trong_chinh_file": True, "sheet_sodu": {"cdkt": "CĐKT"}},
     # CỐ Ý KHÔNG KHAI `bo_tu_ngay` CHO TRẠM SẠC (cân nhắc rồi bỏ, 06/09/2026) — dù từ bản
     # `.D.20260829.` file đã đổi layout (bỏ 31 sheet "D1".."D31", còn một sheet "BCHQKD" một cột
     # luỹ kế) y như Showroom/XDV lúc cutover. Khác một điểm quyết định: hai đơn vị kia có SPEC
@@ -276,9 +301,24 @@ _UNITS = {
     "DUAN": {"layout": "duan", "cong_ty": "TC", "khoi": "Khối KD Dự án",
              "sodu_ho_file_rieng": True, "ngay_sodu_tu_ten_file": True,
              "sheet_sodu": {"pthu": "131", "ptra": "331", "cdkt": "CĐKT", "cdps": "CDSPS"}},
-    "HO": {"layout": "ho_kqkd", "cong_ty": "TC", "khoi": "Khối hỗ trợ tập đoàn"},
+    # Cùng ca với Global AI (21/09/2026) — xem chú thích ở đó. Khác một điểm ĐÃ ĐO: CĐKT của HO
+    # lệch ĐỀU 24 đồng giữa mã 270 và 440 ở CẢ BỐN ngày 15-18/09, trong khi 300 + 400 khớp 440
+    # chính xác. Tức 24 đồng nằm ở vế tài sản, là sai số làm tròn cố định của bên xuất file, không
+    # phải bảng mất cân đối — vẫn nạp, nhưng đừng "sửa" nó ở tầng này.
+    # KHÔNG khai `cdkt` là sheet `TC_CĐKT`: đó là bản kỳ 8 THÁNG 2025, nhãn "Số cuối năm", một
+    # sheet tham chiếu cũ nằm lẫn trong file. Khai nhầm là nạp số của năm ngoái dưới ngày hôm nay.
+    "HO": {"layout": "ho_kqkd", "cong_ty": "TC", "khoi": "Khối hỗ trợ tập đoàn",
+           "sodu_trong_chinh_file": True, "sheet_sodu": {"cdkt": "CĐKT"}},
     # XE TẢI HƯNG THỊNH (spec user 2026-08-06) — layout "ht", xem `_ht_facts`.
-    "HUNGTHINH": {"layout": "ht", "cong_ty": "HT", "khoi": "Khối KD Xe tải"},
+    # P&L vốn đã chạy tốt (18 ngày kỳ 09). `sodu_matran_trong_file` (21/09/2026) chỉ thêm cụm SỐ
+    # DƯ theo ngày, đọc từ file hợp nhất `...baocaotaichinhhopnhatxetai.xlsx` lẫn trong cùng thư
+    # mục. Sheet đó là MA TRẬN cột-theo-kỳ chứ không phải ảnh chụp -> `_matran_sang_cdkt`.
+    # Cụm số dư THÁNG của khối này đã có sẵn từ lâu (agent_cli đọc thư mục
+    # `baocaotaichinhhopnhatxetai/`, 33 file) — bản ngày PHẢI khớp quy ước đó: lấy cột HỢP NHẤT,
+    # `cong_ty = HT`. Đối chứng: `BS` mã 270 kỳ 2026-08 trong DB = 511,6425 tỷ = đúng ô hợp nhất.
+    "HUNGTHINH": {"layout": "ht", "cong_ty": "HT", "khoi": "Khối KD Xe tải",
+                  "sodu_matran_trong_file": True,
+                  "sheet_sodu": {"cdkt": "BCĐKT hợp nhất "}},
     # XƯỞNG DỊCH VỤ VINFAST (spec user 2026-08-06) — layout "xdv", xem `_xdv_facts`.
     # `bo_tu_ngay` = MỐC CUTOVER SANG NGUỒN TỰ ĐỘNG. Mapping XDV ('Báo cáo API_XDV' dòng 12) chốt:
     # `\\PHONGKETOANXUONGDICHVU\\BAOCAOHQKDNGAY` (file tay này) BỊ THAY bởi bản Cyber tự động
@@ -539,12 +579,6 @@ def _kqkd_scan(rows, ccs, anchors):
     # Đơn vị 1 cột (HTX, không có cost center) -> dùng cột tổng / cột ngay sau "MÃ SỐ".
     cols = [(cc, j) for j, c in enumerate(hdr) if j != ten_j
             for cc in [next((cc for kw, cc in ccs if _nd(c) == kw), None)] if cc]
-    if not cols:
-        tong_j = next((j for j, c in enumerate(hdr) if _nd(c).startswith("tong cong")), None)
-        if tong_j is None:
-            ma_j = next((j for j, c in enumerate(hdr) if _nd(c) == "ma so"), ten_j)
-            tong_j = ma_j + 1
-        cols = [(None, tong_j)]
 
     anchored = {}
     for r in rows[hdr_i + 1:]:
@@ -563,6 +597,21 @@ def _kqkd_scan(rows, ccs, anchors):
     def val(key, j):
         r = anchored.get(key)
         return _num(r[j]) if r is not None and j < len(r) else None
+
+    # Đơn vị 1 cột (HTX, không cost center) -> cột "Tổng cộng", không có thì cột số ĐẦU TIÊN bên
+    # phải "MÃ SỐ". KHÔNG lấy cứng `ma_j + 1` (19/09/2026): sheet "HQKD" trong file NGÀY của HTX
+    # chèn thêm cột "Thuyết minh" giữa "MÃ SỐ" và cột số, còn sheet ngày trong file THÁNG thì
+    # không — lấy cứng là trúng ô rỗng và CẢ SHEET ra 0 dòng mà không một câu lỗi nào (9/9 neo
+    # vẫn khớp, chỉ `val` trả None). Dò bằng chính dòng đã neo nên tự đúng cho cả hai khuôn; cột
+    # "% DT" đứng sau cột số nên không bao giờ được chọn trước.
+    if not cols:
+        tong_j = next((j for j, c in enumerate(hdr) if _nd(c).startswith("tong cong")), None)
+        if tong_j is None:
+            ma_j = next((j for j, c in enumerate(hdr) if _nd(c) == "ma so"), ten_j)
+            moc = anchored.get("dt_thuan")
+            tong_j = next((j for j in range(ma_j + 1, len(hdr))
+                           if moc is not None and j < len(moc) and _num(moc[j])), ma_j + 1)
+        cols = [(None, tong_j)]
 
     return cols, anchored, val
 
@@ -734,6 +783,43 @@ _BCQT_MA = {"dt_gross": "100", "giam_tru": "110", "dt_thuan": "120", "gia_von": 
 _BCQT_COT = re.compile(r"^(\d{1,2})\s*/\s*(\d{1,2})\s*-\s*(.+)$")
 # Dòng kỳ: "Từ ngày 01/09/2026 - Đến ngày 30/09/2026".
 _BCQT_KY = re.compile(r"tu ngay\s*(\d{1,2})/(\d{1,2})/(\d{4}).*?den ngay\s*(\d{1,2})/(\d{1,2})/(\d{4})")
+
+
+def _ky_theo_nhan_o_ngay(rows):
+    """Kỳ khai bằng NHÃN + Ô NGÀY THẬT -> ('YYYY-MM-DD' từ, đến) hoặc None.
+
+    Khuôn của HO / Global AI (21/09/2026): dòng 7 CĐKT là bốn ô rời, hai ô giữa là datetime —
+    `"Từ ngày" | 2026-09-18 | "đến ngày" | 2026-09-18`. Khác `_bcqt_ky` ở chỗ ngày KHÔNG nằm
+    trong chuỗi, nên regex không với tới.
+
+    Lấy ô ngày ĐẦU TIÊN BÊN PHẢI mỗi nhãn, trong cùng dòng, và chỉ nhận khi đủ CẢ HAI nhãn —
+    thiếu một vế thì không biết đây là kỳ hay là ngày in/ngày ký. Dừng ở dòng 12 như các nhánh
+    khác: dưới đó là phần thân bảng, ngày gặp ở đó là dữ liệu chứ không phải tiêu đề.
+    """
+    def _o_ngay_sau(r, j):
+        for c in r[j + 1:]:
+            if isinstance(c, datetime.datetime):
+                return c.date().isoformat()
+            if isinstance(c, datetime.date):
+                return c.isoformat()
+            # Gặp nhãn kế tiếp trước khi gặp ô ngày -> vế này bỏ trống, không nhặt bừa ô sau nó.
+            if isinstance(c, str) and _nd(c).startswith(("tu ngay", "den ngay")):
+                return None
+        return None
+
+    for r in rows[:12]:
+        tu = den = None
+        for j, c in enumerate(r or ()):
+            if not isinstance(c, str):
+                continue
+            n = _nd(c)
+            if tu is None and n.startswith("tu ngay"):
+                tu = _o_ngay_sau(r, j)
+            elif den is None and n.startswith("den ngay"):
+                den = _o_ngay_sau(r, j)
+        if tu and den:
+            return tu, den
+    return None
 
 
 def _bcqt_ky(rows):
@@ -1223,15 +1309,18 @@ _TSNV_NHOM = {**{m: "TS ngắn hạn" for m in ("110", "120", "130", "140", "150
               **{m: "Nợ phải trả" for m in ("310", "330")}, "400": "Vốn chủ"}
 
 
-def _snap_tsnv_facts(rows):
-    """rows sheet BCĐKT -> [fact] TSNV_D: mỗi dòng CĐKT một fact, giá trị cột 'Số cuối kỳ'."""
+def _snap_tsnv_facts(rows, mau=None):
+    """rows sheet BCĐKT -> [fact] TSNV_D: mỗi dòng CĐKT một fact. `mau` xem `_MAU_CDKT`."""
+    mau = mau or _MAU_CDKT["b01dn"]
     hdr = next((i for i, r in enumerate(rows[:20])
-                if any(_nd(c) == "ma so" for c in r) and any("cuoi ky" in _nd(c) for c in r)), None)
+                if any(_nd(c) == "ma so" for c in r)
+                and any(any(k in _nd(c) for k in mau["nhan"]) for c in r)), None)
     if hdr is None:
         return []
     ma_j = next(j for j, c in enumerate(rows[hdr]) if _nd(c) == "ma so")
     ten_j = next((j for j, c in enumerate(rows[hdr]) if _nd(c) in ("tai san", "chi tieu")), 0)
-    val_j = next((j for j, c in enumerate(rows[hdr]) if "cuoi ky" in _nd(c)), None)
+    val_j = next((j for j, c in enumerate(rows[hdr])
+                  if any(k in _nd(c) for k in mau["nhan"])), None)
     if val_j is None:
         return []
     facts, da_co = [], set()
@@ -1244,7 +1333,7 @@ def _snap_tsnv_facts(rows):
         v = _num(r[val_j]) if val_j < len(r) else None
         pl = json.dumps({"ps_tang": 0.0, "ps_giam": 0.0, "ma_so": ma,
                          "unit": "ty", "grain": "day"}, ensure_ascii=False)
-        facts.append((None, "TSNV_D", _TSNV_NHOM.get(ma, ""), "", v or 0.0, ten, pl))
+        facts.append((None, "TSNV_D", mau["nhom"].get(ma, ""), "", v or 0.0, ten, pl))
     return facts
 
 
@@ -1288,29 +1377,93 @@ def _snap_congno_facts(rows, rt, chieu):
 _CDKT_BS = ("270", "300", "400")          # tổng tài sản · nợ phải trả · vốn chủ sở hữu
 _CDKT_TS = {"gtcl": "221", "nguyen_gia": "222", "hao_mon": "223"}
 
+# MẪU BIỂU CĐKT — hai mẫu, KHÁC NHAU CẢ NHÃN CỘT LẪN BẢNG MÃ (19/09/2026).
+#
+# Trước đó mọi thứ gán cứng theo B01-DN (TT200). Hai HTX Xanh nộp mẫu **B01-HTX** (TT 71/2024,
+# "BÁO CÁO TÌNH HÌNH TÀI CHÍNH") nên không đọc được gì: cột giá trị ghi "Kỳ này" chứ không "Số
+# cuối kỳ", và mã số mang nghĩa khác — tổng tài sản là **200** chứ không phải 270, TSCĐ là
+# **150/151/152** chứ không phải 221/222/223. Dò bằng bảng của B01-DN thì hoặc trả rỗng (sai nhãn),
+# hoặc tệ hơn là khớp nhầm mã và gán nhóm sai cho cả bảng cơ cấu.
+#
+# `bs` map mã NGUỒN -> mã CHUẨN: dòng `BS_D` bắt buộc mang dim1 "270"/"300"/"400" vì phía đọc hỏi
+# đúng ba mã đó (`finance.py`: `snapshot_sum(ds,"BS",to,dim1_in=["270"])`). Đổi mã ở đây là thẻ
+# Tổng tài sản trắng mà không có lỗi nào nổ.
+#
+# `nhom` CHỈ gán cho dòng CẤP TỔNG, không gán cho dòng con — cùng lý do như bản B01-DN: cha và con
+# cùng lọt một nhóm là bảng cơ cấu cộng đôi. Với B01-HTX: 150 là cha của 151/152, 300 là cha của
+# 310..380, 400 là cha của 410..440.
+#
+# ⚠ B01-HTX KHÔNG TÁCH NGẮN/DÀI HẠN — mẫu rút gọn chỉ liệt kê 8 khoản tài sản liền mạch. Việc xếp
+# 150 (TSCĐ) và 160 (TS chung không chia) vào "TS dài hạn", phần còn lại vào "TS ngắn hạn" là một
+# DIỄN GIẢI của mình theo bản chất khoản mục, không phải thứ nguồn khai. Hai nhóm này chỉ dùng để
+# vẽ thanh cơ cấu; tổng thì lấy thẳng mã 200 nên không phụ thuộc cách xếp.
+_MAU_CDKT = {
+    "b01dn": {
+        # "cuoi nam" là NHÃN SAI CÓ THẬT, không phải báo cáo năm (An KS 20/09/2026): bản 15-16/09
+        # ghi "Số cuối kỳ", bản 17-18/09 ghi "Số cuối năm" — CÙNG ô r7c3, cùng cấu trúc, và chuỗi
+        # số dư nối liền mạch (đầu kỳ ngày sau = cuối kỳ ngày trước, 270 = 440 cả 4 ngày). Ngày
+        # của ảnh chụp do `_sodu_ngay_cua_wb` đọc từ "Tại ngày DD tháng M năm Y" quyết định, KHÔNG
+        # suy từ nhãn cột — nên nhãn ở đây chỉ để CHỌN CỘT, nhận thêm một cách gõ không làm báo
+        # cáo năm bị hiểu nhầm thành ảnh chụp ngày. Xếp "cuoi ky" trước cho dễ đọc, nhưng thứ tự
+        # tuple KHÔNG quyết định: `val_j` lấy cột khớp TRÁI NHẤT.
+        "nhan": ("cuoi ky", "cuoi nam"),
+        "bs": {"270": "270", "300": "300", "400": "400"},
+        "ts": _CDKT_TS,
+        "nhom": {**{m: "TS ngắn hạn" for m in ("110", "120", "130", "140", "150")},
+                 **{m: "TS dài hạn" for m in ("210", "220", "230", "240", "250", "260")},
+                 **{m: "Nợ phải trả" for m in ("310", "330")}, "400": "Vốn chủ"},
+    },
+    "b01htx": {
+        # "Kì này" (i ngắn) là lỗi gõ CÓ THẬT ở bản XTQ 15/09, bản 16-17 lại ghi "Kỳ này" — nhận
+        # cả hai, không thì mất đúng một ngày vì một dấu.
+        "nhan": ("ky nay", "ki nay"),
+        "bs": {"200": "270", "300": "300", "400": "400"},
+        "ts": {"gtcl": "150", "nguyen_gia": "151", "hao_mon": "152"},
+        "nhom": {**{m: "TS ngắn hạn" for m in ("110", "120", "130", "140", "170", "180")},
+                 **{m: "TS dài hạn" for m in ("150", "160")},
+                 "300": "Nợ phải trả", "400": "Vốn chủ"},
+    },
+}
 
-def _snap_cdkt_facts(rows):
-    """rows sheet BCĐKT -> [fact] cho BS_D và TS_D (số dư CUỐI KỲ, cột 'Số cuối kỳ')."""
+
+def _cdkt_doc(rows, mau):
+    """(dòng header, {mã: giá trị}) của sheet CĐKT theo mẫu. (None, {}) nếu không dò ra cột giá trị."""
+    def co_nhan(r):
+        return any(any(k in _nd(c) for k in mau["nhan"]) for c in r)
+
     hdr = next((i for i, r in enumerate(rows[:20])
-                if any(_nd(c) == "ma so" for c in r) and any("cuoi ky" in _nd(c) for c in r)), None)
+                if any(_nd(c) == "ma so" for c in r) and co_nhan(r)), None)
     if hdr is None:
-        return []
+        return None, {}
     ma_j = next(j for j, c in enumerate(rows[hdr]) if _nd(c) == "ma so")
-    val_j = next((j for j, c in enumerate(rows[hdr]) if "cuoi ky" in _nd(c)), None)
+    val_j = next((j for j, c in enumerate(rows[hdr])
+                  if any(k in _nd(c) for k in mau["nhan"])), None)
     if val_j is None:
-        return []
+        return None, {}
     byma = {}
     for r in rows[hdr + 1:]:
         m = str(r[ma_j]).strip() if ma_j < len(r) and r[ma_j] not in (None, "") else ""
         if re.fullmatch(r"\d{3}", m) and m not in byma:
             byma[m] = _num(r[val_j]) if val_j < len(r) else None
-    facts = [(None, "BS_D", m, m, byma[m], None, None) for m in _CDKT_BS if byma.get(m) is not None]
-    g = byma.get(_CDKT_TS["gtcl"])
+    return hdr, byma
+
+
+def _snap_cdkt_facts(rows, mau=None):
+    """rows sheet BCĐKT -> [fact] cho BS_D và TS_D (số dư CUỐI KỲ). `mau` xem `_MAU_CDKT`."""
+    mau = mau or _MAU_CDKT["b01dn"]
+    hdr, byma = _cdkt_doc(rows, mau)
+    if hdr is None:
+        return []
+    facts = [(None, "BS_D", chuan, chuan, byma[nguon], None, None)
+             for nguon, chuan in mau["bs"].items() if byma.get(nguon) is not None]
+    ts = mau["ts"]
+    g = byma.get(ts["gtcl"])
     if g is not None:
         # hao_mon lưu DƯƠNG (bản THÁNG verify 2026-07: hao_mon 0,5791 trong khi mã 223 ghi âm).
-        # GTCL lấy thẳng mã 221, KHÔNG tính 222 − 223: mã 223 đã âm sẵn nên phép trừ ra sai gấp đôi.
-        pl = json.dumps({"nguyen_gia": round((byma.get("222") or 0) * 1e-9, 9),
-                         "hao_mon": round(abs(byma.get("223") or 0) * 1e-9, 9),
+        # GTCL lấy thẳng mã gtcl, KHÔNG tính nguyên giá − hao mòn: cột hao mòn đã âm sẵn nên phép
+        # trừ ra sai gấp đôi.
+        pl = json.dumps({"nguyen_gia": round((byma.get(ts["nguyen_gia"]) or 0) * 1e-9, 9),
+                         "hao_mon": round(abs(byma.get(ts["hao_mon"]) or 0) * 1e-9, 9),
                          "khau_hao_ky": 0.0, "het_kh_con_sd": 0.0, "het_kh_thanh_ly": 0.0,
                          "unit": "ty", "grain": "day"}, ensure_ascii=False)
         facts.append((None, "TS_D", "TSCĐ (theo CĐKT)", "TSCĐ (theo CĐKT)", g, None, pl))
@@ -1328,7 +1481,15 @@ _HH_TK = {"151": "Hàng mua đang đi đường", "152": "Nguyên liệu, vật 
           "155": "Thành phẩm", "156": "Hàng hóa"}
 
 
-def _snap_cdps_facts(rows):
+# TK công nợ ở mức TỔNG, CHỈ dùng cho đơn vị KHÔNG có sổ chi tiết theo đối tượng (2 HTX Xanh,
+# 19/09/2026). Đơn vị CÓ sổ (Trạm sạc, An Taxi, An KS) mà bật cái này là cộng đôi: một lần theo
+# từng đối tượng, một lần nữa ở dòng tổng. Vì vậy `_snap_sodu_facts` chỉ truyền `congno_tong=True`
+# khi `sheet_sodu` của đơn vị KHÔNG khai `pthu`/`ptra`.
+_CONGNO_TK = {"131": ("PTHU_D", "no", "Phải thu khách hàng (tổng)"),
+              "331": ("PTRA_D", "co", "Phải trả nhà cung cấp (tổng)")}
+
+
+def _snap_cdps_facts(rows, congno_tong=False):
     """rows sheet BCĐPS -> [fact] cho THUE_D và HH_D, gom theo TK cấp 1 (3–4 số)."""
     top, col = _snap_2tang(rows)
     if top is None:
@@ -1353,9 +1514,15 @@ def _snap_cdps_facts(rows):
         rt, dim1, dim2, chieu = ("THUE_D", *_THUE_TK[key], ) if key else (None, None, None, None)
         if key is None:
             key = next((k for k in _HH_TK if tk.startswith(k)), None)
-            if key is None:
+            if key is not None:
+                rt, dim1, dim2, chieu = "HH_D", _HH_TK[key], None, "no"
+            elif congno_tong and tk in _CONGNO_TK:
+                # KHỚP BẰNG ĐÚNG mã TK cấp 1, không theo tiền tố: CĐPS liệt kê cả 131 lẫn 1311/
+                # 1316/1318, khớp tiền tố là cộng cha lẫn con.
+                rt, chieu, dim1 = _CONGNO_TK[tk]
+                dim2, key = None, tk
+            else:
                 continue
-            rt, dim1, dim2, chieu = "HH_D", _HH_TK[key], None, "no"
         k4 = (rt, dim1, dim2, key)
         theo_key.setdefault(k4, []).append((tk, r))
         chieu_cua[k4] = chieu
@@ -1396,7 +1563,7 @@ def _snap_cdps_facts(rows):
     return facts
 
 
-def _snap_sodu_facts(wb, ten_sheet):
+def _snap_sodu_facts(wb, ten_sheet, mau_cdkt=None, chi_so_du=False):
     """workbook -> [fact] CẢ CỤM SỐ DƯ (công nợ phải thu/trả, CĐKT, TS-NV, bảng cân đối phát sinh).
 
     Một chỗ duy nhất biết sheet nào nuôi report_type nào — trước đây danh sách này nằm rải trong
@@ -1412,15 +1579,54 @@ def _snap_sodu_facts(wb, ten_sheet):
         sn = ten_sheet.get(khoa)
         if sn in co:
             out += _snap_congno_facts(rows(sn), rt, chieu)
+    # Không có sổ công nợ chi tiết -> lấy TỔNG theo TK 131/331 từ CĐPS. Thẻ tổng của màn Công nợ
+    # vẫn đúng, chỉ thiếu bảng Top 10 — trung thực hơn là để trắng cả màn.
+    congno_tong = not (ten_sheet.get("pthu") or ten_sheet.get("ptra"))
     # "cdkt" xuất hiện HAI LẦN, cố ý: `_snap_cdkt_facts` lấy 3 mã tổng + TSCĐ cho thẻ KPI, còn
     # `_snap_tsnv_facts` lấy TOÀN BỘ dòng cho bảng cơ cấu Tài sản-Nguồn vốn. Hai report_type khác
     # nhau nên không cộng đôi.
-    for khoa, boc in (("cdkt", _snap_cdkt_facts), ("cdkt", _snap_tsnv_facts),
-                      ("cdps", _snap_cdps_facts)):
+    for khoa, boc in (("cdkt", lambda r: _snap_cdkt_facts(r, mau_cdkt)),
+                      ("cdkt", lambda r: _snap_tsnv_facts(r, mau_cdkt)),
+                      ("cdps", lambda r: _snap_cdps_facts(r, congno_tong))):
         sn = ten_sheet.get(khoa)
         if sn in co:
             out += boc(rows(sn))
-    return out
+    return _bo_phat_sinh(out) if chi_so_du else out
+
+
+# Các khoá PHÁT SINH trong payload — bị ép về 0 khi nguồn là bản LUỸ KẾ (xem `_bo_phat_sinh`).
+_PL_PHAT_SINH = ("ps_tang", "ps_giam", "nhap", "xuat")
+
+
+def _bo_phat_sinh(facts):
+    """Giữ SỐ DƯ, ép mọi cột PHÁT SINH về 0 — dùng cho bản luỹ kế (19/09/2026).
+
+    Bản "Từ 01/09 Đến 15/09" của 2 HTX Xanh có cột số dư cuối kỳ ĐÚNG là số dư cuối ngày 15 (số dư
+    là trạng thái tại một thời điểm, không phụ thuộc kỳ dài hay ngắn), nhưng cột phát sinh thì phủ
+    15 NGÀY. Bỏ cả file vì cột phát sinh là mất luôn ngày 15 ở màn Tài sản-Nguồn vốn; giữ nguyên
+    cột phát sinh là gán biến động nửa tháng cho một ngày. Lấy số dư, vứt phát sinh.
+
+    `du_dau` cũng bị ép 0: nó là đầu kỳ của KHOẢNG 01→15, không phải đầu ngày 15. Phía đọc tự suy
+    đầu kỳ từ ngày sớm nhất trong khoảng người xem chọn (`_shared._rows_dau_ky_ngay`), nên để 0 an
+    toàn hơn là đưa một con số của quãng thời gian khác.
+    """
+    ra = []
+    for f in facts:
+        pl = f[6]
+        if pl:
+            try:
+                d = json.loads(pl)
+            except Exception:
+                ra.append(f)
+                continue
+            for k in _PL_PHAT_SINH:
+                if k in d:
+                    d[k] = 0.0
+            if "du_dau" in d:
+                d["du_dau"] = 0.0
+            f = (*f[:6], json.dumps(d, ensure_ascii=False))
+        ra.append(f)
+    return ra
 
 
 def _sodu_ngay_cua_wb(wb, ten_sheet, ten_file, o_ngay_tu_o=False, ngay_tu_ten_file=False):
@@ -1446,17 +1652,64 @@ def _sodu_ngay_cua_wb(wb, ten_sheet, ten_file, o_ngay_tu_o=False, ngay_tu_ten_fi
     if sn not in (wb.sheetnames or ()):
         return None, f"không có sheet '{sn}'"
     rows = [list(r) for r in wb[sn].iter_rows(max_row=14, values_only=True)]
+
+    def _co_so_luy_ke():
+        """Có BẤT KỲ sổ nào trong file khai nhiều hơn một ngày không?
+
+        Cờ luỹ kế phải theo SỔ CÓ CỘT PHÁT SINH, không theo sheet tình cờ được chọn để lấy ngày
+        (20/09/2026). Ca thật An KS: bản 15/09 có `CDKT` ghi "Tại ngày 15 tháng 9" (ảnh chụp một
+        thời điểm — bảng cân đối nào chả thế) trong khi `CDPS`/`131`/`331` đều khai "Từ ngày
+        01/09 đến ngày 15/09". Vừa khai thêm `cdkt` cho An KS là `sn` nhảy sang CĐKT, nhánh 1
+        không còn chạy, cờ luỹ kế biến mất và 15 ngày phát sinh bị ghi thành phát sinh của MỘT
+        ngày. Bản 17/09 còn lệch trong cùng một file: `331` một ngày, `131` luỹ kế 01→17.
+
+        Một sổ luỹ kế là bỏ phát sinh của CẢ FILE — thà mất cột phát sinh còn hơn công bố mức
+        phát sinh 17 ngày dưới nhãn một ngày. Số dư cuối kỳ không bị ảnh hưởng, đó mới là thứ
+        cụm này nuôi.
+        """
+        for s in set((ten_sheet or {}).values()):
+            if s not in (wb.sheetnames or ()):
+                continue
+            k = _bcqt_ky([list(r) for r in wb[s].iter_rows(max_row=14, values_only=True)])
+            if k and k[0] != k[1]:
+                return True
+        return False
+
     ky = _bcqt_ky(rows)
     if ky:
         if ky[0] == ky[1]:
-            return ky[0], None
-        return None, f"'{sn}' khai {ky[0]}..{ky[1]}, không phải ảnh chụp một ngày"
+            return ky[0], ("luy_ke" if _co_so_luy_ke() else None)
+        # BẢN LUỸ KẾ VẪN DÙNG ĐƯỢC PHẦN SỐ DƯ (19/09/2026). "Từ 01/09 Đến 15/09" nói rằng cột số
+        # dư cuối kỳ là số dư CUỐI NGÀY 15 — đúng thứ cụm số dư cần; chỉ cột phát sinh là của 15
+        # ngày. Trước đây loại cả file nên 2 HTX Xanh mất hẳn ngày 15 ở màn Tài sản-Nguồn vốn dù
+        # số ngày đó có sẵn và CÂN tuyệt đối. Nay nhận, kèm cờ để `_snap_sodu_facts` vứt phát sinh.
+        # Vẫn đòi `den` nằm trong kỳ và `tu <= den` — sai phạm vi thì không đoán.
+        if ky[0] <= ky[1]:
+            return ky[1], "luy_ke"
+        return None, f"'{sn}' khai {ky[0]}..{ky[1]}, khoảng ngày không hợp lệ"
+    # 2b. KHAI KỲ BẰNG NHÃN + Ô NGÀY THẬT, KHÔNG PHẢI MỘT CHUỖI (HO / Global AI, 21/09/2026).
+    #     Dòng 7 của CĐKT là BỐN Ô RỜI, hai ô giữa là datetime chứ không phải chữ:
+    #         "Từ ngày" | 2026-09-18 00:00:00 | "đến ngày" | 2026-09-18 00:00:00
+    #     Nhánh 1 tìm regex "Từ ngày X Đến ngày Y" TRONG MỘT Ô nên trượt; nhánh 3 đòi "Ngày D
+    #     tháng M năm Y" cũng trượt; nhánh 2 đòi ĐÚNG MỘT ô ngày mà đây có hai. Kết quả là file
+    #     khai kỳ rõ ràng nhất trong các đơn vị lại là file không nhận được kỳ.
+    #
+    #     KHÔNG cần khai cờ như nhánh 2/4: ở đây có NHÃN "từ ngày"/"đến ngày" nói thẳng hai ô đó
+    #     là kỳ báo cáo, không phải suy diễn từ một ô ngày trơ trọi có thể là ngày in.
+    #     Vẫn giữ nguyên luật flow/stock của nhánh 1: `tu == den` dùng thẳng, `tu < den` là luỹ kế.
+    ngay_nhan = _ky_theo_nhan_o_ngay(rows)
+    if ngay_nhan:
+        tu, den = ngay_nhan
+        if tu > den:
+            return None, f"'{sn}' khai {tu}..{den}, khoảng ngày không hợp lệ"
+        return den, ("luy_ke" if (tu != den or _co_so_luy_ke()) else None)
     # 3. FILE KHAI MỘT NGÀY BẰNG CHỮ: "Tại ngày 16 tháng 9 năm 2026" / "Ngày 16 tháng 9 năm 2026"
     #    (An Khách sạn). Nhận vô điều kiện vì câu này CHỈ nói được đúng một ngày — khác nhánh 2
     #    (một ô ngày trơ trọi, có thể là ngày in/ngày xuất nên phải khai cờ mới bật).
-    #    Nhánh 1 chạy TRƯỚC nên file luỹ kế ("Từ ngày 01/09/2026 đến ngày 15/09/2026") đã bị loại,
-    #    không lọt xuống đây. Kiểm chứng 18/09/2026: `CDPS` ngày 16 của An KS có số dư đầu kỳ khớp
-    #    cuối kỳ ngày 15 ở 65/65 tài khoản -> đúng là ảnh chụp một ngày.
+    #    Kiểm chứng 18/09/2026: `CDPS` ngày 16 của An KS có số dư đầu kỳ khớp cuối kỳ ngày 15 ở
+    #    65/65 tài khoản -> đúng là ảnh chụp một ngày.
+    #    NGÀY thì nhận, nhưng PHÁT SINH vẫn phải hỏi `_co_so_luy_ke()`: câu "Tại ngày …" của CĐKT
+    #    không nói gì về phạm vi của CĐPS/sổ công nợ nằm cùng file.
     for r in rows:
         for c in (r or ()):
             if not isinstance(c, str):
@@ -1465,7 +1718,8 @@ def _sodu_ngay_cua_wb(wb, ten_sheet, ten_file, o_ngay_tu_o=False, ngay_tu_ten_fi
             if m:
                 d, mm, y = (int(x) for x in m.groups())
                 try:
-                    return datetime.date(y, mm, d).isoformat(), None
+                    return (datetime.date(y, mm, d).isoformat(),
+                            ("luy_ke" if _co_so_luy_ke() else None))
                 except ValueError:
                     return None, f"'{sn}' ghi ngày không hợp lệ: {c[:40]}"
     # 4. FILE KHÔNG KHAI NGÀY Ở ĐÂU CẢ -> lấy 8 số trong TÊN FILE (khối Dự án, 20/09/2026).
@@ -1501,6 +1755,180 @@ def _sodu_ngay_cua_wb(wb, ten_sheet, ten_file, o_ngay_tu_o=False, ngay_tu_ten_fi
     return ngay, None
 
 
+def _matran_sang_cdkt(rows, ngay_ten_file):
+    """CĐKT khuôn MA TRẬN CỘT-THEO-KỲ -> (ngày, rows dạng CĐKT hai cột) | (None, lý do).
+
+    Hưng Thịnh (21/09/2026). Sheet `BCĐKT hợp nhất` KHÔNG phải ảnh chụp một thời điểm mà là ma
+    trận luỹ kế cả năm, mỗi kỳ một cột:
+
+        Mã số | Chỉ tiêu | SỐ ĐẦU NĂM | THÁNG 1 | … | THÁNG 8 | đến N18/09 | Ghi chú
+
+    Trả về rows đã dựng lại thành khuôn CĐKT hai cột chuẩn để `_snap_cdkt_facts` /
+    `_snap_tsnv_facts` chạy Y NGUYÊN — không fork hàm bóc, không thêm tham số cho chúng.
+
+    NGÀY LẤY TỪ TIÊU ĐỀ CỘT, KHÔNG PHẢI TỪ FILE. Ba mốc thời gian trong file MÂU THUẪN nhau:
+    tiêu đề sheet ghi "Tại ngày 31/08/2026", hai ô ngày thật ghi 01/07 và 31/07, chỉ tiêu đề cột
+    nói 18/09 — và số trong cột đó khác cột THÁNG 8 hẳn 7,7 tỷ nên nó là số thật của 18/09. Mọi
+    phép nhận ngày khác đều dẫn tới gán số ngày 18/09 vào 31/08 hoặc 31/07, im lặng.
+
+    BẮT BUỘC KHỚP TÊN FILE: tiêu đề cột là chuỗi kế toán gõ tay, mỗi lần xuất một kiểu (cùng file
+    này có "đến N18/09", "cuối kỳ  18/09", "Số cuối ngày 18.9"). Đòi nó khớp 8 số trong tên file
+    là có hai nguồn độc lập cùng nói một ngày — cùng nguyên tắc với `_sodu_trong_chinh_file`.
+
+    CHỈ LẤY BẢNG ĐẦU (hợp nhất). Sheet có BA bảng cân đối cạnh nhau — hợp nhất, Xe tải Hưng
+    Thịnh, Xe tải Thịnh Cường — và hai bảng sau cũng có cột ngày. Bản THÁNG chỉ nạp hợp nhất
+    (đo: `BS` mã 270 kỳ 2026-08 trong DB = 511,6425 tỷ = đúng ô hợp nhất), nên bản NGÀY phải theo,
+    nếu không hai chế độ hiện hai con số khác nhau. Chặn bằng cách chỉ xét dải cột LIỀN MẠCH kể
+    từ "Mã số": hai bảng kia có tiêu đề ở DÒNG KHÁC và cách một cột trống, nên tự nằm ngoài dải.
+    Cộng hai bảng thành phần cũng không thay được hợp nhất: chúng lệch 285.426.748 đ tiền loại
+    trừ nội bộ.
+    """
+    hdr_i = next((i for i, r in enumerate(rows[:15])
+                  if any(_nd(c) == "ma so" for c in (r or ()))), None)
+    if hdr_i is None:
+        return None, "không thấy dòng tiêu đề có 'Mã số'"
+    hdr = rows[hdr_i]
+    ma_j = next(j for j, c in enumerate(hdr) if _nd(c) == "ma so")
+    ten_j = next((j for j, c in enumerate(hdr) if _nd(c) in ("chi tieu", "tai san")), ma_j + 1)
+    # Dải cột của BẢNG ĐẦU = chạy liên tục từ sau cột tên tới ô tiêu đề trống đầu tiên.
+    het = len(hdr)
+    for j in range(max(ma_j, ten_j) + 1, len(hdr)):
+        if not str(hdr[j] or "").strip():
+            het = j
+            break
+    ung_vien = []
+    for j in range(max(ma_j, ten_j) + 1, het):
+        m = re.search(r"(\d{1,2})\s*[/.]\s*(\d{1,2})", str(hdr[j] or ""))
+        if m:
+            ung_vien.append((j, int(m.group(1)), int(m.group(2))))
+    if not ung_vien:
+        return None, ("không có cột nào khai NGÀY trong tiêu đề (chỉ có cột theo tháng) — "
+                      "file chưa có số theo ngày")
+    j, d, mm = ung_vien[-1]
+    try:
+        ngay = datetime.date(int(ngay_ten_file[:4]), mm, d).isoformat()
+    except ValueError:
+        return None, f"tiêu đề cột ghi ngày không hợp lệ: {str(hdr[j])[:40]!r}"
+    if ngay != ngay_ten_file:
+        return None, (f"tiêu đề cột {str(hdr[j])[:24]!r} ra {ngay} nhưng tên file ghi "
+                      f"{ngay_ten_file} — lệch, không đoán bên nào đúng")
+    ra = [["TÀI SẢN", "Mã số", "Thuyết minh", "Số cuối kỳ"]]
+    for r in rows[hdr_i + 1:]:
+        ma = str(r[ma_j]).strip() if ma_j < len(r) and r[ma_j] not in (None, "") else ""
+        ten = str(r[ten_j]).strip() if ten_j < len(r) and r[ten_j] not in (None, "") else ""
+        if not re.fullmatch(r"\d{3}", ma) or not ten:
+            continue
+        ra.append([ten, ma, None, (r[j] if j < len(r) else None)])
+    return (ngay, ra) if len(ra) > 1 else (None, "không bóc được dòng mã số nào")
+
+
+def _sodu_matran_trong_file(path, period, unit):
+    """Số dư từ CĐKT khuôn ma trận nằm trong chính file đang nạp -> ([(ngày, [fact])], chẩn đoán).
+
+    Anh em với `_sodu_trong_chinh_file`, khác đúng một điểm: CĐKT phải đi qua `_matran_sang_cdkt`
+    để dựng lại thành khuôn hai cột trước khi các hàm bóc dùng chung đọc được.
+    """
+    sn = (unit.get("sheet_sodu") or {}).get("cdkt")
+    ten_file = os.path.basename(path)
+    # Nhận CẢ `.D.` lẫn `.M.`, không dùng `_snap_day_of` (hàm đó chỉ nhận `.D.`). Bản đầu của file
+    # này tên là `.M.20260918.` — ghi `.M.` nhưng ruột là ảnh chụp một NGÀY, đúng kiểu tên ngược đã
+    # gặp ở An Taxi; user đã sửa thành `.D.` ngày 21/09/2026. Vẫn giữ `[DM]` vì tên do người đặt
+    # tay, lần sau gõ lại `.M.` là mất số mà không có lỗi nào.
+    # KHÔNG nới `_snap_day_of` cho `.M.`: hàm đó đang làm CỔNG cho mấy đường nạp khác, nới ra là
+    # mọi file `.M.<YYYYMM>` bỗng bị coi là có ngày.
+    m = re.search(r"\.[DM]\.(\d{4})(\d{2})(\d{2})\D", ten_file)
+    ngay_ten = None
+    if m:
+        y, mm, dd = (int(x) for x in m.groups())
+        if 1 <= mm <= 12 and 1 <= dd <= 31:
+            ngay_ten = f"{y:04d}-{mm:02d}-{dd:02d}"
+    if not ngay_ten:
+        # Không phải lỗi: đây là file P&L (`...M.<YYYYMM>.baocaongay.xlsx`) nằm cùng thư mục, nó
+        # không mang số dư và không bao giờ có ngày trong tên. Trả chẩn đoán RỖNG để log khỏi có
+        # một dòng "bỏ qua" mỗi lượt cho một file đang chạy đúng.
+        return [], {}
+    wb = None
+    try:
+        wb = openpyxl.load_workbook(path, data_only=True, read_only=True)
+        if sn not in (wb.sheetnames or ()):
+            return [], {"so_du_matran": {"bo_qua": f"không có sheet '{sn}'"}}
+        ngay, ra = _matran_sang_cdkt([list(r) for r in wb[sn].iter_rows(values_only=True)], ngay_ten)
+    except Exception as e:
+        return [], {"so_du_matran": {"bo_qua": f"không đọc được ({type(e).__name__})"}}
+    finally:
+        if wb is not None:
+            wb.close()
+    if not ngay:
+        return [], {"so_du_matran": {"bo_qua": ra}}
+    if ngay[:7] != period:
+        return [], {"so_du_matran": {"bo_qua": f"cột khai {ngay}, ngoài kỳ {period}"}}
+    mau = _MAU_CDKT.get(unit.get("mau_cdkt", "b01dn"))
+    facts = _snap_cdkt_facts(ra, mau) + _snap_tsnv_facts(ra, mau)
+    if not facts:
+        return [], {"so_du_matran": {"bo_qua": f"cột {ngay} không bóc được dòng nào"}}
+    return [(ngay, facts)], {"so_du_matran": {"ngay": ngay, "so_dong": len(facts)}}
+
+
+def _sodu_trong_chinh_file(path, period, unit):
+    """Số dư nằm trong CHÍNH file đang nạp -> ([(ngày, [fact])], chẩn đoán).
+
+    ĐƯỜNG THỨ BA, khác hẳn hai đường đã có (HO / Global AI, 21/09/2026):
+      · Trạm sạc / An Taxi — một workbook nuôi CẢ P&L lẫn số dư  -> đọc kèm trong `_bcqt_per_day`
+      · 3 khối Xanh / An KS — P&L `...D.<YYYYMM>.`, số dư `...D.<YYYYMMDD>.` -> `_sodu_quet_thu_muc`
+      · HO / GA            — MỌI file đều mang 8 số ngày, mỗi file là một ảnh chụp trọn vẹn
+
+    Vì sao không dùng lại `_sodu_quet_thu_muc`: cổng của nó là `not _snap_day_of(tên file)`, tức
+    "chỉ lượt nạp file P&L mới đi quét". Ở HO/GA thì `_snap_day_of` trả ngày cho MỌI file (kể cả
+    bản luỹ kế `.D.20260901.` — 8 số cuối là ngày chụp, xem docstring `_UNITS` của GA), nên cổng
+    đó chặn sạch, không lượt nào quét. Đọc ngay trong file đang nạp thì không cần cổng: mỗi file
+    chỉ ghi ngày CỦA CHÍNH NÓ, dưới `source_file` của chính nó, nên `DELETE ... WHERE source_file`
+    dọn trọn và hai file không bao giờ giẫm lên nhau.
+
+    Bối cảnh kỳ 2026-09: nguồn của cả hai đơn vị bỏ hẳn dải sheet "D1".."D31", mọi file tháng 9
+    đều rơi vào nhánh lỗi "KHÔNG PHẢI BÁO CÁO NGÀY" -> P&L đứt từ 01/09. Đường này KHÔNG vá được
+    P&L (file mới không còn sheet ngày nào), chỉ dựng lại cụm SỐ DƯ từ CĐKT.
+    """
+    ten_sheet = unit.get("sheet_sodu") or {}
+    ten_file = os.path.basename(path)
+    wb = None
+    try:
+        wb = openpyxl.load_workbook(path, data_only=True, read_only=True)
+        ngay, vi_sao = _sodu_ngay_cua_wb(wb, ten_sheet, ten_file,
+                                         bool(unit.get("ky_sodu_o_ngay")),
+                                         bool(unit.get("ngay_so_du_tu_ten_file")))
+        if not ngay:
+            return [], {"so_du_trong_file": {"bo_qua": vi_sao}}
+        if ngay[:7] != period:
+            return [], {"so_du_trong_file": {"bo_qua": f"ảnh chụp {ngay}, ngoài kỳ {period}"}}
+        # RUỘT PHẢI KHỚP TÊN FILE, nếu không thì BỎ (21/09/2026). Không phải để bắt lỗi gõ tên —
+        # để chặn CỘNG ĐÔI. Thư mục GA đang có hai file cùng khai ngày 15/09: `.D.20260915.` (đúng)
+        # và `.D.20260901.` (bản xuất lại, ruột y hệt nhưng tên giữ ngày cũ). Đường này ghi theo
+        # `source_file` của TỪNG file, nên hai file cùng một ngày là hai bộ dòng nằm song song
+        # trong DB dưới hai khoá khác nhau — `snapshot_sum` lấy ngày mới nhất ≤ `to` rồi CỘNG cả
+        # hai, tổng tài sản gấp đôi mà không một lỗi nào nổ.
+        #
+        # Chọn bỏ bên LỆCH chứ không bỏ bên nào đó theo thứ tự: hai nguồn độc lập (tên file và
+        # ruột file) nói hai ngày khác nhau thì không có cơ sở chọn bên nào — cùng nguyên tắc với
+        # nhánh 2 của `_sodu_ngay_cua_wb`. Nói rõ trong chẩn đoán để người đọc đi dọn file thừa.
+        ngay_ten = _snap_day_of(ten_file)
+        if ngay_ten and ngay_ten != ngay:
+            return [], {"so_du_trong_file": {
+                "bo_qua": f"ruột khai {ngay} nhưng tên file ghi {ngay_ten} — lệch, bỏ để khỏi "
+                          f"cộng đôi với file đúng tên"}}
+        facts = _snap_sodu_facts(wb, ten_sheet, _MAU_CDKT.get(unit.get("mau_cdkt", "b01dn")),
+                                 chi_so_du=(vi_sao == "luy_ke"))
+    except Exception as e:
+        return [], {"so_du_trong_file": {"bo_qua": f"không đọc được ({type(e).__name__})"}}
+    finally:
+        if wb is not None:
+            wb.close()
+    if not facts:
+        return [], {"so_du_trong_file": {"bo_qua": f"ảnh chụp {ngay} nhưng không bóc được dòng nào"}}
+    return [(ngay, facts)], {"so_du_trong_file": {
+        "ngay": ngay, "so_dong": len(facts),
+        **({"tu_ban_luy_ke": True} if vi_sao == "luy_ke" else {})}}
+
+
 def _sodu_quet_thu_muc(path, period, unit):
     """Quét MỌI file cùng kỳ trong thư mục -> ({ngày: [fact số dư]}, [file bị loại]).
 
@@ -1519,7 +1947,7 @@ def _sodu_quet_thu_muc(path, period, unit):
     ten_sheet = unit.get("sheet_sodu") or {}
     o_ngay = bool(unit.get("ky_sodu_o_ngay"))
     ngay_ten_file = bool(unit.get("ngay_sodu_tu_ten_file"))
-    gop, bo_qua = {}, []
+    gop, bo_qua, luy_ke = {}, [], []
     for ten in sorted(os.listdir(thu_muc)):
         if not ten.lower().endswith(".xlsx") or ten.startswith("~$"):
             continue
@@ -1542,13 +1970,78 @@ def _sodu_quet_thu_muc(path, period, unit):
             if ngay[:7] != period:
                 bo_qua.append({"file": ten, "vi_sao": f"ảnh chụp {ngay}, ngoài kỳ {period}"})
                 continue
-            facts = _snap_sodu_facts(wb, ten_sheet)
+            facts = _snap_sodu_facts(wb, ten_sheet, _MAU_CDKT.get(unit.get("mau_cdkt", "b01dn")),
+                                     chi_so_du=(vi_sao == "luy_ke"))
+            if vi_sao == "luy_ke":
+                luy_ke.append(ngay)
             if not facts:
                 bo_qua.append({"file": ten, "vi_sao": f"ảnh chụp {ngay} nhưng không bóc được "
                                                       f"dòng số dư nào"})
                 continue
             # File sau ĐÈ file trước theo từng ngày, không cộng — số dư cùng một ngày mà cộng hai
             # bản xuất là gấp đôi. Cùng quy ước với `_bcqt_per_day`.
+            gop[ngay] = facts
+        finally:
+            wb.close()
+    return gop, bo_qua, sorted(set(luy_ke))
+
+
+def _pl_quet_thu_muc(path, period, unit, da_co):
+    """Quét họ file ảnh chụp để vét P&L cho những ngày file THÁNG chưa có -> ({ngày: [fact]}, chẩn đoán).
+
+    LÝ DO TỒN TẠI (19/09/2026, 2 HTX Xanh): file tháng `B.6.HTX_*.D.202609.` dừng ở sheet "15" —
+    kế toán ngừng xuất lại nó và chuyển số ngày sang chính file ảnh chụp, vốn từ 16/09 có thêm
+    sheet "BC KQKD" (B02-HTX) khai đúng "Từ ngày 16/09 Đến ngày 16/09" và sheet "HQKD" cùng khuôn
+    với sheet ngày của file tháng. Không có đường này thì 3 màn P&L đứng ở 15/09 trong khi nguồn
+    đã có số tới 17/09, và không ai báo lỗi vì file tháng vẫn "đọc tốt" — nó chỉ thiếu sheet.
+
+    HAI CHẶN BẮT BUỘC:
+      · `tu == den` — theo LỜI KHAI của file, không suy từ tên (cùng luật `_tcode_snap_per_day`).
+        Bản 15/09 khai "Từ 01/09 Đến 15/09" = LUỸ KẾ nửa tháng; nhận nó vào cụm dòng-chảy là cộng
+        15 ngày đè lên 15 ngày đã có từ file tháng. Số dư thì ngược lại, luỹ kế vẫn dùng được —
+        khác biệt đó là ranh giới flow/stock, xem `_bo_phat_sinh`.
+      · `da_co` — ngày nào file THÁNG đã dựng được thì file tháng THẮNG, không ghi đè. Hai nguồn
+        cùng ngày là cộng đôi (chúng vào chung `per_day` của cùng `source_file`).
+    """
+    cau_hinh = unit["pl_ho_file_rieng"]
+    sheet_pl, sheet_ky = cau_hinh["sheet"], cau_hinh["sheet_ky"]
+    thu_muc = os.path.dirname(os.path.abspath(path))
+    gop, bo_qua = {}, []
+    for ten in sorted(os.listdir(thu_muc)):
+        if not ten.lower().endswith(".xlsx") or ten.startswith("~$"):
+            continue
+        if _period_of(ten, True) != period or not _snap_day_of(ten):
+            continue
+        try:
+            wb = openpyxl.load_workbook(os.path.join(thu_muc, ten), data_only=True, read_only=True)
+        except Exception as e:
+            bo_qua.append({"file": ten, "vi_sao": f"không mở được ({type(e).__name__})"})
+            continue
+        try:
+            if sheet_pl not in wb.sheetnames or sheet_ky not in wb.sheetnames:
+                bo_qua.append({"file": ten, "vi_sao": f"không có sheet '{sheet_pl}'/'{sheet_ky}'"})
+                continue
+            ky = _bcqt_ky([list(r) for r in wb[sheet_ky].iter_rows(max_row=12, values_only=True)])
+            if not ky:
+                bo_qua.append({"file": ten, "vi_sao": f"sheet '{sheet_ky}' không có dòng "
+                                                      f"'Từ ngày .. Đến ngày ..'"})
+                continue
+            if ky[0] != ky[1]:
+                bo_qua.append({"file": ten, "vi_sao": f"luỹ kế {ky[0]}→{ky[1]}, không phải số "
+                                                      f"riêng ngày — P&L bỏ (số dư vẫn dùng)"})
+                continue
+            ngay = ky[1]
+            if ngay[:7] != period:
+                bo_qua.append({"file": ten, "vi_sao": f"khai ngày {ngay}, ngoài kỳ {period}"})
+                continue
+            if ngay in da_co:
+                bo_qua.append({"file": ten, "vi_sao": f"{ngay} đã có từ file tháng — nhường"})
+                continue
+            facts = _kqkd_facts([list(r) for r in wb[sheet_pl].iter_rows(values_only=True)])
+            if not facts:
+                bo_qua.append({"file": ten, "vi_sao": f"sheet '{sheet_pl}' không bóc được chỉ tiêu "
+                                                      f"nào cho {ngay}"})
+                continue
             gop[ngay] = facts
         finally:
             wb.close()
@@ -1998,18 +2491,20 @@ def _xdv_facts(rows):
 # ---------------------------------------------------------------------------------------------
 # Cột cost center dò theo TỪ KHOÁ (chứa, không cần khớp hệt) vì nhãn cột đổi nhẹ theo tháng (vd
 # "Yên Bình 3"). Mã CC lấy Y HỆT bản THÁNG (agent_cli._DA_PROJECT_CC) — kể cả quy ước NGƯỢC viết
-# tắt Tân Thịnh<->Yên Bình đã xác nhận nguồn, xem docstring đầu file. "Bình phước" mới, chưa có
-# trong master_data -> mã tự đặt (giống Núi Pháo/Quảng Ngãi bản tháng).
+# tắt Tân Thịnh<->Yên Bình đã xác nhận nguồn, xem docstring đầu file. "Bình phước" = BP_DA từ
+# 21/09/2026 (mã chính thức, thay mã tự đặt BINHPHUOC_DA) — xem `agent_cli._DA_PROJECT_CC`.
 # "Phú Quốc" -> TC_DA: GỘP VÀO THỔ CHU (21/09/2026, KT tài sản xác nhận). Cùng MỘT công
 # trường mà mỗi họ file gọi một tên — sổ tài sản + nhiên liệu ghi "Thổ Chu", còn bảo dưỡng /
-# bảo hiểm / đăng kiểm ghi "Phú Quốc". Soát trước khi gộp: KHÔNG cặp (report_type, kỳ) nào nằm
-# ở cả hai mã, KHÔNG file nguồn nào chứa cả hai tên, và 37/45 mã thiết bị bảo dưỡng của "Phú
-# Quốc" nằm ngay trong sổ tài sản "Thổ Chu" (bảo hiểm 45/46, đăng kiểm 43/51) -> gộp là đổi
-# nhãn thuần tuý, không cộng đôi số nào. 1.164 dòng đã chuyển sang TC_DA ở cả 2 DB.
+# bảo hiểm / đăng kiểm ghi "Phú Quốc". Đã soát trước khi gộp: KHÔNG cặp (report_type, kỳ) nào
+# nằm ở cả hai mã, không file nguồn nào chứa cả hai tên, và 37/45 mã thiết bị bảo dưỡng của
+# "Phú Quốc" nằm ngay trong sổ tài sản "Thổ Chu" (bảo hiểm 45/46, đăng kiểm 43/51) -> gộp là
+# đổi nhãn thuần tuý, không cộng đôi số nào. 1.164 dòng đã chuyển sang TC_DA ở cả 2 DB.
+# MÃ PQ_DA VẪN CÒN trong danh mục nhưng không dòng nào dùng nữa; ô lọc dựng TỪ DỮ LIỆU
+# (repository._cost_center_options) nên "Dự án Phú Quốc" tự biến mất khỏi thanh lọc.
 _CC_DUAN = [("cao bang", "CB_DA"), ("tan thinh", "TT_DA"), ("lang son", "LS_DA"),
             ("yen binh", "YB_DA"), ("phu quoc", "TC_DA"), ("quang son", "QS_DA"),
             ("nui phao", "NUIPHAO_DA"), ("quang ngai", "QUANGNGAI_DA"), ("tho chu", "TC_DA"),
-            ("binh phuoc", "BINHPHUOC_DA")]
+            ("binh phuoc", "BP_DA")]
 
 # (khoá -> (nhãn chuẩn hoá, exact?)). Đa số EXACT (không startswith) vì nhãn ngắn dễ bị dòng con
 # "nuốt" nhầm — vd "chi phi khac" (mục X.2, mã neo cp_khac) là PREFIX của "Chi phí khác tại dự
@@ -2564,7 +3059,7 @@ def derive(path, write=False):
     sodu_diag = {}
     if (unit.get("sodu_ho_file_rieng") and not (snap_mode or bcqt_mode)
             and not _snap_day_of(os.path.basename(path))):
-        gop_sd, bo_qua_sd = _sodu_quet_thu_muc(path, period, unit)
+        gop_sd, bo_qua_sd, luy_ke_sd = _sodu_quet_thu_muc(path, period, unit)
         if gop_sd:
             theo_ngay = {n: list(f) for n, f in per_day}
             for ngay, facts in gop_sd.items():
@@ -2572,7 +3067,46 @@ def derive(path, write=False):
             per_day = sorted(theo_ngay.items())
         sodu_diag = {"so_du_theo_ngay": {
             "so_ngay": len(gop_sd), "ngay": sorted(gop_sd),
+            **({"ngay_tu_ban_luy_ke": luy_ke_sd} if luy_ke_sd else {}),
             **({"bo_qua_file": bo_qua_sd} if bo_qua_sd else {})}}
+
+    # SỐ DƯ NẰM TRONG CHÍNH FILE ĐANG NẠP (HO / Global AI) — xem `_sodu_trong_chinh_file` để biết
+    # vì sao không dùng lại đường quét thư mục ngay trên. Gộp vào `per_day` TRƯỚC `bo_tu_ngay` và
+    # `bo_ngay_tuong_lai`, cùng lý do với cụm số dư kia: hai mốc đó phải cắt được cả dòng số dư.
+    if unit.get("sodu_matran_trong_file") and not (snap_mode or bcqt_mode):
+        pd_sd, sd_diag2 = _sodu_matran_trong_file(path, period, unit)
+        if pd_sd:
+            theo_ngay = {n: list(f) for n, f in per_day}
+            for ngay, facts in pd_sd:
+                theo_ngay.setdefault(ngay, []).extend(facts)
+            per_day = sorted(theo_ngay.items())
+        sodu_diag = {**sodu_diag, **sd_diag2}
+
+    if unit.get("sodu_trong_chinh_file") and not (snap_mode or bcqt_mode):
+        pd_sd, sd_diag2 = _sodu_trong_chinh_file(path, period, unit)
+        if pd_sd:
+            theo_ngay = {n: list(f) for n, f in per_day}
+            for ngay, facts in pd_sd:
+                theo_ngay.setdefault(ngay, []).extend(facts)
+            per_day = sorted(theo_ngay.items())
+        sodu_diag = {**sodu_diag, **sd_diag2}
+
+    # P&L VÉT TỪ HỌ FILE ẢNH CHỤP (19/09/2026) — cùng cổng và cùng lý do với cụm số dư ngay trên:
+    # chỉ chạy ở lượt nạp file THÁNG, để mọi dòng nằm dưới một `source_file` duy nhất và lệnh
+    # `DELETE ... WHERE source_file=%s` dọn được trọn vẹn. Xem `_pl_quet_thu_muc`.
+    pl_diag = {}
+    if (unit.get("pl_ho_file_rieng") and not (snap_mode or bcqt_mode)
+            and not _snap_day_of(os.path.basename(path))):
+        da_co = {n for n, f in per_day if any(x[1] in _RT_DONG_CHAY for x in f)}
+        gop_pl, bo_qua_pl = _pl_quet_thu_muc(path, period, unit, da_co)
+        if gop_pl:
+            theo_ngay = {n: list(f) for n, f in per_day}
+            for ngay, facts in gop_pl.items():
+                theo_ngay.setdefault(ngay, []).extend(facts)
+            per_day = sorted(theo_ngay.items())
+        pl_diag = {"pl_tu_anh_chup": {
+            "so_ngay": len(gop_pl), "ngay": sorted(gop_pl),
+            **({"bo_qua_file": bo_qua_pl} if bo_qua_pl else {})}}
 
     # CUTOVER SANG NGUỒN TỰ ĐỘNG (xem `bo_tu_ngay` trong `_UNITS`): cắt TRƯỚC nhánh báo lỗi bên
     # dưới và TRƯỚC lệnh ghi, để file vẫn đi trọn đường xuống `DELETE ... WHERE source_file=%s`.
@@ -2646,6 +3180,17 @@ def derive(path, write=False):
             # dẫn người đọc đi tìm sai chỗ: file này không bao giờ có sheet ngày, nó là ảnh chụp.
             return {"ok": False, "period": period, "layout": layout, "la_anh_chup_so_du": True,
                     "error": f"ảnh chụp số dư không dùng được: {vi_sao_sd}"}
+        # ĐƠN VỊ ĐỌC SỐ DƯ TRONG CHÍNH FILE (HO / Global AI) mà file này không góp được ngày nào.
+        # Cùng lý do với khối ngay trên: câu lỗi chung bên dưới ("file là mẫu báo cáo THÁNG chụp
+        # theo ngày") nói về dải sheet P&L, dẫn người đọc đi hỏi bên sinh file vì sao bỏ sheet ngày
+        # — trong khi ca thật lại là BẢN TRÙNG bị loại có chủ đích (GA `.D.20260901.` ruột khai
+        # 15/09). Gắn `la_anh_chup_so_du` để `cron_hqkdngay_daily` không ghi trạng thái đơn vị theo
+        # file này: nó không phải file quyết định P&L của kỳ.
+        _sd_bo = ((sodu_diag.get("so_du_trong_file") or {}).get("bo_qua")
+                  or (sodu_diag.get("so_du_matran") or {}).get("bo_qua"))
+        if (unit.get("sodu_trong_chinh_file") or unit.get("sodu_matran_trong_file")) and _sd_bo:
+            return {"ok": False, "period": period, "layout": layout, "la_anh_chup_so_du": True,
+                    "error": f"không góp được ngày số dư nào: {_sd_bo}"}
         # PHÂN BIỆT 3 nguyên nhân — bản đầu gộp chung 1 câu "không đọc được sheet ngày nào" khiến
         # chẩn đoán đi nhầm hướng (2026-08-06, Trạm sạc/GA/HO kỳ 08: tưởng hỏng dò sheet, hoá ra
         # sheet đọc tốt nhưng file nguồn ghi 0 CỨNG ở mọi mã tổng — xem `sheets_ngay` trả kèm).
@@ -2708,11 +3253,27 @@ def derive(path, write=False):
         return {"ok": False, "error": f"không thấy sheet ngày nào khớp kỳ {period} "
                                       f"(layout {layout})"}
 
+    # FILE CHỈ GÓP SỐ DƯ, KHÔNG CÓ DÒNG P&L NÀO -> gắn `la_nguon_so_du` để `cron_hqkdngay_daily`
+    # KHÔNG ghi trạng thái đơn vị theo nó (21/09/2026). `rec()` ghi theo TỪNG FILE và file sau đè
+    # file trước; Hưng Thịnh có hai họ file trong cùng thư mục — `...baocaongay.xlsx` mang P&L 18
+    # ngày, `...baocaotaichinhhopnhatxetai.xlsx` chỉ mang số dư. File hợp nhất xử lý SAU nên nó
+    # ghi đè và đơn vị tụt về KHONG_CO_DONG_NAO, mất sạch cột P&L — đúng lỗi đã mắc ngày 18/09 với
+    # cụm ảnh chụp số dư, lần đó phải đo mới thấy. Số dư về tới đâu vẫn đọc ở `max_ngay_sodu`.
+    # CHỈ áp cho đơn vị có HAI HỌ FILE trong cùng thư mục (`sodu_matran_trong_file`). KHÔNG mở
+    # rộng ra mọi file chỉ-có-số-dư: ở HO/Global AI thì MỌI file kỳ 09 đều chỉ có số dư (nguồn bỏ
+    # dải sheet P&L), không có file nào khác để nhường — gắn cờ ở đó là không file nào ghi trạng
+    # thái, bảng giám sát giữ nguyên bản ghi CŨ và im lặng che một luồng đã đứt. `KHONG_CO_DONG_NAO`
+    # mới là câu đúng cho hai đơn vị đó.
+    _chi_so_du = (unit.get("sodu_matran_trong_file") and bool(per_day)
+                  and not any(x[1] in _RT_DONG_CHAY for _n, f in per_day for x in f))
+
     out = {"ok": True, "file": os.path.basename(path), "period": period, "cong_ty": unit["cong_ty"],
            "layout": layout, "days": len(per_day),
            **({"bo_qua_cutover": bo_cutover} if bo_cutover else {}),
            **({"bo_ngay_tuong_lai": bo_tuong_lai} if bo_tuong_lai else {}),
-           **snap_diag, **sodu_diag,
+           **({"la_nguon_so_du": {"ngay": sorted(n for n, _ in per_day)[-1],
+                                  "nap_boi": "chính file này"}} if _chi_so_du else {}),
+           **snap_diag, **sodu_diag, **pl_diag,
            "tong_theo_ngay": {
                # `x[:5]` chứ không giải nén cứng 5 phần tử: fact của layout "srvf" có thêm
                # dim2 (kênh bán) ở vị trí thứ 6.
@@ -2799,6 +3360,35 @@ def derive(path, write=False):
                 recs.append((dataset_id, rt, 6200000 + i, ngay,
                              _CC_CONGTY.get(cc) or unit["cong_ty"], unit["khoi"], cc, period,
                              v * 1e-9, None, dim1, dim2, dim3, pl, source_file))
+        # DỌN DÒNG SỐ DƯ CÙNG NGÀY ĐẾN TỪ `source_file` KHÁC (21/09/2026).
+        #
+        # `DELETE ... WHERE source_file=%s` ở trên chỉ dọn được dòng mang ĐÚNG tên file này. Đổi
+        # tên file nguồn là khoá đổi theo, dòng cũ nằm lại VĨNH VIỄN và cộng chồng với dòng mới.
+        # Ca thật đang chờ xảy ra: file hợp nhất Hưng Thịnh tên `...M.20260918...`, kế toán sắp
+        # đổi thành `...D.20260918...` — sau lượt nạp đầu tiên sau khi đổi, ngày 18/09 sẽ có HAI
+        # bộ BS_D/TSNV_D/TS_D dưới hai khoá, `snapshot_sum` cộng cả hai và tổng tài sản gấp đôi
+        # mà không một lỗi nào nổ.
+        #
+        # CHỈ áp cho cụm SỐ DƯ và CHỈ cho những ngày lượt này thực sự ghi: số dư là trạng thái tại
+        # MỘT thời điểm của MỘT công ty, hai bản ghi cùng (ngày, công ty, report_type) luôn là
+        # trùng lặp chứ không bao giờ là hai phần bổ sung nhau. Cụm DÒNG CHẢY thì ngược lại — một
+        # ngày có thể gồm nhiều cost center đến từ nhiều file, xoá chéo ở đó là mất số.
+        # KHOÁ PHẢI GỒM CÔNG TY, KHÔNG CHỈ KHỐI. Khối Vận tải Taxi Xanh có BA đơn vị (XVP,
+        # HTX_XTQ, HTX_XVP) cùng ghi `BS_D` cho CÙNG NGÀY từ ba file khác nhau — xoá theo khối là
+        # file chạy sau quét sạch dòng của hai file kia, và khối mất 2/3 số mà vẫn "chạy bình
+        # thường". Cùng lý do phải kèm khối: AAG vừa là An Taxi vừa là An Khách sạn.
+        _rt_sd = sorted({f[1] for _n, fs in per_day for f in fs} - _RT_DONG_CHAY)
+        _ngay_sd = sorted({n for n, fs in per_day if any(f[1] not in _RT_DONG_CHAY for f in fs)})
+        # Đúng công thức đang dùng ở `recs.append`: cost center (f[0]) quyết công ty, không có thì
+        # lấy công ty của đơn vị. Suy lại ở đây thay vì hardcode `unit["cong_ty"]` để khoá xoá
+        # trùng khít khoá ghi.
+        _cty_sd = sorted({_CC_CONGTY.get(f[0]) or unit["cong_ty"]
+                          for _n, fs in per_day for f in fs if f[1] not in _RT_DONG_CHAY})
+        if _rt_sd and _ngay_sd and _cty_sd:
+            cur.execute(
+                "DELETE FROM raw_rows WHERE dataset_id=%s AND report_type = ANY(%s) "
+                "AND ngay = ANY(%s) AND khoi=%s AND cong_ty = ANY(%s) AND source_file <> %s",
+                (dataset_id, _rt_sd, _ngay_sd, unit["khoi"], _cty_sd, source_file))
         cur.executemany(
             "INSERT INTO raw_rows (dataset_id, report_type, row_index, ngay, cong_ty, khoi, "
             "cost_center, period_month, amount, amount2, dim1, dim2, dim3, payload, source_file) "
