@@ -17,6 +17,7 @@
     "Nguyên nhân quá hạn (dim3) đọc được ngay: 'Thiết bị không hoạt động không phải tham gia bảo hiểm', 'Thiết bị hỏng', 'Thiết bị không sử dụng', 'Thiết bị hoạt động trong phạm vi công trường', 'Thiết bị thế chấp ngân hàng tham gia bảo hiểm'."
   ],
   "report_type": "QLTS_BH_TD",
+  "_bay_ban_phat_hanh": "BÁO CÁO TUẦN — MỖI BẢN PHÁT HÀNH LÀ MỘT LÁT RIÊNG (23/09/2026, anh Cường: 'Tuần 1 muốn thấy số tuần 1, nhưng chọn tuần 1 vẫn hiện số tuần 3'). Trước đây cờ `moi_ky_lay_file_moi_nhat: true` gộp theo THÁNG nên 5 bản phát hành 05/07/12/14/19 của tháng 9 chỉ còn ĐÚNG MỘT (bản 19), lại bị đóng dấu `ngay` = 30/09 (cuối tháng) — nên mọi cửa sổ ngày trong tháng 9 đều trả về bản 19. Nay: thêm `regex_ngay` vào `ky_tu_ten_file` để lấy NGÀY PHÁT HÀNH thật từ tên file — phải khai ở ĐÚNG khoá đó, vì nhánh `ky_tu_ten_file` chạy TRƯỚC và nếu nó khớp được năm+tháng thì đã trả về cuối tháng rồi, `ngay_tu_ten_file` không bao giờ tới lượt. Cờ đổi sang chế độ 'ngay' để giữ một file cho MỖI ngày phát hành. KHÔNG được bỏ hẳn cờ: ngày 07 và 14 mỗi ngày có HAI file (bản '.D.' của TC và bản '.M.TS' của GR) nên bỏ cờ là cộng đôi đúng hai lát đó. File THÁNG ('.M.2026.8.Theodoi…') không có ngày trong tên -> regex không khớp -> giữ nguyên hành vi cũ (một lát, ngày = cuối tháng).",
   "row_index_base": 7907000,
   "nguon": {
     "folder": "QLTS/baocaobaohiem",
@@ -136,7 +137,7 @@
   },
   "ky_tu_ten_file": {
     "regex_nam": "\\.(?:M|D)\\.(?:TS\\.)?(\\d{4})\\.",
-    "regex_thang": "\\.(?:M|D)\\.(?:TS\\.)?\\d{4}\\.(\\d{1,2})[\\.\\s]"
+    "regex_thang": "\\.(?:M|D)\\.(?:TS\\.)?\\d{4}\\.(\\d{1,2})[\\.\\s]", "regex_ngay": "\\.(?:M|D)\\.(?:TS\\.)?\\d{4}\\.\\d{1,2}\\.(\\d{1,2})"
   },
-  "moi_ky_lay_file_moi_nhat": true
+  "moi_ky_lay_file_moi_nhat": "ngay"
 }
