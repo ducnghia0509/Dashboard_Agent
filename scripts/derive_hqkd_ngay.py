@@ -219,8 +219,13 @@ _UNITS = {
     # -> xử ở `_MAU_CDKT["b01dn"]["nhan"]`, không fork riêng cho An KS.
     # Ba sheet còn lại đúng mẫu chuẩn và chạy thẳng, lại có ĐỦ hai sổ công nợ nên An KS ra được
     # công nợ CHI TIẾT theo đối tượng (3 khối Xanh không có).
+    # P&L TỪ 16/09/2026 CŨNG NẰM Ở HỌ FILE NGÀY (23/09/2026) — y như 2 HTX: file tháng dừng ở sheet
+    # "15" (sheet 16..31 là khuôn trắng, tiêu đề còn ghi THÁNG 8), còn file ngày có sheet "KQKD"
+    # mẫu B02-DN khai "Ngày 16 tháng 9 năm 2026" và cột "Kỳ này" là số RIÊNG ngày đó. Không có
+    # sheet "HQKD" như HTX nên bóc bằng `_anks_b02_facts` (kiểu "b02dn"), xem hàm đó.
     "ANKHACHSAN": {"layout": "anks", "cong_ty": "AAG", "khoi": "Khối KD Dịch vụ An KS",
                    "sodu_ho_file_rieng": True,
+                   "pl_ho_file_rieng": {"sheet": "KQKD", "sheet_ky": "KQKD", "kieu": "b02dn"},
                    "sheet_sodu": {"pthu": "131", "ptra": "331", "cdps": "CDPS", "cdkt": "CDKT"}},
     # pnlt_skip T101: GA bản THÁNG chạy extractor TT200 (không phải T-series) -> không có dim1
     # 'Doanh thu bán hàng'; xem `_tcode_facts`.
@@ -1986,6 +1991,98 @@ def _sodu_quet_thu_muc(path, period, unit):
     return gop, bo_qua, sorted(set(luy_ke))
 
 
+_KY_MOT_NGAY = re.compile(r"^ngay\s*(\d{1,2})\s*thang\s*(\d{1,2})\s*nam\s*(\d{4})$")
+
+
+def _ky_mot_ngay(rows):
+    """Dòng kỳ kiểu "Ngày 21 tháng 9 năm 2026" (B02-DN của An KS) -> (ngày, ngày), hoặc None.
+
+    KHỚP CẢ Ô (`^...$`), không `search`: sheet số dư cũng có ô "Ngày .. tháng .. năm .." ở chỗ ký
+    tên cuối trang, nhưng dòng kỳ của KQKD luôn đứng một mình trong ô ở 12 dòng đầu. Bản luỹ kế
+    ghi "Từ ngày 01/09/2026 đến ngày 15/09/2026" — `_bcqt_ky` bắt nó TRƯỚC khi tới đây."""
+    for r in rows[:12]:
+        for c in r or ():
+            m = _KY_MOT_NGAY.match(_nd(c))
+            if m:
+                d, mm, y = (int(x) for x in m.groups())
+                try:
+                    n = datetime.date(y, mm, d).isoformat()
+                except ValueError:
+                    return None
+                return (n, n)
+    return None
+
+
+def _anks_b02_facts(wb, sheet):
+    """Sheet KQKD mẫu B02-DN của file ngày An KS -> [fact] y hệt quy ước `_anks_all_days`.
+
+    Đọc cột "Kỳ này" theo MÃ SỐ, không theo nhãn. Ánh xạ về 3 dòng của bản tháng:
+      · TỔNG DOANH THU (1000) = 10 + 21 + 31 — bản tháng gộp cả "DT KHÁC" (thu khác, lãi tiền gửi)
+        vào dòng I, nên phải cộng doanh thu tài chính + thu nhập khác, không lấy riêng mã 10.
+      · LỢI NHUẬN (1112) = 50. An KS không có thuế TNDN nên 50 = 60; PNLT "Lợi nhuận sau thuế"
+        vẫn lấy 60 cho đúng tên.
+      · TỔNG CHI PHÍ (1047) = 1000 − 1112, tức 11 + 22 + 25 + 26 + 32 — suy từ hiệu để luôn khớp
+        đẳng thức LN = DT − CP của chính file, kể cả khi mẫu thêm mã mới (24 lãi/lỗ liên doanh...).
+    CHIPHI tách 3 nhóm như bản tháng. B02 không tách được lương, nên lấy phát sinh Nợ TK 6421
+    "Chi phí nhân viên" ở sheet CDPS cùng file: kiểm chứng 23/09/2026, nhóm "CHI PHÍ LƯƠNG + CP
+    KHÁC CHO CNV" sheet 15 của file tháng = 1.118.886,67 đ, 6421 bản 16/09 = 1.118.887 đ. "Chi phí
+    chung" = phần còn lại (gồm cả 811 — sheet 15 cũng tính 100.000 đ "Chi phí khác" vào đó).
+    Không có CDPS/6421 thì dồn hết vào "Chi phí chung", không bịa tỷ lệ."""
+    rows = [list(r) for r in wb[sheet].iter_rows(values_only=True)]
+    hdr_i = next((i for i, r in enumerate(rows[:12])
+                  if any(_nd(c) == "ma so" for c in r) and any(_nd(c) == "ky nay" for c in r)), None)
+    if hdr_i is None:
+        return []
+    hdr = rows[hdr_i]
+    j_ma = next(j for j, c in enumerate(hdr) if _nd(c) == "ma so")
+    j_kn = next(j for j, c in enumerate(hdr) if _nd(c) == "ky nay")
+    m = {}
+    for r in rows[hdr_i + 1:]:
+        if len(r) > max(j_ma, j_kn) and r[j_ma] is not None:
+            v = _num(r[j_kn])
+            if v is not None:
+                m[str(r[j_ma]).strip()] = v
+    if "10" not in m or "50" not in m:
+        return []
+
+    dt = m["10"] + m.get("21", 0) + m.get("31", 0)
+    lntt = m["50"]
+    tong_cp = dt - lntt
+    gia_von = m.get("11", 0)
+    luong = 0.0
+    if "CDPS" in wb.sheetnames:
+        cd = [list(r) for r in wb["CDPS"].iter_rows(values_only=True)]
+        ps_i = next((i for i, r in enumerate(cd[:15]) if any(_nd(c) == "phat sinh" for c in r)), None)
+        if ps_i is not None:
+            j_no = next(j for j, c in enumerate(cd[ps_i]) if _nd(c) == "phat sinh")
+            for r in cd[ps_i + 1:]:
+                if r and str(r[0] or "").strip() == "6421" and len(r) > j_no:
+                    luong = _num(r[j_no]) or 0.0
+                    break
+    luong = max(0.0, min(luong, tong_cp - gia_von))
+    chung = tong_cp - gia_von - luong
+
+    facts = []
+    if dt:
+        facts.append((None, RT_HQKD, MA_DT, MA_DT, dt))
+        facts.append((None, RT_DTHU, "Doanh thu thuần", "Doanh thu thuần", dt))
+        facts.append((None, RT_PNLT, "Doanh thu HH, DV", "Doanh thu HH, DV", dt))
+        facts.append((None, RT_PNLT, "Doanh thu bán hàng và cung cấp dịch vụ",
+                      "Doanh thu bán hàng và cung cấp dịch vụ", dt))
+    if tong_cp:
+        facts.append((None, RT_HQKD, MA_CP, MA_CP, tong_cp))
+    for dim1, v in (("Giá vốn hàng bán", gia_von), ("Chi phí chung", chung),
+                    ("Chi phí lương + CP khác cho CNV", luong)):
+        if v:
+            facts.append((None, RT_CHIPHI, dim1, dim1, v))
+    if gia_von:
+        facts.append((None, RT_PNLT, "Giá vốn hàng bán", "Giá vốn hàng bán", gia_von))
+    if lntt:
+        facts.append((None, RT_HQKD, MA_LNTT, MA_LNTT, lntt))
+        facts.append((None, RT_PNLT, "Lợi nhuận sau thuế", "Lợi nhuận sau thuế", m.get("60", lntt)))
+    return facts
+
+
 def _pl_quet_thu_muc(path, period, unit, da_co):
     """Quét họ file ảnh chụp để vét P&L cho những ngày file THÁNG chưa có -> ({ngày: [fact]}, chẩn đoán).
 
@@ -2021,7 +2118,8 @@ def _pl_quet_thu_muc(path, period, unit, da_co):
             if sheet_pl not in wb.sheetnames or sheet_ky not in wb.sheetnames:
                 bo_qua.append({"file": ten, "vi_sao": f"không có sheet '{sheet_pl}'/'{sheet_ky}'"})
                 continue
-            ky = _bcqt_ky([list(r) for r in wb[sheet_ky].iter_rows(max_row=12, values_only=True)])
+            dau = [list(r) for r in wb[sheet_ky].iter_rows(max_row=12, values_only=True)]
+            ky = _bcqt_ky(dau) or _ky_mot_ngay(dau)
             if not ky:
                 bo_qua.append({"file": ten, "vi_sao": f"sheet '{sheet_ky}' không có dòng "
                                                       f"'Từ ngày .. Đến ngày ..'"})
@@ -2037,7 +2135,10 @@ def _pl_quet_thu_muc(path, period, unit, da_co):
             if ngay in da_co:
                 bo_qua.append({"file": ten, "vi_sao": f"{ngay} đã có từ file tháng — nhường"})
                 continue
-            facts = _kqkd_facts([list(r) for r in wb[sheet_pl].iter_rows(values_only=True)])
+            if cau_hinh.get("kieu") == "b02dn":
+                facts = _anks_b02_facts(wb, sheet_pl)
+            else:
+                facts = _kqkd_facts([list(r) for r in wb[sheet_pl].iter_rows(values_only=True)])
             if not facts:
                 bo_qua.append({"file": ten, "vi_sao": f"sheet '{sheet_pl}' không bóc được chỉ tiêu "
                                                       f"nào cho {ngay}"})
