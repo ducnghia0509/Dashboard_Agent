@@ -298,6 +298,29 @@ def index_file(path: str) -> dict:
                 "canonical_kind": canonical.guess_canonical_kind(ws.name),
             })
         # xlrd không cache/giữ handle như fast_load_workbook — không có wb.close() để gọi.
+    elif path.lower().endswith(".xlsb"):
+        # `.xlsb` (Excel nhị phân, 24/09/2026): nguồn Dự án chỉ chào bản `.xlsb` cho file BCTC ngày
+        # từ 19/09 (QLTS cũng có). openpyxl không mở được -> catalog bỏ qua -> tab Nguồn báo mãi
+        # "Mới · chưa kéo về" dù file đã về đĩa và số đã lên (qua bản `.xlsx` do
+        # `spec_extract._chuyen_xlsb` sinh). Đọc bằng pyxlsb, y hệt nhánh `.xls` ở trên.
+        from pyxlsb import open_workbook as _mo_xlsb
+        with _mo_xlsb(path) as wb:
+            for ten in wb.sheets:
+                header, nrows = [], 0
+                with wb.get_sheet(ten) as ws:
+                    for i, r in enumerate(ws.rows()):
+                        nrows = i + 1
+                        if i >= 30:
+                            break
+                        row = [c.v for c in r]
+                        if not header and sum(1 for c in row if c not in (None, "")) >= 2:
+                            header = [("" if c is None else str(c).strip()) for c in row]
+                entry["sheets"].append({
+                    "name": ten,
+                    "columns": [h for h in header if h][:40],
+                    "nrows": nrows,               # chỉ đếm tới 31 dòng đầu — không duyệt hết file nặng
+                    "canonical_kind": canonical.guess_canonical_kind(ten),
+                })
     else:
         wb = bb.fast_load_workbook(path, read_only=True, data_only=True)
         try:
@@ -341,7 +364,7 @@ def index_dir(root: str = None) -> dict:
     if not os.path.isdir(root):
         return {"ok": False, "error": f"Không thấy thư mục: {root}", "indexed": 0}
     files = [f for f in glob.glob(os.path.join(root, "**", "*"), recursive=True)
-             if f.lower().endswith((".xlsx", ".xls")) and not os.path.basename(f).startswith("~$")]
+             if f.lower().endswith((".xlsx", ".xls", ".xlsb")) and not os.path.basename(f).startswith("~$")]
     cat = _load()
     done = 0
     for f in files:
