@@ -635,12 +635,26 @@ def _derive_kqkd_tseries(rows, period, cong_ty, file_path):
         v = r[val_j] if val_j < len(r) else None
         return round(v * 1e-9, 9) if isinstance(v, (int, float)) else None
     # 3) Gom mã T -> (nhãn gốc, value tỷ). Lấy dòng ĐẦU cho mỗi mã.
+    #    MÃ TRÙNG KHÁC NHÃN (23/09/2026): HT từ T07 đánh 2 dòng cùng mã 'T201.7' — 'Gía vốn hàng
+    #    bán phụ tùng' và 'Gía vốn hàng Trụ sạc tặng' (T08: 254.212.789 đ). Lấy dòng đầu thì dòng
+    #    thứ hai MẤT IM LẶNG, Σ T201.x hụt so với T201. Nay giữ cả hai (khoá 'T201.7#2'); dòng lặp
+    #    CÙNG nhãn (bảng in lặp) vẫn bỏ như cũ.
+    # LNST: dòng có nhãn 'Lợi nhuận sau thuế…' (HT từ T07: mã T500 'LỢI NHUẬN SAU THUẾ TNDN'; T06
+    #    trở về trước: dòng KHÔNG mã). Ghi nhận riêng để dựng thẻ LNST, xem `add("Lợi nhuận sau thuế")`.
     byco = {}
+    _lnst_code, _lnst_val = None, None
     for r in rows[hdr_i + 1:]:
         c = str(r[code_j]).strip() if r and code_j < len(r) and r[code_j] not in (None, "") else ""
-        if _re2.fullmatch(r"T\d{3}(\.\d+)?", c) and c not in byco:
-            lab = str(r[lab_j]).strip() if lab_j < len(r) and r[lab_j] not in (None, "") else c
+        lab = str(r[lab_j]).strip() if r and lab_j < len(r) and r[lab_j] not in (None, "") else c
+        if _lnst_val is None and _norm(lab).startswith("loi nhuan sau thue") and tnum(r) is not None:
+            _lnst_code = c if _re2.fullmatch(r"T\d{3}(\.\d+)?", c) else None
+            _lnst_val = tnum(r)
+        if not _re2.fullmatch(r"T\d{3}(\.\d+)?", c):
+            continue
+        if c not in byco:
             byco[c] = (lab, tnum(r))
+        elif all(v[0] != lab for k, v in byco.items() if k.split("#")[0] == c):
+            byco[f"{c}#{sum(1 for k in byco if k.split('#')[0] == c) + 1}"] = (lab, tnum(r))
     if "T100" not in byco or "T300" not in byco:
         return {"ok": False, "error": "T-series: thiếu T100/T300"}
     records = []
@@ -661,9 +675,14 @@ def _derive_kqkd_tseries(rows, period, cong_ty, file_path):
     if "T200" in byco:
         add("Tổng chi phí", byco["T200"][1])
     add("Lợi nhuận trước thuế", byco["T300"][1])
-    add("Lợi nhuận sau thuế", byco["T300"][1])   # -> PNLT (nuôi thẻ LNST). HT che_do_phan_tich: TỔNG
-    # CHI PHÍ T200 ĐÃ GỒM thuế TNDN (kế toán HT xác nhận) -> T300 "trước thuế" thực chất ĐÃ SAU THUẾ
-    # -> LNST = T300. Nhất quán HO/SRVF (P&L quản trị không tách dòng thuế riêng).
+    add("Lợi nhuận sau thuế", _lnst_val if _lnst_val is not None else byco["T300"][1])
+    # -> PNLT (nuôi thẻ LNST). Trước T07/2026 TỔNG CHI PHÍ T200 của HT ĐÃ GỒM thuế TNDN (kế toán HT xác
+    # nhận) nên LNST = T300 là đúng, và vẫn là đường lùi khi sheet không có dòng LNST.
+    # SỬA 23/09/2026: từ T07 sheet tách T400 'Thuế TNDN tạm tính 6 tháng' + T500 'LỢI NHUẬN SAU THUẾ
+    # TNDN' = T300 − T400. Hai lỗi cùng lúc: (1) T500 lọt xuống vòng "chi tiết còn lại" thành dòng
+    # PNLT thứ HAI khớp LNST_ILIKE '%lợi nhuận%sau thu%' của BE -> thẻ LNST cộng ĐÔI (Xe tải T08:
+    # −2,172 thành −4,344 tỷ; 2025 cả 12 tháng cũng vậy); (2) T07 thuế 2,893 tỷ nên LNST thật
+    # −0,459 tỷ, lấy T300 ra +2,434. Nay LNST lấy dòng LNST của sheet, và dòng đó KHÔNG emit lại.
     # Chi tiết còn lại -> PNLT (giữ nhãn gốc); BỎ T100/T200/T300 đã emit (tránh trùng 1000/1047/1112).
     # T201 (TỔNG giá vốn) -> CHUẨN HOÁ chính tả nhãn thành 'Giá vốn hàng bán': nguồn HT gõ 'Gía' (dấu
     # sắc trên i, không phải a) nên metrics build_revenue (cogs = PNLT ILIKE '%giá vốn%', ACCENT-SENSITIVE)
@@ -675,7 +694,7 @@ def _derive_kqkd_tseries(rows, period, cong_ty, file_path):
     # khớp ILIKE '%doanh thu%tài chính%' nên GIỮ NGUYÊN (surgical). Mã khác giữ nhãn gốc.
     _canon = {"T201": "Giá vốn hàng bán", "T103": "Thu nhập khác"}
     for c, (lab, val) in byco.items():
-        if c in ("T100", "T200", "T300"):
+        if c in ("T100", "T200", "T300") or c == _lnst_code:
             continue
         add(_canon.get(c, lab), val)
     # Lợi nhuận gộp = DOANH THU THUẦN − giá vốn (sheet T-series KHÔNG có dòng LN gộp riêng; spec #6).
@@ -795,7 +814,12 @@ def _sheet_has_tcodes(file_path, sheet):
     """True nếu CỘT A của sheet có mã P&L T-series (T100/T200/T300...) — tức sheet P&L 'thật' của HT
     (dù ĐỔI TÊN theo tháng). Dùng để KHÔNG bỏ nhầm sheet P&L T-series khi tên không nằm trong whitelist
     p_and_l (whitelist chỉ nhằm chặn sheet 'kqkd' TT200 ĐÓNG BĂNG — sheet đó không có T-code). Cty TT200
-    khác không có T-code -> trả False -> whitelist giữ nguyên hành vi cũ (0 ảnh hưởng)."""
+    khác không có T-code -> trả False -> whitelist giữ nguyên hành vi cũ (0 ảnh hưởng).
+
+    Dò mã ở CỘT 0..4 (y như `_derive_kqkd_tseries`), không chỉ cột A (23/09/2026): HT dựng lại file
+    nên mã sang CỘT C, cột A của file T06/2026 (gửi lại 14/09, sheet đổi tên 'KQKD') toàn '#REF!' ->
+    lưới này trả False, sheet P&L duy nhất bị skip_guide và Xe tải T06 MẤT TRẮNG HQKD/DTHU/CHIPHI/PNLT
+    trên prod (DT 88,39 tỷ)."""
     import re as _re2
     from servers.common import be_bridge as bb
     try:
@@ -806,8 +830,7 @@ def _sheet_has_tcodes(file_path, sheet):
             for i, row in enumerate(wb[sheet].iter_rows(values_only=True)):
                 if i > 80:
                     break
-                c0 = row[0] if row else None
-                if c0 is not None and _re2.fullmatch(r"T\d{3}", str(c0).strip()):
+                if any(c is not None and _re2.fullmatch(r"T\d{3}", str(c).strip()) for c in (row or ())[:5]):
                     return True
         finally:
             wb.close()
@@ -4799,6 +4822,7 @@ def _cmd_autofill_impl(args):
     # HT (skip 'kqkd' + thuần LLM) -> mất số câm; ngược lại file HT bị gắn nhầm 'GA' sẽ mất chế độ HT.
     # Tên file 'B<khối>.<mã cty>.' do nghiệp vụ đặt -> đáng tin hơn để quyết chế độ pipeline.
     _kqkd_ok, _cdkt_ok, _guide_thuan_llm = None, None, False
+    _kqkd_bo = set()
     try:
         from servers.common import contract as _contract
         from servers.common.extraction import load_guide as _load_guide
@@ -4814,6 +4838,13 @@ def _cmd_autofill_impl(args):
         _pl = (_styn.get(f"p_and_l_{_yr}") if _yr else None) or _styn.get("p_and_l")
         if isinstance(_pl, list) and _pl:
             _kqkd_ok = {_re.sub(r"\s+", "", tf._norm(x)) for x in _pl}
+        #  - sheets_theo_y_nghia.p_and_l_loai_tru = sheet KQKD LUÔN bỏ, kể cả khi lọt lưới T-code (thêm
+        #    23/09/2026). HT: 'XETAITC_KQKD'/'XETAIHT_KQKD' là P&L PHÁP NHÂN CON, cũng mang mã T. File
+        #    T06 gửi lại đặt tên sheet hợp nhất là 'KQKD' (ngoài whitelist) nên cả 3 sheet cùng lọt
+        #    lưới và 01_HQKD phụ thuộc THỨ TỰ sheet — đúng cái bẫy 13,98 vs 88,74 tỷ ghi ở dưới.
+        _pl_bo = _styn.get("p_and_l_loai_tru")
+        if isinstance(_pl_bo, list) and _pl_bo:
+            _kqkd_bo = {_re.sub(r"\s+", "", tf._norm(x)) for x in _pl_bo}
         #  - sheets_theo_y_nghia.balance_sheet = WHITELIST sheet Bảng cân đối (CĐKT). Vd HO: file có
         #    'CĐKT' (BCTC RIÊNG hội sở, ĐVT VND — ĐÚNG) VÀ 'TC_CĐKT' (hợp nhất "Thịnh Cường Group",
         #    ĐVT triệu đồng, kỳ khác) — CẢ HAI route canonical_kind=CDKT. Không whitelist thì
@@ -4825,7 +4856,7 @@ def _cmd_autofill_impl(args):
             _cdkt_ok = {_re.sub(r"\s+", "", tf._norm(x)) for x in _bs}
         _guide_thuan_llm = str(_dv.get("che_do_phan_tich") or "").strip().lower() == "thuan_llm"
     except Exception:
-        _kqkd_ok, _cdkt_ok, _guide_thuan_llm = None, None, False   # guide lỗi/thiếu -> KHÔNG đổi hành vi cũ
+        _kqkd_ok, _cdkt_ok, _guide_thuan_llm, _kqkd_bo = None, None, False, set()   # guide lỗi/thiếu -> KHÔNG đổi hành vi cũ
 
     def _env_on(name):
         # Cờ env kiểu ON/OFF: '0'/'false'/'off'/'no'/'' -> TẮT (bool(str) coi '0' là True -> sai).
@@ -4918,7 +4949,8 @@ def _cmd_autofill_impl(args):
             continue
         if status == "routed" and ck == "KQKD" and _kqkd_ok is not None \
                 and _re.sub(r"\s+", "", tf._norm(sheet)) not in _kqkd_ok \
-                and (_kqkd_wl_present or not _sheet_has_tcodes(args.file, sheet)):
+                and (_kqkd_wl_present or _re.sub(r"\s+", "", tf._norm(sheet)) in _kqkd_bo
+                     or not _sheet_has_tcodes(args.file, sheet)):
             # Guide công ty CẤM đọc sheet KQKD này (không nằm trong whitelist p_and_l) -> bỏ hẳn:
             # không extractor, không LLM (đặt TRƯỚC nhánh FORCE_LLM vì là luật nghiệp vụ, áp mọi
             # chế độ). target=None để mục DẪN XUẤT 02_CHIPHI không chọn nhầm sheet này làm nguồn.
