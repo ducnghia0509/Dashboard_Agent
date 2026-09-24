@@ -3313,6 +3313,18 @@ def derive(path, write=False):
     if not unit or not period:
         return {"ok": False, "skip": True}
 
+    # `.xlsb` -> đọc trên bản `.xlsx` chuyển sẵn (24/09/2026). Nguồn Dự án chỉ chào `.xlsb` cho file
+    # ngày từ 19/09; openpyxl không mở được nên mỗi lượt cron ghi "FILE KHÔNG MỞ ĐƯỢC … Nguồn gửi
+    # dở/hỏng" cho một file HOÀN TOÀN LÀNH — báo động giả dễ lọt vào tin gửi lãnh đạo.
+    if path.lower().endswith(".xlsb"):
+        try:
+            from spec_extract import _chuyen_xlsb
+            moi = _chuyen_xlsb(path)
+        except Exception:
+            moi = None
+        if moi:
+            path = moi
+
     # FILE HỎNG / RỖNG -> câu lý do rõ, KHÔNG để traceback thoát ra (thêm 06/09/2026). Ca thật:
     # `TRAMSAC/baocaohqkdngay/B.3.TC.TCKT.D.20260829.Baocaotaichinhrieng.xlsx` nặng ĐÚNG 7 byte
     # (không phải zip) -> openpyxl ném BadZipFile -> `cron_hqkdngay_daily.autofill()` chỉ ghi được
@@ -3517,7 +3529,8 @@ def derive(path, write=False):
                 wb2 = openpyxl.load_workbook(path, data_only=True, read_only=True)
                 ngay_sd, vi_sao_sd = _sodu_ngay_cua_wb(wb2, unit.get("sheet_sodu") or {},
                                                        os.path.basename(path),
-                                                       bool(unit.get("ky_sodu_o_ngay")))
+                                                       bool(unit.get("ky_sodu_o_ngay")),
+                                                       bool(unit.get("ngay_sodu_tu_ten_file")))
             except Exception as e:
                 ngay_sd, vi_sao_sd = None, f"không mở được ({type(e).__name__})"
             finally:
