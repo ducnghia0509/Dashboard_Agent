@@ -4797,6 +4797,23 @@ def _cmd_autofill_impl(args):
                        f"nguồn theo đúng 1 tháng (vd M202510) rồi nạp lại, hoặc nạp tay với "
                        f"--period YYYY-MM."})
         return
+    # File tháng SRVF niên độ 2025 mà kỳ đó ĐÃ có bản `Baocaotaichinhrieng` (hiện: 202512) -> BỎ
+    # CẢ FILE ngay từ đầu (24/09/2026). Chặn ở nhánh SRVF phía dưới là muộn: vòng sheet chung đã kịp
+    # dựng THUE/HH/PTHU từ CĐPS -> tháng 12 có hai bộ số dư (bắt được trên test).
+    if (_source_id(args.file).split("::", 1)[0].upper() == "SRVF"
+            and _re_bcqt.fullmatch(r"B\.1\.TC\.TCKT\.M\.2025\d{2}\.Baocaotaichinh\.xlsx", fname, _re_bcqt.I)
+            and os.path.exists(os.path.join(os.path.dirname(os.path.abspath(args.file)),
+                                            fname.replace(".Baocaotaichinh.", ".Baocaotaichinhrieng.")))):
+        # Dọn MỌI dòng mang tên file này (spec chạy trước chỗ chặn vẫn kịp ghi, vd DTHU_NHOM).
+        from servers.common import be_bridge as _bbx
+        _dbx = _bbx.db.get_db()
+        _rts_x = [r["report_type"] for r in _dbx.execute(
+            "SELECT DISTINCT report_type FROM raw_rows WHERE source_file=?",
+            (_source_id(args.file),)).fetchall()]
+        _don = _prune_missing_sheet_types(args.file, period, _rts_x) if period else {}
+        _out({"ok": True, "file": fname, "mode": "bi_thay_the", "skip": True, "da_don": _don,
+              "note": "kỳ này đã có bản Baocaotaichinhrieng — file tháng bỏ qua, tránh hai bộ số dư"})
+        return
     headers = tf._all_sheet_headers(data)   # mở workbook 1 LẦN (file nặng load chậm)
 
     # File THU CHI (có sheet SD TIỀN): dòng tiền 03_DONGTIEN/03B/04_VAY được các EXTRACTOR
@@ -5303,6 +5320,24 @@ def _cmd_autofill_impl(args):
                 _bc = next((s for s in _shs if s.upper().replace(" ", "") == f"T{_mm}BC"), None)
                 _cp = next((s for s in _shs if "CĐPS" in s or s.upper().replace(" ", "") == "CDPS"), None)
                 _bcrows = [list(r) for r in _wb[_bc].iter_rows(values_only=True)] if _bc else None
+                # FILE THÁNG NIÊN ĐỘ 2025 `B.1.TC.TCKT.M.2025MM.Baocaotaichinh` (24/09/2026): 12 file
+                # .Xls kế toán gửi 18/09 — nguồn DUY NHẤT của bảng cân đối/công nợ/thuế/tồn kho từng
+                # tháng 2025 (file năm `202512.Baocaotaichinhrieng` chỉ có CĐKT tháng 12). NHƯNG P&L
+                # 2025 đã lấy từ sheet T01..T12 của file năm; file tháng cũng có 'T{mm} BC' mà hai bản
+                # LỆCH nhau (T06: DT 241,459 năm vs 242,037 tháng) -> nạp cả hai là CỘNG ĐÔI P&L. Nên
+                # file tháng 2025 CHỈ nạp phần số dư; P&L giữ nguyên nguồn file năm (bản phát hành sau).
+                # Tháng nào đã có `...M.{kỳ}.Baocaotaichinhrieng` (vd 202512) thì bỏ hẳn file tháng —
+                # nạp thêm là hai bộ số dư cho cùng một ngày chốt.
+                _ten_f = os.path.basename(args.file)
+                _chi_so_du = bool(_re_bcqt.fullmatch(r"B\.1\.TC\.TCKT\.M\.2025\d{2}\.Baocaotaichinh\.xlsx",
+                                                     _ten_f, _re_bcqt.I))
+                _bi_thay = _chi_so_du and os.path.exists(os.path.join(
+                    os.path.dirname(os.path.abspath(args.file)),
+                    _ten_f.replace(".Baocaotaichinh.", ".Baocaotaichinhrieng.")))
+                if _chi_so_du:
+                    _bcrows = None
+                if _bi_thay:
+                    _ck = _cp = None
                 # NIÊN ĐỘ 2025 — MỘT FILE = 12 KỲ: kế toán không gửi file/tháng mà gộp cả năm vào 1
                 # file, MỖI THÁNG MỘT SHEET 'T01'…'T12' (P&L A-series đầy đủ, cột 'Kỳ này' = SỐ THÁNG,
                 # cột 'Lũy kế' tách riêng — kiểm chứng Σ12 tháng 'Kỳ này' = 5.743,340 tỷ = đúng
@@ -5311,7 +5346,7 @@ def _cmd_autofill_impl(args):
                 # Ở đây gom danh sách (kỳ, rows) rồi nạp từng kỳ bằng CHÍNH `_derive_kqkd_srvf`
                 # (đã nới nhận mã lợi nhuận U300 cho layout 2025).
                 _yearly = []
-                if not _bcrows:
+                if not _bcrows and not _chi_so_du:
                     for _m in range(1, 13):
                         _s = next((s for s in _shs if s.strip().upper() in (f"T{_m:02d}", f"T{_m}")), None)
                         if not _s:
@@ -5341,9 +5376,11 @@ def _cmd_autofill_impl(args):
                 # HQKD/PNLT/DTHU/CHIPHI khi KHÔNG có CẢ 'T{mm}BC' LẪN sheet tháng, nếu không lượt nạp
                 # 2025 vừa ghi xong sẽ tự xoá số của chính nó.
                 _pl_src = _bcrows or _yearly
+                # File tháng 2025: P&L CỐ Ý không nạp -> dọn P&L cũ của CHÍNH file này (nếu lượt trước
+                # lỡ ghi) là đúng; file bị thay thế thì dọn sạch mọi loại của nó.
                 _absent = ([] if _ck else ["TSNV", "BS", "TS"]) \
                     + ([] if _cp else ["PTHU", "PTRA", "PTHU_ADV", "PTRA_ADV", "THUE", "HH"]) \
-                    + ([] if _pl_src else ["HQKD", "PNLT", "DTHU", "CHIPHI", "TREND"])
+                    + ([] if _pl_src else ["HQKD", "PNLT", "DTHU", "CHIPHI", "TREND", "DTHU_NHOM"])
                 if _absent:
                     _pr = _prune_missing_sheet_types(args.file, period, _absent)
                     if _pr:
@@ -5557,10 +5594,14 @@ def _cmd_autofill_impl(args):
         # thiếu nhóm (A325/A500) hoặc sai layout (B-series/dòng-tên). Chỉ áp khi deriver báo ok.
         _dcp = next((d.get("chiphi") for d in derived
                      if d.get("kind") == "01_HQKD" and (d.get("chiphi") or {}).get("ok")), None)
+        # File tháng SRVF niên độ 2025: P&L lấy từ file năm, KHÔNG từ file này (xem khối SRVF phía
+        # trên) — kể cả bảng tách chi phí, nếu không CHIPHI tháng đó có hai bộ dòng.
+        _srvf_2025_thang = bool(_re_bcqt.fullmatch(
+            r"B\.1\.TC\.TCKT\.M\.2025\d{2}\.Baocaotaichinh\.xlsx", os.path.basename(args.file), _re_bcqt.I))
         if _dcp:
             derived.append({"kind": "02_CHIPHI", "ok": True, "rows": _dcp.get("rows"),
                             "via": "deriver P&L (emit cùng 01_HQKD, khớp tổng)"})
-        elif kqkd:
+        elif kqkd and not _srvf_2025_thang:
             chiphi_ok = False
             try:
                 from extract_chiphi import extract as _derive_chiphi
