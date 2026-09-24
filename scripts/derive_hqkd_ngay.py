@@ -323,8 +323,12 @@ _UNITS = {
     # phí. File tháng vẫn THẮNG ở ngày nó có; file ngày chỉ lấp ngày file tháng trống.
     "DUAN": {"layout": "duan", "cong_ty": "TC", "khoi": "Khối KD Dự án",
              "sodu_ho_file_rieng": True, "ngay_sodu_tu_ten_file": True,
+             # `file_ngay_tu` (chốt user 24/09/2026): TỪ 17/09/2026 P&L CHỈ lấy file ngày — file
+             # tháng có điền lại ngày đó cũng BỎ. Không chốt mốc thì "file tháng thắng" sẽ nhảy số
+             # sang cơ sở chi phí khác (giá vốn 16/09: 380,38 tháng vs 427,74 ngày) bất cứ lúc nào
+             # kế toán lỡ điền sheet 17..31 của file tháng.
              "pl_ho_file_rieng": {"sheet": "HQKD", "kieu": "duan_ngay", "ky_tu_ten_file": True,
-                                  "chan_luy_ke": True},
+                                  "chan_luy_ke": True, "file_ngay_tu": "2026-09-17"},
              "sheet_sodu": {"pthu": "131", "ptra": "331", "cdkt": "CĐKT", "cdps": "CDSPS"}},
     # Cùng ca với Global AI (21/09/2026) — xem chú thích ở đó. Khác một điểm ĐÃ ĐO: CĐKT của HO
     # lệch ĐỀU 24 đồng giữa mã 270 và 440 ở CẢ BỐN ngày 15-18/09, trong khi 300 + 400 khớp 440
@@ -3461,6 +3465,14 @@ def derive(path, write=False):
     pl_diag = {}
     if (unit.get("pl_ho_file_rieng") and not (snap_mode or bcqt_mode)
             and (neo_ky or not _snap_day_of(os.path.basename(path)))):
+        # MỐC CHUYỂN NGUỒN P&L (`file_ngay_tu`): từ mốc, bỏ P&L của file tháng để file ngày là chủ
+        # DUY NHẤT; số dư của file tháng (nếu có) giữ nguyên — mốc chỉ nói về dòng chảy.
+        moc_ngay = unit["pl_ho_file_rieng"].get("file_ngay_tu")
+        if moc_ngay:
+            _pl_rt = _RT_DONG_CHAY | {RT_DUAN_GV}
+            per_day = [(n, [x for x in f if not (n >= moc_ngay and x[1] in _pl_rt)])
+                       for n, f in per_day]
+            per_day = [(n, f) for n, f in per_day if f]
         da_co = {n for n, f in per_day if any(x[1] in _RT_DONG_CHAY for x in f)}
         gop_pl, bo_qua_pl = _pl_quet_thu_muc(path, period, unit, da_co,
                                              {n: f for n, f in per_day if n in da_co})
