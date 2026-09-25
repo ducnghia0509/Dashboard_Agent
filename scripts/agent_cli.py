@@ -3346,6 +3346,52 @@ def _derive_tscd(file_path: str, sheet: str, period: str, cong_ty: str, het_kh=N
             "het_kh_attached": het_kh is not None}
 
 
+def _cot_ngay_cuoi_ky(hdr, period, sau=0):
+    """Cột có TIÊU ĐỀ LÀ NGÀY CUỐI THÁNG của kỳ ('30/06/2024' hoặc ô datetime) -> chỉ số cột, hoặc None.
+
+    25/09/2026, HT 'BCĐKT hợp nhất' niên độ 2024: bố cục 'Số đầu năm 01/01/2024 | 31/01/2024 |
+    29/02/2024 | …' — không có chữ 'cuối kỳ'/'Kỳ này'/'THÁNG n' nào nên cả 12 tháng 2024 mất trắng
+    TSNV/BS/TS (không báo lỗi, chỉ ghi 'thiếu cột … cuối kỳ' trong kết quả nạp)."""
+    import calendar
+    import datetime as _dt
+    try:
+        y, m = int(str(period)[:4]), int(str(period)[5:7])
+    except Exception:
+        return None
+    cuoi = _dt.date(y, m, calendar.monthrange(y, m)[1])
+    chu = {f"{cuoi.day:02d}/{m:02d}/{y}", f"{cuoi.day}/{m}/{y}", cuoi.isoformat()}
+    for j, c in enumerate(hdr):
+        if j <= sau or c is None:
+            continue
+        if isinstance(c, _dt.datetime):
+            c = c.date()
+        if (isinstance(c, _dt.date) and c == cuoi) or (isinstance(c, str) and c.strip() in chu):
+            return j
+    return None
+
+
+def _cot_cuoi_lech_ky(tieu_de, period):
+    """Cột 'Số cuối năm (dd/mm/yyyy)' mà ngày đó KHÔNG thuộc kỳ -> chuỗi ngày đó (để báo), không thì None.
+
+    25/09/2026, HT 2025: sheet 'BCĐKT TẠM' chỉ có cột 'Số cuối năm (31/12/2025)' -> nạp vào CẢ 12 kỳ
+    2025 nên bảng cân đối tháng nào cũng ra số 31/12 (270 = 17,558 tỷ, tháng 1 thật là 29,64)."""
+    import re as _re
+    import unicodedata as _ud
+    # HẸP có chủ đích: chỉ cột "Số CUỐI NĂM (dd/mm/yyyy)". Cột "cuối kỳ" gõ sót ngày (kiểu HTX 20/09)
+    # vẫn giữ nguyên hành vi cũ — chặn nó là mất số câm.
+    _t = _ud.normalize("NFD", str(tieu_de or "")).encode("ascii", "ignore").decode().lower()
+    if "cuoi nam" not in " ".join(_t.split()):
+        return None
+    m = _re.search(r"(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})", str(tieu_de or ""))
+    if not m:
+        return None
+    try:
+        y, mm = int(str(period)[:4]), int(str(period)[5:7])
+    except Exception:
+        return None
+    return None if (int(m.group(3)), int(m.group(2))) == (y, mm) else m.group(0)
+
+
 def _derive_tscd_cdkt(file_path: str, cdkt_sheet: str, period: str, cong_ty: str):
     """TSCĐ lấy từ CĐKT (SỐ DƯ CUỐI KỲ) — nguồn chuẩn hơn 'Biểu khấu hao' (biểu khấu hao gồm cả
     TS ngoài bảng cân đối → over-state; vd An Taxi biểu 75.45 ≠ CĐKT mã222 64.899). Nguyên giá =
@@ -3384,8 +3430,13 @@ def _derive_tscd_cdkt(file_path: str, cdkt_sheet: str, period: str, cong_ty: str
             _cur = (f"thang {_mm}", f"t{_mm:02d}", f"t{_mm}")
             cuoi_i = next((j for j, c in enumerate(hdr)
                            if j > (ma_i or 0) and "dieu chinh" not in norm(c) and norm(c) in _cur), None)
+    if cuoi_i is None:   # tiêu đề cột là NGÀY cuối tháng (HT 2024)
+        cuoi_i = _cot_ngay_cuoi_ky(hdr, period, ma_i or 0)
     if ma_i is None or cuoi_i is None:
         return {"ok": False, "error": "TSCĐ-CĐKT: thiếu cột Mã số / cuối kỳ"}
+    _lech = _cot_cuoi_lech_ky(hdr[cuoi_i], period)
+    if _lech:
+        return {"ok": False, "error": f"TSCĐ-CĐKT: cột cuối kỳ ghi ngày {_lech}, không thuộc kỳ {period}"}
     vals = {}
     for r in rows[hi + 1:]:
         c = str(r[ma_i]).strip() if ma_i < len(r) and r[ma_i] not in (None, "") else ""
@@ -3640,8 +3691,13 @@ def _derive_cdkt(file_path: str, sheet: str, period: str, cong_ty: str):
     dau_i = next((j for j, c in enumerate(hdr) if "dau" in norm(c)), None)
     if dau_i is None:    # fallback: 'SỐ Đ NĂM' / 'Kỳ trước'/'Kì trước'
         dau_i = next((j for j, c in enumerate(hdr) if "d nam" in norm(c) or "d. nam" in norm(c) or "ky truoc" in norm(c) or "ki truoc" in norm(c)), None)
+    if cuoi_i is None:   # tiêu đề cột là NGÀY cuối tháng (HT 2024), xem `_cot_ngay_cuoi_ky`
+        cuoi_i = _cot_ngay_cuoi_ky(hdr, period, max(ma_i or 0, nd_i or 0))
     if nd_i is None or cuoi_i is None:
         return {"ok": False, "error": "thiếu cột tên khoản mục / cuối kỳ"}
+    _lech = _cot_cuoi_lech_ky(hdr[cuoi_i], period)
+    if _lech:
+        return {"ok": False, "error": f"cột cuối kỳ ghi ngày {_lech}, không thuộc kỳ {period}"}
 
     def num(r, i):
         # FULL PRECISION khi quy đổi tỷ (KHÔNG round từng dòng): dashboard CỘNG nhiều dòng rồi mới
