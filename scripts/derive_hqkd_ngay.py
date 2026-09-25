@@ -2476,15 +2476,33 @@ def _ht_day_sheets(wb, period):
     DÙNG CHUNG cho layout "ht" và "xdv" (cả 2 spec đều ghi "sheet 01, 02, 03... tương đương số ngày
     trong tháng", file thật đặt "01.08".."04.08")."""
     y, mm = int(period[:4]), int(period[5:7])
-    out = []
+    out, lech = [], []
     for s in wb.sheetnames:
         t = s.strip()
         m = re.fullmatch(r"(\d{1,2})(?:\.(\d{1,2}))?", t)
         if not m or not 1 <= int(m.group(1)) <= 31:
             continue
         if m.group(2) and int(m.group(2)) != mm:      # "05.07" = ngày 5 THÁNG 7 -> khác kỳ, bỏ
+            lech.append((s, int(m.group(1))))
             continue
         out.append((s, f"{y:04d}-{mm:02d}-{int(m.group(1)):02d}"))
+    # Sheet GÕ NHẦM THÁNG (25/09/2026): file HT 202608 đặt "28.09"/"29.09" cho ngày 28-29/08 — nội
+    # dung ghi "Kỳ: 08.2026" -> bỏ là mất 2 ngày (Σ ngày hụt tháng đúng 2 × 42.004.100 đ). Chỉ nhận
+    # khi tiêu đề trong sheet ghi ĐÚNG kỳ của file VÀ chưa có sheet tên đúng cho ngày đó.
+    co = {d for _, d in out}
+    for s, dd in lech:
+        d = f"{y:04d}-{mm:02d}-{dd:02d}"
+        if d in co:
+            continue
+        try:
+            dau = [c for r in wb[s].iter_rows(max_row=8, max_col=8, values_only=True) for c in r]
+        except Exception:
+            continue
+        ky = next((re.search(r"k[yỳ]\s*:?\s*(\d{1,2})\s*[./-]\s*(\d{4})", str(c), re.I)
+                   for c in dau if isinstance(c, str) and re.search(r"k[yỳ]\s*:", c, re.I)), None)
+        if ky and int(ky.group(1)) == mm and int(ky.group(2)) == y:
+            out.append((s, d))
+            co.add(d)
     return sorted(out, key=lambda x: x[1])
 
 
