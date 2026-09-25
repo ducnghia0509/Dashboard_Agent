@@ -1,0 +1,152 @@
+{
+  "id": "xdv_tonkho_phutung_thang",
+  "_mo_ta": "Tổng hợp nhập xuất tồn kho PHỤ TÙNG XDV — sheet 'NXT' của báo cáo tồn kho THÁNG kế toán (TONKHOTAPDOAN/tonkhotapdoanthang) -> XDV_TONPT_THANG, tab THÁNG màn xdv5. Lấy đúng ô mapping cột I: tồn đầu E9/G9, nhập H9/J9, điều chuyển K9/L9, xuất O9/Q9, tồn cuối R9/T9. Mọi dòng neo ngày cuối tháng của kỳ trong tên file.",
+  "_doi_chieu": "T08/2026 ('TỪ NGÀY 01/08/2026 ĐẾN NGÀY 31/08/2026'): tồn đầu G9 48.328.833.904,60 · nhập J9 28.540.410.409,52 · xuất Q9 27.243.902.813 · tồn cuối T9 49.625.341.501,12 đ, khớp tổng chi tiết và khớp tổng sheet 'Tồn theo đơn vị'.",
+  "_bay": [
+    "File là .Xls (Excel 97-2003): chỉ đường quét thư mục (`spec_extract.py <id> --write`) tự chuyển sang .xlsx; cron autofill theo một file chưa chuyển .xls.",
+    "Cùng thư mục có file tháng của khối khác (pin-phụ kiện SR, xe, trạm sạc…) -> `file_glob` phải giữ đuôi 'Baocaotonkhophutung'.",
+    "Dòng 9 'Tổng cộng' và dòng 10 (toàn 0) nằm ngay dưới header, cột A rỗng -> chặn bằng `loc` khac_rong trên mã vật tư."
+  ],
+  "report_type": "XDV_TONPT_THANG",
+  "row_index_base": 8980000,
+  "khoi": "Khối KD Vinfast - XDV",
+  "chieu_co_dinh": {
+    "cong_ty": "TC"
+  },
+  "nguon": {
+    "folder": "TONKHOTAPDOAN/tonkhotapdoanthang",
+    "file_glob": "*.Baocaotonkhophutung.xlsx",
+    "sheet": {
+      "ten": "NXT"
+    }
+  },
+  "kiem_tra_o": [
+    {
+      "o": "A5",
+      "bang": "TỔNG HỢP NHẬP XUẤT TỒN"
+    },
+    {
+      "o": "A8",
+      "bang": "Mã vật tư"
+    },
+    {
+      "o": "E8",
+      "bang": "Tồn đầu"
+    },
+    {
+      "o": "G8",
+      "bang": "Dư đầu"
+    },
+    {
+      "o": "K8",
+      "bang": "SL Nhập điều chuyển"
+    },
+    {
+      "o": "R8",
+      "bang": "Tồn cuối"
+    },
+    {
+      "o": "T8",
+      "bang": "Dư cuối"
+    }
+  ],
+  "header": {
+    "dong": 8
+  },
+  "dong_bat_dau": 11,
+  "ky_tu_ten_file": {
+    "regex_nam": "\\.M(\\d{4})\\d{2}\\.",
+    "regex_thang": "\\.M\\d{4}(\\d{2})\\."
+  },
+  "moi_ky_lay_file_moi_nhat": true,
+  "cot": {
+    "dim1": {
+      "header": "Mã vật tư"
+    },
+    "dim3": {
+      "header": "Tên vật tư, hàng hóa"
+    },
+    "amount": {
+      "header": "Tồn cuối",
+      "kieu": "so_co_rong"
+    },
+    "amount2": {
+      "header": "Dư cuối",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09
+    },
+    "payload.ma_vat_tu": {
+      "header": "Mã vật tư"
+    },
+    "payload.dvt": {
+      "header": "ĐVT",
+      "bat_buoc": false
+    },
+    "payload.ton_dau": {
+      "header": "Tồn đầu",
+      "kieu": "so_co_rong"
+    },
+    "payload.du_dau": {
+      "header": "Dư đầu",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09
+    },
+    "payload.sl_nhap": {
+      "header": "SL Nhập",
+      "kieu": "so_co_rong"
+    },
+    "payload.tien_nhap": {
+      "header": "Tiền nhập",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09
+    },
+    "payload.sl_nhap_dc": {
+      "header": "SL Nhập điều chuyển",
+      "kieu": "so_co_rong"
+    },
+    "payload.tien_nhap_dc": {
+      "header": "Tiền nhập điều chuyển",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09
+    },
+    "payload.sl_xuat_dc": {
+      "header": "SL Xuất điều chuyển",
+      "kieu": "so_co_rong"
+    },
+    "payload.tien_xuat_dc": {
+      "header": "Tiền xuất điều chuyển",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09
+    },
+    "payload.sl_xuat": {
+      "header": "SL Xuất",
+      "kieu": "so_co_rong"
+    },
+    "payload.tien_xuat": {
+      "header": "Tiền xuất",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09
+    },
+    "payload.ton_cuoi": {
+      "header": "Tồn cuối",
+      "kieu": "so_co_rong"
+    },
+    "payload.du_cuoi": {
+      "header": "Dư cuối",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09
+    }
+  },
+  "ban_ghi": "moi_dong",
+  "loc": [
+    {
+      "cot": "payload.ma_vat_tu",
+      "dieu_kien": "khac_rong"
+    }
+  ],
+  "payload_them": {
+    "unit": "cai",
+    "unit_amount2": "ty",
+    "unit_tien": "ty"
+  }
+}

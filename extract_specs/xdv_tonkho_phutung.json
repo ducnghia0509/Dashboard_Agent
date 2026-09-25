@@ -1,0 +1,154 @@
+{
+  "id": "xdv_tonkho_phutung",
+  "_mo_ta": "Tổng hợp nhập xuất tồn kho PHỤ TÙNG XDV (Cyber tự động, file NGÀY) -> XDV_TONPT, tab NGÀY màn xdv5 'Quản lý tồn kho phụ tùng'. Mapping 2.XDV_Mapping_Dashboard_ Quanlykhophutung.xlsx cột J 'Mapping lấy tự động (DL ngày): Cyber' — TK vật tư 15211, 'Tính phát sinh điều chuyển', 'Tất cả đơn vị'. Mỗi mã vật tư một bản ghi, payload giữ đủ 12 cột số NXT (SL + thành tiền, tỷ) để builder tự gộp: tồn đầu/cuối lấy MỐC, nhập/xuất/điều chuyển CỘNG.",
+  "_doi_chieu": "Tổng các dòng chi tiết khớp TUYỆT ĐỐI dòng 'Tổng cộng' (dòng 9). Bản 24/09/2026: 6.121 mã, tồn cuối R9 3.860.629,19 · dư cuối T9 50.767.437.928,60 đ; nhập J9 1.547.518.763 · xuất Q9 1.022.765.261.",
+  "_bay": [
+    "TÊN FILE NGÀY dùng chữ 'M' + 8 chữ số ('B.2.XDV.M20260924.') — KHÁC file THÁNG 'B.2.XDV.M202608.' (M + 6 chữ số, thư mục TONKHOTAPDOAN). Regex ngày phải đòi đủ 8 chữ số, không thì bắt nhầm kỳ tháng.",
+    "Dòng 9 'Tổng cộng' và dòng 10 (toàn 0) nằm ngay dưới header, cột A rỗng -> chặn bằng `loc` khac_rong trên mã vật tư, KHÔNG dùng `dung_khi`.",
+    "Cột đơn giá (Giá tồn đầu/cuối, 'Gía  Nhập', Giá Xuất) ở dòng Tổng cộng là TỔNG CÁC ĐƠN GIÁ — không lấy; chỉ lấy thành tiền.",
+    "Ma_vitri gần như rỗng (1/6.121 mã) -> file ngày KHÔNG tách được theo đơn vị; tách đơn vị chỉ có ở sheet 'Tồn theo đơn vị' của file THÁNG (spec xdv_tonkho_phutung_donvi).",
+    "Chuỗi ngày CÓ THỂ gãy: 23->24/09/2026 tồn đầu 24 lệch tồn cuối 23 (+27.000 SL, −2.667.368 đ, 173 mã — phần lớn cùng SL khác giá trị) — builder báo ra, đừng 'sửa' ở đây."
+  ],
+  "report_type": "XDV_TONPT",
+  "row_index_base": 8970000,
+  "khoi": "Khối KD Vinfast - XDV",
+  "chieu_co_dinh": {
+    "cong_ty": "TC"
+  },
+  "nguon": {
+    "folder": "TEST_XDV/baocaotonkhophutung",
+    "file_glob": "*.Baocaotonkhophutung.xlsx",
+    "sheet": {
+      "so": 0
+    }
+  },
+  "kiem_tra_o": [
+    {
+      "o": "A5",
+      "bang": "TỔNG HỢP NHẬP XUẤT TỒN"
+    },
+    {
+      "o": "A8",
+      "bang": "Mã vật tư"
+    },
+    {
+      "o": "E8",
+      "bang": "Tồn đầu"
+    },
+    {
+      "o": "G8",
+      "bang": "Dư đầu"
+    },
+    {
+      "o": "K8",
+      "bang": "SL Nhập điều chuyển"
+    },
+    {
+      "o": "R8",
+      "bang": "Tồn cuối"
+    },
+    {
+      "o": "T8",
+      "bang": "Dư cuối"
+    }
+  ],
+  "header": {
+    "dong": 8
+  },
+  "dong_bat_dau": 11,
+  "ngay_tu_ten_file": {
+    "regex": "\\.M(\\d{4})(\\d{2})(\\d{2})\\.",
+    "thu_tu": "ymd"
+  },
+  "moi_ky_lay_file_moi_nhat": "ngay",
+  "cot": {
+    "dim1": {
+      "header": "Mã vật tư"
+    },
+    "dim3": {
+      "header": "Tên vật tư, hàng hóa"
+    },
+    "amount": {
+      "header": "Tồn cuối",
+      "kieu": "so_co_rong"
+    },
+    "amount2": {
+      "header": "Dư cuối",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09
+    },
+    "payload.ma_vat_tu": {
+      "header": "Mã vật tư"
+    },
+    "payload.dvt": {
+      "header": "ĐVT",
+      "bat_buoc": false
+    },
+    "payload.ton_dau": {
+      "header": "Tồn đầu",
+      "kieu": "so_co_rong"
+    },
+    "payload.du_dau": {
+      "header": "Dư đầu",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09
+    },
+    "payload.sl_nhap": {
+      "header": "SL Nhập",
+      "kieu": "so_co_rong"
+    },
+    "payload.tien_nhap": {
+      "header": "Tiền nhập",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09
+    },
+    "payload.sl_nhap_dc": {
+      "header": "SL Nhập điều chuyển",
+      "kieu": "so_co_rong"
+    },
+    "payload.tien_nhap_dc": {
+      "header": "Tiền nhập điều chuyển",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09
+    },
+    "payload.sl_xuat_dc": {
+      "header": "SL Xuất điều chuyển",
+      "kieu": "so_co_rong"
+    },
+    "payload.tien_xuat_dc": {
+      "header": "Tiền xuất điều chuyển",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09
+    },
+    "payload.sl_xuat": {
+      "header": "SL Xuất",
+      "kieu": "so_co_rong"
+    },
+    "payload.tien_xuat": {
+      "header": "Tiền xuất",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09
+    },
+    "payload.ton_cuoi": {
+      "header": "Tồn cuối",
+      "kieu": "so_co_rong"
+    },
+    "payload.du_cuoi": {
+      "header": "Dư cuối",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09
+    }
+  },
+  "ban_ghi": "moi_dong",
+  "loc": [
+    {
+      "cot": "payload.ma_vat_tu",
+      "dieu_kien": "khac_rong"
+    }
+  ],
+  "payload_them": {
+    "unit": "cai",
+    "unit_amount2": "ty",
+    "unit_tien": "ty"
+  }
+}

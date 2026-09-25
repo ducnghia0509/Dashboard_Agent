@@ -2371,7 +2371,14 @@ def quet_nguon(spec):
         da_co = {os.path.splitext(p)[0].lower() for p in out}
         for n in ten:
             g = os.path.join(thu_muc, n)
-            if n.lower().endswith(".xls") and os.path.splitext(g)[0].lower() not in da_co:
+            # PHẢI KHỚP `file_glob` (vá 25/09/2026). Bản cũ chuyển MỌI `.xls` trong thư mục rồi
+            # nhét vào danh sách, bỏ qua mẫu tên: TONKHOTAPDOAN/tonkhotapdoanthang chứa file tháng
+            # của NHIỀU khối (pin-phụ kiện SR, phụ tùng XDV…) nên spec pin-phụ kiện vơ luôn file
+            # phụ tùng XDV — bản XDV mới hơn nên `moi_ky_lay_file_moi_nhat` còn CHỌN nó và bỏ file
+            # SR, tức nạp 6.457 dòng phụ tùng vào VHKD_PKPIN_THANG. Bắt được bằng dry-run trước
+            # khi ghi, DB chưa dính.
+            if (n.lower().endswith(".xls") and os.path.splitext(g)[0].lower() not in da_co
+                    and fnmatch.fnmatch(os.path.splitext(n)[0].lower() + ".xlsx", mau)):
                 moi = _chuyen_xls_cu(g)
                 if moi:
                     warn.append(f"{n}: Excel 97-2003, đã chuyển sang {os.path.basename(moi)}")

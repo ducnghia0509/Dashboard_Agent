@@ -1,0 +1,109 @@
+{
+  "id": "xdv_tonkho_phutung_donvi",
+  "_mo_ta": "Tồn kho phụ tùng THEO ĐƠN VỊ (từng XDV / Showroom / chi nhánh), sheet 'Tồn theo đơn vị' của file THÁNG kế toán -> XDV_TONPT_DV, mục 'Cơ cấu tồn kho' màn xdv5. Mapping dòng 14-15 ('Giá trị tồn theo loại, đơn vị' / 'Tỷ trọng tồn'): 'Sheet Tồn ĐV; lấy tương ứng đơn vị cột C - Giá trị cột H từ hàng 4'. Sheet là cân đối TK 15211 theo đơn vị: tồn đầu D/E, phát sinh nợ F / có G, tồn cuối H/I (dư nợ / dư có). Mỗi đơn vị một bản ghi, neo ngày cuối tháng.",
+  "_doi_chieu": "T08/2026: 23 đơn vị (14 XDV + CN HCM + 7 Showroom + CN Hà Nội); Σ tồn cuối H = 49.625.341.501,12 = T9 sheet NXT; Σ tồn đầu D = G9; Σ PS nợ F = J9+L9; Σ PS có G = Q9+N9 — khớp tuyệt đối.",
+  "_bay": [
+    "Mapping ghi tên sheet 'Tồn ĐV', file thật đặt 'Tồn theo đơn vị' -> khai CẢ HAI tên.",
+    "Header 2 tầng (dòng 2 'Tồn đầu/Phát sinh/Tồn cuối', dòng 3 'Dư nợ/Dư có') nên cột lấy theo CHỮ CỘT, không theo tên: tên dòng 3 lặp lại ba lần.",
+    "PS nợ (F) = nhập + nhập ĐIỀU CHUYỂN, PS có (G) = xuất + xuất điều chuyển — KHÔNG phải 'nhập mới'/'xuất kho' của mapping (những chỉ tiêu đó chỉ lấy ở sheet NXT toàn đơn vị).",
+    "Cột B 'MÃ ĐV' thực ra là số TK (15211) chứ không phải mã đơn vị — không dùng làm khoá.",
+    "Dòng 'TỔNG' cuối bảng ghi ở cột B, cột C rỗng -> chặn bằng `loc` khac_rong trên tên đơn vị."
+  ],
+  "report_type": "XDV_TONPT_DV",
+  "row_index_base": 9000000,
+  "khoi": "Khối KD Vinfast - XDV",
+  "chieu_co_dinh": {
+    "cong_ty": "TC"
+  },
+  "nguon": {
+    "folder": "TONKHOTAPDOAN/tonkhotapdoanthang",
+    "file_glob": "*.Baocaotonkhophutung.xlsx",
+    "sheet": {
+      "ten": [
+        "Tồn theo đơn vị",
+        "Tồn ĐV"
+      ]
+    }
+  },
+  "kiem_tra_o": [
+    {
+      "o": "C2",
+      "bang": "TÊN ĐƠN VỊ"
+    },
+    {
+      "o": "D2",
+      "bang": "Tồn đầu"
+    },
+    {
+      "o": "F2",
+      "bang": "Phát sinh"
+    },
+    {
+      "o": "H2",
+      "bang": "Tồn cuối"
+    }
+  ],
+  "header": {
+    "dong": 3
+  },
+  "dong_bat_dau": 4,
+  "ky_tu_ten_file": {
+    "regex_nam": "\\.M(\\d{4})\\d{2}\\.",
+    "regex_thang": "\\.M\\d{4}(\\d{2})\\."
+  },
+  "moi_ky_lay_file_moi_nhat": true,
+  "cot": {
+    "dim1": {
+      "cot": "C"
+    },
+    "payload.don_vi": {
+      "cot": "C"
+    },
+    "amount2": {
+      "cot": "H",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09
+    },
+    "payload.du_dau_no": {
+      "cot": "D",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09
+    },
+    "payload.du_dau_co": {
+      "cot": "E",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09
+    },
+    "payload.ps_no": {
+      "cot": "F",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09
+    },
+    "payload.ps_co": {
+      "cot": "G",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09
+    },
+    "payload.du_cuoi_no": {
+      "cot": "H",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09
+    },
+    "payload.du_cuoi_co": {
+      "cot": "I",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09
+    }
+  },
+  "ban_ghi": "moi_dong",
+  "loc": [
+    {
+      "cot": "payload.don_vi",
+      "dieu_kien": "khac_rong"
+    }
+  ],
+  "payload_them": {
+    "unit_amount2": "ty",
+    "unit_tien": "ty"
+  }
+}

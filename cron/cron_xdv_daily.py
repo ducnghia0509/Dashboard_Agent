@@ -146,6 +146,17 @@ NGUON = [
         "ngay_regex": r"\.D\.(20\d{2})(\d{2})(\d{2})\.",
     },
     {
+        # Tổng hợp nhập xuất tồn kho PHỤ TÙNG theo ngày (Cyber tự động, TK 15211, mapping
+        # 2.XDV_Mapping_Dashboard_ Quanlykhophutung.xlsx cột J) -> spec `xdv_tonkho_phutung`,
+        # `XDV_TONPT`, màn xdv5. Khai 25/09/2026. Mỗi ngày một file rời (~6.100 mã), KHÔNG luỹ kế:
+        # builder tự gộp (tồn lấy mốc, phát sinh cộng) nên phải giữ ĐỦ CHUỖI NGÀY (ANH_CHUP_KY).
+        # TÊN FILE NGÀY dùng 'M' + 8 chữ số (`B.2.XDV.M20260924.`), không phải '.D.' như các nguồn
+        # trên — regex đòi đủ 8 chữ số để không lẫn với file THÁNG `B.2.XDV.M202608.`.
+        "company": "TEST_XDV", "rt": "baocaotonkhophutung", "che_do": core.ANH_CHUP_KY,
+        "ten": "Tồn kho phụ tùng theo ngày (tự động)",
+        "ngay_regex": r"\.M(20\d{2})(\d{2})(\d{2})\.",
+    },
+    {
         # DV03. MỘT NGÀY HAI FILE (13112 + 13812) -> bên spec phải là HAI file JSON với `file_glob`
         # riêng, nếu gộp một spec thì `moi_ky_lay_file_moi_nhat: "ngay"` chỉ giữ file mới hơn và
         # tài khoản còn lại biến mất lặng lẽ. Nguồn hiện RỖNG, nạp 0 dòng là đúng.
