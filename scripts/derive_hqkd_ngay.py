@@ -1958,6 +1958,20 @@ def _sodu_trong_chinh_file(path, period, unit):
         **({"tu_ban_luy_ke": True} if vi_sao == "luy_ke" else {})}}
 
 
+def _ngay_theo_ten_neu_loi_khai_cu(ten, ngay, ngay_cac_file):
+    """Lời khai MỘT ngày lệch tên file -> ngày theo tên file, CHỈ khi ngày được khai đã có file RIÊNG
+    mang đúng ngày đó trong thư mục (tức dòng kỳ bị chép nguyên từ file hôm trước). Ngoài ra giữ lời khai.
+
+    25/09/2026, HTX Tuyên Quang `.D.20260920.`: cả 3 sheet CĐPS/CĐKT/BC KQKD ghi "Từ ngày 19/09 Đến
+    ngày 19/09" nhưng số dư đã lăn sang ngày 20 (CĐPS/CĐKT khác bản 19) -> theo lời khai thì ngày 20
+    trắng, còn ngày 19 bị bản 20 ĐÈ. Có file `.D.20260919.` riêng nên lời khai "19" chắc chắn là chép sót.
+    """
+    theo_ten = _snap_day_of(ten)
+    if theo_ten and ngay and ngay != theo_ten and ngay[:7] == theo_ten[:7] and ngay in ngay_cac_file:
+        return theo_ten
+    return ngay
+
+
 def _sodu_quet_thu_muc(path, period, unit):
     """Quét MỌI file cùng kỳ trong thư mục -> ({ngày: [fact số dư]}, [file bị loại]).
 
@@ -1978,6 +1992,8 @@ def _sodu_quet_thu_muc(path, period, unit):
     o_ngay = bool(unit.get("ky_sodu_o_ngay"))
     ngay_ten_file = bool(unit.get("ngay_sodu_tu_ten_file"))
     gop, bo_qua, luy_ke = {}, [], []
+    ngay_cac_file = {_snap_day_of(t) for t in os.listdir(thu_muc)
+                     if t.lower().endswith(".xlsx") and _period_of(t, True) == period and _snap_day_of(t)}
     for ten in sorted(os.listdir(thu_muc)):
         if not ten.lower().endswith(".xlsx") or ten.startswith("~$"):
             continue
@@ -1994,6 +2010,8 @@ def _sodu_quet_thu_muc(path, period, unit):
             continue
         try:
             ngay, vi_sao = _sodu_ngay_cua_wb(wb, ten_sheet, ten, o_ngay, ngay_ten_file)
+            if ngay and vi_sao != "luy_ke":
+                ngay = _ngay_theo_ten_neu_loi_khai_cu(ten, ngay, ngay_cac_file)
             if not ngay:
                 bo_qua.append({"file": ten, "vi_sao": vi_sao})
                 continue
@@ -2216,6 +2234,8 @@ def _pl_quet_thu_muc(path, period, unit, da_co, thang_theo_ngay=None):  # noqa: 
     if cau_hinh.get("chan_luy_ke"):
         for n, fs in (thang_theo_ngay or {}).items():
             dt_ngay[n] = sum(f[4] or 0.0 for f in fs if f[1] == RT_HQKD and f[2] == MA_DT)
+    ngay_cac_file = {_snap_day_of(t) for t in os.listdir(thu_muc)
+                     if t.lower().endswith(".xlsx") and _period_of(t, True) == period and _snap_day_of(t)}
     for ten in sorted(os.listdir(thu_muc)):
         if not ten.lower().endswith(".xlsx") or ten.startswith("~$"):
             continue
@@ -2256,7 +2276,10 @@ def _pl_quet_thu_muc(path, period, unit, da_co, thang_theo_ngay=None):  # noqa: 
                 bo_qua.append({"file": ten, "vi_sao": f"luỹ kế {ky[0]}→{ky[1]}, không phải số "
                                                       f"riêng ngày — P&L bỏ (số dư vẫn dùng)"})
                 continue
-            ngay = ky[1]
+            ngay = _ngay_theo_ten_neu_loi_khai_cu(ten, ky[1], ngay_cac_file)
+            if ngay != ky[1]:
+                bo_qua.append({"file": ten, "vi_sao": f"khai {ky[1]} (chép sót từ file hôm trước) — "
+                                                      f"lấy ngày theo tên file {ngay}"})
             if ngay[:7] != period:
                 bo_qua.append({"file": ten, "vi_sao": f"khai ngày {ngay}, ngoài kỳ {period}"})
                 continue
