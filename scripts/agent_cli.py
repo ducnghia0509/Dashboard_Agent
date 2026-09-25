@@ -4721,6 +4721,13 @@ def cmd_autofill(args):
         _out({"ok": False, "file": os.path.basename(args.file), "error": str(ex), "skipped_lock": True})
 
 
+# File tháng SRVF niên độ 2025 — CHỈ nạp phần số dư (P&L lấy từ file năm). 25/09/2026 kế toán phát hành
+# lại 12 file dưới tên `...M.2025MM.Baocaotaichinhrieng.Xls` (cùng nội dung bản `...Baocaotaichinh`);
+# nhận cả hai tên. KHÔNG gồm `202512.Baocaotaichinhrieng` — đó là khoá của FILE NĂM (P&L cả 2025).
+_SRVF_2025_THANG_RE = (r"B\.1\.TC\.TCKT\.M\.2025(?:\d{2}\.Baocaotaichinh"
+                       r"|(?:0[1-9]|1[01])\.Baocaotaichinhrieng)\.xlsx")
+
+
 def _cmd_autofill_impl(args):
     """LOOP TẤT ĐỊNH điền template vàng — thay 1-prompt-nhồi-tất-cả. Mỗi sheet rơi vào ĐÚNG 1
     'bucket' (đảm bảo phủ, không sót): filled_learned (đã học mapping -> điền ngay, KHÔNG LLM) |
@@ -5321,9 +5328,9 @@ def _cmd_autofill_impl(args):
                 # Tháng nào đã có `...M.{kỳ}.Baocaotaichinhrieng` (vd 202512) thì bỏ hẳn file tháng —
                 # nạp thêm là hai bộ số dư cho cùng một ngày chốt.
                 _ten_f = os.path.basename(args.file)
-                _chi_so_du = bool(_re_bcqt.fullmatch(r"B\.1\.TC\.TCKT\.M\.2025\d{2}\.Baocaotaichinh\.xlsx",
+                _chi_so_du = bool(_re_bcqt.fullmatch(_SRVF_2025_THANG_RE,
                                                      _ten_f, _re_bcqt.I))
-                _bi_thay = _chi_so_du and os.path.exists(os.path.join(
+                _bi_thay = _chi_so_du and ".Baocaotaichinh." in _ten_f and os.path.exists(os.path.join(
                     os.path.dirname(os.path.abspath(args.file)),
                     _ten_f.replace(".Baocaotaichinh.", ".Baocaotaichinhrieng.")))
                 if _chi_so_du:
@@ -5589,7 +5596,7 @@ def _cmd_autofill_impl(args):
         # File tháng SRVF niên độ 2025: P&L lấy từ file năm, KHÔNG từ file này (xem khối SRVF phía
         # trên) — kể cả bảng tách chi phí, nếu không CHIPHI tháng đó có hai bộ dòng.
         _srvf_2025_thang = bool(_re_bcqt.fullmatch(
-            r"B\.1\.TC\.TCKT\.M\.2025\d{2}\.Baocaotaichinh\.xlsx", os.path.basename(args.file), _re_bcqt.I))
+            _SRVF_2025_THANG_RE, os.path.basename(args.file), _re_bcqt.I))
         if _dcp:
             derived.append({"kind": "02_CHIPHI", "ok": True, "rows": _dcp.get("rows"),
                             "via": "deriver P&L (emit cùng 01_HQKD, khớp tổng)"})
