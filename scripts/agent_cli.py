@@ -4797,23 +4797,15 @@ def _cmd_autofill_impl(args):
                        f"nguồn theo đúng 1 tháng (vd M202510) rồi nạp lại, hoặc nạp tay với "
                        f"--period YYYY-MM."})
         return
-    # File tháng SRVF niên độ 2025 mà kỳ đó ĐÃ có bản `Baocaotaichinhrieng` (hiện: 202512) -> BỎ
-    # CẢ FILE ngay từ đầu (24/09/2026). Chặn ở nhánh SRVF phía dưới là muộn: vòng sheet chung đã kịp
-    # dựng THUE/HH/PTHU từ CĐPS -> tháng 12 có hai bộ số dư (bắt được trên test).
-    if (_source_id(args.file).split("::", 1)[0].upper() == "SRVF"
-            and _re_bcqt.fullmatch(r"B\.1\.TC\.TCKT\.M\.2025\d{2}\.Baocaotaichinh\.xlsx", fname, _re_bcqt.I)
-            and os.path.exists(os.path.join(os.path.dirname(os.path.abspath(args.file)),
-                                            fname.replace(".Baocaotaichinh.", ".Baocaotaichinhrieng.")))):
-        # Dọn MỌI dòng mang tên file này (spec chạy trước chỗ chặn vẫn kịp ghi, vd DTHU_NHOM).
-        from servers.common import be_bridge as _bbx
-        _dbx = _bbx.db.get_db()
-        _rts_x = [r["report_type"] for r in _dbx.execute(
-            "SELECT DISTINCT report_type FROM raw_rows WHERE source_file=?",
-            (_source_id(args.file),)).fetchall()]
-        _don = _prune_missing_sheet_types(args.file, period, _rts_x) if period else {}
-        _out({"ok": True, "file": fname, "mode": "bi_thay_the", "skip": True, "da_don": _don,
-              "note": "kỳ này đã có bản Baocaotaichinhrieng — file tháng bỏ qua, tránh hai bộ số dư"})
-        return
+    # File tháng SRVF niên độ 2025 mà kỳ đó ĐÃ có bản `Baocaotaichinhrieng` (hiện: 202512). SỬA
+    # 25/09/2026: bản năm KHÔNG có sheet CĐKT (chỉ CĐPS + T01..T12) -> bỏ cả file là tháng 12 mất
+    # bảng cân đối. Nay file này CHỈ đóng góp TSNV/BS/TS (từ CĐKT); công nợ/thuế/tồn kho (CĐPS) và
+    # P&L giữ theo bản năm — dọn ở cuối hàm, vì vòng sheet chung vẫn kịp dựng chúng từ CĐPS.
+    _srvf_thay_the = bool(
+        _source_id(args.file).split("::", 1)[0].upper() == "SRVF"
+        and _re_bcqt.fullmatch(r"B\.1\.TC\.TCKT\.M\.2025\d{2}\.Baocaotaichinh\.xlsx", fname, _re_bcqt.I)
+        and os.path.exists(os.path.join(os.path.dirname(os.path.abspath(args.file)),
+                                        fname.replace(".Baocaotaichinh.", ".Baocaotaichinhrieng."))))
     headers = tf._all_sheet_headers(data)   # mở workbook 1 LẦN (file nặng load chậm)
 
     # File THU CHI (có sheet SD TIỀN): dòng tiền 03_DONGTIEN/03B/04_VAY được các EXTRACTOR
@@ -5337,7 +5329,7 @@ def _cmd_autofill_impl(args):
                 if _chi_so_du:
                     _bcrows = None
                 if _bi_thay:
-                    _ck = _cp = None
+                    _cp = None                     # CĐPS giữ theo bản năm; CĐKT vẫn lấy
                 # NIÊN ĐỘ 2025 — MỘT FILE = 12 KỲ: kế toán không gửi file/tháng mà gộp cả năm vào 1
                 # file, MỖI THÁNG MỘT SHEET 'T01'…'T12' (P&L A-series đầy đủ, cột 'Kỳ này' = SỐ THÁNG,
                 # cột 'Lũy kế' tách riêng — kiểm chứng Σ12 tháng 'Kỳ này' = 5.743,340 tỷ = đúng
@@ -5683,6 +5675,16 @@ def _cmd_autofill_impl(args):
             for e in kq_llm[1:]:
                 e["bucket"], e["reason"] = "skip_dup", "01_HQKD chỉ cần 1 sheet KQKD"
 
+    if _srvf_thay_the and period:
+        # Xem chỗ gán `_srvf_thay_the`: chỉ giữ cụm bảng cân đối của file này.
+        from servers.common import be_bridge as _bbx
+        _rts_x = [r["report_type"] for r in _bbx.db.get_db().execute(
+            "SELECT DISTINCT report_type FROM raw_rows WHERE source_file=? AND period_month=?",
+            (_source_id(args.file), period)).fetchall()]
+        _don = _prune_missing_sheet_types(args.file, period,
+                                          [t for t in _rts_x if t not in ("TSNV", "BS", "TS")])
+        if _don:
+            derived.append({"kind": "SRVF: chỉ giữ CĐKT (kỳ đã có bản năm)", "ok": True, "rows": _don})
     summary = {}
     for e in ledger:
         summary[e["bucket"]] = summary.get(e["bucket"], 0) + 1
