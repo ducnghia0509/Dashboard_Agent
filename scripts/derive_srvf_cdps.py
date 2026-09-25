@@ -201,7 +201,11 @@ def extract(path, period, cong_ty="TC"):
         r = find_tk(_tk)
         if not r:
             continue
-        _dau, _cuoi = val(r, "no_dau"), val(r, "no_cuoi")
+        # SỐ DƯ RÒNG Nợ − Có (25/09/2026), khớp cách CĐKT mã 141 tính. TK kho vẫn có thể mang dư CÓ
+        # ở tài khoản con: T08/2026 TK 15612 "Xe - Pin luồng B2B Xanh Vĩnh Phúc Limo Green" dư Có
+        # 15,70 tỷ -> lấy riêng dư Nợ 156 = 597,64 ra tồn kho 678,92 tỷ, trong khi CĐKT 140 ghi
+        # 663,26 tỷ (156 ròng = 581,94).
+        _dau, _cuoi = _net(r, "no_dau", "co_dau"), _net(r, "no_cuoi", "co_cuoi")
         # Giữ TK có tồn ĐẦU hoặc CUỐI > 0 (bỏ TK chạy-qua đầu=cuối=0 dù có PS) — như _derive_tonkho_cdps.
         if not ((_dau and abs(_dau) > 1e-9) or (_cuoi and abs(_cuoi) > 1e-9)):
             continue
