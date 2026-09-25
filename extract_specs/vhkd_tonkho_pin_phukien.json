@@ -1,0 +1,57 @@
+{
+  "id": "vhkd_tonkho_pin_phukien",
+  "_mo_ta": "Tổng hợp nhập xuất tồn kho PIN - PHỤ KIỆN Showroom (Cyber tự động, file NGÀY) -> VHKD_PKPIN, màn vhkd5 'Quản lý tồn kho pin - phụ kiện'. Mapping 1.VHKD_Mapping_Quanlytonkhopinphukien.xlsx (22.09.26) cột J 'Mapping lấy tự động (DL ngày): Cyber' — Báo cáo tổng hợp nhập xuất tồn, TK vật tư 1561, 'Tính phát sinh điều chuyển', 'Tất cả đơn vị'. MỖI MÃ VẬT TƯ MỘT BẢN GHI, giữ đủ 12 cột số của NXT trong payload để builder tự cộng: tồn đầu/cuối là số TẠI MỘT MỐC (lấy ngày đầu/ngày cuối), nhập/xuất/điều chuyển là PHÁT SINH (cộng các ngày).",
+  "_doi_chieu": "Tổng các dòng chi tiết khớp TUYỆT ĐỐI dòng 'Tổng cộng' (dòng 9) — ô mapping chỉ định E9/G9/J9/K9/L9/O9/Q9/R9/T9. Bản 24/09/2026: 139 mã, tồn cuối 1.625 · dư cuối 9.167.573.296,37 đ; 23->24/09 tồn cuối ngày trước = tồn đầu ngày sau ở cả 139 mã.",
+  "_bay": [
+    "Dòng 9 'Tổng cộng' và dòng 10 (toàn số 0) nằm NGAY dưới header, cột A rỗng -> chặn bằng `loc` khac_rong trên mã vật tư, KHÔNG dùng `dung_khi` (quét dừng ngay, 0 dòng — bẫy y hệt vhkd_tonkho_vatly_auto).",
+    "Cột 'Giá tồn đầu' / 'Giá tồn cuối' / 'Gía  Nhập' / 'Giá Xuất' là ĐƠN GIÁ — ở dòng Tổng cộng chúng là TỔNG CÁC ĐƠN GIÁ (1,54 tỷ), vô nghĩa. Không lấy; chỉ lấy cột THÀNH TIỀN (Dư đầu, Tiền nhập, Tiền nhập/xuất điều chuyển, Tiền xuất, Dư cuối).",
+    "Cột Ma_vitri RỖNG 100% (23-24/09/2026) -> file KHÔNG tách được theo kho; đừng suy kho từ đâu khác.",
+    "Có mã tồn SL 0 mà dư cuối ÂM (P7B 'Pin VF7Eco' −2.408.080 đ, chênh giá bình quân) — giữ nguyên, không lọc: tổng dư cuối phải khớp dòng Tổng cộng.",
+    "Ngày lấy từ TÊN FILE, không lùi: nội dung ghi 'TỪ NGÀY 24/09/2026 ĐẾN NGÀY 24/09/2026' đúng ngày trong tên (khác họ Cyber 12h trưa có `ngay_du_lieu_lui`)."
+  ],
+  "report_type": "VHKD_PKPIN",
+  "row_index_base": 8940000,
+  "khoi": "Khối KD Vinfast - Showroom",
+  "chieu_co_dinh": {"cong_ty": "TC"},
+  "nguon": {
+    "folder": "TEST_SR/baocaotonkhophukienpin",
+    "file_glob": "*.Baocaotonkhophukienpin.xlsx",
+    "sheet": {"so": 0}
+  },
+  "kiem_tra_o": [
+    {"o": "A5", "bang": "TỔNG HỢP NHẬP XUẤT TỒN"},
+    {"o": "A8", "bang": "Mã vật tư"},
+    {"o": "E8", "bang": "Tồn đầu"},
+    {"o": "G8", "bang": "Dư đầu"},
+    {"o": "K8", "bang": "SL Nhập điều chuyển"},
+    {"o": "R8", "bang": "Tồn cuối"},
+    {"o": "T8", "bang": "Dư cuối"}
+  ],
+  "header": {"dong": 8},
+  "dong_bat_dau": 11,
+  "ngay_tu_ten_file": {"regex": "\\.D\\.(\\d{4})(\\d{2})(\\d{2})\\.", "thu_tu": "ymd"},
+  "moi_ky_lay_file_moi_nhat": "ngay",
+  "cot": {
+    "dim1": {"header": "Mã vật tư"},
+    "dim3": {"header": "Tên vật tư, hàng hóa"},
+    "amount": {"header": "Tồn cuối", "kieu": "so_co_rong"},
+    "amount2": {"header": "Dư cuối", "kieu": "so_co_rong", "he_so": 1e-09},
+    "payload.ma_vat_tu": {"header": "Mã vật tư"},
+    "payload.dvt": {"header": "ĐVT", "bat_buoc": false},
+    "payload.ton_dau": {"header": "Tồn đầu", "kieu": "so_co_rong"},
+    "payload.du_dau": {"header": "Dư đầu", "kieu": "so_co_rong", "he_so": 1e-09},
+    "payload.sl_nhap": {"header": "SL Nhập", "kieu": "so_co_rong"},
+    "payload.tien_nhap": {"header": "Tiền nhập", "kieu": "so_co_rong", "he_so": 1e-09},
+    "payload.sl_nhap_dc": {"header": "SL Nhập điều chuyển", "kieu": "so_co_rong"},
+    "payload.tien_nhap_dc": {"header": "Tiền nhập điều chuyển", "kieu": "so_co_rong", "he_so": 1e-09},
+    "payload.sl_xuat_dc": {"header": "SL Xuất điều chuyển", "kieu": "so_co_rong"},
+    "payload.tien_xuat_dc": {"header": "Tiền xuất điều chuyển", "kieu": "so_co_rong", "he_so": 1e-09},
+    "payload.sl_xuat": {"header": "SL Xuất", "kieu": "so_co_rong"},
+    "payload.tien_xuat": {"header": "Tiền xuất", "kieu": "so_co_rong", "he_so": 1e-09},
+    "payload.ton_cuoi": {"header": "Tồn cuối", "kieu": "so_co_rong"},
+    "payload.du_cuoi": {"header": "Dư cuối", "kieu": "so_co_rong", "he_so": 1e-09}
+  },
+  "ban_ghi": "moi_dong",
+  "loc": [{"cot": "payload.ma_vat_tu", "dieu_kien": "khac_rong"}],
+  "payload_them": {"unit": "cai", "unit_amount2": "ty", "unit_tien": "ty"}
+}

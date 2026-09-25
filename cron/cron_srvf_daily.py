@@ -182,6 +182,16 @@ NGUON = [
         "ten": "Bảng cân đối kế toán theo ngày (tự động)",
         "ngay_regex": r"\.D\.(20\d{2})(\d{2})(\d{2})\.",
     },
+    {
+        # Tổng hợp nhập xuất tồn kho PIN - PHỤ KIỆN theo ngày (Cyber tự động, mapping
+        # 1.VHKD_Mapping_Quanlytonkhopinphukien.xlsx cột J) -> spec `vhkd_tonkho_pin_phukien`,
+        # `VHKD_PKPIN`, màn vhkd5. Khai 25/09/2026. Mỗi ngày một file rời, KHÔNG luỹ kế: tồn đầu/cuối
+        # là số tại mốc, nhập/xuất là phát sinh của riêng ngày đó — builder tự cộng, nên phải giữ
+        # ĐỦ CHUỖI NGÀY trên đĩa (ANH_CHUP_KY). File đầu tiên ở nguồn là bản 23/09/2026.
+        "company": "TEST_SR", "rt": "baocaotonkhophukienpin", "che_do": core.ANH_CHUP_KY,
+        "ten": "Tồn kho pin - phụ kiện theo ngày (tự động)",
+        "ngay_regex": r"\.D\.(20\d{2})(\d{2})(\d{2})\.",
+    },
     # NGUỒN TAY 'baocaotonkhoxevatly' ĐÃ GỠ 03/09/2026 — cùng lý do: `vhkd_tonkho_vatly` nghỉ hưu,
     # `VHKD_TONVATLY` nay lấy từ TEST_SR/baocaonhapxuattonkhoxe.
     {

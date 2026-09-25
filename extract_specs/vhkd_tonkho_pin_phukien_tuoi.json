@@ -1,0 +1,53 @@
+{
+  "id": "vhkd_tonkho_pin_phukien_tuoi",
+  "_mo_ta": "Phân tích TUỔI TỒN kho pin - phụ kiện Showroom, sheet 'Tuổi tồn' của file THÁNG kế toán -> VHKD_PKPIN_TUOI, mục C màn vhkd5. Mapping cột I: <3 tháng = G9+I9+K9 (0-30, 31-60, 61-90 ngày) · 3-6 tháng = M9+O9+Q9 (91-120, 121-150, 151-180) · >6 tháng = S9+U9+W9+Y9+AA9 (181-270 … >720). File NGÀY Cyber KHÔNG có tuổi tồn (mapping cột J 'Không có') nên đây là nguồn DUY NHẤT; mọi dòng neo vào NGÀY CUỐI THÁNG của kỳ trong tên file ('ĐẾN NGÀY 31/08/2026').",
+  "_doi_chieu": "T08/2026: 136 mã, tổng giá trị tồn 9.325.090.443,37 đ = tổng 11 cột GT tuổi (khớp tuyệt đối); <3 tháng 37.028.300 · 3-6 tháng 34.009.197 · >6 tháng 9.254.052.947 (99,2%).",
+  "_bay": [
+    "Tổng sheet Tuổi tồn LỆCH tồn cuối sheet NXT cùng file đúng 2.408.080 đ: sheet này bỏ mã P7B (SL 0, dư âm). Tỷ trọng chậm luân chuyển phải chia cho tổng CỦA CHÍNH SHEET NÀY (amount2), không chia cho dư cuối NXT — không thì 3 nhóm cộng không ra 100%.",
+    "Sheet NXT cùng file nạp RIÊNG ở spec `vhkd_tonkho_pin_phukien_thang` (VHKD_PKPIN_THANG): đó là NXT của NGÀY CHỐT tháng (kế toán chốt số tháng vào ngày cuối tháng), chỉ tồn cuối là số tháng.",
+    "File là .Xls (Excel 97-2003): chỉ đường quét thư mục (`spec_extract.py <id> --write`) tự chuyển sang .xlsx; đường cron autofill theo một file (`run_for_path`) CHƯA chuyển .xls nên chưa đưa nguồn này vào cron.",
+    "Dòng 9 'Tổng cộng' nằm NGAY dưới header, cột A rỗng -> chặn bằng `loc` khac_rong trên mã vật tư."
+  ],
+  "report_type": "VHKD_PKPIN_TUOI",
+  "row_index_base": 8950000,
+  "khoi": "Khối KD Vinfast - Showroom",
+  "chieu_co_dinh": {"cong_ty": "TC"},
+  "nguon": {
+    "folder": "TONKHOTAPDOAN/tonkhotapdoanthang",
+    "file_glob": "*.Baocaotonkhophukienpin.xlsx",
+    "sheet": {"ten": "Tuổi tồn"}
+  },
+  "kiem_tra_o": [
+    {"o": "A5", "bang": "PHÂN TÍCH TUỔI TỒN KHO"},
+    {"o": "A8", "bang": "Mã vật tư"},
+    {"o": "E8", "bang": "Giá trị tồn"},
+    {"o": "G8", "bang": "GT từ 0 -> 30 Ngày"},
+    {"o": "AA8", "bang": "GT > 720 Ngày"}
+  ],
+  "header": {"dong": 8},
+  "dong_bat_dau": 10,
+  "ky_tu_ten_file": {"regex_nam": "\\.M(\\d{4})\\d{2}\\.", "regex_thang": "\\.M\\d{4}(\\d{2})\\."},
+  "moi_ky_lay_file_moi_nhat": true,
+  "cot": {
+    "dim1": {"header": "Mã vật tư"},
+    "dim3": {"header": "Tên vật tư"},
+    "amount": {"header": "Số lượng tồn", "kieu": "so_co_rong"},
+    "amount2": {"header": "Giá trị tồn", "kieu": "so_co_rong", "he_so": 1e-09},
+    "payload.ma_vat_tu": {"header": "Mã vật tư"},
+    "payload.dvt": {"header": "ĐVT", "bat_buoc": false},
+    "payload.gt_0_30": {"header": "GT từ 0 -> 30 Ngày", "kieu": "so_co_rong", "he_so": 1e-09},
+    "payload.gt_31_60": {"header": "GT từ 31 -> 60 Ngày", "kieu": "so_co_rong", "he_so": 1e-09},
+    "payload.gt_61_90": {"header": "GT từ 61 -> 90 Ngày", "kieu": "so_co_rong", "he_so": 1e-09},
+    "payload.gt_91_120": {"header": "GT từ 91 -> 120 Ngày", "kieu": "so_co_rong", "he_so": 1e-09},
+    "payload.gt_121_150": {"header": "GT từ 121 -> 150 Ngày", "kieu": "so_co_rong", "he_so": 1e-09},
+    "payload.gt_151_180": {"header": "GT từ 151 -> 180 Ngày", "kieu": "so_co_rong", "he_so": 1e-09},
+    "payload.gt_181_270": {"header": "GT từ 181 -> 270 Ngày", "kieu": "so_co_rong", "he_so": 1e-09},
+    "payload.gt_271_360": {"header": "GT từ 271 -> 360 Ngày", "kieu": "so_co_rong", "he_so": 1e-09},
+    "payload.gt_361_540": {"header": "GT từ 361 -> 540 Ngày", "kieu": "so_co_rong", "he_so": 1e-09},
+    "payload.gt_541_720": {"header": "GT từ 541 -> 720 Ngày", "kieu": "so_co_rong", "he_so": 1e-09},
+    "payload.gt_tren_720": {"header": "GT > 720 Ngày", "kieu": "so_co_rong", "he_so": 1e-09}
+  },
+  "ban_ghi": "moi_dong",
+  "loc": [{"cot": "payload.ma_vat_tu", "dieu_kien": "khac_rong"}],
+  "payload_them": {"unit": "cai", "unit_amount2": "ty", "unit_tien": "ty"}
+}
