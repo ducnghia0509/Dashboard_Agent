@@ -336,8 +336,10 @@ _UNITS = {
     # phải bảng mất cân đối — vẫn nạp, nhưng đừng "sửa" nó ở tầng này.
     # KHÔNG khai `cdkt` là sheet `TC_CĐKT`: đó là bản kỳ 8 THÁNG 2025, nhãn "Số cuối năm", một
     # sheet tham chiếu cũ nằm lẫn trong file. Khai nhầm là nạp số của năm ngoái dưới ngày hôm nay.
+    # `tonkho_ngay` (26/09/2026): TỒN KHO theo ngày dựng Y HỆT bản THÁNG của khối — xem `_hh_ngay_cdkt140`.
     "HO": {"layout": "ho_kqkd", "cong_ty": "TC", "khoi": "Khối hỗ trợ tập đoàn",
-           "sodu_trong_chinh_file": True, "sheet_sodu": {"cdkt": "CĐKT"}},
+           "sodu_trong_chinh_file": True, "sheet_sodu": {"cdkt": "CĐKT"},
+           "tonkho_ngay": {"kieu": "cdkt_140"}},
     # XE TẢI HƯNG THỊNH (spec user 2026-08-06) — layout "ht", xem `_ht_facts`.
     # P&L vốn đã chạy tốt (18 ngày kỳ 09). `sodu_matran_trong_file` (21/09/2026) chỉ thêm cụm SỐ
     # DƯ theo ngày, đọc từ file hợp nhất `...baocaotaichinhhopnhatxetai.xlsx` lẫn trong cùng thư
@@ -347,7 +349,9 @@ _UNITS = {
     # `cong_ty = HT`. Đối chứng: `BS` mã 270 kỳ 2026-08 trong DB = 511,6425 tỷ = đúng ô hợp nhất.
     "HUNGTHINH": {"layout": "ht", "cong_ty": "HT", "khoi": "Khối KD Xe tải",
                   "sodu_matran_trong_file": True,
-                  "sheet_sodu": {"cdkt": "BCĐKT hợp nhất "}},
+                  "sheet_sodu": {"cdkt": "BCĐKT hợp nhất "},
+                  # TỒN KHO theo ngày từ sổ NXT của file hợp nhất ngày — xem `_hh_ngay_tu_nxt`.
+                  "tonkho_ngay": {"kieu": "nxt", "sheet": "nxt tk 156"}},
     # XƯỞNG DỊCH VỤ VINFAST (spec user 2026-08-06) — layout "xdv", xem `_xdv_facts`.
     # `bo_tu_ngay` = MỐC CUTOVER SANG NGUỒN TỰ ĐỘNG. Mapping XDV ('Báo cáo API_XDV' dòng 12) chốt:
     # `\\PHONGKETOANXUONGDICHVU\\BAOCAOHQKDNGAY` (file tay này) BỊ THAY bởi bản Cyber tự động
@@ -1851,6 +1855,122 @@ def _matran_sang_cdkt(rows, ngay_ten_file):
     return (ngay, ra) if len(ra) > 1 else (None, "không bóc được dòng mã số nào")
 
 
+# ── TỒN KHO THEO NGÀY cho HO + Xe tải (26/09/2026) ──────────────────────────────────────────
+# User 26/09: "phần tồn kho theo ngày lên số được không, báo cáo giống BC tháng — của 2 khối HO và
+# Xe tải; cách báo cáo có sheet như bên báo cáo tháng". Hai khối đã có cụm SỐ DƯ ngày (CĐKT) nhưng
+# `HH_D` rỗng, vì các khối khác lấy tồn kho ngày từ sheet CĐPS còn hai khối này không khai CĐPS.
+# KHÔNG khai CĐPS cho chúng: bản THÁNG của cả hai KHÔNG đi đường CĐPS, và bản ngày phải ra đúng
+# cùng một bộ số với bản tháng —
+#   · HO     — tháng lấy CĐKT mã 140, một dòng "Hàng tồn kho (theo CĐKT)" (`agent_cli.
+#              _derive_tonkho_cdkt`). CĐPS của HO là mẫu riêng (có "Kho Gỗ" TK 157), gom theo
+#              `_HH_TK` sẽ ra bộ số khác.
+#   · Xe tải — tháng lấy sổ `nxt tk 156` chi tiết từng xe (`agent_cli._derive_tonkho`). File hợp
+#              nhất NGÀY có đúng sheet đó, chốt tới đúng ngày của file (24/09: tồn cuối
+#              98.165.978.313 = CĐKT hợp nhất mã 140 cột 24/09). Dùng CHUNG hàm bóc
+#              `agent_cli._tonkho_nxt_records` để hai bản không bao giờ lệch logic.
+_HH_CDKT_NHAN = "Hàng tồn kho (theo CĐKT)"          # nhãn Y HỆT bản tháng
+
+
+def _hh_payload(dau, nhap, xuat, tk=None, **them):
+    return json.dumps({"du_dau": dau, "unit": "ty", "grain": "day", "tk": tk,
+                       "nhap": nhap, "xuat": xuat, "cham_lc": 0.0, "ton_3m": 0.0, "ton_36": 0.0,
+                       **them}, ensure_ascii=False)
+
+
+def _hh_ngay_cdkt140(rows, mau):
+    """rows sheet CĐKT (ảnh chụp MỘT ngày) -> [fact HH_D] = mã 140 (lùi 141), như bản tháng HO.
+
+    Cột "Số đầu kỳ" = số dư ĐẦU CỬA SỔ sheet ghi ("Từ ngày X đến ngày Y"). Đã kiểm 26/09/2026:
+    tổng tài sản đầu kỳ file 16/09 = cuối kỳ file 15/09 (2.037,12 tỷ), đầu kỳ file luỹ kế 01→15/09
+    = BS mã 270 tháng 8 trong DB (2.108,65 tỷ). Nên chỉ lấy khi cửa sổ là MỘT ngày hoặc bắt đầu
+    từ NGÀY 1 (đầu tháng) — cửa sổ bắt đầu giữa tháng thì đầu kỳ đó không phải mốc nào người xem
+    chọn, để 0. Không nhận cột đầu kỳ bừa: có mẫu ghi đầu NĂM ([[dauky-chon-theo-dang-thuc-ke-toan]]).
+    """
+    _hdr, byma = _cdkt_doc(rows, mau or _MAU_CDKT["b01dn"])
+    cuoi = byma.get("140") or byma.get("141")
+    if not cuoi:
+        return []          # như bản tháng: không có tồn kho thì KHÔNG tạo dòng rỗng
+    ngays = [c.date() for r in rows[:12] for c in r if isinstance(c, datetime.datetime)]
+    dau = 0.0
+    if len(ngays) >= 2 and (ngays[0] == ngays[1]
+                            or (ngays[0].day == 1 and ngays[0].month == ngays[1].month)):
+        _h2, byma_dau = _cdkt_doc(rows, {"nhan": ["so dau ky"]})
+        d = byma_dau.get("140") or byma_dau.get("141")
+        dau = round(d * 1e-9, 9) if isinstance(d, (int, float)) else 0.0
+    return [(None, "HH_D", _HH_CDKT_NHAN, _HH_CDKT_NHAN, cuoi, None,
+             _hh_payload(dau, 0.0, 0.0))]
+
+
+def _ngay_nxt(rows):
+    """(từ ngày, đến ngày) ghi ở đầu sổ NXT: '... ngày | 22/9/2026 | đến ngày | 24/09/2026 ...'."""
+    def doc(c):
+        if isinstance(c, datetime.datetime):
+            return c.date().isoformat()
+        m = re.fullmatch(r"\s*(\d{1,2})/(\d{1,2})/(\d{4})\s*", str(c or ""))
+        if m:
+            try:
+                return datetime.date(int(m[3]), int(m[2]), int(m[1])).isoformat()
+            except ValueError:
+                return None
+        return None
+    for r in rows[:12]:
+        for j, c in enumerate(r):
+            if "den ngay" in _nd(c):
+                tu = next((doc(x) for x in reversed(r[:j]) if doc(x)), None)
+                den = next((doc(x) for x in r[j + 1:] if doc(x)), None)
+                # Excel hiểu "1/9/2026" theo kiểu Mỹ và lưu thành 09/01 (file 18/09 của Xe tải;
+                # bản tháng 8 cũng có "2026-01-08" cho 1/8). Rơi ngoài tháng của `den` mà đảo
+                # ngày-tháng thì vào đúng tháng -> đảo lại.
+                if tu and den and tu[:7] != den[:7]:
+                    y, a_, b_ = tu.split("-")
+                    dao = f"{y}-{b_}-{a_}"
+                    if dao[:7] == den[:7] and dao <= den:
+                        tu = dao
+                if den:
+                    return tu, den
+    return None, None
+
+
+def _hh_ngay_tu_nxt(path, unit, ngay):
+    """File hợp nhất ngày của Xe tải -> ([fact HH_D] từng mặt hàng, chẩn đoán).
+
+    Sổ NXT phải chốt ĐÚNG ngày mà CĐKT ma trận vừa chọn (`ngay`), không thì bỏ cả cụm: ghép sổ
+    ngày này với số dư ngày khác là ra một tồn kho không tồn tại ở thời điểm nào.
+    Nhập/xuất là của KHOẢNG sổ ghi (22→24/09 ở file 24) — kế toán phát hành cách 2-3 ngày một bản
+    và mỗi bản nối tiếp bản trước, nên cộng dồn qua các ngày có file vẫn ra đúng tổng.
+    """
+    cfg = unit.get("tonkho_ngay") or {}
+    sn = cfg.get("sheet")
+    wb = None
+    try:
+        wb = openpyxl.load_workbook(path, data_only=True, read_only=True)
+        if sn not in (wb.sheetnames or ()):
+            return [], {"bo_qua": f"không có sheet '{sn}'"}
+        dau_so = [list(r) for r in wb[sn].iter_rows(min_row=1, max_row=12, values_only=True)]
+    except Exception as e:
+        return [], {"bo_qua": f"không đọc được ({type(e).__name__})"}
+    finally:
+        if wb is not None:
+            wb.close()
+    tu, den = _ngay_nxt(dau_so)
+    if den != ngay:
+        return [], {"bo_qua": f"sổ NXT chốt {den}, CĐKT chốt {ngay} — lệch, không ghép"}
+    from agent_cli import _tonkho_nxt_records          # import muộn: agent_cli import ngược module này
+    recs, dau_partial, err = _tonkho_nxt_records(path, sn, ngay[:7], unit["cong_ty"], scale=1.0)
+    if err:
+        return [], {"bo_qua": err}
+    facts = []
+    for rc in recs:
+        ten = rc.get("Loại HTK (NVL/Vật tư/Hàng hóa…)")
+        ty = lambda k, _rc=rc: (_rc.get(k) or 0.0) * 1e-9          # noqa: E731
+        facts.append((None, "HH_D", ten, ten, rc.get("Dư cuối kỳ (tỷ)") or 0.0, None,
+                      _hh_payload(0.0 if dau_partial else ty("Dư đầu kỳ (tỷ)"),
+                                  ty("Nhập trong kỳ (tỷ)"), ty("Xuất trong kỳ (tỷ)"),
+                                  rc.get("TK (151-156)"), tu_ngay=tu)))
+    return facts, {"ngay": ngay, "tu_ngay": tu, "so_dong": len(facts),
+                   "ton_cuoi_ty": round(sum(f[4] for f in facts) * 1e-9, 9)}
+
+
 def _sodu_matran_trong_file(path, period, unit):
     """Số dư từ CĐKT khuôn ma trận nằm trong chính file đang nạp -> ([(ngày, [fact])], chẩn đoán).
 
@@ -1895,7 +2015,12 @@ def _sodu_matran_trong_file(path, period, unit):
     facts = _snap_cdkt_facts(ra, mau) + _snap_tsnv_facts(ra, mau)
     if not facts:
         return [], {"so_du_matran": {"bo_qua": f"cột {ngay} không bóc được dòng nào"}}
-    return [(ngay, facts)], {"so_du_matran": {"ngay": ngay, "so_dong": len(facts)}}
+    hh_diag = {}
+    if (unit.get("tonkho_ngay") or {}).get("kieu") == "nxt":
+        hh, hh_diag = _hh_ngay_tu_nxt(path, unit, ngay)
+        facts += hh
+    return [(ngay, facts)], {"so_du_matran": {"ngay": ngay, "so_dong": len(facts),
+                                              **({"ton_kho": hh_diag} if hh_diag else {})}}
 
 
 def _sodu_trong_chinh_file(path, period, unit):
@@ -1946,6 +2071,14 @@ def _sodu_trong_chinh_file(path, period, unit):
                           f"cộng đôi với file đúng tên"}}
         facts = _snap_sodu_facts(wb, ten_sheet, _MAU_CDKT.get(unit.get("mau_cdkt", "b01dn")),
                                  chi_so_du=(vi_sao == "luy_ke"))
+        sn_cdkt = ten_sheet.get("cdkt")
+        if ((unit.get("tonkho_ngay") or {}).get("kieu") == "cdkt_140"
+                and sn_cdkt in (wb.sheetnames or ())):
+            hh = _hh_ngay_cdkt140([list(r) for r in wb[sn_cdkt].iter_rows(values_only=True)],
+                                  _MAU_CDKT.get(unit.get("mau_cdkt", "b01dn")))
+            # KHÔNG qua `_bo_phat_sinh` ở bản luỹ kế: dòng này không có phát sinh nào (nhập/xuất = 0
+            # như bản tháng), còn đầu kỳ đã tự kiểm cửa sổ trong `_hh_ngay_cdkt140`.
+            facts += hh
     except Exception as e:
         return [], {"so_du_trong_file": {"bo_qua": f"không đọc được ({type(e).__name__})"}}
     finally:
