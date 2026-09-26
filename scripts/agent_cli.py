@@ -2040,6 +2040,21 @@ def _derive_kqkd_antaxi_daily4(file_path: str, period: str, cong_ty: str):
             "chiphi": cpr}
 
 
+def _anks_dttc_tnk(rows, name_j, val_j, norm):
+    """(DT tài chính, Thu nhập khác) của An KS từ sheet BCQT — log KT 26/09/2026: "DT TÀI CHÍNH =
+    giá trị tại 'Thu lãi TG', THU NHẬP KHÁC = giá trị tại 'Thu khác', theo cột tháng" (cho cả 2025
+    lẫn 2026; vd T01/2026 = ô F12 / F11 của bản trong thư mục BAOCAOTAICHINH/2026).
+    Khớp NHÃN NGUYÊN VĂN, không theo tiền tố: bỏ dấu thì 'thu khac' là tiền tố của 'thu khach…'.
+    Dòng có mà ô trống -> 0.0 (thẻ hiện 0 tường minh, như HO); KHÔNG có dòng -> None (không ghi)."""
+    def _v(label):
+        for r in rows:
+            if len(r) > name_j and norm(r[name_j]) == label:
+                x = r[val_j] if val_j < len(r) else None
+                return round(x * 1e-9, 9) if isinstance(x, (int, float)) else 0.0
+        return None
+    return _v("thu lai tg"), _v("thu khac")
+
+
 def _derive_kqkd_ankhachsan(file_path: str, period: str, cong_ty: str):
     """TẤT ĐỊNH — An KS: sheet 'BCQT' (P&L quản trị theo MỤC ở cột B: I TỔNG DOANH THU [I.1 DOANH THU
     KHÁCH SẠN, I.2 DT khác], II TỔNG CHI PHÍ [II.1 CHI PHÍ GIÁ VỐN, II.2 CHI PHÍ CHUNG, II.3 CHI PHÍ
@@ -2126,6 +2141,11 @@ def _derive_kqkd_ankhachsan(file_path: str, period: str, cong_ty: str):
     add("Giá vốn hàng bán", gia_von)                                  # -> PNLT (II.1)
     add("Lợi nhuận gộp", round(dt - gia_von, 9) if gia_von is not None else None)      # -> PNLT
     add("Lợi nhuận sau thuế", ln)                                     # -> PNLT (An KS ko thuế -> =LNTT)
+    # DT tài chính / Thu nhập khác — log KT 26/09/2026 (thẻ "DT TÀI CHÍNH & TN KHÁC" ở Tổng quan +
+    # 2 tab ở Hiệu quả KD đứng 0 với An KS). Nhãn Y HỆT HO/XDV/An Taxi để 2 màn gom nhất quán.
+    dt_tc, tn_khac = _anks_dttc_tnk(rows, name_j, val_j, _norm)
+    add("Doanh thu tài chính", dt_tc)                                  # -> PNLT ('Thu lãi TG')
+    add("Thu nhập khác", tn_khac)                                      # -> PNLT ('Thu khác')
     out = os.path.join(tf.FILLED_DIR, f"KQKD_{period}_{cong_ty or 'NA'}_01_HQKD.xlsx")
     tf.fill("01_HQKD", records, out)
     imp = tf.import_filled(out, cong_ty=cong_ty, khoi=_khoi_of(file_path), source_file=_source_id(file_path))
@@ -2319,6 +2339,13 @@ def _derive_kqkd_ankhachsan_2025(file_path: str, period: str, cong_ty: str):
     add("Doanh thu bán hàng và cung cấp dịch vụ", dt_core)             # -> PNLT (nuôi Cấu trúc DT)
     add("Doanh thu HH, DV", dt_core)                                   # -> PNLT (#1 bảng 50)
     add("Lợi nhuận sau thuế", ln)                                      # -> PNLT (An KS ko thuế -> =LNTT)
+    # DT tài chính / Thu nhập khác (log KT 26/09/2026) — CHỈ khi sheet là 'BCQT' (bản phát hành lại
+    # 31/08/2026 của niên độ 2025). Bố cục 'Sheet1' cũ có Mục 'THU KHÁC' = thu hộ BHXH / thu xuất
+    # VAT hộ, KHÔNG phải thu nhập khác — đọc nó vào đây là sai nghĩa.
+    if _norm(pick_sheet) == "bcqt":
+        dt_tc, tn_khac = _anks_dttc_tnk(rows, name_j, val_j, _norm)
+        add("Doanh thu tài chính", dt_tc)                              # -> PNLT ('Thu lãi TG')
+        add("Thu nhập khác", tn_khac)                                  # -> PNLT ('Thu khác')
     out = os.path.join(tf.FILLED_DIR, f"KQKD_{period}_{cong_ty or 'NA'}_01_HQKD.xlsx")
     tf.fill("01_HQKD", records, out)
     imp = tf.import_filled(out, cong_ty=cong_ty, khoi=_khoi_of(file_path), source_file=_source_id(file_path))
