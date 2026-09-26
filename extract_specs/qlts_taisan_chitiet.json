@@ -25,6 +25,7 @@
     "Khoi taxi tach dung: Taxi Vinh Phuc->VP_DP, Phu Tho->PT_DP, Tuyen Quang->TQ_DP (Van tai Taxi Xanh); Taxi Son Tay->ST_AT, Thai Nguyen->TN_AT (Dich vu An Taxi)."
   ],
   "report_type": "QLTS_TS_CT",
+  "_bay_ban_phat_hanh": "BÁO CÁO TUẦN — MỖI BẢN PHÁT HÀNH LÀ MỘT LÁT RIÊNG (26/09/2026, log KT QLTS: 'Tổng quan TS, Biến động thanh lý kiểm kê, Bảo trì sửa chữa — chưa hiển thị được số liệu của từng tuần'). Sổ tài sản phát hành '.D.2026.9.05/12/19.Taisan' nhưng cờ `moi_ky_lay_file_moi_nhat: true` gộp theo THÁNG nên chỉ còn bản 19, đóng dấu 30/09 — chọn tuần nào cũng ra số tuần 3. Cùng cách vá với `qlts_baohiem_theodoi` (23/09): `regex_ngay` nằm TRONG `ky_tu_ten_file` + cờ 'ngay'. File THÁNG ('.M.2026.8.Taisan') không có ngày -> regex không khớp -> một lát ngày cuối tháng như cũ. Tầng đọc (`qlts._NGUON_BAN_PHAT_HANH`) kẹp cửa sổ đúng `to`; xem cả tháng thì `_SNAP_RT` chỉ lấy bản mới nhất nên KHÔNG cộng dồn các tuần.",
   "row_index_base": 7902000,
   "nguon": {
     "folder": "QLTS/baocaotaisanqlts",
@@ -219,11 +220,12 @@
   },
   "ky_tu_ten_file": {
     "regex_nam": "\\.(?:M|D)\\.(\\d{4})\\.",
-    "regex_thang": "\\.(?:M|D)\\.\\d{4}\\.(\\d{1,2})[\\.\\s]"
+    "regex_thang": "\\.(?:M|D)\\.\\d{4}\\.(\\d{1,2})[\\.\\s]",
+    "regex_ngay": "\\.(?:M|D)\\.\\d{4}\\.\\d{1,2}\\.(\\d{1,2})\\."
   },
   "dan_xuat": {
     "payload.slGiam": "payload.slBan + payload.slThatThoat + payload.slHuy + payload.slTraLai",
     "payload.ngGiam": "payload.ngBan + payload.ngThatThoat + payload.ngHuy + payload.ngTraLai"
   },
-  "moi_ky_lay_file_moi_nhat": true
+  "moi_ky_lay_file_moi_nhat": "ngay"
 }

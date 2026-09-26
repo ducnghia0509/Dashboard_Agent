@@ -17,9 +17,11 @@
     "SAU KHI DỊCH CỘT (31/08/2026, bố cục mới): 4 dòng — đã BD trong tháng 10 (tỷ lệ 0,625 · ycSC 15 · CP 12.017.000đ) · Chưa đến hạn 64 · Sắp đến hạn 9 · Quá hạn 6. Khớp từng số với P2:U6 của file và với bản DB nạp lúc 13:44 cùng ngày."
   ],
   "report_type": "QLTS_BD",
+  "_bay_ban_phat_hanh": "BÁO CÁO TUẦN — MỖI BẢN PHÁT HÀNH LÀ MỘT LÁT RIÊNG (26/09/2026, log KT QLTS: 'Tổng quan TS, Biến động thanh lý kiểm kê, Bảo trì sửa chữa — chưa hiển thị được số liệu của từng tuần'). Bảo dưỡng phát hành '.D.2026.9.12/19.BCbaoduong*' nhưng cờ `moi_ky_lay_file_moi_nhat: true` gộp theo THÁNG nên chỉ còn bản 19, đóng dấu 30/09 — chọn tuần nào cũng ra số tuần 3. Cùng cách vá với `qlts_baohiem_theodoi` (23/09): `regex_ngay` nằm TRONG `ky_tu_ten_file` + cờ 'ngay'. File THÁNG ('.M.2026.8.BCbaoduong*') không có ngày -> regex không khớp -> một lát ngày cuối tháng như cũ. Tầng đọc (`qlts._NGUON_BAN_PHAT_HANH`) kẹp cửa sổ đúng `to`; xem cả tháng thì `_SNAP_RT` chỉ lấy bản mới nhất nên KHÔNG cộng dồn các tuần. `bo_qua_file`: 3 file tháng 9 KHÔNG ghi ngày ('.D.2026.9.BCbaoduongmay', '.D.2026.9.BCbaoduongxe', '.M.2026.9.BCbaoduongxeDEMO') là bản sao BYTE-MỘT của bản 12/09 (đã so md5). Để lại thì chúng thành một lát 30/09 và chế độ Tháng chọn nhầm nó (số tuần 2) thay vì bản 19/09. Hai bản 'Tuần 2 BCbaoduong*' vốn không khớp `file_glob` (dấu cách trước 'BC').",
   "row_index_base": 7904000,
   "nguon": {
     "folder": "QLTS/baocaobaoduong",
+    "bo_qua_file": "^B\\.9\\.TC\\.H5\\.[DM]\\.2026\\.9\\.BCbaoduong",
     "file_glob": "*.BCbaoduongmay.xlsx",
     "sheet": {
       "ten": "th MÁY"
@@ -69,7 +71,8 @@
   },
   "ky_tu_ten_file": {
     "regex_nam": "\\.[DM]\\.(\\d{4})\\.",
-    "regex_thang": "\\.[DM]\\.\\d{4}\\.(\\d{1,2})\\."
+    "regex_thang": "\\.[DM]\\.\\d{4}\\.(\\d{1,2})\\.",
+    "regex_ngay": "\\.[DM]\\.\\d{4}\\.\\d{1,2}\\.(\\d{1,2})\\."
   },
   "kiem_tra_o": [
     {
@@ -83,5 +86,5 @@
   ],
   "dong_bat_dau": 3,
   "dong_ket_thuc": 6,
-  "moi_ky_lay_file_moi_nhat": true
+  "moi_ky_lay_file_moi_nhat": "ngay"
 }
