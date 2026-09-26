@@ -16,6 +16,7 @@
     "Khối tóm tắt của chính file ghi BHTNDS 'Còn hạn >20 ngày' = 101 và tổng mẫu số 202 — lệch 1 so với 201 dòng chi tiết vì tỷ lệ % của file chia cho 202. Lấy theo DÒNG CHI TIẾT.",
     "Nguyên nhân quá hạn (dim3) đọc được ngay: 'Thiết bị không hoạt động không phải tham gia bảo hiểm', 'Thiết bị hỏng', 'Thiết bị không sử dụng', 'Thiết bị hoạt động trong phạm vi công trường', 'Thiết bị thế chấp ngân hàng tham gia bảo hiểm'."
   ],
+  "_bay_phap_nhan": "PHÁP NHÂN ĐỨNG TÊN THẮNG, KHÔNG PHẢI CÔNG TY VẬN HÀNH (26/09/2026, log KT QLTS #49: 'khi chọn công ty vẫn bị sai — toàn bộ dữ liệu đến thời điểm hiện tại vẫn là tài sản mang Công ty cổ phần Thịnh Cường'). Hợp đồng bảo hiểm/kiểm định gắn với bên ĐỨNG TÊN tài sản; file ghi 'Pháp nhân' = Thịnh Cường cho 535/535 thiết bị. Trước đây `cong_ty` khai TRƯỚC `cost_center` nên hook `cc_qlts_khoi` ghi đè bằng công ty VẬN HÀNH của cost center (30 AAG · 20 VFQN · 2 XVP) — quy tắc 17/08 cho SỔ TÀI SẢN, không đúng với màn Bảo hiểm. Nay `cong_ty` khai SAU `cost_center`: khối/đơn vị vẫn theo cost center, riêng công ty theo cột Pháp nhân.",
   "report_type": "QLTS_BH_TD",
   "_bay_ban_phat_hanh": "BÁO CÁO TUẦN — MỖI BẢN PHÁT HÀNH LÀ MỘT LÁT RIÊNG (23/09/2026, anh Cường: 'Tuần 1 muốn thấy số tuần 1, nhưng chọn tuần 1 vẫn hiện số tuần 3'). Trước đây cờ `moi_ky_lay_file_moi_nhat: true` gộp theo THÁNG nên 5 bản phát hành 05/07/12/14/19 của tháng 9 chỉ còn ĐÚNG MỘT (bản 19), lại bị đóng dấu `ngay` = 30/09 (cuối tháng) — nên mọi cửa sổ ngày trong tháng 9 đều trả về bản 19. Nay: thêm `regex_ngay` vào `ky_tu_ten_file` để lấy NGÀY PHÁT HÀNH thật từ tên file — phải khai ở ĐÚNG khoá đó, vì nhánh `ky_tu_ten_file` chạy TRƯỚC và nếu nó khớp được năm+tháng thì đã trả về cuối tháng rồi, `ngay_tu_ten_file` không bao giờ tới lượt. Cờ đổi sang chế độ 'ngay' để giữ một file cho MỖI ngày phát hành. KHÔNG được bỏ hẳn cờ: ngày 07 và 14 mỗi ngày có HAI file (bản '.D.' của TC và bản '.M.TS' của GR) nên bỏ cờ là cộng đôi đúng hai lát đó. File THÁNG ('.M.2026.8.Theodoi…') không có ngày trong tên -> regex không khớp -> giữ nguyên hành vi cũ (một lát, ngày = cuối tháng).",
   "row_index_base": 7907000,
@@ -41,11 +42,6 @@
       "chuan_hoa": "khoi_qlts",
       "bat_buoc": false
     },
-    "cong_ty": {
-      "header": "Pháp nhân",
-      "chuan_hoa": "cty_qlts",
-      "bat_buoc": false
-    },
     "cost_center": {
       "header": [
         "Coscenter",
@@ -58,6 +54,11 @@
         "Tên khối",
         "Khối"
       ]
+    },
+    "cong_ty": {
+      "header": "Pháp nhân",
+      "chuan_hoa": "cty_qlts",
+      "bat_buoc": false
     },
     "dim2": {
       "header": "Thông báo"
