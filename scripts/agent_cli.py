@@ -4215,9 +4215,26 @@ def _derive_tonkho(file_path: str, sheet: str, period: str, cong_ty: str):
     """TẤT ĐỊNH: sổ Nhập-Xuất-Tồn (TONKHO) -> điền 09_TONKHO -> report_type THẬT 'HH'.
     Header 2 tầng: nhóm (Tồn đầu/Nhập/Xuất/Tồn cuối) x tầng dưới (Số lượng/THÀNH TIỀN). Lấy
     cột 'THÀNH TIỀN' theo VAI; neo = TỒN CUỐI (số thẻ Tồn kho đọc). Tồn-đầu mập mờ (vd 'TỒN ĐẦU
-    KỲ t3') -> để agent. value_scale=1e-9. Số dư cuối = Σ 'thành tiền' tồn cuối (khớp Tổng cộng)."""
-    import re as _re
+    KỲ t3') -> để agent. value_scale=1e-9. Số dư cuối = Σ 'thành tiền' tồn cuối (khớp Tổng cộng).
+
+    Phần BÓC DÒNG nằm ở `_tonkho_nxt_records` (tách 26/09/2026) để bản NGÀY
+    (`derive_hqkd_ngay`, Xe tải) đọc sổ NXT của file ngày bằng ĐÚNG logic này."""
     from servers import template_filler as tf
+    records, dau_partial, err = _tonkho_nxt_records(file_path, sheet, period, cong_ty)
+    if err:
+        return {"ok": False, "error": err}
+    out = os.path.join(tf.FILLED_DIR, f"TONKHO_{period}_{cong_ty or 'NA'}_09_TONKHO.xlsx")
+    tf.fill("09_TONKHO", records, out)
+    imp = tf.import_filled(out, cong_ty=cong_ty, khoi=_khoi_of(file_path), source_file=_source_id(file_path))
+    return {"ok": bool(imp.get("rows_imported")), "rows": imp.get("rows_imported"),
+            "target": "09_TONKHO", "partial_dau_ky": dau_partial}
+
+
+def _tonkho_nxt_records(file_path: str, sheet: str, period: str, cong_ty: str, scale: float = 1e-9):
+    """Sổ NXT -> (records theo cột template 09_TONKHO, dau_partial, lỗi|None). Hàm THUẦN, không ghi DB.
+
+    `scale` = hệ số quy đổi số tiền (mặc định 1e-9 -> tỷ, đúng như bản tháng vẫn dùng)."""
+    import re as _re
     from servers.common import be_bridge as bb
     norm = lambda v: bb.normalize_header(v, True)  # noqa: E731
 
@@ -4230,14 +4247,14 @@ def _derive_tonkho(file_path: str, sheet: str, period: str, cong_ty: str):
     sub_idx = next((i for i, r in enumerate(rows[:20])
                     if sum(1 for c in r if "thanh tien" in norm(c)) >= 2), None)
     if sub_idx is None or sub_idx == 0:
-        return {"ok": False, "error": "không thấy header 2 tầng Số lượng/Thành tiền"}
+        return [], False, "không thấy header 2 tầng Số lượng/Thành tiền"
     group = _forward_fill(rows[sub_idx - 1])
     sub = rows[sub_idx]
     hdr = rows[sub_idx - 1]
     code_i = next((j for j, c in enumerate(hdr) if norm(c).startswith("ma")), None)
     name_i = next((j for j, c in enumerate(hdr) if norm(c).startswith("ten")), None)
     if name_i is None:
-        return {"ok": False, "error": "không thấy cột Tên vật tư"}
+        return [], False, "không thấy cột Tên vật tư"
     fp_month = _guess_month_token(file_path)
     roles = {}   # role -> col index (chỉ cột THÀNH TIỀN)
     dau_cands = []
@@ -4254,7 +4271,7 @@ def _derive_tonkho(file_path: str, sheet: str, period: str, cong_ty: str):
         elif "dau" in gt:
             dau_cands.append((j, gt))
     if "cuoi" not in roles:
-        return {"ok": False, "error": "không thấy cột Tồn cuối (Thành tiền)"}
+        return [], False, "không thấy cột Tồn cuối (Thành tiền)"
     # đầu kỳ: chắc khi 1 cột, hoặc khớp tháng file; nhiều/mập mờ -> bỏ (để agent)
     dau_partial = False
     if len(dau_cands) == 1:
@@ -4306,7 +4323,7 @@ def _derive_tonkho(file_path: str, sheet: str, period: str, cong_ty: str):
         # FULL PRECISION khi quy đổi tỷ (KHÔNG round từng dòng): dashboard CỘNG nhiều dòng rồi mới
         # hiển thị — round(…,9) từng dòng trước khi cộng làm tổng lệch ±1 đồng so với làm-tròn-1-lần
         # trên số gộp (QA SRVF 2026-07-30: Tồn kho Σ4 TK = …093 vs CĐKT …092,32 -> phải ra …092).
-        return r[i] * 1e-9 if (i is not None and i < len(r) and isinstance(r[i], (int, float))) else None
+        return r[i] * scale if (i is not None and i < len(r) and isinstance(r[i], (int, float))) else None
 
     records = []
     for ri in range(data_start, len(rows)):
@@ -4347,7 +4364,7 @@ def _derive_tonkho(file_path: str, sheet: str, period: str, cong_ty: str):
             if _tong is None:
                 continue
             _cur = sum(r.get(_fld) or 0 for r in records)
-            if abs(_tong - _cur) > 1e-6:
+            if abs(_tong - _cur) > 1e-6 * (scale / 1e-9):
                 _adj[_fld] = _tong - _cur
         if _adj:
             _rec = {"Kỳ": period, "Đơn vị": cong_ty,
@@ -4356,12 +4373,8 @@ def _derive_tonkho(file_path: str, sheet: str, period: str, cong_ty: str):
                 _rec["TK (151-156)"] = _tk_sheet
             records.append(_rec)
     if not records:
-        return {"ok": False, "error": "không bóc được dòng tồn kho nào"}
-    out = os.path.join(tf.FILLED_DIR, f"TONKHO_{period}_{cong_ty or 'NA'}_09_TONKHO.xlsx")
-    tf.fill("09_TONKHO", records, out)
-    imp = tf.import_filled(out, cong_ty=cong_ty, khoi=_khoi_of(file_path), source_file=_source_id(file_path))
-    return {"ok": bool(imp.get("rows_imported")), "rows": imp.get("rows_imported"),
-            "target": "09_TONKHO", "partial_dau_ky": dau_partial}
+        return [], dau_partial, "không bóc được dòng tồn kho nào"
+    return records, dau_partial, None
 
 
 def _derive_tonkho_cdkt(file_path: str, cdkt_sheet: str, period: str, cong_ty: str):
