@@ -1542,8 +1542,11 @@ def _derive_kqkd_ho(rows, period, cong_ty, file_path):
     def codeval(*want):
         """Σ cột T{mm} của các dòng có MÃ SỐ (cột A) đúng bằng `want`. Dùng cho 2 chỉ tiêu KT chốt
         17/09: '515.01' (Doanh thu hoạt động tài chính công ty) và '7111' (Thu nhập khác) — log KT
-        ghi nhầm là '505.01' nhưng ví dụ ô E11/E13 T01/2026 xác nhận đúng 2 mã này. CỐ Ý KHÔNG lấy
-        '515.02' (lãi trái phiếu/sổ tiết kiệm CÁ NHÂN — không phải DT tài chính của công ty).
+        ghi nhầm là '505.01' nhưng ví dụ ô E11/E13 T01/2026 xác nhận đúng 2 mã này.
+        26/09/2026: KT chốt DT tài chính CỘNG CẢ '515.02' ("Lãi trái phiếu, sổ tiết kiệm") — "năm
+        2024, 2025 tất cả các tháng đều lên thiếu mã số 515.02". Bản 17/09 cố ý bỏ mã này vì hiểu là
+        lãi của CÁ NHÂN; hiểu SAI. Năm 2024 đây là phần lớn DT tài chính (T01/2024: 3,92 tỷ so với
+        3,0 triệu của 515.01); năm 2026 dòng này bằng 0 nên số 2026 không đổi.
         Trả None nếu không mã nào có số (phân biệt 'không phát sinh' với 0)."""
         want = set(want)
         s, got = 0.0, False
@@ -1586,7 +1589,7 @@ def _derive_kqkd_ho(rows, period, cong_ty, file_path):
     # CHỈ có 3 dòng (DT HH-DV / LN gộp / LNST) nên metrics lọc ILIKE '%doanh thu%tài chính%' và
     # '%thu nhập khác%' không bắt được gì. Nhãn dùng ĐÚNG như các deriver khác (XDV/An Taxi) để 2 màn
     # gom nhất quán. coalesce 0.0: HO luôn có 2 dòng này trong file, giữ thẻ hiện số 0 tường minh.
-    add("Doanh thu tài chính", codeval("515.01") or 0.0)   # -> PNLT (ô E11 của T01 = mã 515.01)
+    add("Doanh thu tài chính", codeval("515.01", "515.02") or 0.0)   # -> PNLT (515.01 + 515.02, KT chốt 26/09)
     add("Thu nhập khác", codeval("7111") or 0.0)           # -> PNLT (ô E13 của T01 = mã 7111)
     out = os.path.join(tf.FILLED_DIR, f"KQKD_{period}_{cong_ty or 'NA'}_01_HQKD.xlsx")
     tf.fill("01_HQKD", records, out)
