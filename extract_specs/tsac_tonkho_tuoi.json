@@ -1,0 +1,126 @@
+{
+  "id": "tsac_tonkho_tuoi",
+  "_mo_ta": "TUỔI TỒN kho trạm sạc — sheet 'BC tuổi tồn' cùng file tháng -> TSAC_TON_TUOI, mục Tuổi tồn màn tsac2. Mapping 3.Tramsac_Mapping_Quan Ly Kho Tram Sac.xlsx, sheet 'Quản lý tồn kho 22.09.26' cột I dòng 18-20: < 3 tháng = Σ cột I · 3–6 tháng = Σ cột K · > 6 tháng = Σ cột M + cột O, từ dòng 4. Payload cùng khoá với `duan_vattu_tuoi` (gt_duoi3/gt_3_6/gt_6_12/gt_tren12) để builder gộp bằng `duan_vt.gop_tuoi_ton`. Neo ngày cuối tháng.",
+  "_bay": [
+    "Mỗi dòng là một LÔ nhập còn tồn (cùng mã có thể nhiều dòng, cột F 'Ngày nhập lô cũ nhất còn tồn') — cộng thẳng, không gộp theo mã.",
+    "Hàng 2 là dòng tổng, hàng 3 tiêu đề hai dòng chữ ('GT < 3\\ntháng') -> đọc theo CHỮ CỘT, kiểm nhãn ở hàng 3."
+  ],
+  "_kiem_chung": [
+    "T08/2026: 16 lô; Σ giá trị tồn 1.330.307.730 đ (NXT 1.330.307.715 đ — lệch 15 đ làm tròn giá lô); < 3 tháng 0 · 3–6 tháng 386.300.339 · 6–12 tháng 58.909.092 · > 12 tháng 885.098.299 = đúng dòng tổng hàng 2."
+  ],
+  "report_type": "TSAC_TON_TUOI",
+  "row_index_base": 9050000,
+  "khoi": "Khối KD Trạm sạc Vgreen",
+  "chieu_co_dinh": {
+    "cong_ty": "TC",
+    "khoi": "Khối KD Trạm sạc Vgreen"
+  },
+  "nguon": {
+    "folder": "TONKHOTAPDOAN/tonkhotapdoanthang",
+    "file_glob": "*.Baocaotonkhotramsac.xlsx",
+    "sheet": {
+      "ten": "BC tuổi tồn"
+    }
+  },
+  "kiem_tra_o": [
+    {
+      "o": "A3",
+      "bang": "Mã vật tư"
+    },
+    {
+      "o": "E3",
+      "bang": "Giá trị"
+    },
+    {
+      "o": "I3",
+      "bang": "GT < 3"
+    },
+    {
+      "o": "K3",
+      "bang": "GT 3-6"
+    },
+    {
+      "o": "M3",
+      "bang": "GT 6-12"
+    },
+    {
+      "o": "O3",
+      "bang": "GT > 12"
+    }
+  ],
+  "header": {
+    "dong": 3
+  },
+  "dong_bat_dau": 4,
+  "ky_tu_ten_file": {
+    "regex_nam": "\\.M\\.(\\d{4})\\d{2}\\.",
+    "regex_thang": "\\.M\\.\\d{4}(\\d{2})\\."
+  },
+  "moi_ky_lay_file_moi_nhat": true,
+  "cot": {
+    "dim3": {
+      "cot": "A"
+    },
+    "amount": {
+      "cot": "D",
+      "kieu": "so_co_rong"
+    },
+    "amount2": {
+      "cot": "E",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09
+    },
+    "payload.ten": {
+      "cot": "B"
+    },
+    "payload.dvt": {
+      "cot": "C"
+    },
+    "payload.gt_duoi3": {
+      "cot": "I",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09
+    },
+    "payload.gt_3_6": {
+      "cot": "K",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09
+    },
+    "payload.gt_6_12": {
+      "cot": "M",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09
+    },
+    "payload.gt_tren12": {
+      "cot": "O",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09
+    },
+    "payload.sl_duoi3": {
+      "cot": "H",
+      "kieu": "so_co_rong"
+    },
+    "payload.sl_3_6": {
+      "cot": "J",
+      "kieu": "so_co_rong"
+    },
+    "payload.sl_6_12": {
+      "cot": "L",
+      "kieu": "so_co_rong"
+    },
+    "payload.sl_tren12": {
+      "cot": "N",
+      "kieu": "so_co_rong"
+    }
+  },
+  "ban_ghi": "moi_dong",
+  "loc": [
+    {
+      "cot": "dim3",
+      "dieu_kien": "khac_rong"
+    }
+  ],
+  "payload_them": {
+    "unit_tien": "ty"
+  }
+}

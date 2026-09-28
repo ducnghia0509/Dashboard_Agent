@@ -1,0 +1,142 @@
+{
+  "id": "tsac_tonkho_thang",
+  "_mo_ta": "NXT kho TRẠM SẠC theo tháng — sheet 'NXT' của TONKHOTAPDOAN/tonkhotapdoanthang/B.3.TS.M.<yyyymm>.Baocaotonkhotramsac.xlsx -> TSAC_TON_THANG, màn tsac2 'Quản lý kho trạm sạc'. Mapping 3.Tramsac_Mapping_Quan Ly Kho Tram Sac.xlsx, sheet 'Quản lý tồn kho 22.09.26' cột I: tồn đầu = Σ cột H/I, nhập = Σ J/K, xuất = Σ L/M, tồn cuối = Σ N/O, từ dòng 3. Mỗi mã hàng một dòng; payload cùng khoá với `vhkd_tonkho_pin_phukien_thang` để builder gộp bằng `vhkd_pin.nxt_thang`. Tiền theo TỶ, neo ngày cuối tháng.",
+  "_bay": [
+    "HÀNG 1 LÀ DÒNG TỔNG (H1..O1), hàng 2 là tiêu đề — đọc từ dòng 3, không nạp dòng tổng.",
+    "Mã hàng có ô mở đầu bằng ký tự TAB ('\\tTBS88220013') — engine `strip()` ô chữ nên mã vẫn khớp sheet tuổi tồn.",
+    "KHÔNG có cột điều chuyển (mapping dòng 12-13 'Không có') và chỉ MỘT kho ('Trạm sạc - VG'): nguồn trạm sạc cũ trong DB đều để cost center trống nên ở đây cũng để trống, không tự gán VG_TS.",
+    "Cùng thư mục có file tháng của Showroom/XDV (.Xls) — `file_glob` chỉ nhận '*.Baocaotonkhotramsac.xlsx'."
+  ],
+  "_kiem_chung": [
+    "T08/2026: 9 mã; tồn đầu 95 / 1.498.607.715 đ · nhập 0 · xuất 2 / 168.300.000 đ · tồn cuối 93 / 1.330.307.715 đ = đúng dòng tổng H1..O1."
+  ],
+  "report_type": "TSAC_TON_THANG",
+  "row_index_base": 9040000,
+  "khoi": "Khối KD Trạm sạc Vgreen",
+  "chieu_co_dinh": {
+    "cong_ty": "TC",
+    "khoi": "Khối KD Trạm sạc Vgreen"
+  },
+  "nguon": {
+    "folder": "TONKHOTAPDOAN/tonkhotapdoanthang",
+    "file_glob": "*.Baocaotonkhotramsac.xlsx",
+    "sheet": {
+      "ten": "NXT"
+    }
+  },
+  "kiem_tra_o": [
+    {
+      "o": "D2",
+      "bang": "HÀNG HOÁ"
+    },
+    {
+      "o": "H2",
+      "bang": "Đầu kỳ"
+    },
+    {
+      "o": "I2",
+      "bang": "Giá trị đầu kỳ"
+    },
+    {
+      "o": "J2",
+      "bang": "Nhập trong kỳ"
+    },
+    {
+      "o": "L2",
+      "bang": "Xuất trong kỳ"
+    },
+    {
+      "o": "N2",
+      "bang": "Cuối kỳ"
+    },
+    {
+      "o": "O2",
+      "bang": "Giá trị cuối kỳ"
+    }
+  ],
+  "header": {
+    "dong": 2
+  },
+  "dong_bat_dau": 3,
+  "ky_tu_ten_file": {
+    "regex_nam": "\\.M\\.(\\d{4})\\d{2}\\.",
+    "regex_thang": "\\.M\\.\\d{4}(\\d{2})\\."
+  },
+  "moi_ky_lay_file_moi_nhat": true,
+  "cot": {
+    "dim1": {
+      "header": "MÃ HÀNG HOÁ"
+    },
+    "dim3": {
+      "header": "TÊN HÀNG HOÁ"
+    },
+    "amount": {
+      "header": "Cuối kỳ",
+      "kieu": "so_co_rong"
+    },
+    "amount2": {
+      "header": "Giá trị cuối kỳ",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09
+    },
+    "payload.ma_vat_tu": {
+      "header": "MÃ HÀNG HOÁ"
+    },
+    "payload.dvt": {
+      "header": "ĐVT",
+      "bat_buoc": false
+    },
+    "payload.nhom": {
+      "header": "PHÂN LOẠI NHÓM",
+      "bat_buoc": false
+    },
+    "payload.ton_dau": {
+      "header": "Đầu kỳ",
+      "kieu": "so_co_rong"
+    },
+    "payload.du_dau": {
+      "header": "Giá trị đầu kỳ",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09
+    },
+    "payload.sl_nhap": {
+      "header": "Nhập trong kỳ",
+      "kieu": "so_co_rong"
+    },
+    "payload.tien_nhap": {
+      "header": "Giá trị nhập trong kỳ",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09
+    },
+    "payload.sl_xuat": {
+      "header": "Xuất trong kỳ",
+      "kieu": "so_co_rong"
+    },
+    "payload.tien_xuat": {
+      "header": "Giá trị xuất trong kỳ",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09
+    },
+    "payload.ton_cuoi": {
+      "header": "Cuối kỳ",
+      "kieu": "so_co_rong"
+    },
+    "payload.du_cuoi": {
+      "header": "Giá trị cuối kỳ",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09
+    }
+  },
+  "ban_ghi": "moi_dong",
+  "loc": [
+    {
+      "cot": "payload.ma_vat_tu",
+      "dieu_kien": "khac_rong"
+    }
+  ],
+  "payload_them": {
+    "unit": "cai",
+    "unit_amount2": "ty",
+    "unit_tien": "ty"
+  }
+}
