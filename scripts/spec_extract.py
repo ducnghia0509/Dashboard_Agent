@@ -987,12 +987,12 @@ _QLTS_ALIAS = {"saigon": "hochiminh", "ocenpark": "oceanpark"}
 # xe đứng tên đơn vị nào — nhưng cột đó đọc theo đơn vị GIỮ xe chứ không phải bên đứng tên, và
 # danh mục có sẵn `BLĐ` "Ban lãnh đạo". Để trống thì 10 xe rơi khỏi mọi bộ lọc Đơn vị mà mapping
 # QLTS đòi cho nhóm chỉ tiêu bảo trì (#14-#17) — kế toán báo thiếu ngày 26/08/2026.
-# `phuquoc` -> TC_DA: xem ghi chú ở `_CC_DUAN_SHEET`. PHẢI khai ở ĐÂY nữa chứ không chỉ ở đó:
-# `_cc_qlts` khớp theo TÊN trong master_data, mà danh mục vẫn còn mục "Dự án Phú Quốc" nên nó tự
-# tìm ra PQ_DA — bảng gán thẳng này chạy TRƯỚC phép khớp tên nên chặn được. Cố ý KHÔNG xoá
-# PQ_DA khỏi master_data: xoá thì tên không khớp được gì và rơi vào `_khong_map`, giữ nguyên
-# chữ "Phú Quốc" thay vì về đúng Thổ Chu. Ô lọc dựng TỪ DỮ LIỆU (repository._cost_center_
-# options) nên mã không còn dòng nào là tự biến mất khỏi thanh lọc.
+# `phuquoc` -> TC_DA: GỘP "Phú Quốc" VÀO "Thổ Chu" (21/09/2026, KT tài sản xác nhận). Một công
+# trường, hai tên: sổ tài sản + nhiên liệu ghi "Thổ Chu", còn bảo dưỡng / bảo hiểm / đăng kiểm
+# ghi "Phú Quốc". PHẢI khai ở ĐÂY chứ không chỉ ở `_CC_DUAN_SHEET`: `_cc_qlts` khớp theo TÊN
+# trong master_data, mà danh mục vẫn còn mục "Dự án Phú Quốc" nên nó tự tìm ra PQ_DA — bảng gán
+# thẳng này chạy TRƯỚC phép khớp tên nên chặn được. Cố ý KHÔNG xoá PQ_DA khỏi master_data: xoá
+# thì tên không khớp được gì và rơi vào `_khong_map`, giữ nguyên chữ thay vì về đúng Thổ Chu.
 _QLTS_CC_TRUC_TIEP = {"anangarden": "ST_GD", "xelanhdao": "BLĐ", "phuquoc": "TC_DA"}
 _QLTS_CACHE = {}
 
@@ -1402,14 +1402,16 @@ def _claim_ky_du_lieu(v):
 # "caobang"), khác `_nd` của deriver (giữ khoảng trắng). Chép nhầm dạng là không mã nào khớp.
 # "Phú Quốc" -> TC_DA: GỘP VÀO THỔ CHU (21/09/2026, KT tài sản xác nhận). Cùng MỘT công
 # trường mà mỗi họ file gọi một tên — sổ tài sản + nhiên liệu ghi "Thổ Chu", còn bảo dưỡng /
-# bảo hiểm / đăng kiểm ghi "Phú Quốc". Soát trước khi gộp: KHÔNG cặp (report_type, kỳ) nào nằm
-# ở cả hai mã, KHÔNG file nguồn nào chứa cả hai tên, và 37/45 mã thiết bị bảo dưỡng của "Phú
-# Quốc" nằm ngay trong sổ tài sản "Thổ Chu" (bảo hiểm 45/46, đăng kiểm 43/51) -> gộp là đổi
-# nhãn thuần tuý, không cộng đôi số nào. 1.164 dòng đã chuyển sang TC_DA ở cả 2 DB.
+# bảo hiểm / đăng kiểm ghi "Phú Quốc". Đã soát trước khi gộp: KHÔNG cặp (report_type, kỳ) nào
+# nằm ở cả hai mã, không file nguồn nào chứa cả hai tên, và 37/45 mã thiết bị bảo dưỡng của
+# "Phú Quốc" nằm ngay trong sổ tài sản "Thổ Chu" (bảo hiểm 45/46, đăng kiểm 43/51) -> gộp là
+# đổi nhãn thuần tuý, không cộng đôi số nào. 1.164 dòng đã chuyển sang TC_DA ở cả 2 DB.
+# MÃ PQ_DA VẪN CÒN trong danh mục nhưng không dòng nào dùng nữa; ô lọc dựng TỪ DỮ LIỆU
+# (repository._cost_center_options) nên "Dự án Phú Quốc" tự biến mất khỏi thanh lọc.
 _CC_DUAN_SHEET = [("caobang", "CB_DA"), ("tanthinh", "TT_DA"), ("langson", "LS_DA"),
                   ("yenbinh", "YB_DA"), ("phuquoc", "TC_DA"), ("quangson", "QS_DA"),
                   ("nuiphao", "NUIPHAO_DA"), ("quangngai", "QUANGNGAI_DA"), ("thochu", "TC_DA"),
-                  ("binhphuoc", "BINHPHUOC_DA")]
+                  ("binhphuoc", "BP_DA")]      # BP_DA = mã chính thức từ 21/09/2026
 
 
 def _cc_duan(ten):
@@ -1603,6 +1605,24 @@ def run_for_path(path, write=False):
     Từng spec bọc riêng try/except: một spec lỗi không được kéo theo các spec còn lại, và tuyệt
     đối không được ném ra ngoài — hàm này nằm trên đường nạp CHUNG của mọi báo cáo.
     """
+    # `.xlsb` -> CHẠY TRÊN BẢN ĐÃ CHUYỂN, không chạy trên chính nó. `quet_nguon` (đường quét cả
+    # thư mục) đã quy `.xlsb` về `.xlsx` từ 17/08/2026, nhưng hàm này nhận ĐÍCH DANH một file và
+    # cron autofill luôn đưa vào file VỪA KÉO VỀ — tức bản `.xlsb` gốc, vì bản `.xlsx` là do engine
+    # sinh ra chứ không có ở nguồn. Hậu quả đo trên prod 20/09/2026, nguồn QLTS/baocaotaisanqlts:
+    #   · spec có `moi_ky_lay_file_moi_nhat` -> `quet_nguon` trả danh sách toàn `.xlsx`, đường dẫn
+    #     `.xlsb` không nằm trong đó nên LẦN NÀO CŨNG rơi vào nhánh "BỎ QUA — đã có bản MỚI HƠN";
+    #   · spec không có cờ đó (`qlts_taisan_donvi_cu`) -> openpyxl ném InvalidFileException.
+    # Cả 4 spec Taisan vì vậy KHÔNG BAO GIỜ ghi được dòng nào qua cron: rows T9 trong DB là của một
+    # lượt nạp tay cũ, còn mỗi lượt cron chỉ để lại 2 dòng cảnh báo trông như nhiễu. Đây đúng hình
+    # dạng "im lặng mà trễ" của `cron_qlts_daily` — nguồn phát hành hằng tuần mà dashboard đứng yên.
+    # Đặt Ở ĐẦU hàm để mọi đường vào (autofill, "Nạp lại tất cả", nút Phân tích AI) cùng được chữa.
+    if path.lower().endswith(".xlsb"):
+        moi = _chuyen_xlsb(path)
+        if not moi:
+            return [{"file": os.path.basename(path), "dong": 0,
+                     "canh_bao": [f"{os.path.basename(path)}: .xlsb và CHUYỂN ĐỔI HỎNG"
+                                  " — file này chưa vào DB"]}]
+        path = moi
     ket_qua = []
     for sp in specs_for_path(path):
         # BỎ QUA BẢN ĐÃ BỊ THAY THẾ. Hàm này nạp ĐÚNG file được đưa vào, không nhìn sang các file

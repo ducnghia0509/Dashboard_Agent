@@ -233,7 +233,7 @@ NGUON = [
         # khỏi bảng), nên chốt 3 của `xoa_trung_ban_chot` được nới cho riêng nguồn này — xem
         # docstring hàm đó. Không khai thì mỗi kỳ hai bản chốt lại phải xoá tay: T9 đã dính đúng
         # vậy (bản 09.05 = 292 dòng/99,135 tỷ nằm cạnh bản 09.15 = 239 dòng/87,147 tỷ).
-        "anh_chup_so_du": r"Baocaocongnophaithu",
+        "ban_moi_it_dong_la_binh_thuong": r"Baocaocongnophaithu",
         "ky_regex": r"Baocaocongnophaithu_T(\d+)",
         "ngay_regex": r"\.M\.(20\d{2})\.(\d{1,2})\.(\d{1,2})_Baocaocongnophaithu",
     },

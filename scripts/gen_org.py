@@ -38,6 +38,9 @@ _ALIASES_FALLBACK = {
     "HTX_XVP": ["hợp tác xã vận tải xanh vĩnh phúc", "htx vĩnh phúc"],
     "HTX_XTQ": ["hợp tác xã vận tải xanh tuyên quang", "htx tuyên quang"],
     "HT": ["hưng thịnh", "ht"],
+    # Thêm 2026-09-21 cùng lúc với cost center XT_E_SM (danh mục kế toán bản 18/09/2026).
+    # Nguồn ghi tên KHÔNG DẤU ("Cong ty The gioi xe tai dien") nên khai cả hai lối viết.
+    "XTD": ["sacman", "thế giới xe tải điện", "the gioi xe tai dien", "xtd"],
 }
 # Cập nhật 2026-07-08 theo trust_me_bro.xlsx — mã khối đánh số lại toàn bộ (xem knowledge/khoi.yaml).
 # ANTAXI nay trỏ khối 7 "Dịch vụ An Taxi" (tách riêng khỏi khối Taxi Xanh, không còn dùng chung mã

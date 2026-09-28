@@ -62,8 +62,18 @@ NGUON = [
 
     # ── ts3: bảo dưỡng. MỘT thư mục, BA file khác nhau (máy / xe / xe DEMO) và 7 spec bóc
     # theo `file_glob` riêng từng file — nên KHÔNG cần `chi_lay`, cứ kéo cả ba.
+    #
+    # DANH SÁCH THIẾT BỊ TẠI THỜI ĐIỂM, PHÁT HÀNH LẠI MỖI THỨ BẢY: bản chốt sau ÍT DÒNG HƠN bản
+    # trước là bình thường — xe/máy rời đội thì rụng khỏi bảng. Không khai cờ này thì chốt 3 của
+    # `xoa_trung_ban_chot` chặn, bản cũ nằm lại và lát đó cộng đôi cho tới khi có người xoá tay.
+    # Ca thật 20/09/2026: `…9.19.BCbaoduongxeDEMO` có 102 xe nằm cạnh `…9.12.` có 104 xe (2 xe rời
+    # đội, 1 xe chuyển từ SR Vĩnh Phúc sang xe lãnh đạo) -> 5 lát cộng đôi trên prod, cron kêu mỗi
+    # lượt mà không tự dọn được. 102/104 = 98% nên vẫn thừa `_TI_LE_DONG_TOI_THIEU` (60%), còn tai
+    # nạn thật của chính nguồn này (đổi bố cục 31/08 -> 7 spec cùng ra 0 dòng) rơi xuống 0, tức
+    # chốt 2 bắt trước khi tới ngưỡng này. Regex khớp CẢ BA file để nhóm nào cũng được nới.
     {"company": "QLTS", "rt": "baocaobaoduong", "che_do": core.THANG,
-     "ten": "Bảo dưỡng máy / xe / xe DEMO (ts3)"},
+     "ten": "Bảo dưỡng máy / xe / xe DEMO (ts3)",
+     "ban_moi_it_dong_la_binh_thuong": r"BCbaoduong"},
 
     # ── ts4: bảo hiểm + đăng kiểm, hai thư mục riêng ───────────────────────────────────
     {"company": "QLTS", "rt": "baocaobaohiem", "che_do": core.THANG,

@@ -196,7 +196,8 @@ _LAYOUT_MAC_DINH = "duan"
 # Danh mục mà một cost center MỚI cần có để lên được Ô LỌC, không chỉ lên số: nhãn đọc được +
 # khối + pháp nhân. Ô chọn "Cost center" và nhãn tiếng Việt đọc từ danh mục TĨNH
 # (`master_data.json::costCenters`), không đọc từ dữ liệu — thiếu ba thứ này thì dự án mới có
-# tiền trong DB mà vẫn không lọc được và hiện ra mã trần (đo thật 18/09/2026 với BINHPHUOC_DA).
+# tiền trong DB mà vẫn không lọc được và hiện ra mã trần (đo thật 18/09/2026 với BINHPHUOC_DA —
+# Bình Phước nay đã có mã chính thức BP_DA, đổi 21/09/2026; ví dụ giữ nguyên vì đó là phép đo).
 # `khoi` PHẢI khớp đúng chuỗi trong `master_data.json::khoi`, lệch một chữ là bộ lọc theo Khối bỏ sót.
 # `khoi`/`cong_ty` lấy Y HỆT `derive_hqkd_ngay._UNITS` — lệch một chữ là bộ lọc theo Khối bỏ sót.
 # `bo_tien_to`: tên cột đã mang sẵn tiền tố đơn vị ("Showroom Hạ Long", "XDV Việt Trì") nên cắt đi
@@ -215,6 +216,10 @@ _DANH_MUC_LAYOUT = {
 
 def ma_de_xuat(ten_cot: str, layout: str = _LAYOUT_MAC_DINH) -> str:
     """'Bình Phước' + layout duan -> 'BINHPHUOC_DA'. Chỉ là ĐỀ XUẤT để admin sửa/duyệt.
+
+    Đề xuất KHÔNG phải mã chính thức: Bình Phước được duyệt bằng đúng chuỗi này ngày 18/09/2026,
+    rồi 21/09 phải đổi sang `BP_DA` khi danh mục kế toán cấp mã. Đó là việc bình thường của hàm
+    này — admin sửa lại ô mã trước khi bấm duyệt nếu danh mục đã có mã.
 
     Hậu tố PHẢI theo layout: `_DA`/`_SR`/`_XDV`/`_AT` đúng quy ước mã đang dùng trong
     `master_data.json`. Gắn cứng `_DA` cho mọi layout là đề xuất mã sai đơn vị ngay từ đầu.

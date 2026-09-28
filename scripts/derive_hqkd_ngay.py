@@ -296,8 +296,13 @@ _UNITS = {
     # file; sổ nhật ký chung mỗi file chỉ chứa bút toán của đúng ngày đó; BCĐKT và BCĐPS có đầu kỳ
     # ngày N = cuối kỳ ngày N−1; và T100 GIẢM về 0 sau ngày 08 (luỹ kế không giảm được).
     # Σ 10 ngày = 282.317.354 = đúng số luỹ kế cả tháng của bản file hôm trước.
+    # `tcode_cong_tu_con` (23/09/2026): mã cha T-series tính lại từ tổng dòng con theo spec TCKT
+    # Trạm sạc của user — từ bản 21/09 ô cha của nguồn không còn được tính lại (T200 = 0 trong khi
+    # các dòng con cộng ra 5.278.400). Xem `_tcode_cong_tu_con`. KHÔNG bật cho GA/HO: cùng dùng
+    # `_tcode_byco` nhưng chưa đo cấu trúc dòng con của họ, bật mù là rủi ro cộng nhầm dòng ghi chú.
     "TRAMSAC": {"layout": "tcode", "cong_ty": "TC", "khoi": "Khối KD Trạm sạc Vgreen",
-               "profit_pnlt": ("Lợi nhuận sau thuế",), "snapshot_sheet": "BCHQKD"},
+               "profit_pnlt": ("Lợi nhuận sau thuế",), "snapshot_sheet": "BCHQKD",
+               "tcode_cong_tu_con": True},
     # SỐ DƯ THEO NGÀY (20/09/2026) — nuôi 4 màn Công nợ / Tồn kho / Tài sản / Thuế, vốn trống trơn
     # ở chế độ Ngày vì khối này là khối DUY NHẤT chưa khai `sheet_sodu` (đo trên DB 20/09: 0 dòng
     # `PTHU_D`/`PTRA_D`/`HH_D`/`TS_D`/`THUE_D`, trong khi 6 khối khác đều có).
@@ -1121,6 +1126,72 @@ def _tcode_byco(rows):
             lab = str(r[ten_j]).strip() if ten_j < len(r) and r[ten_j] not in (None, "") else c
             byco[c] = (lab, _num(r[val_j]) if val_j < len(r) else None)
     return byco
+
+
+def _tcode_cong_tu_con(rows):
+    """Như `_tcode_byco` nhưng TÍNH LẠI mã cha từ TỔNG CÁC DÒNG CON -> (byco, [mã cha lệch con]).
+
+    VÌ SAO (Trạm sạc, 23/09/2026): từ bản 21/09 file nguồn KHÔNG còn tính lại ô cha. Đo thật:
+
+        21/09, 22/09   T203 (ô D23) = 0    nhưng  Σ D24:D28 = 5.278.400
+                       T200 (ô D16) = 0    nhưng  Σ con     = 5.278.400
+
+    `_tcode_byco` chỉ đọc dòng CÓ MÃ nên lấy thẳng ô cha — dashboard hiện chi phí 0 cho hai ngày
+    đó trong khi chi phí thật là 5,28 tr, và T300 = 0 thay vì lỗ 5,28 tr. Không lỗi nào nổ.
+
+    Công thức lấy NGUYÊN VĂN spec của user (23/09/2026), vế "Hoặc":
+        T101 = Σ D9:D13     (5 dòng doanh thu: chia sẻ 750đ/kW · bán trụ · tiền điện chi hộ ·
+                             hoa hồng dịch vụ · thi công lắp đặt)
+        T201 = Σ D18:D21    T203 = Σ D24:D28    T204 = Σ D30:D36
+        T100 = T101 + T102 + T103
+        T200 = T201 + T202 + T203 + T204
+        T300 = T100 − T200
+    KHÔNG gắn cứng số dòng như spec viết — dòng con được nhận theo VỊ TRÍ (dòng không mã nằm ngay
+    dưới một dòng có mã, trước dòng có mã kế tiếp), nên kế toán chèn/bớt một dòng con vẫn chạy.
+
+    An toàn với số cũ: đo 02→09/09/2026 CHA = CON TUYỆT ĐỐI ở mọi mã, nên cộng từ con cho đúng số
+    đang có. Chỉ khác ở đúng những ngày ô cha hỏng.
+
+    T100 / T200 / T300 KHÔNG BAO GIỜ lấy từ dòng con dưới chính nó — chúng là mã CUỘN. Quan trọng
+    nhất với T300: ngay dưới nó có ba dòng "Chi phí QL phân bổ KD nhượng quyền / trụ sạc / tài
+    chính phân bổ" — dòng thuyết minh phân bổ, không phải cấu phần của lợi nhuận. Cộng chúng vào là
+    lợi nhuận sai.
+    """
+    byco = _tcode_byco(rows)
+    if not byco:
+        return byco, []
+    hdr_i = next(i for i, r in enumerate(rows[:10]) if any(_nd(c) == "ma so" for c in r if c is not None))
+    hdr = rows[hdr_i]
+    ma_j = next(j for j, c in enumerate(hdr) if _nd(c) == "ma so")
+    ten_j = next((j for j, c in enumerate(hdr) if _nd(c).startswith("chi tieu")), ma_j + 1)
+    val_j = next((j for j, c in enumerate(hdr) if j not in (ma_j, ten_j)
+                  and re.fullmatch(r"d\d{2}", _nd(c))), ten_j + 1)
+    CUON = ("T100", "T200", "T300")
+    con, cur = {}, None
+    for r in rows[hdr_i + 1:]:
+        c = str(r[ma_j]).strip() if ma_j < len(r) and r[ma_j] not in (None, "") else ""
+        if re.fullmatch(r"T\d{3}", c):
+            cur = c
+            continue
+        if cur is None or cur in CUON:
+            continue
+        ten = str(r[ten_j]).strip() if ten_j < len(r) and r[ten_j] not in (None, "") else ""
+        v = _num(r[val_j]) if val_j < len(r) else None
+        if ten and v is not None:
+            con.setdefault(cur, []).append(v)
+    moi = dict(byco)
+    for ma, vs in con.items():
+        moi[ma] = (byco[ma][0], sum(vs))
+    g = lambda m: (moi.get(m) or (None, 0))[1] or 0  # noqa: E731
+    if "T101" in moi:
+        moi["T100"] = (byco.get("T100", ("T100",))[0], g("T101") + g("T102") + g("T103"))
+    if any(m in moi for m in ("T201", "T202", "T203", "T204")):
+        moi["T200"] = (byco.get("T200", ("T200",))[0], g("T201") + g("T202") + g("T203") + g("T204"))
+    if "T100" in moi and "T200" in moi:
+        moi["T300"] = (byco.get("T300", ("T300",))[0], g("T100") - g("T200"))
+    lech = [ma for ma in moi if ma in byco
+            and abs((moi[ma][1] or 0) - (byco[ma][1] or 0)) > 1]
+    return moi, sorted(lech)
 
 
 def _tcode_facts(rows, profit_pnlt=("Lợi nhuận trước thuế",), pnlt_skip=()):
@@ -2443,14 +2514,14 @@ def _pl_quet_thu_muc(path, period, unit, da_co, thang_theo_ngay=None):  # noqa: 
     return gop, bo_qua
 
 
-def _snap_doc_ky(path, period, snap_sheet):
+def _snap_doc_ky(path, period, snap_sheet, cong_tu_con=False):
     """Đọc MỌI file báo cáo-theo-ngày cùng kỳ trong thư mục.
 
     -> ({den_ngay: (tu_ngay, {mã: (nhãn, giá trị)}, [fact số dư])}, chẩn đoán). Giá trị P&L là LUỸ
     KẾ hay RIÊNG NGÀY thì cứ xem `tu_ngay` — `_tcode_snap_per_day` xử tiếp. Fact số dư thì KHÔNG
     phụ thuộc chế độ đó: số dư cuối ngày luôn là số dư cuối ngày."""
     thu_muc = os.path.dirname(os.path.abspath(path))
-    cum, bo_qua, lech_ten = {}, [], []
+    cum, bo_qua, lech_ten, cha_lech = {}, [], [], []
     for fn in sorted(os.listdir(thu_muc)):
         if not fn.lower().endswith((".xlsx", ".xlsm")) or fn.startswith("~$"):
             continue
@@ -2468,7 +2539,16 @@ def _snap_doc_ky(path, period, snap_sheet):
             if snap_sheet not in wb.sheetnames:
                 bo_qua.append({"file": fn, "vi_sao": f"không có sheet '{snap_sheet}'"})
                 continue
-            byco = _tcode_byco([list(r) for r in wb[snap_sheet].iter_rows(values_only=True)])
+            _rows_snap = [list(r) for r in wb[snap_sheet].iter_rows(values_only=True)]
+            # `cong_tu_con` (Trạm sạc, 23/09/2026): tính lại mã cha từ tổng dòng con — ô cha của
+            # nguồn không còn được tính lại từ bản 21/09, xem `_tcode_cong_tu_con`. Mã nào CHA ≠
+            # CON thì ghi vào chẩn đoán: số đã đúng, nhưng đó là dấu hiệu file nguồn hỏng công thức.
+            if cong_tu_con:
+                byco, _lech_cc = _tcode_cong_tu_con(_rows_snap)
+                if _lech_cc:
+                    cha_lech.append({"file": fn, "ma": _lech_cc})
+            else:
+                byco = _tcode_byco(_rows_snap)
             if not byco:
                 bo_qua.append({"file": fn, "vi_sao": "không dò ra header 'Mã số'"})
                 continue
@@ -2485,7 +2565,8 @@ def _snap_doc_ky(path, period, snap_sheet):
             lech_ten.append({"file": fn, "ngay_trong_file": ngay, "ngay_ten_file": ten_ngay})
         cum[ngay] = (tu, byco, sodu)
     return cum, {**({"bo_qua_file": bo_qua} if bo_qua else {}),
-                 **({"lech_ngay_ten_file": lech_ten} if lech_ten else {})}
+                 **({"lech_ngay_ten_file": lech_ten} if lech_ten else {}),
+                 **({"o_cha_lech_tong_con": cha_lech} if cha_lech else {})}
 
 
 def _tcode_snap_per_day(path, period, unit):
@@ -2498,7 +2579,7 @@ def _tcode_snap_per_day(path, period, unit):
     Trạm sạc đã đi qua cả hai: luỹ kế tới 10/09/2026, rồi xuất lại thành riêng ngày rạng sáng
     11/09. Hai chế độ lẫn trong cùng một kỳ thì trả cờ `tron_hai_che_do` — số vẫn dựng được nhưng
     đó là dấu hiệu nguồn đang chuyển khuôn, cần người nhìn."""
-    cum, diag = _snap_doc_ky(path, period, unit["snapshot_sheet"])
+    cum, diag = _snap_doc_ky(path, period, unit["snapshot_sheet"], bool(unit.get("tcode_cong_tu_con")))
     if not cum:
         return [], diag
     pp = unit.get("profit_pnlt", ("Lợi nhuận trước thuế",))

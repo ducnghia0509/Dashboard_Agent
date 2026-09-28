@@ -43,6 +43,7 @@ theo TIỀN TỐ như bản đọc-file sẽ cộng cha lẫn con = gấp đôi.
 Chạy:  .venv/bin/python scripts/derive_sodu_tudong_ngay.py --period 2026-09 [--dry-run]
 """
 import argparse
+import datetime
 import json
 import os
 import sys
@@ -54,6 +55,15 @@ _HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path[:0] = [p for p in (os.path.dirname(_HERE), _HERE) if p not in sys.path]
 from servers.common import dataset_ky as _DSK  # noqa: E402
 
+# `--env` thay vì đặt DATABASE_URL ngay trong dòng crontab (sửa 19/09/2026). Dòng cron cũ ghi
+# `DATABASE_URL="postgresql://tc:tc_%24production@..."` và **không bao giờ chạy**: trong crontab,
+# `%` là ký tự ĐẶC BIỆT (biến thành xuống dòng, phần sau thành stdin), nên lệnh bị cắt ngang ở
+# `tc_` — không có lỗi nào hiện ra, chỉ là file log không bao giờ được tạo. Các cron khác trong
+# nhà đều dùng `--env`, đi theo cho đồng nhất và hết hẳn chuyện escape.
+MOI_TRUONG = {
+    "test": "postgresql://tc:tc_%24production@localhost:5435/tc_dashboard",
+    "prod": "postgresql://tc:tc_%24production@localhost:5434/tc_dashboard",
+}
 DB_URL = (os.environ.get("DATABASE_URL") or os.environ.get("TC_DATABASE_URL")
           or "postgresql://tc:tc@localhost:5433/tc_dashboard")
 
@@ -259,11 +269,17 @@ def dung(period, cur, ds_id):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--period", required=True)
+    ap.add_argument("--period", help="YYYY-MM; bỏ trống = tháng hiện tại theo giờ VN")
+    ap.add_argument("--env", choices=tuple(MOI_TRUONG), help="chọn DB; không khai thì theo DATABASE_URL")
     ap.add_argument("--dry-run", action="store_true")
     a = ap.parse_args()
+    # Mặc định lấy tháng theo GIỜ VN, không phải UTC: chạy lúc 01:45 VN (18:45 UTC hôm trước) mà
+    # tính theo UTC thì ngày 01 hằng tháng sẽ nạp nhầm kỳ của tháng trước.
+    if not a.period:
+        a.period = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=7))).strftime("%Y-%m")
+    db_url = MOI_TRUONG[a.env] if a.env else DB_URL
 
-    conn = psycopg.connect(DB_URL, row_factory=dict_row)
+    conn = psycopg.connect(db_url, row_factory=dict_row)
     try:
         cur = conn.cursor()
         cur_t = conn.cursor(row_factory=tuple_row)

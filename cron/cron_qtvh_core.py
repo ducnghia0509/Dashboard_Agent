@@ -1208,14 +1208,22 @@ def xoa_trung_ban_chot(ctx: Ctx, trung: list, nguon_list: list = None) -> int:
       3. Bản giữ lại KHÔNG được ÍT DÒNG HƠN bản định xoá — đó đúng hình dạng tai nạn "bản mới đổi
          bố cục, nạp ra ít/0 dòng". Gặp thì CHỈ cảnh báo, để người xem quyết bằng tay.
 
-    NỚI CHỐT 3 CHO NGUỒN ẢNH CHỤP SỐ DƯ (`anh_chup_so_du` khai ở nguồn, 16/09/2026): công nợ phải
-    thu là SỐ DƯ tại một thời điểm, nên bản chốt muộn hơn ÍT DÒNG HƠN là chuyện bình thường (nợ đã
-    thu xong thì hợp đồng rụng khỏi bảng) — chốt 3 nguyên bản khoá cứng nhóm này lại và bắt xoá tay
-    mỗi kỳ. Ca thật: `…09.05_…T9` (292 dòng / 99,135 tỷ, ảnh chụp 05/09) nằm cạnh `…09.15_…T9`
-    (239 dòng / 87,147 tỷ, ảnh chụp 12/09) -> màn công nợ T9 cộng cả hai = 186 tỷ.
+    NỚI CHỐT 3 CHO NGUỒN "BẢN MỚI ÍT DÒNG HƠN LÀ BÌNH THƯỜNG" (`ban_moi_it_dong_la_binh_thuong`
+    khai ở nguồn, 16/09/2026; đổi tên từ `anh_chup_so_du` ngày 20/09/2026 — xem bên dưới):
+    công nợ phải thu là SỐ DƯ tại một thời điểm, nên bản chốt muộn hơn ÍT DÒNG HƠN là chuyện bình
+    thường (nợ đã thu xong thì hợp đồng rụng khỏi bảng) — chốt 3 nguyên bản khoá cứng nhóm này lại
+    và bắt xoá tay mỗi kỳ. Ca thật: `…09.05_…T9` (292 dòng / 99,135 tỷ, ảnh chụp 05/09) nằm cạnh
+    `…09.15_…T9` (239 dòng / 87,147 tỷ, ảnh chụp 12/09) -> màn công nợ T9 cộng cả hai = 186 tỷ.
     Nới KHÔNG phải bỏ: bản giữ lại vẫn phải đạt `_TI_LE_DONG_TOI_THIEU` số dòng của bản cũ nhiều
     nhất. Hình dạng tai nạn thật (claim B2B T1 lệch cột: 6 dòng còn 278) rơi rất sâu dưới ngưỡng
     này nên vẫn bị chặn, còn số dư teo dần theo tháng thì không.
+
+    VÌ SAO ĐỔI TÊN KHOÁ (20/09/2026): tính chất được nới KHÔNG phải "đây là số dư" mà là "bản chốt
+    sau ít dòng hơn bản trước là bình thường ở nguồn này" — DANH SÁCH THIẾT BỊ cũng vậy, không chỉ
+    số dư. Ca thật: `QLTS/baocaobaoduong` phát hành lại mỗi thứ Bảy, bản 19/09 còn 102 xe so với
+    104 xe của bản 12/09 (2 xe rời đội, 1 xe đổi đơn vị) -> chốt 3 chặn, 5 lát của xe DEMO cộng đôi
+    và phải xoá tay. Tên cũ `anh_chup_so_du` khiến việc khai cho một nguồn thiết bị trông như khai
+    sai loại dữ liệu, nên không ai khai, nên tuần nào cũng cộng đôi lại.
     """
     # XOÁ THEO LÁT, KHÔNG XOÁ TRỌN FILE (28/09/2026). Bản trước xoá cả `source_file` của bản cũ,
     # ngầm coi "hai file trùng một lát" = "file mới thay trọn file cũ". Sai với nguồn MỘT FILE
@@ -1228,13 +1236,14 @@ def xoa_trung_ban_chot(ctx: Ctx, trung: list, nguon_list: list = None) -> int:
     # Nay chỉ xoá đúng những lát (rt, công ty, khối, kỳ|ngày chốt) mà bản cũ bị bản mới đè; phần
     # khác của bản cũ ở lại. Ba chốt an toàn xét theo từng lát như cũ, và vì xoá theo lát nên một
     # lát chưa đạt chỉ khoá chính lát đó chứ không còn phải khoá cả file.
-    # Regex tên file của các nguồn khai `anh_chup_so_du`. Phải khớp MỌI bản trong nhóm mới nới —
-    # một nhóm lẫn file nguồn khác là trở về chốt 3 nguyên bản.
-    noi_long = [n["anh_chup_so_du"] for n in (nguon_list or []) if n.get("anh_chup_so_du")]
+    # Regex tên file của các nguồn khai `ban_moi_it_dong_la_binh_thuong`. Phải khớp MỌI bản trong
+    # nhóm mới nới — một nhóm lẫn file nguồn khác là trở về chốt 3 nguyên bản.
+    noi_long = [n["ban_moi_it_dong_la_binh_thuong"] for n in (nguon_list or [])
+                if n.get("ban_moi_it_dong_la_binh_thuong")]
     can_xoa, giu_lai = [], 0
     for nhom in trung:
         ban = nhom["ban"]
-        la_so_du = bool(noi_long) and all(
+        noi_chot3 = bool(noi_long) and all(
             any(re.search(p, sf.split("::")[-1], re.IGNORECASE) for p in noi_long)
             for sf, _ in ban)
         ngay = {sf: _ngay_phat_hanh(sf) for sf, _ in ban}
@@ -1251,17 +1260,18 @@ def xoa_trung_ban_chot(ctx: Ctx, trung: list, nguon_list: list = None) -> int:
                     " KHÔNG có dòng -> giữ nguyên tất cả")
             giu_lai += 1
             continue
-        nguong = max((c for _, c in xep[:-1]), default=0) * (_TI_LE_DONG_TOI_THIEU if la_so_du else 1)
+        nguong = max((c for _, c in xep[:-1]), default=0) * (_TI_LE_DONG_TOI_THIEU if noi_chot3 else 1)
         if moi_c < nguong:
             ctx.log(f"  TRÙNG BẢN CHỐT {nhom['lat']}: bản mới {moi_sf.split('::')[-1][:40]}"
                     f" ({moi_c} dòng) ÍT HƠN bản cũ"
-                    + (f" quá {int((1 - _TI_LE_DONG_TOI_THIEU) * 100)}%" if la_so_du else "")
+                    + (f" quá {int((1 - _TI_LE_DONG_TOI_THIEU) * 100)}%" if noi_chot3 else "")
                     + " -> KHÔNG tự xoá, kiểm tay xem bản mới có bị đổi bố cục/nạp thiếu không")
             giu_lai += 1
             continue
-        if la_so_du and moi_c < max((c for _, c in xep[:-1]), default=0):
+        if noi_chot3 and moi_c < max((c for _, c in xep[:-1]), default=0):
             ctx.log(f"  TRÙNG BẢN CHỐT {nhom['lat']}: bản mới ít dòng hơn bản cũ nhưng nguồn khai"
-                    " `anh_chup_so_du` (số dư teo dần là bình thường) -> vẫn xoá bản cũ")
+                    " `ban_moi_it_dong_la_binh_thuong` (số dư thu bớt / thiết bị rời đội là bình"
+                    " thường) -> vẫn xoá bản cũ")
         rt, ct, khoi, khoa, kieu = nhom["khoa"]
         for sf, c in xep[:-1]:
             can_xoa.append((sf, rt, ct, khoi, khoa, "ngay" if kieu == "chốt" else "period_month"))

@@ -113,6 +113,16 @@
         "hưng thịnh",
         "ht"
       ]
+    },
+    {
+      "ma": "XTD",
+      "ten": "Công ty Thế giới xe tải điện (Sacman)",
+      "aliases": [
+        "sacman",
+        "thế giới xe tải điện",
+        "the gioi xe tai dien",
+        "xtd"
+      ]
     }
   ],
   "cost_centers": [
@@ -475,6 +485,84 @@
       "ten": "Kiểm soát nội bộ",
       "cong_ty": "TC",
       "khoi": "9"
+    },
+    {
+      "ma": "BP_DA",
+      "ten": "Dự án Bình Phước",
+      "cong_ty": "TC",
+      "khoi": "4"
+    },
+    {
+      "ma": "HO_DA",
+      "ten": "HO Dự án",
+      "cong_ty": "TC",
+      "khoi": "4"
+    },
+    {
+      "ma": "HO_XDV",
+      "ten": "HO Xưởng Dịch vụ",
+      "cong_ty": "TC",
+      "khoi": "2"
+    },
+    {
+      "ma": "HO_SR",
+      "ten": "HO Showroom",
+      "cong_ty": "TC",
+      "khoi": "1"
+    },
+    {
+      "ma": "HL_SR_2",
+      "ten": "Vinfast Hạ Long 2",
+      "cong_ty": "VFQN",
+      "khoi": "1"
+    },
+    {
+      "ma": "OCP_SR_2",
+      "ten": "Vinfast Ocean Park 2",
+      "cong_ty": "TC",
+      "khoi": "1"
+    },
+    {
+      "ma": "HO_ANTX",
+      "ten": "HO An Taxi",
+      "cong_ty": "AAG",
+      "khoi": "7"
+    },
+    {
+      "ma": "XT_E_SM",
+      "ten": "Xe tải điện - Sacman",
+      "cong_ty": "XTD",
+      "khoi": "5"
+    },
+    {
+      "ma": "XT_E_HO",
+      "ten": "HO Xe tải",
+      "cong_ty": "HT",
+      "khoi": "5"
+    },
+    {
+      "ma": "MKT",
+      "ten": "Marketing",
+      "cong_ty": "TC",
+      "khoi": "9"
+    },
+    {
+      "ma": "HO_XVP",
+      "ten": "Hội sở Xanh Vĩnh Phúc",
+      "cong_ty": "XVP",
+      "khoi": "6"
+    },
+    {
+      "ma": "NUIPHAO_DA",
+      "ten": "Dự án Núi Pháo",
+      "cong_ty": "TC",
+      "khoi": "4"
+    },
+    {
+      "ma": "QUANGNGAI_DA",
+      "ten": "Dự án Quảng Ngãi",
+      "cong_ty": "TC",
+      "khoi": "4"
     }
   ],
   "path_khoi": {
