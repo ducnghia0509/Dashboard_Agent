@@ -2,6 +2,7 @@
   "id": "vhkd_claim_b2b_ngay",
   "_mo_ta": "Claim Showroom KÊNH B2B — BẢN THEO NGÀY PHÁT HÀNH (màn vhkd2 tab Ngày, 17/09/2026). Anh em của `vhkd_claim_ngay`: cùng report_type `VHKD_CLAIM_NGAY`, phân kênh bằng `dim2`, nhưng bố cục file khác hẳn nên cột khai riêng — xem `vhkd_claim_b2b`.",
   "_bay": [
+    "LỆCH CỘT (28/09/2026): bản T1 9.15 hỏng bố cục (cột 'Tình trạng hồ sơ' ra SỐ TIỀN) được gửi lại Y NGUYÊN mỗi ngày dưới tên 9.22/9.23/9.24/9.25 — cùng md5. Chặn theo TÊN không đủ: 4 bản đổi tên lọt qua, mỗi bản nạp 6 dòng rác và kỳ T01 bị cộng đôi với bản 8.25 đúng. `kiem_tra_lech_cot` chặn theo NỘI DUNG: > 20% ô 'Tình trạng hồ sơ' là số -> bỏ cả file, cron báo lỗi nạp. Đo 101 file claim: chỉ đúng 5 bản hỏng có ô số ở cột này (266/278), mọi bản khác 0.",
     "Đọc `_bay` của `vhkd_claim_ngay` TRƯỚC: lý do không dùng chung report_type với bản tháng, lý do tên không được kết thúc '_D', và lý do cố ý không khai `moi_ky_lay_file_moi_nhat` đều nằm ở đó.",
     "`bo_qua_file` chặn bản `9.15` của T1 — nguồn chèn thêm một cột từ O trở đi trong vùng DỮ LIỆU mà KHÔNG chèn ở dòng header, nên mọi cột lệch phải 1 ('Tình trạng hồ sơ' ra SỐ TIỀN). Cron đã chặn KÉO nó bằng `bo_qua`, nhưng file đã nằm sẵn trên đĩa nên spec phải tự chặn. GỠ khi nghiệp vụ phát hành lại T1 — nhớ gỡ ở CẢ `cron_srvf_daily.py`.",
     "Mọi bẫy ĐỌC FILE (số cột đổi theo kỳ nên tuyệt đối dò theo TÊN header, 'Số tiền Claim' có dấu xuống dòng trong ô, 'Vinfast B2B' là hồ sơ THẬT chưa phân về SR, mỗi file một sheet tên đổi theo kỳ) giống hệt `vhkd_claim_b2b` — sửa bố cục thì phải sửa CẢ HAI.",
@@ -24,6 +25,7 @@
   ],
   "header": { "dong": 1 },
   "dong_bat_dau": 2,
+  "kiem_tra_lech_cot": [{ "header": "Tình trạng hồ sơ", "ti_le_so_toi_da": 0.2 }],
   "ky_tu_ten_file": {
     "regex_nam": "M\\.(\\d{4})\\.",
     "regex_thang": "M\\.\\d{4}\\.(\\d{1,2})\\.",

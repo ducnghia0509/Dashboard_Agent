@@ -91,6 +91,9 @@ CẤU TRÚC SPEC (khoá tiếng Việt cho kế toán/BA đọc được):
                                          // -> lùi N ngày khi suy `ngay`. Mặc định 0.
                                          // Xem `ngay_tu_ten_file`. Báo cáo tự động Cyber
                                          // chạy 12h trưa ngày N, chỉ có số tới hết N-1.
+  "kiem_tra_lech_cot": [{"header": "Tình trạng hồ sơ", "ti_le_so_toi_da": 0.2}],
+                                         // cột CHỮ mà > 20% ô là SỐ -> dữ liệu lệch cột so với
+                                         // tiêu đề -> BỎ CẢ FILE, kêu rõ (claim B2B T1 9.15-9.25)
   "bo_dong_an": true,                    // bỏ dòng file đang ẨN (bộ lọc/ẩn tay) — theo đúng dòng
                                          // tổng SUBTOTAL của người làm file (xem `_dong_an`)
   "chi_lay_ngay_cua_file": true,         // bỏ dòng có `ngay` khác ngày suy từ TÊN FILE — cho nguồn
@@ -3027,6 +3030,12 @@ def _extract_vung(spec, path):
         gt_idx = [(_tim_cot(hmap, c, f"cột giá trị {c.get('dim1') or c.get('header')}", warn), c)
                   for c in gia_tri_cols]
         gt_idx = [(j, c) for j, c in gt_idx if j is not None]
+        # `kiem_tra_lech_cot` (28/09/2026): cột CHỮ mà phần lớn ô là SỐ -> vùng dữ liệu đã lệch so
+        # với dòng tiêu đề -> BỎ CẢ FILE (đếm trong vòng quét dòng, quyết sau vòng). Xem khai báo.
+        lech_cot = [(j, c, [0, 0]) for j, c in
+                    ((_tim_cot(hmap, {**c, "bat_buoc": False}, f"kiem_tra_lech_cot {c.get('header')}",
+                               warn), c) for c in spec.get("kiem_tra_lech_cot") or [])
+                    if j is not None]
 
         # Cột-theo-ngày: đọc SỐ NGÀY từ chính dòng tiêu đề của từng cột rồi ghép với kỳ của file.
         # KHÔNG đánh số ngày theo thứ tự cột: tháng 2 chỉ có 28-29 cột có nghĩa, và vài file chèn
@@ -3155,6 +3164,11 @@ def _extract_vung(spec, path):
             if so_dong in an:
                 bo_an += 1
                 continue
+            for j, _c, dem in lech_cot:
+                v = row[j] if j < len(row) else None
+                if v not in (None, ""):
+                    dem[0] += 1
+                    dem[1] += isinstance(v, (int, float)) and not isinstance(v, bool)
             # BẢNG PHÂN CẤP: một số báo cáo không lặp lại tên đơn vị trên từng dòng mà đặt nó ở
             # DÒNG TIÊU ĐỀ riêng, các dòng bên dưới ngầm hiểu là của đơn vị đó (báo cáo doanh thu
             # XDV: dòng "3S có đồng sơn | Ocean Park" rồi 8 dòng mã B110..B150 bên dưới).
@@ -3355,6 +3369,11 @@ def _extract_vung(spec, path):
                     bo_khac_ngay += 1
                 else:
                     recs.append(r2)
+        for _j, c, (co, so) in lech_cot:
+            if co and so / co > float(c.get("ti_le_so_toi_da", 0.2)):
+                return [], [*warn, f"BỎ QUA — LỆCH CỘT: cột {c.get('header')!r} phải là chữ nhưng "
+                                   f"{so}/{co} ô là SỐ — vùng dữ liệu bị chèn/xoá cột mà dòng tiêu "
+                                   f"đề không đổi theo, đọc tiếp là mọi cột lệch nhau (kiem_tra_lech_cot)"]
         if bo_loc:
             warn.append(f"bỏ {bo_loc} {_W_BO_LOC}")
         if bo_an:

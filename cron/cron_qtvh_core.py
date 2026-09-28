@@ -203,8 +203,18 @@ def xlsx_path(entry: dict) -> str:
 
 def source_id(entry: dict) -> str:
     """'<thư_mục_công_ty>::<tên_file>' — khớp `source_file` trong raw_rows (spec_extract._source_id
-    và source_catalog.source_id_from_path cùng quy ước)."""
-    return f"{entry.get('company') or ''}::{entry['fileName']}"
+    và source_catalog.source_id_from_path cùng quy ước).
+
+    File `.xlsb` / `.xls` KHÔNG vào DB dưới tên gốc: engine chuyển sang bản `.xlsx` cạnh nó rồi mới
+    đọc (`spec_extract._chuyen_xlsb` / `_chuyen_xls_cu`: cùng phần tên, đuôi `.xlsx`) nên
+    `source_file` là tên BẢN CHUYỂN. Trả tên gốc thì mọi truy vấn theo khoá này hụt: `verify` báo
+    "nạp ra 0 dòng" cho sổ tài sản QLTS (`*.Taisan.xlsb`) suốt từ 14/09/2026 trong khi DB có đủ
+    ~21.400 dòng mỗi bản tuần; `xoa_ban_cu` / `da_co_dong` cũng trượt theo."""
+    ten = entry["fileName"]
+    goc, duoi = os.path.splitext(ten)
+    if duoi.lower() in (".xlsb", ".xls"):
+        ten = goc + ".xlsx"
+    return f"{entry.get('company') or ''}::{ten}"
 
 
 # ── chọn bản ────────────────────────────────────────────────────────────────────────────────

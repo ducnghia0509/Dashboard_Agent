@@ -2,6 +2,7 @@
   "id": "vhkd_claim_b2b",
   "_mo_ta": "Claim khối Showroom KÊNH B2B (DASHBOARD 3, màn vhkd2). Nguồn: 1.VINFAST_SR/QUANTRINOIBO_VHKD/BaocaoClaim/B2B -> về VPS thành SRVF/baocaoclaimb2b, lô 7 file T1..T7 nhận 13/08/2026. Dùng CHUNG report_type VHKD_CLAIM với kênh B2C (spec `vhkd_claim`), phân kênh bằng dim2 — đúng tiền lệ kho xe B2B/B2C.",
   "_bay": [
+    "LỆCH CỘT (28/09/2026): bản T1 9.15 hỏng bố cục (cột 'Tình trạng hồ sơ' ra SỐ TIỀN) được gửi lại Y NGUYÊN mỗi ngày dưới tên 9.22/9.23/9.24/9.25 — cùng md5. Chặn theo TÊN không đủ: 4 bản đổi tên lọt qua, mỗi bản nạp 6 dòng rác và kỳ T01 bị cộng đôi với bản 8.25 đúng. `kiem_tra_lech_cot` chặn theo NỘI DUNG: > 20% ô 'Tình trạng hồ sơ' là số -> bỏ cả file, cron báo lỗi nạp. Đo 101 file claim: chỉ đúng 5 bản hỏng có ô số ở cột này (266/278), mọi bản khác 0.",
     "GHI CHÚ CŨ TRONG `vhkd_claim.json` NÓI SAI VỀ FILE NÀY — sửa lại 14/08/2026. Câu 'Claim B2B ghi THEO CỘT ... chứ không theo dòng-trạng-thái' chỉ đúng một nửa: các CHƯƠNG TRÌNH ưu đãi (MLTTVN, Tiên Phong, Quy đổi BH, Xăng sang điện, CABĐ, VC, MHRR...) là các cột, nhưng MỖI DÒNG VẪN LÀ MỘT HỒ SƠ CLAIM theo số khung, có đủ SR ('Tên DVCS'), số tiền ('Số tiền Claim (Ưu đãi hoàn)') và trạng thái ('Tình trạng hồ sơ'). Vì vậy nạp được bằng `moi_dong` bình thường. Sai ở chỗ dò cột theo TÊN của B2C ('SR', 'Trạng thái', 'Số tiền') — B2B đặt tên khác hẳn.",
     "TỪ VỰNG TRẠNG THÁI KHÁC HOÀN TOÀN B2C. B2B chỉ có 3 giá trị: 'Đã được cấn trừ' / 'Chưa được cấn trừ' / 'Chưa Claim'. B2C có 7 giá trị của luồng SAP ('SAP phê duyệt', 'Waiting SAP', 'Chưa đẩy hồ sơ'...). ĐỪNG gộp hai bộ từ vựng vào một bảng quy ước phẳng: bảng `_CLAIM_NHOM` trong `app/metrics/vhkd.py` phải tra theo (kênh, trạng thái), nếu không 3 nhãn B2B rơi hết vào nhóm 'Khác' và tổng claim theo trạng thái hụt đúng phần B2B.",
     "SỐ CỘT ĐỔI THEO KỲ: T1-T4 có 25 cột, T5 26, T6 27, T7 28 — nghiệp vụ chèn thêm cột chương trình ưu đãi (T7 thêm 'VC', 'MHRR', tách 'Vin 2025' khỏi 'Quy đổi BH'). Nên cột 'Số tiền Claim' trượt từ chỉ số 19 sang 22. TÊN header thì ỔN ĐỊNH cả 7 kỳ -> dò theo tên, TUYỆT ĐỐI không khai chữ cột cho spec này.",
@@ -30,6 +31,7 @@
   ],
   "header": { "dong": 1 },
   "dong_bat_dau": 2,
+  "kiem_tra_lech_cot": [{ "header": "Tình trạng hồ sơ", "ti_le_so_toi_da": 0.2 }],
   "ky_tu_ten_file": { "regex_nam": "M\\.(\\d{4})", "regex_thang": "_T(\\d{1,2})" },
   "moi_ky_lay_file_moi_nhat": true,
   "chieu_tu_ten_file": { "dim2": { "regex": "BaocaoClaim_(B2C|B2B|GF)", "hoa": true } },
