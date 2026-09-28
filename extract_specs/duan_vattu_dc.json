@@ -1,0 +1,96 @@
+{
+  "id": "duan_vattu_dc",
+  "_mo_ta": "ĐIỀU CHUYỂN NỘI BỘ vật tư Dự án theo kho của báo cáo THÁNG — sheet 'Nhập xuất điều chuyển' -> DUAN_VT_DC. Mapping 4.DU_AN.Mapping_Dashboard_Quan Ly Vat Tu.xlsx, sheet 'Quản lý vật tư 22.09.26' cột I dòng 12-13: SL/giá trị điều chuyển = ô C7/D7 (dòng 'Tổng cộng', vế NHẬP). Dòng 8 trở đi mỗi kho một dòng: nhập điều chuyển C/D, xuất điều chuyển E/F. Dùng cho mục B và để trừ điều chuyển khỏi nhập/xuất của '<TH NXT>'.",
+  "_bay": [
+    "Tên kho ở đây là 'Kho vật tư Cao Bằng' (khác '<TH NXT>' 'Kho Cao Bằng') — cùng hook `kho_vattu_duan` nên ghép được theo kho.",
+    "Không nạp dòng 7 'Tổng cộng'; T08 Σ 9 kho = dòng 7 (4.448 / 408.597.021,16 đ ở cả hai vế)."
+  ],
+  "report_type": "DUAN_VT_DC",
+  "row_index_base": 9020000,
+  "khoi": "Khối KD Dự án",
+  "chieu_co_dinh": {
+    "cong_ty": "TC",
+    "khoi": "Khối KD Dự án"
+  },
+  "nguon": {
+    "folder": "QLTS/tonkhovattuthang",
+    "file_glob": "*.Baocaotonkhovattu.xlsx",
+    "sheet": {
+      "ten": "Nhập xuất điều chuyển"
+    }
+  },
+  "kiem_tra_o": [
+    {
+      "o": "B5",
+      "bang": "Kho"
+    },
+    {
+      "o": "C5",
+      "bang": "Nhập điều chuyển"
+    },
+    {
+      "o": "E5",
+      "bang": "Xuất điều chuyển"
+    },
+    {
+      "o": "B7",
+      "bang": "Tổng cộng"
+    }
+  ],
+  "header": {
+    "dong": [
+      5,
+      6
+    ]
+  },
+  "dong_bat_dau": 8,
+  "ky_tu_ten_file": {
+    "regex_nam": "\\.M\\.(\\d{4})\\d{2}\\.",
+    "regex_thang": "\\.M\\.\\d{4}(\\d{2})\\."
+  },
+  "moi_ky_lay_file_moi_nhat": true,
+  "cot": {
+    "dim1": {
+      "chuan_hoa": "kho_vattu_duan",
+      "giu_khi_khong_map": true,
+      "cot": "B"
+    },
+    "amount": {
+      "cot": "C",
+      "kieu": "so_co_rong"
+    },
+    "amount2": {
+      "cot": "D",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09
+    },
+    "payload.sl_nhap_dc": {
+      "cot": "C",
+      "kieu": "so_co_rong"
+    },
+    "payload.gt_nhap_dc": {
+      "cot": "D",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09
+    },
+    "payload.sl_xuat_dc": {
+      "cot": "E",
+      "kieu": "so_co_rong"
+    },
+    "payload.gt_xuat_dc": {
+      "cot": "F",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09
+    }
+  },
+  "ban_ghi": "moi_dong",
+  "loc": [
+    {
+      "cot": "dim1",
+      "dieu_kien": "khac_rong"
+    }
+  ],
+  "payload_them": {
+    "unit_tien": "ty"
+  }
+}

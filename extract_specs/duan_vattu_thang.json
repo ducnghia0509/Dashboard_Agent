@@ -1,0 +1,126 @@
+{
+  "id": "duan_vattu_thang",
+  "_mo_ta": "NXT vật tư Dự án THEO KHO của báo cáo THÁNG — sheet '<TH NXT>' của QLTS/tonkhovattuthang/B.4.DA.M.<yyyymm>.Baocaotonkhovattu.xlsx -> DUAN_VT_THANG, tab Tháng màn duan3. Mapping 4.DU_AN.Mapping_Dashboard_Quan Ly Vat Tu.xlsx, sheet 'Quản lý vật tư 22.09.26' cột I: dòng 6 'Tổng cộng' (C6..J6) là số toàn đơn vị, dòng 7 trở đi mỗi kho một dòng (tên kho cột B, tồn cuối giá trị cột J). Nhập/xuất ở sheet này GỒM điều chuyển — mapping trừ số điều chuyển của sheet 'Nhập xuất điều chuyển' (spec `duan_vattu_dc`) ra nhập mới/xuất kho. Mọi dòng neo ngày cuối tháng.",
+  "_bay": [
+    "NẠP DÒNG KHO, KHÔNG NẠP DÒNG 'Tổng cộng': builder cộng lại các kho. Đã kiểm T08 Σ 9 kho = dòng 6 ở cả 8 cột.",
+    "Tên kho ghi 'Kho Cao Bằng' nhưng Bình Phước chỉ ghi 'Bình Phước' — hook `kho_vattu_duan` bóc tiền tố về cùng tên với file ngày và sheet điều chuyển.",
+    "File tháng .xlsx 37 MB, có sheet '<<Tân Thịnh>>'/'<<Sơn Tây>>' dài hơn 1 triệu dòng — engine mở read_only và chỉ đọc sheet khai ở đây."
+  ],
+  "_kiem_chung": [
+    "T08/2026 dòng 6: tồn đầu 66.603,21 / 18.241.161.907,53 đ · nhập 25.412,76 / 2.611.620.765,83 đ · xuất 21.635,66 / 2.455.539.373,83 đ · tồn cuối 70.445,01 / 18.397.243.299,53 đ."
+  ],
+  "report_type": "DUAN_VT_THANG",
+  "row_index_base": 9010000,
+  "khoi": "Khối KD Dự án",
+  "chieu_co_dinh": {
+    "cong_ty": "TC",
+    "khoi": "Khối KD Dự án"
+  },
+  "nguon": {
+    "folder": "QLTS/tonkhovattuthang",
+    "file_glob": "*.Baocaotonkhovattu.xlsx",
+    "sheet": {
+      "ten": "<TH NXT>"
+    }
+  },
+  "kiem_tra_o": [
+    {
+      "o": "B4",
+      "bang": "Kho"
+    },
+    {
+      "o": "C4",
+      "bang": "Tồn đầu kỳ"
+    },
+    {
+      "o": "E4",
+      "bang": "Nhập kho"
+    },
+    {
+      "o": "G4",
+      "bang": "Xuất kho"
+    },
+    {
+      "o": "I4",
+      "bang": "Tồn kho"
+    },
+    {
+      "o": "B6",
+      "bang": "Tổng cộng"
+    }
+  ],
+  "header": {
+    "dong": [
+      4,
+      5
+    ]
+  },
+  "dong_bat_dau": 7,
+  "ky_tu_ten_file": {
+    "regex_nam": "\\.M\\.(\\d{4})\\d{2}\\.",
+    "regex_thang": "\\.M\\.\\d{4}(\\d{2})\\."
+  },
+  "moi_ky_lay_file_moi_nhat": true,
+  "cot": {
+    "dim1": {
+      "chuan_hoa": "kho_vattu_duan",
+      "giu_khi_khong_map": true,
+      "cot": "B"
+    },
+    "amount": {
+      "cot": "I",
+      "kieu": "so_co_rong"
+    },
+    "amount2": {
+      "cot": "J",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09
+    },
+    "payload.sl_dau": {
+      "cot": "C",
+      "kieu": "so_co_rong"
+    },
+    "payload.gt_dau": {
+      "cot": "D",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09
+    },
+    "payload.sl_nhap": {
+      "cot": "E",
+      "kieu": "so_co_rong"
+    },
+    "payload.gt_nhap": {
+      "cot": "F",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09
+    },
+    "payload.sl_xuat": {
+      "cot": "G",
+      "kieu": "so_co_rong"
+    },
+    "payload.gt_xuat": {
+      "cot": "H",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09
+    },
+    "payload.sl_cuoi": {
+      "cot": "I",
+      "kieu": "so_co_rong"
+    },
+    "payload.gt_cuoi": {
+      "cot": "J",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09
+    }
+  },
+  "ban_ghi": "moi_dong",
+  "loc": [
+    {
+      "cot": "dim1",
+      "dieu_kien": "khac_rong"
+    }
+  ],
+  "payload_them": {
+    "unit_tien": "ty"
+  }
+}

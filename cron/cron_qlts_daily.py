@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """KÉO + NẠP NGUỒN QUẢN LÝ TÀI SẢN (QLTS) — 3 lượt/ngày, xem khối MỐC GIỜ bên dưới.
 
-Nuôi 5 màn `ts1..ts5` (Quản lý tài sản). Khung chung + các bẫy của khung: xem
+Nuôi 5 màn `ts1..ts5` (Quản lý tài sản) và màn `duan3` (vật tư Dự án). Khung chung + các bẫy của khung: xem
 `cron_qtvh_core.py`. File này CHỈ khai báo nguồn.
 
 VÌ SAO JOB NÀY TỒN TẠI (đo 29-30/08/2026)
@@ -26,7 +26,7 @@ Vẫn khai hai thư mục đó ở đây vì hai lẽ: (1) ngày kế toán phá
 nhớ sửa code; (2) mỗi lượt chạy sẽ để lại đúng một dòng "không có file nào" trong log — im lặng
 mới là thứ đã để chuyện này kéo dài. KHÔNG được đọc dòng đó thành "job hỏng".
 
-CHẾ ĐỘ `thang` CHO CẢ 6 THƯ MỤC
+CHẾ ĐỘ `thang` CHO CẢ 8 THƯ MỤC
 -------------------------------
 Mọi nguồn QLTS đều là MỘT file cho MỘT kỳ, kỳ sau ra file mới (`...M.2026.8.` /
 `...D.2026.8.` / `...Q.2026.7.`), nên kéo lại là đè chính nó — đúng định nghĩa `THANG`.
@@ -74,6 +74,15 @@ NGUON = [
     # ── ts5: nhiên liệu. CHƯA có trong metadata .253 (xem docstring) ───────────────────
     {"company": "QLTS", "rt": "baocaodau", "che_do": core.THANG,
      "ten": "Cấp phát nhiên liệu (ts5)"},
+
+    # ── duan3 "Quản lý vật tư" (khối Dự án, 28/09/2026): tồn kho vật tư Dự án. File NGÀY là MỘT
+    # file cho cả tháng (`B.4.DA.D.202609`), kế toán điền phát sinh hằng ngày rồi gửi lại TRÙNG
+    # TÊN -> đúng nghĩa THANG (kéo lại đè chính nó). File THÁNG `B.4.DA.M.202608` nuôi 3 spec
+    # (NXT theo kho, điều chuyển, tuổi tồn).
+    {"company": "QLTS", "rt": "tonkhovattungay", "che_do": core.THANG,
+     "ten": "Tồn kho vật tư Dự án theo ngày (duan3)"},
+    {"company": "QLTS", "rt": "tonkhovattuthang", "che_do": core.THANG,
+     "ten": "Tồn kho vật tư Dự án tháng (duan3)"},
 ]
 
 

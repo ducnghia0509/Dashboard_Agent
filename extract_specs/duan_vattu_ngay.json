@@ -1,0 +1,160 @@
+{
+  "id": "duan_vattu_ngay",
+  "_mo_ta": "Tồn kho VẬT TƯ DỰ ÁN theo NGÀY — sheet 'NXT' của file ngày QLTS/tonkhovattungay/B.4.DA.D.<yyyymm>.Baocaotonkhovattu.xlsx -> DUAN_VT, tab Ngày màn duan3 'Quản lý vật tư'. Mapping 4.DU_AN.Mapping_Dashboard_Quan Ly Vat Tu.xlsx, sheet 'Quản lý vật tư 22.09.26' cột J. MỘT FILE XUYÊN SUỐT CẢ THÁNG, kế toán điền phát sinh hằng ngày: mỗi dòng là MỘT PHÁT SINH của một mã tại một kho, cột P 'Ngày' là ngày phát sinh, cột Q 'Loại' tách 'Nhập mới - Xuất bán' với 'Điều chuyển'. Dòng ngày mùng 1 mang tồn đầu tháng ở cột H/I. Tồn cuối tại ngày D = Σ cột N/O mọi dòng có ngày ≤ D (N = H + J − L trên từng dòng). dim1 = kho (chuẩn hoá từ cột 'Cost Center'), dim2 = Loại, dim3 = mã hàng. Tiền theo TỶ.",
+  "_bay": [
+    "BỎ DÒNG ĐANG ẨN (`bo_dong_an`, user chốt 28/09/2026): bản 26/09 nhập ngày 15/09 HAI LƯỢT — dòng 5392–5475 (ô ngày) và 5476–5559 (chuỗi 'dd/mm/yyyy'), cùng 84 dòng, giống hệt nhau trừ lốp LO229 kho Phú Quốc xuất 4 cái (lượt đầu 92.320.000 đ, lượt sau 0 đ). Lượt đầu đang bị bộ lọc cột Ngày ẨN và dòng tổng hàng 1 là SUBTOTAL nên chỉ cộng lượt còn hiện. Nạp theo đúng dòng tổng đó; tắt cờ là 15/09 bị cộng đôi.",
+    "KHÔNG PHẢI ẢNH CHỤP như file ngày Cyber của vhkd5/xdv5: dòng của một ngày chỉ có những mã CÓ PHÁT SINH hôm đó. Builder phải cộng dồn từ đầu tháng, không được lấy 'dòng của ngày cuối' làm tồn cuối.",
+    "CỘT 'Ngày' LẪN HAI KIỂU: 01–15/09 là ô NGÀY, từ 15/09 là CHUỖI 'dd/mm/yyyy'. `kieu: date` (`_date`) nhận cả hai; khai kiểu khác là mất nửa tháng.",
+    "ĐIỀU CHUYỂN GHI THÀNH CẶP DÒNG: kho nhận ghi cột J/K (nhập), kho gửi ghi cột L/M (xuất), cùng ngày cùng mã. Toàn đơn vị hai vế triệt tiêu; mapping lấy vế NHẬP (cột J/K, Loại = 'Điều chuyển') làm số điều chuyển.",
+    "Cột F 'PHÂN LOẠI NHÓM' KHÔNG DÙNG ĐƯỢC: 2.757 dòng ghi 'Cái', 1.204 dòng trống, chỉ 975 dòng 'Vật tư' (danh sách hợp lệ ở Sheet1 là Hàng hóa/Vật tư/Phụ kiện) — giữ nguyên văn ở payload, không chia nhóm.",
+    "Cột A 'Pháp nhân' gần như trống (331/6.313 dòng ghi 'Công ty TNHH XNK và Khai thác Hưng Thịnh', đều ở kho Cao Bằng) — giữ ở payload, cong_ty lấy theo cost center của kho.",
+    "Mỗi tháng một file, gửi lại trong tháng vẫn TRÙNG TÊN (B.4.DA.D.202609) -> nạp lại là thay trọn theo source_file. `moi_ky_ky_regex` chỉ để phòng khi có bản đổi tên cùng tháng — không đụng tới ngày của từng dòng."
+  ],
+  "_kiem_chung": [
+    "B.4.DA.D.202609 (bản 26/09/2026): 6.313 dòng 01–25/09, 7 kho. Tồn đầu 01/09 = Σ cột I dòng ngày 1 = 18.397.243.299,53 đ = tồn cuối T08 ô J6 sheet '<TH NXT>' file tháng; khớp TỪNG KHO (Cao Bằng 1.390.541.549 · Sơn Tây 7.353.410.112 · Nhà Xanh 6.534.371.125 · Phú Quốc 2.367.475.265 · Bình Phước 497.988.968 · Quang Sơn 232.994.867 · Tân Thịnh 20.461.413).",
+    "Hàng 1 của sheet là dòng tổng (H1..O1) — đọc từ dòng 3, không nạp dòng tổng.",
+    "Σ cột N/O mọi dòng KHÔNG ẩn = ô N1/O1 (SUBTOTAL) của file: 65.466,31 / 17.221.485.134,73 đ."
+  ],
+  "report_type": "DUAN_VT",
+  "row_index_base": 9100000,
+  "khoi": "Khối KD Dự án",
+  "chieu_co_dinh": {
+    "cong_ty": "TC",
+    "khoi": "Khối KD Dự án"
+  },
+  "nguon": {
+    "folder": "QLTS/tonkhovattungay",
+    "file_glob": "*.Baocaotonkhovattu.xlsx",
+    "sheet": {
+      "ten": "NXT"
+    }
+  },
+  "kiem_tra_o": [
+    {
+      "o": "C2",
+      "bang": "Cost Center"
+    },
+    {
+      "o": "H2",
+      "bang": "SL đầu kỳ"
+    },
+    {
+      "o": "I2",
+      "bang": "Giá trị tồn đầu kỳ"
+    },
+    {
+      "o": "N2",
+      "bang": "SL tồn cuối kỳ"
+    },
+    {
+      "o": "O2",
+      "bang": "Giá trị tồn cuối kỳ"
+    },
+    {
+      "o": "P2",
+      "bang": "Ngày"
+    },
+    {
+      "o": "Q2",
+      "bang": "Loại"
+    }
+  ],
+  "header": {
+    "dong": 2
+  },
+  "dong_bat_dau": 3,
+  "bo_dong_an": true,
+  "moi_ky_lay_file_moi_nhat": true,
+  "moi_ky_ky_regex": "\\.D\\.(\\d{6})\\.",
+  "cot": {
+    "ngay": {
+      "header": "Ngày",
+      "kieu": "date"
+    },
+    "dim1": {
+      "chuan_hoa": "kho_vattu_duan",
+      "giu_khi_khong_map": true,
+      "header": "Cost Center"
+    },
+    "dim2": {
+      "header": "Loại"
+    },
+    "dim3": {
+      "header": "MÃ HÀNG HOÁ"
+    },
+    "amount": {
+      "header": "SL tồn cuối kỳ",
+      "kieu": "so_co_rong"
+    },
+    "amount2": {
+      "header": "Giá trị tồn cuối kỳ",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09
+    },
+    "payload.ten": {
+      "header": "TÊN HÀNG HOÁ"
+    },
+    "payload.dvt": {
+      "header": "ĐVT",
+      "bat_buoc": false
+    },
+    "payload.nhom": {
+      "header": "PHÂN LOẠI NHÓM",
+      "bat_buoc": false
+    },
+    "payload.phap_nhan": {
+      "header": "Pháp nhân",
+      "bat_buoc": false
+    },
+    "payload.sl_dau": {
+      "header": "SL đầu kỳ",
+      "kieu": "so_co_rong"
+    },
+    "payload.gt_dau": {
+      "header": "Giá trị tồn đầu kỳ",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09
+    },
+    "payload.sl_nhap": {
+      "header": "SL nhập trong kỳ",
+      "kieu": "so_co_rong"
+    },
+    "payload.gt_nhap": {
+      "header": "Giá trị nhập trong kỳ",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09
+    },
+    "payload.sl_xuat": {
+      "header": "SL xuất trong kỳ",
+      "kieu": "so_co_rong"
+    },
+    "payload.gt_xuat": {
+      "header": "Giá trị xuất trong kỳ",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09
+    },
+    "payload.sl_cuoi": {
+      "header": "SL tồn cuối kỳ",
+      "kieu": "so_co_rong"
+    },
+    "payload.gt_cuoi": {
+      "header": "Giá trị tồn cuối kỳ",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09
+    }
+  },
+  "ban_ghi": "moi_dong",
+  "loc": [
+    {
+      "cot": "ngay",
+      "dieu_kien": "khac_rong"
+    },
+    {
+      "cot": "dim1",
+      "dieu_kien": "khac_rong"
+    }
+  ],
+  "payload_them": {
+    "unit_tien": "ty"
+  }
+}

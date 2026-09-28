@@ -1,0 +1,135 @@
+{
+  "id": "duan_vattu_tuoi",
+  "_mo_ta": "TUỔI TỒN vật tư Dự án — sheet 'Tuổi tồn' của báo cáo THÁNG -> DUAN_VT_TUOI, mục D màn duan3. Mapping 4.DU_AN.Mapping_Dashboard_Quan Ly Vat Tu.xlsx, sheet 'Quản lý vật tư 22.09.26' cột I dòng 16-18: < 3 tháng = Σ cột H · 3–6 tháng = Σ cột J · > 6 tháng = Σ cột L + cột N, từ hàng 4. Mỗi mã × kho một dòng (kho ở cột D 'ĐV'). File ngày không có tuổi tồn (mapping cột J 'Không có'). Mọi dòng neo ngày cuối tháng.",
+  "_bay": [
+    "Hàng 3 là dòng 'Tổng cộng' (cột A trống) — đọc từ hàng 4, `loc` đòi mã khác rỗng.",
+    "> 6 tháng là HAI cột (6–12 tháng + > 12 tháng) — giữ riêng cả hai ở payload, builder cộng."
+  ],
+  "_kiem_chung": [
+    "T08/2026: 4.318 dòng; Σ giá trị tồn 18.397.243.299,53 đ = tồn cuối ô J6 '<TH NXT>'; < 3 tháng 3.286.974.642,32 · 3–6 tháng 810.361.744,18 · 6–12 tháng 1.533.352.523,31 · > 12 tháng 12.766.554.389,71. Σ theo kho khớp tồn cuối từng kho."
+  ],
+  "report_type": "DUAN_VT_TUOI",
+  "row_index_base": 9030000,
+  "khoi": "Khối KD Dự án",
+  "chieu_co_dinh": {
+    "cong_ty": "TC",
+    "khoi": "Khối KD Dự án"
+  },
+  "nguon": {
+    "folder": "QLTS/tonkhovattuthang",
+    "file_glob": "*.Baocaotonkhovattu.xlsx",
+    "sheet": {
+      "ten": "Tuổi tồn"
+    }
+  },
+  "kiem_tra_o": [
+    {
+      "o": "A2",
+      "bang": "Mã vật tư"
+    },
+    {
+      "o": "D2",
+      "bang": "ĐV"
+    },
+    {
+      "o": "F2",
+      "bang": "Giá trị tồn"
+    },
+    {
+      "o": "H2",
+      "bang": "GT từ < 3 Tháng"
+    },
+    {
+      "o": "J2",
+      "bang": "GT từ 3-6 tháng"
+    },
+    {
+      "o": "L2",
+      "bang": "GT từ 6-12 tháng"
+    },
+    {
+      "o": "N2",
+      "bang": "GT >12 Tháng"
+    }
+  ],
+  "header": {
+    "dong": 2
+  },
+  "dong_bat_dau": 4,
+  "ky_tu_ten_file": {
+    "regex_nam": "\\.M\\.(\\d{4})\\d{2}\\.",
+    "regex_thang": "\\.M\\.\\d{4}(\\d{2})\\."
+  },
+  "moi_ky_lay_file_moi_nhat": true,
+  "cot": {
+    "dim1": {
+      "chuan_hoa": "kho_vattu_duan",
+      "giu_khi_khong_map": true,
+      "cot": "D"
+    },
+    "dim3": {
+      "cot": "A"
+    },
+    "amount": {
+      "cot": "E",
+      "kieu": "so_co_rong"
+    },
+    "amount2": {
+      "cot": "F",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09
+    },
+    "payload.ten": {
+      "cot": "B"
+    },
+    "payload.dvt": {
+      "cot": "C"
+    },
+    "payload.gt_duoi3": {
+      "cot": "H",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09
+    },
+    "payload.gt_3_6": {
+      "cot": "J",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09
+    },
+    "payload.gt_6_12": {
+      "cot": "L",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09
+    },
+    "payload.gt_tren12": {
+      "cot": "N",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09
+    },
+    "payload.sl_duoi3": {
+      "cot": "G",
+      "kieu": "so_co_rong"
+    },
+    "payload.sl_3_6": {
+      "cot": "I",
+      "kieu": "so_co_rong"
+    },
+    "payload.sl_6_12": {
+      "cot": "K",
+      "kieu": "so_co_rong"
+    },
+    "payload.sl_tren12": {
+      "cot": "M",
+      "kieu": "so_co_rong"
+    }
+  },
+  "ban_ghi": "moi_dong",
+  "loc": [
+    {
+      "cot": "dim3",
+      "dieu_kien": "khac_rong"
+    }
+  ],
+  "payload_them": {
+    "unit_tien": "ty"
+  }
+}

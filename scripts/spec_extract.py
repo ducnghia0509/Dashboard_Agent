@@ -91,6 +91,8 @@ CẤU TRÚC SPEC (khoá tiếng Việt cho kế toán/BA đọc được):
                                          // -> lùi N ngày khi suy `ngay`. Mặc định 0.
                                          // Xem `ngay_tu_ten_file`. Báo cáo tự động Cyber
                                          // chạy 12h trưa ngày N, chỉ có số tới hết N-1.
+  "bo_dong_an": true,                    // bỏ dòng file đang ẨN (bộ lọc/ẩn tay) — theo đúng dòng
+                                         // tổng SUBTOTAL của người làm file (xem `_dong_an`)
   "chi_lay_ngay_cua_file": true,         // bỏ dòng có `ngay` khác ngày suy từ TÊN FILE — cho nguồn
                                          // ngày cho lẫn sang hôm sau (xem chỗ dùng bên dưới)
   "giu_ngay_tuong_lai": true,            // GIỮ dòng có `ngay` > hôm nay. CHỈ kế hoạch mới được bật.
@@ -1418,8 +1420,36 @@ def _cc_duan(ten):
     return next((cc for kw, cc in _CC_DUAN_SHEET if kw in n), None) or {"_khong_map": str(ten)[:60]}
 
 
+# Kho vật tư Dự án KHÔNG thuộc công trường nào (28/09/2026, báo cáo tồn kho vật tư QLTS). Sơn Tây và
+# Nhà Xanh là kho của khối văn phòng, kho, xưởng (sổ tài sản QLTS ghi "Tài sản Sơn Tây (gồm văn
+# phòng, xưởng, Nhà Xanh…)") nhưng vẫn nằm trong báo cáo vật tư Dự án và giữ ~3/4 giá trị tồn. Giữ
+# dòng, cost center để TRỐNG — gán vào một dự án là tự chế số cho dự án đó. Khai tường minh ở đây
+# để tên kho LẠ vẫn nổ cảnh báo `_khong_map` chứ không lặng lẽ rơi vào nhóm này.
+_KHO_VT_NGOAI_DU_AN = {"sontay", "nhaxanh"}
+
+
+def _kho_vattu_duan(ten):
+    """Tên kho vật tư Dự án -> `{dim1: tên kho chuẩn, cost_center, cong_ty, khoi}`.
+
+    Ba sheet ghi cùng một kho ba kiểu — file ngày cột "Cost Center" "Cao Bằng"/"Nhà xanh", sheet
+    "<TH NXT>" "Kho Cao Bằng", sheet "Nhập xuất điều chuyển" "Kho vật tư Cao Bằng" — nên bóc tiền
+    tố và chuẩn chữ hoa về MỘT tên (`dim1`) để builder ghép được ba nguồn theo kho. Cost center qua
+    `_cc_qlts` (Phú Quốc -> TC_DA theo luật gộp Thổ Chu 21/09/2026)."""
+    ten = re.sub(r"^\s*kho\s+(v[aậ]t\s+t[uư]\s+)?", "", str(ten or ""), flags=re.I).strip()
+    if not ten:
+        return None
+    ten = " ".join(w[:1].upper() + w[1:] for w in ten.split())
+    if _nd(ten) in _KHO_VT_NGOAI_DU_AN:
+        return {"dim1": ten}
+    cc = _cc_qlts(ten)
+    if isinstance(cc, dict) and cc.get("cost_center"):
+        return {"dim1": ten, **cc}
+    return {"dim1": ten, "_khong_map": ten}
+
+
 _CHUAN_HOA = {
     "cc_duan": _cc_duan,
+    "kho_vattu_duan": _kho_vattu_duan,
     "cc_qlts": _cc_qlts,
     "cc_qlts_khoi": _cc_qlts_khoi,
     "khoi_qlts": _khoi_qlts,
@@ -2773,6 +2803,27 @@ def _dong_wb():
             pass
 
 
+_AN_CACHE = {}
+
+
+def _dong_an(path, ten_sheet):
+    """Tập số dòng đang ẨN (bộ lọc / ẩn tay) của một sheet — cho spec khai `bo_dong_an`.
+
+    Workbook `read_only` của openpyxl KHÔNG đọc thuộc tính ẩn của dòng, nên phải mở lại file ở
+    chế độ thường. Chậm hơn nhiều (vài giây với file 600 KB) — vì thế chỉ chạy khi spec khai cờ,
+    đừng bật cho file tháng cỡ chục MB."""
+    khoa = (os.path.abspath(path), os.path.getmtime(path), ten_sheet)
+    if khoa not in _AN_CACHE:
+        wb = openpyxl.load_workbook(path, data_only=True)
+        try:
+            ws = wb[ten_sheet]
+            _AN_CACHE.clear()
+            _AN_CACHE[khoa] = frozenset(r for r, d in ws.row_dimensions.items() if d.hidden)
+        finally:
+            wb.close()
+    return _AN_CACHE[khoa]
+
+
 def _extract_vung(spec, path):
     warn, recs = [], []
     wb = _mo_wb(path)
@@ -3073,7 +3124,17 @@ def _extract_vung(spec, path):
         ngu_canh = {}          # ngữ cảnh mang từ dòng tiêu đề xuống, xem `ngu_canh_dong`
         lap_lai_cuoi = {}      # giá trị gần nhất của cột khai `lap_lai`, xem ngay dưới
         nc_cfg = spec.get("ngu_canh_dong")
-        for row in ws.iter_rows(min_row=bat_dau, max_row=ket_thuc, values_only=True):
+        # `bo_dong_an` (28/09/2026): BỎ DÒNG FILE ĐANG ẨN. File ngày vật tư Dự án nhập ngày 15/09
+        # HAI LƯỢT (84 dòng mỗi lượt), lượt đầu bị bộ lọc cột Ngày ẩn đi và dòng tổng SUBTOTAL
+        # của kế toán chỉ cộng lượt còn hiện. Nạp mọi dòng là cộng đôi cả ngày; user chốt lấy
+        # đúng như dòng tổng của file. Chỉ spec nào khai cờ mới phải mở lại file (xem `_dong_an`).
+        an = _dong_an(path, ws.title) if spec.get("bo_dong_an") else frozenset()
+        bo_an = 0
+        for so_dong, row in enumerate(ws.iter_rows(min_row=bat_dau, max_row=ket_thuc,
+                                                   values_only=True), bat_dau):
+            if so_dong in an:
+                bo_an += 1
+                continue
             # BẢNG PHÂN CẤP: một số báo cáo không lặp lại tên đơn vị trên từng dòng mà đặt nó ở
             # DÒNG TIÊU ĐỀ riêng, các dòng bên dưới ngầm hiểu là của đơn vị đó (báo cáo doanh thu
             # XDV: dòng "3S có đồng sơn | Ocean Park" rồi 8 dòng mã B110..B150 bên dưới).
@@ -3276,6 +3337,9 @@ def _extract_vung(spec, path):
                     recs.append(r2)
         if bo_loc:
             warn.append(f"bỏ {bo_loc} {_W_BO_LOC}")
+        if bo_an:
+            # Luôn báo: dòng ẩn là quyết định của NGƯỜI LÀM FILE, số bị bỏ phải nhìn thấy được.
+            warn.append(f"bỏ {bo_an} dòng đang ẨN trong file (bo_dong_an)")
         if bo_khac_ngay:
             # Đếm RIÊNG chứ không gộp vào `bo_loc`: đây là dòng ĐÚNG dữ liệu nhưng thuộc file
             # khác, số phải nhìn thấy được để biết nguồn đang lẫn ngày tới mức nào.
