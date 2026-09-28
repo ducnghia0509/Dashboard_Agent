@@ -907,6 +907,11 @@ def _derive_kqkd_duan(rows, period, cong_ty, file_path):
     # Sao lưu CSV trước khi đổi: ~/backups/duan-swap-ttda-ybda-20260828/. Núi Pháo/
     # Quảng Ngãi KHÔNG có trong MD_COSTCENTER -> mã tự đặt NUIPHAO_DA/QUANGNGAI_DA (backfill cong_ty
     # =TC qua import_filled, giống pattern HO_XVP/B2B_SR).
+    # Bình Phước: từ 21/09/2026 dùng mã CHÍNH THỨC "BP_DA" — "Danh Mục Mã hệ thống.xlsx" (bản
+    # 18/09) đã cấp mã, thay cho mã tự đặt BINHPHUOC_DA dùng tạm từ 18/09. Đổi kèm: hoán 23
+    # dòng/DB × 2 DB trong raw_rows, dòng `cost_center_map` layout "duan", và 3 chỗ dưới đây
+    # (derive_hqkd_ngay._CC_DUAN, spec_extract._CC_DUAN_SHEET, soat_cost_center). Sao lưu CSV:
+    # ~/backups/cc-doi-ma-20260921/.
     # ⚠️ PHẢI KHỚP `derive_hqkd_ngay._CC_DUAN` (bản NGÀY). Lệch hai danh sách = dự án có số ở
     # bản tháng mà KHÔNG có một dòng nào trong DB, im lặng tuyệt đối. ĐÃ XẢY RA: bảng này thiếu
     # "binh phuoc" nên kỳ 2026-08 mất trắng Bình Phước (DT 621.080.352, giá vốn 729.743.729,
@@ -915,14 +920,16 @@ def _derive_kqkd_duan(rows, period, cong_ty, file_path):
     # ngày 31. Thêm "tho chu" cùng lượt cho khớp hẳn bản ngày, dù nguồn T8 chưa có cột đó.
     # "Phú Quốc" -> TC_DA: GỘP VÀO THỔ CHU (21/09/2026, KT tài sản xác nhận). Cùng MỘT công
     # trường mà mỗi họ file gọi một tên — sổ tài sản + nhiên liệu ghi "Thổ Chu", còn bảo dưỡng /
-    # bảo hiểm / đăng kiểm ghi "Phú Quốc". Soát trước khi gộp: KHÔNG cặp (report_type, kỳ) nào nằm
-    # ở cả hai mã, KHÔNG file nguồn nào chứa cả hai tên, và 37/45 mã thiết bị bảo dưỡng của "Phú
-    # Quốc" nằm ngay trong sổ tài sản "Thổ Chu" (bảo hiểm 45/46, đăng kiểm 43/51) -> gộp là đổi
-    # nhãn thuần tuý, không cộng đôi số nào. 1.164 dòng đã chuyển sang TC_DA ở cả 2 DB.
+    # bảo hiểm / đăng kiểm ghi "Phú Quốc". Đã soát trước khi gộp: KHÔNG cặp (report_type, kỳ) nào
+    # nằm ở cả hai mã, không file nguồn nào chứa cả hai tên, và 37/45 mã thiết bị bảo dưỡng của
+    # "Phú Quốc" nằm ngay trong sổ tài sản "Thổ Chu" (bảo hiểm 45/46, đăng kiểm 43/51) -> gộp là
+    # đổi nhãn thuần tuý, không cộng đôi số nào. 1.164 dòng đã chuyển sang TC_DA ở cả 2 DB.
+    # MÃ PQ_DA VẪN CÒN trong danh mục nhưng không dòng nào dùng nữa; ô lọc dựng TỪ DỮ LIỆU
+    # (repository._cost_center_options) nên "Dự án Phú Quốc" tự biến mất khỏi thanh lọc.
     _DA_PROJECT_CC = [
         ("cao bang", "CB_DA"), ("tan thinh", "TT_DA"), ("lang son", "LS_DA"),
         ("nui phao", "NUIPHAO_DA"), ("quang son", "QS_DA"), ("quang ngai", "QUANGNGAI_DA"),
-        ("yen binh", "YB_DA"), ("phu quoc", "TC_DA"), ("binh phuoc", "BINHPHUOC_DA"),
+        ("yen binh", "YB_DA"), ("phu quoc", "TC_DA"), ("binh phuoc", "BP_DA"),
         ("tho chu", "TC_DA"),
     ]
     # Bản đồ admin đã duyệt ở chuông 🔔 (bảng `cost_center_map`, migration 0070) — dùng CHUNG với
@@ -5408,7 +5415,15 @@ def _cmd_autofill_impl(args):
         # SRVF (Chi nhánh VinFast Showroom) — FORMAT RIÊNG, deriver chuyên biệt (cong_ty ÉP 'TC',
         # alias folder SRVF->TC). CĐKT chuẩn TT200 -> _derive_cdkt; P&L ở sheet 'T{mm}BC' (KHÔNG phải
         # 'KQKD') -> _derive_kqkd_srvf; công nợ/thuế/tồn kho (TK152/153/154/156) từ CĐPS 1-tầng -> derive_srvf_cdps.
-        if _source_id(args.file).split("::", 1)[0].upper() == "SRVF":
+        #
+        # CHỈ DÀNH CHO FILE BCTC RIÊNG, KHÔNG cho sổ tài sản 'Baocaotaisancodinh' (2026-09-21):
+        # nhánh này neo vào FOLDER nên trước đây ăn cả file B.9 sổ TS của SRVF — file đó dĩ nhiên
+        # không có sheet CĐKT/CĐPS/T{mm}BC, nên `_prune_missing_sheet_types` xoá luôn report_type
+        # 'TS' vừa được derive_tscd_hetkhauhao.extract() ghi cho CHÍNH source_file đó vài dòng
+        # trước -> SRVF mất hẳn chỉ tiêu "TS hết khấu hao" ở mọi kỳ nạp lại (bắt được khi nạp lại
+        # T8/2026). Phần còn lại của nhánh vốn đã no-op với file sổ TS.
+        if (_source_id(args.file).split("::", 1)[0].upper() == "SRVF"
+                and "baocaotaisancodinh" not in os.path.basename(args.file).lower()):
             from servers.common import be_bridge as bb
             _mm = period.split("-")[-1]
             try:
