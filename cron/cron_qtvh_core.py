@@ -1166,7 +1166,8 @@ def ra_soat_cong_doi(ctx: Ctx, nguon_list: list, thu_gom: list = None) -> list:
                 if thu_gom is not None:
                     day_du = [(sf, c) for sf, c in files.items()
                               if sf.split("::")[-1] in {f for f, _ in same}]
-                    thu_gom.append({"lat": o, "ban": day_du})
+                    thu_gom.append({"lat": o, "ban": day_du,
+                                    "khoa": (rt, ct, khoi, khoa, kieu)})
         for a in sorted(theo_ten):
             con = [b for b in sorted(theo_ten) if b != a and _la_ban_gop(a, b)]
             if con:
@@ -1216,13 +1217,21 @@ def xoa_trung_ban_chot(ctx: Ctx, trung: list, nguon_list: list = None) -> int:
     nhất. Hình dạng tai nạn thật (claim B2B T1 lệch cột: 6 dòng còn 278) rơi rất sâu dưới ngưỡng
     này nên vẫn bị chặn, còn số dư teo dần theo tháng thì không.
     """
-    # MỘT FILE CÓ THỂ NẰM Ở NHIỀU LÁT (claim T8 dính cả lát TC lẫn lát VFQN). Xoá là xoá TRỌN
-    # `source_file`, nên chỉ cần MỘT lát chưa đạt điều kiện an toàn là cấm xoá file đó ở mọi lát —
-    # nếu không, một lát "đạt" sẽ xoá mất dữ liệu của lát đang nghi ngờ.
+    # XOÁ THEO LÁT, KHÔNG XOÁ TRỌN FILE (28/09/2026). Bản trước xoá cả `source_file` của bản cũ,
+    # ngầm coi "hai file trùng một lát" = "file mới thay trọn file cũ". Sai với nguồn MỘT FILE
+    # ÔM NHIỀU KỲ: `B.6.XVP.PKDVH.M.2026.9.Baocaotonghop` là bản copy của file tháng 8, đổi tên
+    # sheet 'BÁO CÁO THÁNG 8' -> 'THÁNG 9' mà vẫn giữ sheet 'THÁNG 7'. Lát T7 trùng thật, nên bộ
+    # dọn xoá bản "cũ" — 3.917 dòng, trong đó 3.206 dòng là T8 CHỈ file tháng 8 có -> cả 6 màn
+    # QTVH Xanh Taxi trắng tháng 8 ở cả hai DB, mỗi lượt cron nạp lại rồi xoá lại. `_ten_goc` coi
+    # hai file cùng tên gốc vì token '2026.8'/'2026.9' ở đây là THÁNG BÁO CÁO chứ không phải ngày
+    # phát hành — không sửa ở đó được mà không phá các nguồn tiền tố ngày thật.
+    # Nay chỉ xoá đúng những lát (rt, công ty, khối, kỳ|ngày chốt) mà bản cũ bị bản mới đè; phần
+    # khác của bản cũ ở lại. Ba chốt an toàn xét theo từng lát như cũ, và vì xoá theo lát nên một
+    # lát chưa đạt chỉ khoá chính lát đó chứ không còn phải khoá cả file.
     # Regex tên file của các nguồn khai `anh_chup_so_du`. Phải khớp MỌI bản trong nhóm mới nới —
     # một nhóm lẫn file nguồn khác là trở về chốt 3 nguyên bản.
     noi_long = [n["anh_chup_so_du"] for n in (nguon_list or []) if n.get("anh_chup_so_du")]
-    can_xoa, cam_xoa, giu_lai = {}, set(), 0
+    can_xoa, giu_lai = [], 0
     for nhom in trung:
         ban = nhom["ban"]
         la_so_du = bool(noi_long) and all(
@@ -1230,7 +1239,6 @@ def xoa_trung_ban_chot(ctx: Ctx, trung: list, nguon_list: list = None) -> int:
             for sf, _ in ban)
         ngay = {sf: _ngay_phat_hanh(sf) for sf, _ in ban}
         if not all(ngay.values()):
-            cam_xoa.update(sf for sf, _ in ban)
             ctx.log(f"  TRÙNG BẢN CHỐT {nhom['lat']}: KHÔNG đọc được ngày phát hành của"
                     f" {sum(1 for v in ngay.values() if not v)}/{len(ban)} bản -> chỉ cảnh báo,"
                     " không tự xoá (đoán bản mới là xoá nhầm bản đúng)")
@@ -1241,12 +1249,10 @@ def xoa_trung_ban_chot(ctx: Ctx, trung: list, nguon_list: list = None) -> int:
         if moi_c <= 0:
             ctx.log(f"  TRÙNG BẢN CHỐT {nhom['lat']}: bản mới nhất {moi_sf.split('::')[-1][:46]}"
                     " KHÔNG có dòng -> giữ nguyên tất cả")
-            cam_xoa.update(sf for sf, _ in ban)
             giu_lai += 1
             continue
         nguong = max((c for _, c in xep[:-1]), default=0) * (_TI_LE_DONG_TOI_THIEU if la_so_du else 1)
         if moi_c < nguong:
-            cam_xoa.update(sf for sf, _ in ban)
             ctx.log(f"  TRÙNG BẢN CHỐT {nhom['lat']}: bản mới {moi_sf.split('::')[-1][:40]}"
                     f" ({moi_c} dòng) ÍT HƠN bản cũ"
                     + (f" quá {int((1 - _TI_LE_DONG_TOI_THIEU) * 100)}%" if la_so_du else "")
@@ -1256,33 +1262,33 @@ def xoa_trung_ban_chot(ctx: Ctx, trung: list, nguon_list: list = None) -> int:
         if la_so_du and moi_c < max((c for _, c in xep[:-1]), default=0):
             ctx.log(f"  TRÙNG BẢN CHỐT {nhom['lat']}: bản mới ít dòng hơn bản cũ nhưng nguồn khai"
                     " `anh_chup_so_du` (số dư teo dần là bình thường) -> vẫn xoá bản cũ")
+        rt, ct, khoi, khoa, kieu = nhom["khoa"]
         for sf, c in xep[:-1]:
-            can_xoa[sf] = c
-            ctx.log(f"  TRÙNG BẢN CHỐT {nhom['lat']}: xoá bản cũ {sf.split('::')[-1][:46]}"
-                    f" ({c} dòng), giữ {moi_sf.split('::')[-1][:46]} ({moi_c} dòng)")
-    for sf in sorted(set(can_xoa) & cam_xoa):
-        ctx.log(f"  TRÙNG BẢN CHỐT: KHÔNG xoá {sf.split('::')[-1][:46]} — lát khác của chính file"
-                " này chưa đạt điều kiện an toàn")
-        can_xoa.pop(sf, None)
+            can_xoa.append((sf, rt, ct, khoi, khoa, "ngay" if kieu == "chốt" else "period_month"))
+            ctx.log(f"  TRÙNG BẢN CHỐT {nhom['lat']}: xoá lát này của bản cũ"
+                    f" {sf.split('::')[-1][:46]} ({c} dòng), giữ {moi_sf.split('::')[-1][:46]}"
+                    f" ({moi_c} dòng)")
     if not can_xoa:
         if giu_lai:
             ctx.log(f"XOÁ TRÙNG BẢN CHỐT: bỏ qua {giu_lai} nhóm (chưa đủ điều kiện an toàn)")
         return 0
-    sids = sorted(can_xoa)
+    # Cột lọc (`ngay`/`period_month`) chỉ là một trong hai tên cố định ở trên nên ghép thẳng vào
+    # câu SQL được; mọi giá trị khác đi qua tham số. COALESCE(...,?) với tham số '' thay cho chuỗi
+    # rỗng viết tay — tránh escape nháy hai tầng (xem ghi chú ở `_lat_du_lieu`).
     code = (
         "import sys;sys.path.insert(0,'.');"
         "from app.database.session import get_db;"
-        f"sids={sids!r};giu={list(RT_GIU_LICH_SU)!r};db=get_db();n=0;"
-        # Chừa report_type giữ lịch sử — xem `RT_GIU_LICH_SU`.
-        "w='source_file=? AND report_type NOT IN (%s)'%','.join(['?']*len(giu));"
-        "\nfor s in sids:\n"
-        "    p=tuple([s]+giu)\n"
+        f"lat={sorted(set(can_xoa))!r};db=get_db();n=0;"
+        "\nfor sf,rt,ct,k,v,col in lat:\n"
+        "    w='source_file=? AND report_type=? AND COALESCE(cong_ty,?)=? AND COALESCE(khoi,?)=?"
+        " AND '+col+'=?'\n"
+        "    p=(sf,rt,'',ct,'',k,v)\n"
         "    r=db.execute('SELECT COUNT(*) c FROM raw_rows WHERE '+w,p).fetchone()\n"
         "    c=(r['c'] if r else 0) or 0\n"
         "    if c:\n"
         "        db.execute('DELETE FROM raw_rows WHERE '+w,p)\n"
         "    n+=c\n"
-        "    print('XOA %s dong | %s'%(c,s))\n"
+        "    print('XOA %s dong | %s | %s %s'%(c,sf,rt,v))\n"
         "print('TONG_XOA=%s'%n)"
     )
     out = _py_sql(ctx, code, timeout=300)
