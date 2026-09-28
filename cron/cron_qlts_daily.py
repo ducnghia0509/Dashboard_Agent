@@ -98,9 +98,8 @@ NGUON = [
     # mục tồn kho TẬP ĐOÀN của kế toán (`B.3.TS.M.<yyyymm>.Baocaotonkhotramsac.xlsx`). Khai ở job
     # này vì đây là job duy nhất đã quản các nguồn tồn kho tháng dạng `.xlsx`; cùng thư mục còn file
     # tháng Showroom/XDV dạng `.Xls` (nạp tay, xem vhkd5/xdv5) -> `chi_lay` CHỈ kéo file trạm sạc.
-    # `chi_env: test` — màn mới lên test trước; bỏ khoá này khi màn lên prod.
     {"company": "TONKHOTAPDOAN", "rt": "tonkhotapdoanthang", "che_do": core.THANG,
-     "ten": "Tồn kho trạm sạc tháng (tsac2)", "chi_lay": r"Baocaotonkhotramsac", "chi_env": "test"},
+     "ten": "Tồn kho trạm sạc tháng (tsac2)", "chi_lay": r"Baocaotonkhotramsac"},
 ]
 
 
