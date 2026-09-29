@@ -3258,12 +3258,11 @@ def _derive_tonkho_cdps(file_path: str, sheet: str, period: str, cong_ty: str):
         # hiển thị — round(…,9) từng dòng trước khi cộng làm tổng lệch ±1 đồng so với làm-tròn-1-lần
         # trên số gộp (QA SRVF 2026-07-30: Tồn kho Σ4 TK = …093 vs CĐKT …092,32 -> phải ra …092).
         return r[i] * 1e-9 if (i is not None and i < len(r) and isinstance(r[i], (int, float))) else None
+    # MỌI khối (kể cả DỰ ÁN) lấy đủ 151–156. Dự án từng bị ghim CHỈ TK 152 theo hướng dẫn cũ; KT Dự
+    # án 29/09/2026 chốt lại theo spec donut "Tồn kho theo loại" (Hàng hóa/Thành phẩm/NVL/Hàng đi
+    # đường/CCDC/SXKD dở dang = dư Nợ cuối kỳ TK 156/155/152/151/153/154). Ghim 152 làm donut Dự án
+    # mất 151 T03-T04 (651 tr / 1.356 tr) và 153+154 T06-T08 (10 tr + 346,7 tr).
     _TK_KHO = ("151", "152", "153", "154", "155", "156")
-    # Khối DỰ ÁN: hướng dẫn chốt tồn kho = CHỈ TK 152 (Nguyên vật liệu công trình); 151 hàng đi
-    # đường / 153 CCDC / 154 CP SXKD dở dang là khoản chạy-qua, KHÔNG tính vào tồn kho dự án (khớp
-    # số báo cáo: đầu kỳ/nhập/xuất/cuối chỉ reconcile trên 152). Đơn vị khác giữ nguyên 151–156.
-    if "dự án" in (_khoi_of(file_path) or "").lower():
-        _TK_KHO = ("152",)
     records = []
     for ri in range(mp["data_start_row"], len(rows)):
         r = rows[ri]
