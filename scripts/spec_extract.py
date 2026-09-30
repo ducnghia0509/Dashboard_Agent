@@ -1301,6 +1301,17 @@ def _xvp_ma_doanh_thu(v):
     return {"dim1": _XVP_MA_DT[k]} if (k := str(v or "").strip()) in _XVP_MA_DT else {}
 
 
+# Họ file NGÀY của Xanh VP (`B.6.XVP.D.YYYYMMDD.Baocaotaichinhrieng`, từ 15/09/2026) để TRỐNG cột
+# "MÃ SỐ" ở 5 dòng nguồn thu — mã chỉ còn nằm đầu NHÃN cột A ("3.1 Doanh thu thuần dịch vụ taxi").
+# Neo theo tiền tố "3.x " của nhãn, cùng bảng `_XVP_MA_DT` với file tháng để dim1 hai họ file y hệt.
+_RE_XVP_NHAN_DT = re.compile(r"^\s*(3\.[1-5])(?!\d)")
+
+
+def _xvp_nhan_doanh_thu(v):
+    m = _RE_XVP_NHAN_DT.match(str(v or ""))
+    return {"dim1": _XVP_MA_DT[m.group(1)]} if m else {}
+
+
 # "Mã kiểu xe" -> "Loại xe" (dòng xe) cho bán xe Showroom. CẦN vì nguồn tự động KD73
 # (`Bangkehoadonbanxe`, ổ TESTBAOCAOTUDONG) CHỈ có "Mã kiểu xe"; bản kế toán tự dựng
 # (`Xuathoadon_*`) có sẵn cột "Loại xe" và `vhkd_kqkd` đọc thẳng cột đó vào dim1. Không có hook
@@ -1479,6 +1490,7 @@ _CHUAN_HOA = {
     "kh_ct_dong": _kh_ct_dong,
     "xvp_chi_tieu": _xvp_chi_tieu,
     "xvp_ma_doanh_thu": _xvp_ma_doanh_thu,
+    "xvp_nhan_doanh_thu": _xvp_nhan_doanh_thu,
     "xvp_don_vi": _xvp_don_vi,
     "sr_loai_xe": _sr_loai_xe,
     "claim_ky_du_lieu": _claim_ky_du_lieu,

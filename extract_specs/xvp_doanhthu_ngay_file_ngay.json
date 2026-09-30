@@ -1,0 +1,43 @@
+{
+  "id": "xvp_doanhthu_ngay_file_ngay",
+  "_mo_ta": "CƠ CẤU DOANH THU THUẦN THEO NGÀY của Xanh Taxi × depot — HỌ FILE NGÀY B.6.XVP.D.<yyyymmdd>.Baocaotaichinhrieng (sheet HQKD), bản nối tiếp của `xvp_doanhthu_ngay` khi file tháng .Baocaohqkdngay dừng ở sheet '15'. Cùng report_type XVP_DT_NGUON_D, cùng 5 nguồn thu, cùng quy ước vùng Tổng + 3 depot.",
+  "_bay": [
+    "`chi_nap_tu_ngay` 2026-09-16 là CHỐT CHỐNG CỘNG ĐÔI: file .D.20260915 là bản LUỸ KẾ 01→15/09 (Σ doanh thu thuần 13,35 tỷ), còn ngày 15 đã có từ sheet '15' của file tháng. Nạp file 15 là ngày 15 ôm trọn nửa tháng.",
+    "Cột 'MÃ SỐ' TRỐNG ở 5 dòng 3.1-3.5 -> dim1 lấy từ tiền tố nhãn cột A (`xvp_nhan_doanh_thu`).",
+    "Giữa các cột depot có cột '%DT' và file 28/09 thêm cột 'Lũy kế' — dò theo TÊN header nên không lệch.",
+    "`source_file_hau_to` BẮT BUỘC: spec `xvp_doanhthu_ngay` cũng nhận thư mục này (specs_for_path khớp theo folder) và ra 0 dòng với file ngày — cùng report_type, cùng source_file thì lượt `_ghi` của nó xoá mất dòng của spec này.",
+    "Chỉ 5 dòng doanh thu thuần. P&L của cùng file do `derive_hqkd_ngay` (pl_ho_file_rieng) nạp thành HQKD_D/CHIPHI_D — nạp lại ở đây là đếm đôi."
+  ],
+  "_kiem_chung": [
+    "16/09/2026 tổng: DT_TAXI 948.230.674 + DT_THUEXE 71.250.000 + DT_PLF 9.100.000 = 1.028.580.674 = mã 10 cột Tổng cộng = HQKD_D mã 1000 trong DB."
+  ],
+  "report_type": "XVP_DT_NGUON_D",
+  "row_index_base": 7960000,
+  "khoi": "Khối KD Vận tải Taxi Xanh",
+  "chi_nap_tu_ngay": "2026-09-16",
+  "source_file_hau_to": "HQKD",
+  "nguon": {
+    "folder": "XANHVINHPHUC/baocaohqkdngay",
+    "file_glob": "B.6.XVP.D.????????.Baocaotaichinhrieng.xlsx",
+    "sheet": { "ten": "HQKD" }
+  },
+  "header": { "tim_o": "CHỈ TIÊU" },
+  "ngay_tu_ten_file": { "regex": "\\.D\\.(\\d{4})(\\d{2})(\\d{2})\\.", "thu_tu": "ymd" },
+  "chi_lay_ngay_cua_file": true,
+  "cot": { "dim1": { "cot": "A", "chuan_hoa": "xvp_nhan_doanh_thu" } },
+  "chieu_co_dinh": { "cong_ty": "XVP" },
+  "vung": [
+    { "ten": "Tổng", "cot": { "amount": { "header": "Tổng cộng", "kieu": "so", "he_so": 1e-9 } } },
+    { "ten": "Depot Vĩnh Phúc", "chieu_co_dinh": { "cong_ty": "XVP", "cost_center": "VP_DP" },
+      "cot": { "amount": { "header": "Depot Vĩnh Phúc", "kieu": "so", "he_so": 1e-9 } } },
+    { "ten": "Depot Phú Thọ", "chieu_co_dinh": { "cong_ty": "XVP", "cost_center": "PT_DP" },
+      "cot": { "amount": { "header": "Depot Phú Thọ", "kieu": "so", "he_so": 1e-9 } } },
+    { "ten": "Depot Tuyên Quang", "chieu_co_dinh": { "cong_ty": "XVP", "cost_center": "TQ_DP" },
+      "cot": { "amount": { "header": "Depot Tuyên Quang", "kieu": "so", "he_so": 1e-9 } } }
+  ],
+  "loc": [
+    { "cot": "dim1", "dieu_kien": "khac_rong" },
+    { "cot": "ngay", "dieu_kien": "khac_rong" }
+  ],
+  "payload_them": { "unit": "ty" }
+}
