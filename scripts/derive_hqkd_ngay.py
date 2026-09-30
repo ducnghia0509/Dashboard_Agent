@@ -1667,6 +1667,50 @@ def _snap_cdps_facts(rows, congno_tong=False):
     return facts
 
 
+def _ten_sheet_that(wb, ten):
+    """Tên khai trong cấu hình -> tên sheet THẬT trong workbook, khớp không phân biệt hoa/thường.
+
+    Ca thật An KS (30/09/2026): từ file `.D.20260926.` KT lưu sheet thành `kqkd`/`cdkt`/`lctt`/
+    `cdps` chữ thường (28/09 lại `CDPS` hoa), trong khi `_UNITS` khai `KQKD`/`CDKT`/`CDPS`. So khớp
+    cứng làm cả P&L lẫn số dư 26→28/09 bị bỏ với lý do "không có sheet 'CDKT'" mà rc vẫn 0.
+    Khớp đúng tên trước (không đổi hành vi cũ), không thấy mới hạ về so casefold + bỏ khoảng trắng.
+    """
+    co = wb.sheetnames or []
+    if ten is None or ten in co:
+        return ten
+    k = str(ten).strip().casefold()
+    return next((s for s in co if s.strip().casefold() == k), ten)
+
+
+_TK_CONGNO_RE = re.compile(r"t[aà]i\s*kho[aả]n\s*:?\s*(131|331)\b", re.I)
+_TK_CONGNO = {"pthu": "131", "ptra": "331"}
+
+
+def _khop_sheet_sodu(wb, ten_sheet):
+    """`sheet_sodu` của đơn vị -> cùng dict nhưng trỏ vào tên sheet THẬT của workbook này.
+
+    Hai sổ công nợ nhận theo RUỘT trước, tên sau: file An KS `.D.20260928.` đặt NGƯỢC tên — sheet
+    "131" chứa "Tài khoản: 331" (phải trả NCC), sheet "331" chứa "Tài khoản: 131" (phải thu). Đi
+    theo tên là phải thu/phải trả tráo cho nhau mà không lỗi nào nổ. Chỉ nhận theo ruột khi ĐÚNG
+    MỘT sheet khai tài khoản đó trong 3 dòng đầu; không thì lùi về tên như cũ.
+    """
+    out = {k: _ten_sheet_that(wb, v) for k, v in (ten_sheet or {}).items()}
+    khai = {}
+    for s in wb.sheetnames or []:
+        try:
+            dau = " ".join(str(c) for r in wb[s].iter_rows(max_row=3, max_col=4, values_only=True)
+                           for c in r if c is not None)
+        except Exception:
+            continue
+        m = _TK_CONGNO_RE.search(dau)
+        if m:
+            khai.setdefault(m.group(1), []).append(s)
+    for khoa, tk in _TK_CONGNO.items():
+        if out.get(khoa) and len(khai.get(tk, [])) == 1:
+            out[khoa] = khai[tk][0]
+    return out
+
+
 def _snap_sodu_facts(wb, ten_sheet, mau_cdkt=None, chi_so_du=False):
     """workbook -> [fact] CẢ CỤM SỐ DƯ (công nợ phải thu/trả, CĐKT, TS-NV, bảng cân đối phát sinh).
 
@@ -1674,6 +1718,7 @@ def _snap_sodu_facts(wb, ten_sheet, mau_cdkt=None, chi_so_du=False):
     `_snap_doc_ky`, thêm đơn vị thứ hai là phải chép đôi.
     """
     co = set(wb.sheetnames or [])
+    ten_sheet = _khop_sheet_sodu(wb, ten_sheet)
 
     def rows(sn):
         return [list(r) for r in wb[sn].iter_rows(values_only=True)]
@@ -1752,6 +1797,7 @@ def _sodu_ngay_cua_wb(wb, ten_sheet, ten_file, o_ngay_tu_o=False, ngay_tu_ten_fi
        nào là kỳ), và ngày đó phải TRÙNG 8 số trong tên file — hai nguồn độc lập cùng nói một
        ngày thì mới nhận. Lệch nhau là loại và nói ra, không chọn bên nào.
     """
+    ten_sheet = {k: _ten_sheet_that(wb, v) for k, v in (ten_sheet or {}).items()}
     sn = ten_sheet.get("cdkt") or ten_sheet.get("cdps")
     if sn not in (wb.sheetnames or ()):
         return None, f"không có sheet '{sn}'"
@@ -2142,7 +2188,7 @@ def _sodu_trong_chinh_file(path, period, unit):
                           f"cộng đôi với file đúng tên"}}
         facts = _snap_sodu_facts(wb, ten_sheet, _MAU_CDKT.get(unit.get("mau_cdkt", "b01dn")),
                                  chi_so_du=(vi_sao == "luy_ke"))
-        sn_cdkt = ten_sheet.get("cdkt")
+        sn_cdkt = _ten_sheet_that(wb, ten_sheet.get("cdkt"))
         if ((unit.get("tonkho_ngay") or {}).get("kieu") == "cdkt_140"
                 and sn_cdkt in (wb.sheetnames or ())):
             hh = _hh_ngay_cdkt140([list(r) for r in wb[sn_cdkt].iter_rows(values_only=True)],
@@ -2347,8 +2393,9 @@ def _anks_b02_facts(wb, sheet):
     tong_cp = dt - lntt
     gia_von = m.get("11", 0)
     luong = 0.0
-    if "CDPS" in wb.sheetnames:
-        cd = [list(r) for r in wb["CDPS"].iter_rows(values_only=True)]
+    sn_cdps = _ten_sheet_that(wb, "CDPS")
+    if sn_cdps in wb.sheetnames:
+        cd = [list(r) for r in wb[sn_cdps].iter_rows(values_only=True)]
         ps_i = next((i for i, r in enumerate(cd[:15]) if any(_nd(c) == "phat sinh" for c in r)), None)
         if ps_i is not None:
             j_no = next(j for j, c in enumerate(cd[ps_i]) if _nd(c) == "phat sinh")
@@ -2427,7 +2474,8 @@ def _pl_quet_thu_muc(path, period, unit, da_co, thang_theo_ngay=None):  # noqa: 
     """
     _quy_xlsb_thu_muc(os.path.dirname(os.path.abspath(path)), period)
     cau_hinh = unit["pl_ho_file_rieng"]
-    sheet_pl, sheet_ky = cau_hinh["sheet"], cau_hinh.get("sheet_ky") or cau_hinh["sheet"]
+    sheet_pl_khai = cau_hinh["sheet"]
+    sheet_ky_khai = cau_hinh.get("sheet_ky") or cau_hinh["sheet"]
     thu_muc = os.path.dirname(os.path.abspath(path))
     gop, bo_qua = {}, []
     # `chan_luy_ke` (Dự án): file không khai kỳ -> bản luỹ kế nhận ra bằng số. Doanh thu của file
@@ -2451,6 +2499,7 @@ def _pl_quet_thu_muc(path, period, unit, da_co, thang_theo_ngay=None):  # noqa: 
             bo_qua.append({"file": ten, "vi_sao": f"không mở được ({type(e).__name__})"})
             continue
         try:
+            sheet_pl, sheet_ky = _ten_sheet_that(wb, sheet_pl_khai), _ten_sheet_that(wb, sheet_ky_khai)
             if sheet_pl not in wb.sheetnames or sheet_ky not in wb.sheetnames:
                 bo_qua.append({"file": ten, "vi_sao": f"không có sheet '{sheet_pl}'/'{sheet_ky}'"})
                 continue
