@@ -60,6 +60,7 @@ FOLDER_MAP = {
     "ANKHACHSAN":        ("Dịch vụ An KS", "AAG", "Dịch vụ An KS"),
     "XANHVINHPHUC":      ("Xanh Vĩnh Phúc", "XVP", "Vận tải Taxi Xanh"),
     "HTXXANHTUYENQUANG": ("HTX Xanh Tuyên Quang", "HTX_XTQ", "Vận tải Taxi Xanh"),
+    "HTXXANHPHUTHO": ("HTX Xanh PT", "HTX_XPT", "Vận tải Taxi Xanh"),
     "HTXXANHVINHPHUC":   ("HTX Xanh Vĩnh Phúc", "HTX_XVP", "Vận tải Taxi Xanh"),
 }
 

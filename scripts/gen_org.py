@@ -37,6 +37,7 @@ _ALIASES_FALLBACK = {
     "XVP": ["xanh vĩnh phúc", "xanh vp", "xvp"],
     "HTX_XVP": ["hợp tác xã vận tải xanh vĩnh phúc", "htx vĩnh phúc"],
     "HTX_XTQ": ["hợp tác xã vận tải xanh tuyên quang", "htx tuyên quang"],
+    "HTX_XPT": ["hợp tác xã vận tải xanh pt", "htx xanh pt", "htx phú thọ"],
     "HT": ["hưng thịnh", "ht"],
     # Thêm 2026-09-21 cùng lúc với cost center XT_E_SM (danh mục kế toán bản 18/09/2026).
     # Nguồn ghi tên KHÔNG DẤU ("Cong ty The gioi xe tai dien") nên khai cả hai lối viết.

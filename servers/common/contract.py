@@ -462,6 +462,9 @@ _COMPANY_FOLDER_ALIAS = {
     # Khối Vận tải Taxi Xanh (khối 6) — 3 pháp nhân RIÊNG cùng nộp 'B.6.XVP...' -> BẮT BUỘC tách
     # theo thư mục (tín hiệu duy nhất phân biệt được):
     "HTXXANHTUYENQUANG": "HTX_XTQ",   # HTX Vận tải Xanh Tuyên Quang
+    # HTX Vận tải Xanh PT (Phú Thọ) — nối 30/09/2026. Máy quét .253 CHƯA chào thư mục nguồn
+    # BCTC_HTX_XANHPT; thư mục received_reports 'HTXXANHPHUTHO' do lượt kéo tay /request-file đặt.
+    "HTXXANHPHUTHO": "HTX_XPT",
     "HTXXANHVINHPHUC": "HTX_XVP",     # HTX Vận tải Xanh Vĩnh Phúc
     "XANHVINHPHUC": "XVP",            # Cty CP Công nghệ và dịch vụ Xanh Vĩnh Phúc
     # Các thư mục ĐƠN-PHÁP-NHÂN còn lại (mỗi thư mục = 1 pháp nhân, đã đối chiếu trust_me_bro.xlsx
