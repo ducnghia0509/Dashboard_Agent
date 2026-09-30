@@ -4487,6 +4487,22 @@ def _derive_congno(file_path: str, sheet: str, canonical_kind: str, period: str,
     from servers import template_filler as tf
     from servers.common import be_bridge as bb
 
+    # TÊN SHEET NGƯỢC (An Taxi T12/2025: sheet '131' khai "Tài khoản: 331", sheet '331' khai 131 —
+    # cùng bệnh An KS 28/09): router gán loại theo TÊN nên phải thu/phải trả tráo nhau. Sổ tự khai
+    # đúng TK của loại KIA -> nạp theo tài khoản nó khai. (Khai TK khác hẳn, vd 338, xử lý ở dưới.)
+    try:
+        from servers.common import be_bridge as _bb0
+        _wb0 = _bb0.fast_load_workbook(file_path, read_only=True, data_only=True)
+        _dau0 = [list(r) for r in _wb0[sheet].iter_rows(max_row=12, values_only=True)]
+        _wb0.close()
+        _k0 = next((m.group(1) for r in _dau0 for c in r if isinstance(c, str)
+                    for m in [_re_bcqt.search(r"t[aà]i\s*kho[aả]n\s*:?\s*(\d{3,})", c.lower())] if m), None)
+        if _k0 and canonical_kind == "TK131" and _k0.startswith("331"):
+            canonical_kind = "TK331"
+        elif _k0 and canonical_kind == "TK331" and _k0.startswith("131"):
+            canonical_kind = "TK131"
+    except Exception:  # noqa: BLE001 — không đọc được đầu sheet thì giữ loại router gán
+        pass
     spec = _CONGNO_IDENTITY.get(canonical_kind)
     if not spec:
         return {"ok": False, "error": f"chưa hỗ trợ identity cho {canonical_kind}"}
@@ -4506,6 +4522,25 @@ def _derive_congno(file_path: str, sheet: str, canonical_kind: str, period: str,
     finally:
         wb.close()
     norm = lambda v: bb.normalize_header(v, True)  # noqa: E731
+
+    # SỔ TỰ KHAI "Tài khoản: NNN" KHÁC TK GỐC -> KHÔNG phải sổ phải thu/phải trả khách hàng-NCC.
+    # Ca thật (bug.xlsx KSNB 30/09/2026): sheet 'THCN PHẢI TRẢ' của HTX Tuyên Quang 2025 (và mọi tháng
+    # của HTX Xanh PT) là sổ TK 338 (dòng tiêu đề ghi "Tài khoản: 338 Phải trả cho người bán") —
+    # CĐKT xếp khoản đó vào mã 360 'Phải trả khác', mã 310 'Phải trả người bán' = 0. Router nhận sheet
+    # theo TÊN nên nạp nhầm thành PTRA (T12/2025: 6.566.000 thay vì 1.500.280). Dọn dòng cũ của CHÍNH
+    # file+kỳ (lượt nạp trước đã lỡ ghi) rồi dừng; sổ không khai tài khoản thì giữ hành vi cũ.
+    _tk_goc = {"TK131": "131", "TK331": "331"}.get(canonical_kind)
+    _tk_khai = next((m.group(1) for r in rows[:12] for c in r if isinstance(c, str)
+                     for m in [_re_bcqt.search(r"t[aà]i\s*kho[aả]n\s*:?\s*(\d{3,})", c.lower())] if m), None)
+    if _tk_goc and _tk_khai and not _tk_khai.startswith(_tk_goc):
+        _twin, _adv, _ = _ADV_CUA[canonical_kind]
+        _db = bb.db.get_db()
+        _src = _source_id(file_path)
+        _db.execute("DELETE FROM raw_rows WHERE source_file=? AND period_month=? AND "
+                    "(report_type=? OR (report_type=? AND payload LIKE ?))",
+                    (_src, period, _twin, _adv, '%"bu_rong": true%'))
+        _db.commit()
+        return {"ok": False, "error": f"sổ khai 'Tài khoản: {_tk_khai}' ≠ TK {_tk_goc} -> không nạp {_twin}"}
 
     # SỔ TỔNG HỢP GỘP NHIỀU TK (vd HTX 'THCN PHẢI THU' = TK 131+138; 'THCN PHẢI TRẢ' = 331+338): có
     # CỘT 'TÀI KHOẢN' đánh dấu TK từng dòng. Phải LỌC đúng TK gốc (131 phải thu / 331 phải trả), loại
