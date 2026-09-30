@@ -3985,8 +3985,10 @@ def _derive_cdkt(file_path: str, sheet: str, period: str, cong_ty: str):
     # Ghi tag "T5_NG_<i>"/"T5_HM_<i>" (i=1..5, thứ tự _T5_CATS) vào cột "Ghi chú" — field pass-
     # through GENERIC, importer không validate whitelist (xem _parse_07_taisan_nv) -> asset_extras()
     # (DashBoard_AI/backend/app/metrics_extra.py) đọc lại theo tag mới, ưu tiên T5_* nếu có dữ liệu.
+    # Phần tử thứ 6 "Tài sản khác" (tag T5_NG_6/T5_HM_6) khớp `_T5_ORDER` của asset.py — Dự án/HO
+    # ghi tag này từ sổ TS (derive_tscd_hetkhauhao), SRVF ghi từ CĐPS TK 2118+2138 (mapping 30/09/2026).
     _T5_CATS = ["Nhà cửa, vật kiến trúc", "Máy móc, thiết bị", "Phương tiện vận tải, truyền dẫn",
-                "Thiết bị, dụng cụ quản lý", "Chương trình phần mềm"]
+                "Thiết bị, dụng cụ quản lý", "Chương trình phần mềm", "Tài sản khác"]
 
     def _t5_ng(idx, val):
         if val is None:
@@ -4161,28 +4163,25 @@ def _derive_cdkt(file_path: str, sheet: str, period: str, cong_ty: str):
                 _t5_hm(1, abs(_hm))
                 _t5_hm_tang(1, _by_ma["223"].get("PS tăng trong kỳ (tỷ)"))
     elif _src == "SRVF":
-        _t5_ng(0, _sum_opt(_cuoi_no({"2111"}), _cuoi_no({"2131"})))
-        _t5_ng(1, _sum_opt(_cuoi_no({"2112"}), _cuoi_no({"2132"}), _cuoi_no({"2134"}), _cuoi_no({"2118"})))
-        _t5_ng(2, _cuoi_no({"2113"}))
-        _t5_ng(4, _sum_opt(_cuoi_no({"2114"}), _cuoi_no({"2135"})))
-        # (*) spec gốc ghi 'TK 2111+2132+2134+2118' cho Tăng NG nhóm Máy móc — coi là lỗi đánh máy
-        # (chart 1 dùng 2112, không phải 2111 cho nhóm này) -> dùng 2112 để nhất quán NG/Tăng NG.
-        _t5_tang(0, _sum_opt(_tang({"2111"}), _tang({"2131"})))
-        _t5_tang(1, _sum_opt(_tang({"2112"}), _tang({"2132"}), _tang({"2134"}), _tang({"2118"})))
-        _t5_tang(2, _tang({"2113"}))
-        _t5_tang(4, _sum_opt(_tang({"2114"}), _tang({"2135"})))
-        _t5_giam(0, _sum_opt(_giam({"2111"}), _giam({"2131"})))
-        _t5_giam(1, _sum_opt(_giam({"2112"}), _giam({"2132"}), _giam({"2134"}), _giam({"2118"})))
-        _t5_giam(2, _giam({"2113"}))
-        _t5_giam(4, _sum_opt(_giam({"2114"}), _giam({"2135"})))
-        _t5_hm(0, _sum_opt(_cuoi_co_abs({"21411"}), _cuoi_co_abs({"21431"})))
-        _t5_hm(1, _sum_opt(_cuoi_co_abs({"21412"}), _cuoi_co_abs({"21433"}), _cuoi_co_abs({"21418"})))
-        _t5_hm(2, _cuoi_co_abs({"21413"}))
-        _t5_hm(4, _sum_opt(_cuoi_co_abs({"21414"}), _cuoi_co_abs({"21435"})))
-        _t5_hm_tang(0, _sum_opt(_kh({"21411"}), _kh({"21431"})))
-        _t5_hm_tang(1, _sum_opt(_kh({"21412"}), _kh({"21433"}), _kh({"21418"})))
-        _t5_hm_tang(2, _kh({"21413"}))
-        _t5_hm_tang(4, _sum_opt(_kh({"21414"}), _kh({"21435"})))
+        # MAPPING 30/09/2026 (sheet "CĐPS (sau tháng 6)", 6 loại). Bản cũ gộp 2134+2118 vào Máy móc
+        # và 2114 vào Phần mềm, thiếu hẳn "Thiết bị, dụng cụ quản lý" lẫn "Tài sản khác".
+        # "(sau tháng 6)" = từ T06/2026 kế toán tách 2138/21438 (0,27 tỷ NG / 0,097 tỷ HM chuyển từ
+        # 2118/21418). Trước T06 hai TK này không có dòng nào nên CÙNG bộ công thức đúng cho mọi kỳ —
+        # dùng chung một bộ để loại tài sản giữa các kỳ khớp nhau (Tăng NG ở asset.py = NG kỳ này −
+        # NG kỳ trước theo từng loại, tức PS Nợ − PS Có của đúng các TK dưới đây).
+        # (nhóm, TK nguyên giá, TK hao mòn)
+        _SRVF_T5 = ((0, {"2111", "2131"}, {"21411", "21431"}),
+                    (1, {"2112", "2132"}, {"21412"}),
+                    (2, {"2113"}, {"21413", "21433"}),
+                    (3, {"2114", "2134"}, {"21414"}),
+                    (5, {"2118", "2138"}, {"21418", "21438"}),
+                    (4, {"2135"}, {"21435"}))
+        for _i, _ng_tk, _hm_tk in _SRVF_T5:
+            _t5_ng(_i, _sum_opt(*(_cuoi_no({t}) for t in sorted(_ng_tk))))
+            _t5_tang(_i, _sum_opt(*(_tang({t}) for t in sorted(_ng_tk))))
+            _t5_giam(_i, _sum_opt(*(_giam({t}) for t in sorted(_ng_tk))))
+            _t5_hm(_i, _sum_opt(*(_cuoi_co_abs({t}) for t in sorted(_hm_tk))))
+            _t5_hm_tang(_i, _sum_opt(*(_kh({t}) for t in sorted(_hm_tk))))
     elif _src == "XANHVINHPHUC":
         # Spec gán TOÀN BỘ TSCĐ Xanh VP vào nhóm "Phương tiện vận tải" (mã CĐKT 222/223, không có
         # sheet CĐPS riêng — giống cơ chế Chart 1 4-nhóm cũ ở trên).
