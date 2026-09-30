@@ -138,6 +138,7 @@ _ALIAS_NHOM = {
     "GLOBALAI": ["globalai", "global ai"],
     "XANHVINHPHUC": ["xanhvinhphuc", "xanh vinh phuc"],
     "HTXXANHTUYENQUANG": ["htxxanhtuyenquang", "htx tuyen quang", "xanh tuyen quang"],
+    "HTXXANHPHUTHO": ["htxxanhphutho", "htx xanh pt", "htx phu tho", "xanh phu tho"],
     "HTXXANHVINHPHUC": ["htxxanhvinhphuc", "htx vinh phuc", "xanh vinh phuc"],
     "HUNGTHINH": ["hungthinh", "hung thinh"],
     "THUCHI": ["thuchi", "thu chi"],

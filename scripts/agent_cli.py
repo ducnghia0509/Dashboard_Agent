@@ -3020,7 +3020,7 @@ def _derive_thue(file_path: str, sheet: str, period: str, cong_ty: str):
     from servers.common import be_bridge as bb
     _thue_src = _source_id(file_path).split("::", 1)[0].upper()
     _thue333_map = (_THUE333_MAP_HO if _thue_src == "HO"
-                    else _THUE333_MAP_HTX if _thue_src in ("HTXXANHTUYENQUANG", "HTXXANHVINHPHUC")
+                    else _THUE333_MAP_HTX if _thue_src in ("HTXXANHTUYENQUANG", "HTXXANHVINHPHUC", "HTXXANHPHUTHO")
                     else _THUE333_MAP)
     mp, _meta = _heuristic_tk_mapping(file_path, sheet, "CDPS")   # tái dùng dò 2 tầng Nợ/Có
     if not mp:

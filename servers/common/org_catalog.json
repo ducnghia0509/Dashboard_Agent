@@ -107,6 +107,15 @@
       ]
     },
     {
+      "ma": "HTX_XPT",
+      "ten": "Hợp tác xã Vận tải Xanh PT",
+      "aliases": [
+        "hợp tác xã vận tải xanh pt",
+        "htx xanh pt",
+        "htx phú thọ"
+      ]
+    },
+    {
       "ma": "HT",
       "ten": "Công ty TNHH Xuất nhập khẩu và khai thác Hưng Thịnh",
       "aliases": [
@@ -298,6 +307,12 @@
       "ma": "TQ_HTX",
       "ten": "HTX Tuyên Quang",
       "cong_ty": "HTX_XTQ",
+      "khoi": "6"
+    },
+    {
+      "ma": "PT_HTX",
+      "ten": "HTX Xanh PT",
+      "cong_ty": "HTX_XPT",
       "khoi": "6"
     },
     {

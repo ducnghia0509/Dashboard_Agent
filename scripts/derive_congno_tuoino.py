@@ -96,6 +96,7 @@ _UNITS = {
     # field hạn-nợ nên đổi mode KHÔNG làm mất số ở chart "aging" như trước khi thêm tính năng đó.
     "XANHVINHPHUC": ("XVP", "Khối KD Vận tải Taxi Xanh", "hanno"),
     "HTXXANHTUYENQUANG": ("HTX_XTQ", "Khối KD Vận tải Taxi Xanh", "hanno"),
+    "HTXXANHPHUTHO": ("HTX_XPT", "Khối KD Vận tải Taxi Xanh", "hanno"),
     "HTXXANHVINHPHUC": ("HTX_XVP", "Khối KD Vận tải Taxi Xanh", "hanno"),
     # HO: file "Báo cáo tuổi nợ" thật đã có (2026-08-08) nhưng KHÔNG có dòng khách hàng nào (toàn bộ
     # cột Mã khách/Tổng nợ phải thu rỗng ở mọi kỳ 202601-202606, verify trực tiếp trên file) -> để
