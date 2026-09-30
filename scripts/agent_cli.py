@@ -3752,7 +3752,12 @@ def _derive_cdkt(file_path: str, sheet: str, period: str, cong_ty: str):
     # HTX (Thông tư 71/2024, Mẫu B01-HTX): chart PHẲNG — TÀI SẢN không tách ngắn/dài hạn; mã 200='TỔNG
     # CỘNG TÀI SẢN' (TT200 thì 200='TS dài hạn'), 500='TỔNG NGUỒN VỐN', 300/400=Nợ/Vốn (TỔNG). Map RIÊNG:
     # 110-140→TS ngắn hạn, 150-180→TS dài hạn, 300→Nợ phải trả, 400→Vốn chủ; tổng(200/500)+leaf bỏ trống.
+    # Mã 175 '8. Phải thu khác' (bản CĐKT HTX phát hành lại 28-30/09/2026 — tách khỏi mã 130 mà trước
+    # đây là '3. Các khoản phải thu' gộp, nay chỉ còn 'Phải thu khách hàng'): khoản mục CẤP 1 được cộng
+    # vào tổng 200 (dù công thức in trên dòng tổng không ghi) -> phải thu NGẮN hạn như 130. Không tag
+    # là mất 963 tr (HTX Xanh VP T08) khỏi cơ cấu TS ngắn hạn và khỏi phải thu trên màn Công nợ.
     _GRP_BY_MA_HTX = {"110": "TS ngắn hạn", "120": "TS ngắn hạn", "130": "TS ngắn hạn", "140": "TS ngắn hạn",
+                      "175": "TS ngắn hạn",
                       "150": "TS dài hạn", "160": "TS dài hạn", "170": "TS dài hạn", "180": "TS dài hạn",
                       "300": "Nợ phải trả", "400": "Vốn chủ"}
     _NHOM_COL = "Nhóm (TS ngắn hạn/TS dài hạn/Nợ phải trả/Vốn chủ)"
@@ -4547,7 +4552,7 @@ def _derive_congno(file_path: str, sheet: str, canonical_kind: str, period: str,
             return None
         return round((p or 0) - (n or 0), 9)
 
-    records = []
+    records, adv_recs = [], []
     for ri in range(mp["data_start_row"], len(rows)):
         r = rows[ri]
         if tk_col is not None and _tk_target:   # lọc đúng TK gốc, loại TK khác (138/338/…)
@@ -4555,6 +4560,11 @@ def _derive_congno(file_path: str, sheet: str, canonical_kind: str, period: str,
             if _tkv and not _tkv.startswith(_tk_target):
                 continue
         name = bb.parse_text(r[name_i]) if name_i < len(r) else None
+        # Đối tượng CÓ mã nhưng TRỐNG tên (HTX Tuyên Quang T07/2026: khách '21H02676' dư Có
+        # 1.800.000 — đúng khoản CĐKT mã 320 'Người mua trả tiền trước') -> lấy mã làm tên. Bỏ qua
+        # như trước là mất trắng cả dòng. Dòng tổng vẫn bị loại ở dưới (mã 'Tổng' / lọc TK).
+        if not name and code_i is not None and code_i < len(r):
+            name = bb.parse_text(r[code_i])
         if not name:
             continue
         _rawnm = str(name).strip().lower()   # PHÂN BIỆT DẤU: 'cộng'(tổng) ≠ 'công'(công ty)
@@ -4582,15 +4592,61 @@ def _derive_congno(file_path: str, sheet: str, canonical_kind: str, period: str,
             rec[spec["dec_col"]] = num(r, dec_i)
         if any(v not in (None, "") for k, v in rec.items() if k not in ("Kỳ", "Đơn vị")):
             records.append(rec)
+            # Dư NGƯỢC chiều của đối tượng (TK131 dư Có / TK331 dư Nợ) — đầu + cuối kỳ, đọc từ ĐÚNG
+            # dòng vừa lấy (cùng bộ lọc TK, cùng loại dòng tổng) -> ghi PTHU_ADV/PTRA_ADV ở dưới.
+            _ob, _oo = num(r, role_idx.get(spec["bal_opp"])), num(r, role_idx.get(spec["open_opp"]))
+            if abs(_ob or 0) >= 1e-9 or abs(_oo or 0) >= 1e-9:
+                adv_recs.append({"ten": name, "ma": rec.get("Mã đối tượng"), "cuoi": _ob or 0.0,
+                                 "dau": (None if meta.get("partial") else (_oo or 0.0))})
     if not records:
         return {"ok": False, "error": "không bóc được dòng công nợ nào"}
 
     out = os.path.join(tf.FILLED_DIR, f"{canonical_kind}_{period}_{cong_ty or 'NA'}_{spec['target']}.xlsx")
     tf.fill(spec["target"], records, out)
     imp = tf.import_filled(out, cong_ty=cong_ty, khoi=_khoi_of(file_path), source_file=_source_id(file_path))
+    adv = _ghi_congno_nguoc_chieu(file_path, period, canonical_kind, adv_recs) \
+        if imp.get("rows_imported") else None
     return {"ok": bool(imp.get("rows_imported")), "rows": imp.get("rows_imported"),
             "target": spec["target"], "report_type": spec["target"],
-            "partial_dau_ky": bool(meta.get("partial")), "out": out}
+            "partial_dau_ky": bool(meta.get("partial")), "out": out, "nguoc_chieu": adv}
+
+
+# Dư NGƯỢC chiều của sổ công nợ (bug.xlsx KSNB 30/09/2026). `_derive_congno` lưu PTHU/PTRA là số dư
+# RÒNG từng đối tượng (để bảng biến động cân, xem `_CONGNO_IDENTITY`), nên khoản khách ứng trước /
+# mình ứng trước NCC bị TRỪ thẳng vào phải thu/phải trả, còn thẻ "Người mua trả trước"/"Trả trước
+# NCC" để trắng — chỉ đúng ở SRVF/GA vì hai đơn vị đó có deriver ADV riêng. An Taxi T01: phải trả
+# hiện 768.477.172 thay vì 1.821.937.182 (= Có TK 331), trả trước 1.053.460.010 mất hẳn.
+# Ghi dư ngược chiều GỘP của từng đối tượng (không suy từ dấu số ròng: đối tượng dư CẢ Nợ lẫn Có —
+# An Taxi 131 từ T05, 435 đ — thì số ròng xoá mất cả hai) thành PTHU_ADV/PTRA_ADV mang cờ
+# `bu_rong`: debt.py cộng lại vào PTHU/PTRA để ra đúng dư Nợ 131 / dư Có 331, và chỉ cộng các dòng
+# có cờ này — ADV của SRVF/GA (PTHU/PTRA của chúng vốn đã một chiều) không bị cộng đôi.
+_ADV_CUA = {"TK131": ("PTHU", "PTHU_ADV", "TK131 dư Có"), "TK331": ("PTRA", "PTRA_ADV", "TK331 dư Nợ")}
+
+
+def _ghi_congno_nguoc_chieu(file_path, period, canonical_kind, recs):
+    twin, adv_rt, nguon = _ADV_CUA[canonical_kind]
+    from servers.common import be_bridge as bb
+    db = bb.db.get_db()
+    src = _source_id(file_path)
+    t = db.execute("SELECT dataset_id, ngay, khoi, cong_ty FROM raw_rows WHERE source_file=? "
+                   "AND period_month=? AND report_type=? LIMIT 1", (src, period, twin)).fetchone()
+    if not t:
+        return {"ok": False, "error": f"không thấy {twin} vừa nạp"}
+    # Chỉ dọn dòng do CHÍNH đường này ghi (cờ bu_rong) — không đụng ADV của deriver khác.
+    db.execute("DELETE FROM raw_rows WHERE source_file=? AND period_month=? AND report_type=? "
+               "AND payload LIKE ?", (src, period, adv_rt, '%"bu_rong": true%'))
+    for k, r in enumerate(recs):
+        db.execute(
+            "INSERT INTO raw_rows (dataset_id, report_type, row_index, ngay, cong_ty, khoi, cost_center, "
+            "period_month, amount, amount2, dim1, dim2, dim3, payload, source_file) "
+            "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            (t["dataset_id"], adv_rt, 6500000 + k, t["ngay"], t["cong_ty"], t["khoi"], None, period,
+             round(r["cuoi"], 9), None, r["ten"], None, None,
+             json.dumps({"ma_dt": r["ma"], "du_dau": r["dau"], "unit": "ty", "nguon": nguon,
+                         "bu_rong": True}, ensure_ascii=False), src))
+    db.commit()
+    return {"ok": True, "report_type": adv_rt, "rows": len(recs),
+            "tong": round(sum(r["cuoi"] for r in recs), 9)}
 
 
 def _analyst_propose_prompt(file_path: str, sheet: str) -> str:
