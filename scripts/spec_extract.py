@@ -1638,6 +1638,22 @@ def run_for_path(path, write=False):
                      "canh_bao": [f"{os.path.basename(path)}: .xlsb và CHUYỂN ĐỔI HỎNG"
                                   " — file này chưa vào DB"]}]
         path = moi
+    # `.xls` đời cũ — CÙNG BỆNH với `.xlsb` ở trên (02/10/2026): kế toán gửi lại BCTC riêng SR ngày
+    # 30/09 dạng `.Xls`, cron autofill đưa đúng đường dẫn `.Xls` vào đây, `quet_nguon` chỉ trả bản
+    # `.xlsx` nên mọi spec rơi vào "BỎ QUA — đã có bản MỚI HƠN" và số sửa không vào DB.
+    # Ca thứ hai cùng lượt: file mang đuôi `.xlsx` nhưng ruột là Excel 97-2003 (CDKT SR 30/09) ->
+    # openpyxl nổ. Đổi đuôi về `.xls` rồi chuyển như trên; `source_file` vẫn là tên `.xlsx`.
+    elif path.lower().endswith(".xlsx") and _la_xls_cu(path):
+        goc = os.path.splitext(path)[0] + ".xls"
+        os.replace(path, goc)
+        path = goc
+    if path.lower().endswith(".xls"):
+        moi = _chuyen_xls_cu(path)
+        if not moi:
+            return [{"file": os.path.basename(path), "dong": 0,
+                     "canh_bao": [f"{os.path.basename(path)}: .xls và CHUYỂN ĐỔI HỎNG"
+                                  " — file này chưa vào DB"]}]
+        path = moi
     ket_qua = []
     for sp in specs_for_path(path):
         # BỎ QUA BẢN ĐÃ BỊ THAY THẾ. Hàm này nạp ĐÚNG file được đưa vào, không nhìn sang các file
@@ -2284,6 +2300,15 @@ def _ky_tu_ten_sheet(spec, path, ten_sheet):
         return None, w
     nam = ky[0]
     return dt.date(nam, thang, calendar.monthrange(nam, thang)[1]).isoformat(), w
+
+
+def _la_xls_cu(duong_dan) -> bool:
+    """File có chữ ký OLE2 (Excel 97-2003) bất kể đuôi là gì."""
+    try:
+        with open(duong_dan, "rb") as fh:
+            return fh.read(8) == b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1"
+    except OSError:
+        return False
 
 
 def _chuyen_xls_cu(duong_dan):

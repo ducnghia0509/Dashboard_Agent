@@ -576,6 +576,7 @@ def pick_targets(ctx: Ctx, nguon_list: list, meta: list, periods: list, them_ky:
     `luy_ke` và `anh_chup_ky` đều sinh `losers`, chỉ khác cách định nghĩa slot; `thang` mỗi kỳ
     vốn 1 file nên không sinh.
     """
+    meta = _mot_ban_moi_source_id(ctx, meta, nguon_list)
     by_key = {}
     for nguon in nguon_list:
         # Kỳ mở thêm là RIÊNG TỪNG NGUỒN (xem `ky_cu_co_ban_moi`): mở chung cho cả job là các thư
@@ -669,7 +670,45 @@ def pick_targets(ctx: Ctx, nguon_list: list, meta: list, periods: list, them_ky:
         for o in old:
             ctx.log(f"      loại {o['fileName'][:46]} (chốt {ngay_chot(o['_nguon'], o) or '?'},"
                     f" sửa {o.get('modifiedAt')})")
+    # Xoá theo `source_file` -> bản loại mà CÙNG source_file với một bản đang nạp thì xoá nó là
+    # xoá chính số vừa nạp. `_mot_ban_moi_source_id` đã chặn từ đầu, đây là chốt chặn thứ hai.
+    dang_nap = {source_id(t) for t in targets}
+    losers = [o for o in losers if source_id(o) not in dang_nap]
     return targets, losers
+
+
+def _mot_ban_moi_source_id(ctx: Ctx, meta: list, nguon_list: list) -> list:
+    """Mỗi (công ty, thư mục, source_file) chỉ giữ MỘT entry: bản có giờ tạo/sửa mới nhất.
+
+    Ca thật 02/10/2026: kế toán để bản sửa BCTC riêng 30/09 vào thư mục con '2026-09-30 ver KT'
+    cạnh thư mục gốc -> metadata có HAI entry cho cùng một file (XDV cùng tên; SR `.Xls` cạnh
+    `.xlsx`, cùng `source_file` sau khi chuyển). Để nguyên thì hai bản rơi vào cùng ngày, một bản
+    thành "phát hành lại" và `xoa_ban_cu` xoá theo `source_file` — tức xoá luôn số vừa nạp; còn
+    receiver lưu theo tên file nên bản nào về sau thì đè bản kia, không đoán trước được.
+
+    Lấy max(modifiedAt, createdAt): bản sửa gửi dạng `.Xls` không có `modifiedAt` trong metadata,
+    chỉ `createdAt` (lúc chép vào thư mục) là cho biết nó mới hơn.
+    """
+    def moi(e):
+        return (max(e.get("modifiedAt") or "", e.get("createdAt") or ""),) + _vintage_key(e)
+
+    cua_job = {(n["company"], n["rt"]) for n in nguon_list}
+    nhom = {}
+    for e in meta:
+        if not e.get("fileName") or (e.get("company"), e.get("report_type")) not in cua_job:
+            continue
+        nhom.setdefault((e.get("company"), e.get("report_type"), source_id(e)), []).append(e)
+    bo = set()
+    for (cty, rt, _sid), ds in nhom.items():
+        if len(ds) < 2:
+            continue
+        ds = sorted(ds, key=moi)
+        ctx.log(f"  TRÙNG FILE [{cty}/{rt}] {len(ds)} bản cùng source_file -> giữ"
+                f" {ds[-1].get('path') or ds[-1]['fileName']}")
+        for o in ds[:-1]:
+            ctx.log(f"      bỏ {o.get('path') or o['fileName']}")
+            bo.add(id(o))
+    return [e for e in meta if id(e) not in bo]
 
 
 # ── kéo file ────────────────────────────────────────────────────────────────────────────────
