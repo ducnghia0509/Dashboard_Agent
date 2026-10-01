@@ -3165,14 +3165,24 @@ def _derive_thue_cdkt(file_path: str, sheet: str, period: str, cong_ty: str):
 
 
 def _derive_thue_ht(file_path: str, period: str, cong_ty: str):
-    """TẤT ĐỊNH (HT — Hưng Thịnh, Khối KD Xe tải): sheet 'cđps hợp nhất' là CĐPS HỢP NHẤT 2 pháp
-    nhân con (HT + TC — xem knowledge/khoi_phapnhan_map.yaml khối 5), layout 6 NHÓM cột: 'Số dư đầu
-    kỳ hợp nhất' | 'loại trừ đầu kỳ' | 'Số phát sinh trong kỳ hợp nhất' | 'Số dư cuối kỳ HT' | 'Số dư
-    cuối kỳ TC' | 'CỘNG ... trước hợp nhất' — KHÔNG khớp _heuristic_tk_mapping (2 nhóm). knowledge/
-    HT.yaml (mục thuế) chốt "KHÔNG bù trừ chéo giữa các pháp nhân" -> LẤY RIÊNG cột 'Số dư cuối kỳ
-    HT' (không cộng TC/CỘNG). Đầu kỳ/PS KHÔNG tách được riêng HT trong sheet hợp nhất này (chỉ có
-    bản 'hợp nhất' gộp cả HT+TC) -> "ghim" đầu kỳ = cuối kỳ (tăng=giảm=0): tránh suy đoán biến động
-    sai lẫn giữa 2 pháp nhân, đồng thời vẫn hiển thị ĐÚNG số dư cuối kỳ thực tế của riêng HT."""
+    """TẤT ĐỊNH (HT — Hưng Thịnh, Khối KD Xe tải): thuế từ sheet 'cđps hợp nhất' + 'BCĐKT hợp nhất'.
+
+    SPEC KẾ TOÁN (bug.xlsx 29/09–01/10/2026, áp mọi kỳ/năm) — số HỢP NHẤT, không lấy riêng HT:
+      • PHẢI NỘP (TK 333): cuối kỳ = Dư CÓ cuối kỳ; điều chỉnh tăng = PS CÓ; đã nộp NSNN = PS NỢ.
+      • ĐƯỢC HOÀN (Thuế GTGT được khấu trừ): cuối kỳ = BCĐKT hợp nhất MÃ 152, cột tháng của kỳ;
+        PS lấy từ TK 133 trên CĐPS (tăng = PS Nợ, giảm = PS Có).
+    Bản trước (29/07) lấy cột 'Số dư cuối kỳ HT' + ghim đầu=cuối, PS=0 -> metrics tính phải nộp
+    = cuối tháng TRƯỚC + 0 − 0 nên dashboard luôn chậm 1 tháng, và T06 (tháng duy nhất có cột HT/TC
+    riêng) ra 32,93 tỷ thay vì 46,00 tỷ hợp nhất; không ghi 'Phải thu' -> thẻ được hoàn trống.
+
+    2 bố cục sheet CĐPS:
+      • 2026: header 2 tầng, NHÓM cột đổi vị trí theo tháng (T06 chèn 'cuối kỳ HT'/'TC', T07 bỏ
+        'cộng trước hợp nhất') -> dò theo TÊN nhóm: 'Số dư đầu kỳ (hợp nhất)' | 'Số phát sinh trong
+        kỳ hợp nhất' | 'Số dư cuối kỳ SAU hợp nhất'; cột Nợ = đầu nhóm, Có = kế bên. Chart TT200
+        (33311 GTGT đầu ra, 3335 TNCN).
+      • 2024–2025: header 1 tầng 'Mã TK' | 'Số dư đầu kỳ - Nợ/Có' | 'Số phát sinh - Nợ/Có' | 'Số
+        dư cuối kỳ - Nợ/Có'; chart kiểu HO (3331, 3332, 3337, 3338...) -> _THUE333_MAP_HO.
+    Đẳng thức đã kiểm T03..T08/2026: Có đầu + PS Có − PS Nợ = Có cuối sau hợp nhất (lệch 0)."""
     from servers import template_filler as tf
     from servers.common import be_bridge as bb
     norm = lambda v: bb.normalize_header(v, True)  # noqa: E731
@@ -3183,48 +3193,109 @@ def _derive_thue_ht(file_path: str, period: str, cong_ty: str):
         if sheet is None:
             return {"ok": False, "error": "không thấy sheet CĐPS hợp nhất"}
         rows = [list(r) for r in wb[sheet].iter_rows(values_only=True)]
+        kt_sheet = next((s for s in wb.sheetnames
+                         if "cdkt" in norm(s).replace(" ", "") and "hop nhat" in norm(s)), None)
+        kt_rows = [list(r) for r in wb[kt_sheet].iter_rows(values_only=True)] if kt_sheet else []
     finally:
         wb.close()
-    hdr_i = next((i for i, r in enumerate(rows[:15])
-                  if any("so hieu tai khoan" in norm(c) for c in r)), None)
+
+    def cell(r, i):
+        return r[i] if (i is not None and i < len(r) and isinstance(r[i], (int, float))) else 0.0
+
+    def code_of(r, i):
+        v = r[i] if i < len(r) else None
+        if isinstance(v, float) and v.is_integer():
+            v = int(v)
+        return "" if v in (None, "") else str(v).strip()
+
+    # ---- dò bố cục cột ----
+    hdr_i = code_i = name_i = None
+    col = {}            # vai trò -> chỉ số cột (dau_no/dau_co/ps_no/ps_co/cuoi_no/cuoi_co)
+    for i, r in enumerate(rows[:15]):
+        cells = [norm(c) for c in r]
+        if any("so hieu tai khoan" in c for c in cells):            # bố cục 2026 (2 tầng)
+            hdr_i, code_i = i, next(j for j, c in enumerate(cells) if "so hieu tai khoan" in c)
+            name_i = next((j for j, c in enumerate(cells) if "ten tai khoan" in c), code_i + 1)
+            g_dau = next((j for j, c in enumerate(cells) if "so du dau" in c), None)
+            g_ps = next((j for j, c in enumerate(cells) if "phat sinh" in c), None)
+            g_cuoi = next((j for j, c in enumerate(cells) if "cuoi ky sau hop nhat" in c), None)
+            if None in (g_dau, g_ps, g_cuoi):
+                return {"ok": False, "error": "CĐPS hợp nhất: thiếu nhóm cột đầu kỳ / phát sinh / "
+                                              "cuối kỳ sau hợp nhất"}
+            col = {"dau_no": g_dau, "dau_co": g_dau + 1, "ps_no": g_ps, "ps_co": g_ps + 1,
+                   "cuoi_no": g_cuoi, "cuoi_co": g_cuoi + 1}
+            break
+        if any(c == "ma tk" for c in cells):                          # bố cục 2024–2025 (1 tầng)
+            hdr_i, code_i = i, cells.index("ma tk")
+            name_i = next((j for j, c in enumerate(cells) if "ten tai khoan" in c), code_i + 1)
+            for j, c in enumerate(cells):
+                nhom = ("dau" if "dau ky" in c else "ps" if "phat sinh" in c
+                        else "cuoi" if "cuoi ky" in c else None)
+                chieu = "no" if c.endswith(" no") else "co" if c.endswith(" co") else None
+                if nhom and chieu and "net" not in c:
+                    col.setdefault(f"{nhom}_{chieu}", j)
+            if len(col) < 6:
+                return {"ok": False, "error": "CĐPS hợp nhất (Mã TK): thiếu cột Nợ/Có đầu kỳ/PS/cuối kỳ"}
+            break
     if hdr_i is None:
-        return {"ok": False, "error": "không dò được header (Số hiệu tài khoản)"}
-    hdr = rows[hdr_i]
-    name_i = next((j for j, c in enumerate(hdr) if "ten tai khoan" in norm(c)), 1)
-    # Layout đổi theo tháng (chỉ T06/2026 verify có tách HT/TC riêng): ưu tiên 'Số dư cuối kỳ HT'
-    # (riêng HT, đúng nhất theo yêu cầu không bù trừ chéo pháp nhân) -> fallback 'Số dư cuối kỳ SAU
-    # hợp nhất' (đã trừ nội bộ, số CHÍNH THỨC của cả nhóm khi nguồn không tách được riêng HT — T01-05
-    # không có cột HT/TC) -> fallback 'CỘNG ... trước hợp nhất' (thô hơn, trước loại trừ nội bộ).
-    ht_grp = next((j for j, c in enumerate(hdr) if "cuoi ky ht" in norm(c)), None)
-    if ht_grp is None:
-        ht_grp = next((j for j, c in enumerate(hdr) if "cuoi ky sau hop nhat" in norm(c)), None)
-    if ht_grp is None:
-        ht_grp = next((j for j, c in enumerate(hdr) if "cong" in norm(c) and "cuoi ky" in norm(c)
-                       and "truoc hop nhat" in norm(c)), None)
-    if ht_grp is None:
-        return {"ok": False, "error": "không thấy cột 'Số dư cuối kỳ' (HT/sau hợp nhất/trước hợp nhất)"}
-    cuoi_no_i, cuoi_co_i = ht_grp, ht_grp + 1
+        return {"ok": False, "error": "không dò được header (Số hiệu tài khoản / Mã TK)"}
+    data = [r for r in rows[hdr_i + 1:] if r and code_of(r, code_i)]
+    by_code = {}
+    for r in data:
+        by_code.setdefault(code_of(r, code_i), r)
+    t = lambda r, k: cell(r, col[k]) * 1e-9  # noqa: E731   FULL PRECISION, không round từng dòng
+    thue_map = _THUE333_MAP_HO if ("33311" not in by_code and "3332" in by_code) else _THUE333_MAP
+
     records = []
-    for _tk, _label in _THUE333_MAP.items():
-        r = next((rr for rr in rows[hdr_i + 2:] if rr and str(rr[0]).strip() == _tk), None)
-        if not r:
+    for _tk, _label in thue_map.items():
+        r = by_code.get(_tk)
+        if r is None:
             continue
-        no = r[cuoi_no_i] if cuoi_no_i < len(r) and isinstance(r[cuoi_no_i], (int, float)) else 0.0
-        co = r[cuoi_co_i] if cuoi_co_i < len(r) and isinstance(r[cuoi_co_i], (int, float)) else 0.0
-        cuoi = round((co - no) * 1e-9, 9)
-        # KHÔNG bỏ dòng =0 (khác quy ước chỗ khác): tháng có TK nhưng số 0 thật (vd T01 HT chưa phát
-        # sinh thuế) vẫn phải GHI để kích hoạt atomic-swap xoá bản GHI ĐÈ cũ (nhãn tự do sai) của
-        # tháng đó — nếu bỏ qua, records rỗng -> hàm trả lỗi -> KHÔNG xoá được bản cũ (xem gọi nơi này).
+        # KHÔNG bỏ dòng =0: tháng có TK mà số 0 thật vẫn phải GHI để atomic-swap xoá bản cũ của tháng.
         records.append({"Kỳ": period, "Đơn vị": cong_ty,
                         "Loại thuế (GTGT ra/vào, TNCN, TNDN, NK, khác)": _label,
-                        "Phải thu/Phải nộp": "Phải nộp", "Dư đầu kỳ (tỷ)": cuoi,
-                        "PS tăng (tỷ)": 0.0, "PS giảm (tỷ)": 0.0, "Dư cuối kỳ (tỷ)": cuoi})
+                        "Phải thu/Phải nộp": "Phải nộp", "Dư đầu kỳ (tỷ)": t(r, "dau_co"),
+                        "PS tăng (tỷ)": t(r, "ps_co"), "PS giảm (tỷ)": t(r, "ps_no"),
+                        "Dư cuối kỳ (tỷ)": t(r, "cuoi_co")})
+
+    # ---- được hoàn: cuối kỳ = BCĐKT hợp nhất mã 152 (cột tháng của kỳ), PS từ TK 133 ----
+    r133 = by_code.get("133")
+    y, m = int(period[:4]), int(period[5:7])
+    cuoi152 = None
+    kt_hdr = next((i for i, r in enumerate(kt_rows[:20]) if any(norm(c) == "ma so" for c in r)), None)
+    if kt_hdr is not None:
+        h = kt_rows[kt_hdr]
+        ma_i = next(j for j, c in enumerate(h) if norm(c) == "ma so")
+
+        def _la_thang(v):
+            if hasattr(v, "month") and hasattr(v, "year"):
+                return v.year == y and v.month == m
+            s = norm(v)
+            mt = _re_bcqt.match(r"^thang\s*0?(\d{1,2})$", s)
+            if mt:
+                return int(mt.group(1)) == m
+            mt = _re_bcqt.match(r"^\d{1,2}[/.-](\d{1,2})[/.-](\d{4})$", s)
+            return bool(mt) and int(mt.group(1)) == m and int(mt.group(2)) == y
+        th_i = next((j for j, c in enumerate(h) if _la_thang(c)), None)
+        r152 = next((r for r in kt_rows[kt_hdr + 1:] if code_of(r, ma_i) == "152"), None)
+        if th_i is not None and r152 is not None:
+            cuoi152 = cell(r152, th_i) * 1e-9
+    if r133 is not None or cuoi152 is not None:
+        cuoi = cuoi152 if cuoi152 is not None else (t(r133, "cuoi_no") - t(r133, "cuoi_co"))
+        records.append({"Kỳ": period, "Đơn vị": cong_ty,
+                        "Loại thuế (GTGT ra/vào, TNCN, TNDN, NK, khác)": "Thuế GTGT được khấu trừ",
+                        "Phải thu/Phải nộp": "Phải thu",
+                        "Dư đầu kỳ (tỷ)": (t(r133, "dau_no") - t(r133, "dau_co")) if r133 is not None else None,
+                        "PS tăng (tỷ)": t(r133, "ps_no") if r133 is not None else None,
+                        "PS giảm (tỷ)": t(r133, "ps_co") if r133 is not None else None,
+                        "Dư cuối kỳ (tỷ)": cuoi})
     if not records:
-        return {"ok": False, "error": "không thấy mã 333xx nào (cột 'Số dư cuối kỳ HT')"}
+        return {"ok": False, "error": "không thấy TK 333xx / 133 / mã 152"}
     out = os.path.join(tf.FILLED_DIR, f"HTTHUE_{period}_{cong_ty or 'NA'}_10_THUE.xlsx")
     tf.fill("10_THUE", records, out)
     imp = tf.import_filled(out, cong_ty=cong_ty, khoi=_khoi_of(file_path), source_file=_source_id(file_path))
-    return {"ok": bool(imp.get("rows_imported")), "rows": imp.get("rows_imported"), "target": "10_THUE"}
+    return {"ok": bool(imp.get("rows_imported")), "rows": imp.get("rows_imported"), "target": "10_THUE",
+            "cuoi_152": cuoi152}
 
 
 def _derive_tonkho_cdps(file_path: str, sheet: str, period: str, cong_ty: str):
@@ -5228,6 +5299,16 @@ def _cmd_autofill_impl(args):
                                "canonical_kind": ck,
                                "reason": "GA: TC_CDPS là CĐPS hợp nhất Thịnh Cường Group -> thuế lấy từ CĐKT riêng"})
                 continue
+            # SHEET BẢN SAO (01/10/2026): An Taxi T08 + bản 20260915 có 2 sheet CĐPS 'CDPS' và
+            # 'CDPS..' (bản nháp: TK 133 cuối 2.954.483.434 vs đúng 2.853.794.550 = CĐKT mã 152).
+            # Mỗi lượt _derive_thue ĐÈ bản trước theo source_file -> sheet đọc SAU thắng -> dashboard
+            # lên số bản nháp. Tên = tên sheet khác + đuôi '.'/'-'/'_'/'(2)'/'copy' -> bỏ.
+            _goc = _re_bcqt.sub(r"(?i)[\s._-]*(\(\d+\)|copy)?[\s._-]*$", "", sheet or "")
+            if _goc and _goc != (sheet or "").strip() and _goc.casefold() in {
+                    (x["sheet"] or "").strip().casefold() for x in routes}:
+                ledger.append({"sheet": sheet, "bucket": "skip", "target_sheet": None,
+                               "canonical_kind": ck, "reason": f"bản sao của sheet '{_goc}'"})
+                continue
             thue_todo.append(sheet)   # CĐSPS -> thuế (TK 133/333) tất định
             ledger.append({"sheet": sheet, "bucket": "derived", "target_sheet": "10_THUE",
                            "canonical_kind": ck, "reason": "thuế (TK133/333) từ CĐSPS tất định"})
@@ -5697,7 +5778,8 @@ def _cmd_autofill_impl(args):
             try:
                 rht = _derive_thue_ht(args.file, period, args.cong_ty or "HT")
                 derived.append({"kind": "10_THUE", "ok": rht.get("ok"), "rows": rht.get("rows"),
-                                "error": rht.get("error"), "via": "CĐPS hợp nhất, cột 'Cuối kỳ HT'"})
+                                "error": rht.get("error"), "cuoi_152": rht.get("cuoi_152"),
+                                "via": "CĐPS hợp nhất (đầu/PS/cuối sau hợp nhất) + BCĐKT hợp nhất mã 152"})
             except Exception as ex:  # noqa: BLE001
                 derived.append({"kind": "10_THUE", "ok": False, "error": str(ex)[:150]})
         # An Taxi / An KS (nhóm AAG) — P&L QUẢN TRỊ theo spec 50 chỉ tiêu: An Taxi đọc sheet 'BCQT PT.'
