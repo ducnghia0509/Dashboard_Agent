@@ -116,6 +116,21 @@ NGUON = [
         "ten": "Lợi nhuận khối XDV theo ngày (HQKD tự động, hiệu luỹ kế)",
         "ngay_regex": r"\.D\.(20\d{2})(\d{2})(\d{2})\.",
     },
+    {
+        # BẢNG CÂN ĐỐI KẾ TOÁN + CÂN ĐỐI PHÁT SINH theo ngày của XDV — khai 02/10/2026 (user: "sao tab
+        # tài sản nguồn vốn lại không có số"). Hai thư mục này có ở nguồn từ 16/09/2026, SAU đợt khai
+        # 07/09 nên chưa job nào kéo; `derive_sodu_tudong_ngay` vì thế chỉ dựng được PTHU_D cho XDV.
+        # Bố cục y hệt bản Showroom -> spec `xdv_cdkt_ngay` / `xdv_cdps_ngay` (report_type RIÊNG
+        # XDV_CDKT_D / XDV_CDPS_D). ANH_CHUP_KY: mỗi ngày một file rời, số dư tại ngày.
+        "company": "TEST_XDV", "rt": "baocaotaichinhriengcdkt", "che_do": core.ANH_CHUP_KY,
+        "ten": "Bảng cân đối kế toán theo ngày (tự động)",
+        "ngay_regex": r"\.D\.(20\d{2})(\d{2})(\d{2})\.",
+    },
+    {
+        "company": "TEST_XDV", "rt": "baocaotaichinhriengcdps", "che_do": core.ANH_CHUP_KY,
+        "ten": "Cân đối phát sinh theo ngày (tự động)",
+        "ngay_regex": r"\.D\.(20\d{2})(\d{2})(\d{2})\.",
+    },
     # ── 5 THƯ MỤC KHAI 07/09/2026 (xem khối chú thích dài ở trên) ───────────────────────────
     {
         # DV42. TRÙNG PHẠM VI với `XDV_LSC_D` (DV41, thư mục bangkelenhsuachua): cùng tổng tiền

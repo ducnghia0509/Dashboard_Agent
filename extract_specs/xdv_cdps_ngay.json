@@ -1,0 +1,107 @@
+{
+  "id": "xdv_cdps_ngay",
+  "_mo_ta": "BẢNG CÂN ĐỐI PHÁT SINH theo NGÀY của Xưởng dịch vụ — nguồn TỰ ĐỘNG Cyber (ổ IT\\TESTBAOCAOTUDONG\\2.VINFAST_XDV -> VPS `TEST_XDV/baocaotaichinhriengcdps`), mỗi ngày một file, có từ 16/09/2026. Khai 02/10/2026 (user hỏi vì sao tab Tài sản–Nguồn vốn của XDV không có số): bố cục GIỐNG HỆT bản Showroom `vhkd_cdps_ngay` (cùng header, cùng dòng bắt đầu) nên nhân bản spec đó, chỉ đổi thư mục/khối/report_type. Report_type RIÊNG `XDV_CDPS_D` vì `derive_sodu_tudong_ngay` đọc theo report_type + kỳ — dùng chung report_type với Showroom là trộn số hai khối. Ô đích do `derive_sodu_tudong_ngay` dựng (BS_D/TS_D/TSNV_D/THUE_D/HH_D/PTRA_D); `_bay` chép từ bản Showroom, các con số trong đó là của Showroom.",
+  "_kiem_chung": [
+    "30/09/2026 (bản ver KT): dòng 'Tổng cộng' r9 PS nợ = PS có = 134.176.240.381,52 đ."
+  ],
+  "_bay": [
+    "CHƯA CÓ Ô ĐÍCH TRÊN MÀN HÌNH. Theo quy ước 'thiết kế quyết định cái gì hiện lên': mapping có mà thiết kế chưa có thì LƯU dữ liệu, KHÔNG hiện. Đừng nối vào màn Doanh thu / Chi phí trước khi chốt CĐPS ngày thay hay bổ sung cho số tháng — nối bừa là cộng đôi với PNLT/CHIPHI của BCTC tháng.",
+    "FILE LIỆT KÊ CẢ CÂY TÀI KHOẢN: 111 -> 1111 -> 11114, mỗi cấp đã bao trọn cấp dưới. SUM cả cột là gấp 3-4 lần. `dim2` giữ 'Cấp 1'..'Cấp 4' (suy từ số chữ số) để màn hình lọc được; ai đọc report_type này BẮT BUỘC lọc theo một cấp.",
+    "MỚI CÓ 2 NGÀY (02 và 03/09/2026) — chưa đủ chuỗi để đối chiếu tổng phát sinh với BCTC tháng. Cần ít nhất một tuần trước khi tin số.",
+    "amount = 'Phát sinh nợ', amount2 = 'Phát sinh có' — đây là báo cáo DÒNG (phát sinh trong ngày), KHÔNG phải ảnh chụp: cộng qua nhiều ngày là ĐÚNG, đừng đưa vào `_SNAP_RT`. Số dư đầu/cuối kỳ vẫn giữ trong payload (đó mới là ảnh chụp — dùng thì phải lấy ngày cuối).",
+    "Dòng 'Tổng cộng' ở ĐẦU vùng (r9) bỏ trắng cột 'Tài khoản' -> chặn bằng `loc dim1 khac_rong`, cùng lớp lọc đó chặn luôn 2 dòng trống kế bên.",
+    "MỖI NGÀY MỘT FILE, KHÔNG LUỸ KẾ — `moi_ky_lay_file_moi_nhat: \"ngay\"`, bên cron khai `ANH_CHUP_KY`."
+  ],
+  "report_type": "XDV_CDPS_D",
+  "row_index_base": 9060000,
+  "khoi": "Khối KD Vinfast - XDV",
+  "nguon": {
+    "folder": "TEST_XDV/baocaotaichinhriengcdps",
+    "file_glob": "*.Baocaotaichinhrieng-CDPS.xlsx",
+    "sheet": {
+      "so": 0
+    }
+  },
+  "kiem_tra_o": [
+    {
+      "o": "A8",
+      "bang": "Tài khoản"
+    },
+    {
+      "o": "E8",
+      "bang": "Phát sinh nợ"
+    },
+    {
+      "o": "G8",
+      "bang": "Dư nợ cuối kỳ"
+    }
+  ],
+  "header": {
+    "dong": 8
+  },
+  "dong_bat_dau": 9,
+  "ngay_tu_ten_file": {
+    "regex": "\\.D\\.(\\d{4})(\\d{2})(\\d{2})\\.",
+    "thu_tu": "ymd"
+  },
+  "moi_ky_lay_file_moi_nhat": "ngay",
+  "cot": {
+    "dim1": {
+      "header": "Tài khoản"
+    },
+    "dim2": {
+      "header": "Tài khoản",
+      "chuan_hoa": "tk_cap"
+    },
+    "amount": {
+      "header": "Phát sinh nợ",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09
+    },
+    "amount2": {
+      "header": "Phát sinh có",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09
+    },
+    "payload.ten_tk": {
+      "header": "Tên tài khoản",
+      "bat_buoc": false
+    },
+    "payload.no_dau_ky": {
+      "header": "Nợ đầu kỳ",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09,
+      "bat_buoc": false
+    },
+    "payload.co_dau_ky": {
+      "header": "Có đầu kỳ",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09,
+      "bat_buoc": false
+    },
+    "payload.du_no_cuoi": {
+      "header": "Dư nợ cuối kỳ",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09,
+      "bat_buoc": false
+    },
+    "payload.du_co_cuoi": {
+      "header": "Dư có cuối kỳ",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09,
+      "bat_buoc": false
+    }
+  },
+  "ban_ghi": "moi_dong",
+  "loc": [
+    {
+      "cot": "dim1",
+      "dieu_kien": "khac_rong"
+    }
+  ],
+  "payload_them": {
+    "unit": "ty",
+    "nguon_he": "CĐPS ngày XDV (Cyber tự động)",
+    "chua_len_man": "1"
+  }
+}

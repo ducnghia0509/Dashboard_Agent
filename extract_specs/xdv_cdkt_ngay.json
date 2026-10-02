@@ -1,0 +1,97 @@
+{
+  "id": "xdv_cdkt_ngay",
+  "_mo_ta": "BẢNG CÂN ĐỐI KẾ TOÁN theo NGÀY của Xưởng dịch vụ — nguồn TỰ ĐỘNG Cyber (ổ IT\\TESTBAOCAOTUDONG\\2.VINFAST_XDV -> VPS `TEST_XDV/baocaotaichinhriengcdkt`), mỗi ngày một file, có từ 16/09/2026. Khai 02/10/2026 (user hỏi vì sao tab Tài sản–Nguồn vốn của XDV không có số): bố cục GIỐNG HỆT bản Showroom `vhkd_cdkt_ngay` (cùng header, cùng dòng bắt đầu) nên nhân bản spec đó, chỉ đổi thư mục/khối/report_type. Report_type RIÊNG `XDV_CDKT_D` vì `derive_sodu_tudong_ngay` đọc theo report_type + kỳ — dùng chung report_type với Showroom là trộn số hai khối. Ô đích do `derive_sodu_tudong_ngay` dựng (BS_D/TS_D/TSNV_D/THUE_D/HH_D/PTRA_D); `_bay` chép từ bản Showroom, các con số trong đó là của Showroom.",
+  "_kiem_chung": [
+    "30/09/2026 (bản ver KT): mã 270 = 546.488.116.821,95 đ; 300 = 571.927.158.110,21 đ; 400 = −25.476.185.698,26 đ; 440 = 546.450.972.411,95 đ — 270 lệch 440 đúng 37.144.410 đ ở NGUỒN (file tự cộng 440 = 300+400 khớp)."
+  ],
+  "_bay": [
+    "*** NGUỒN KHÔNG CÂN — ĐỪNG DÙNG ĐỂ RA SỐ CÔNG BỐ KHI CHƯA HỎI KẾ TOÁN. *** Đo 07/09/2026 trên bản 05/09: TỔNG CỘNG TÀI SẢN (mã 270) = 3.247,1 tỷ nhưng TỔNG CỘNG NGUỒN VỐN (mã 440) = −5.954,0 tỷ, lệch 9.201,1 tỷ; lệch y hệt ở cả cột 'Số đầu kỳ' (9.199,0) và 'Số đầu năm' (5.618,1) nên KHÔNG phải sự cố một ngày. Hai dòng vô lý kéo theo: 'B. TÀI SẢN DÀI HẠN' (200) = −675,1 tỷ và 'Lợi nhuận sau thuế chưa phân phối' (421) = −8.868,3 tỷ — một chi nhánh có 3.247 tỷ tài sản không thể lỗ luỹ kế 8.868 tỷ. Phép cộng NỘI BỘ file lại đúng khít, nên đây là lỗi SỐ ĐẦU VÀO của template Cyber chứ không phải lỗi đọc. Spec đọc trung thực file; số sai là sai từ nguồn. Cần kế toán chốt lại template trước khi nối vào bất kỳ ô nào.",
+    "ĐÂY LÀ SỐ DƯ (ảnh chụp tại ngày), KHÔNG PHẢI SỐ PHÁT SINH — TUYỆT ĐỐI KHÔNG bật `tru_ngay_truoc`. Dòng 6 của file ghi 'TẠI NGÀY 05 THÁNG 09 NĂM 2026', khác hẳn các nguồn HQKD ghi 'TỪ NGÀY ... ĐẾN NGÀY ...'. Trừ ngày trước ở đây là biến số dư thành biến động và sai toàn bộ bảng.",
+    "TỔNG Σ MỌI DÒNG LÀ VÔ NGHĨA (dry-run 07/09 ra −19.499,365 tỷ): file có 119 mã số thuộc NHIỀU TẦNG lồng nhau (100 chứa 110/120/130/140/150, 110 lại chứa 111/112/113…). Con số đó chỉ là tổng máy móc của cả cây, KHÔNG phải quy mô bảng cân đối. Luôn chọn đúng một tầng khi dùng.",
+    "CHƯA NỐI MÀN NÀO (`chua_len_man`) — mapping mới chỉ khai 'lấy tất cả tài khoản', chưa chỉ ô đích trên thiết kế. Nạp để sẵn và đối chiếu, y như `vhkd_cdps_ngay`. Đừng gắn vào màn nào khi chưa có ô đích được duyệt.",
+    "MÃ SỐ CÓ HAI TẦNG CHỒNG NHAU: mã tổng (100) và mã con (110/120/130/140/150) cùng nằm trong file. Cộng hết mọi dòng là ĐẾM NHIỀU LẦN. Khi dùng phải chọn ĐÚNG MỘT TẦNG, dựa vào cột 'Công thức tính' đã nạp ở `payload.cong_thuc`.",
+    "File chỉ có MỘT pháp nhân (Chi nhánh Vinfast Hà Nội), không có cột đơn vị nào -> không đặt `cost_center`. Đừng suy cost center từ tên file.",
+    "Mỗi ngày một file, KHÔNG luỹ kế -> `moi_ky_lay_file_moi_nhat: \"ngay\"`, bên cron khai `ANH_CHUP_KY`. Để `LUY_KE` là các file ngày bị coi là nhiều bản chốt của một tháng rồi xoá hết chỉ giữ một."
+  ],
+  "report_type": "XDV_CDKT_D",
+  "row_index_base": 8670000,
+  "khoi": "Khối KD Vinfast - XDV",
+  "nguon": {
+    "folder": "TEST_XDV/baocaotaichinhriengcdkt",
+    "file_glob": "*.Baocaotaichinhrieng-CDKT.xlsx",
+    "sheet": {
+      "so": 0
+    }
+  },
+  "kiem_tra_o": [
+    {
+      "o": "A8",
+      "bang": "Chỉ tiêu"
+    },
+    {
+      "o": "B8",
+      "bang": "Mã Số"
+    },
+    {
+      "o": "C8",
+      "bang": "Số cuối kỳ"
+    }
+  ],
+  "header": {
+    "dong": 8
+  },
+  "dong_bat_dau": 9,
+  "ngay_tu_ten_file": {
+    "regex": "\\.D\\.(\\d{4})(\\d{2})(\\d{2})\\.",
+    "thu_tu": "ymd"
+  },
+  "moi_ky_lay_file_moi_nhat": "ngay",
+  "cot": {
+    "dim1": {
+      "header": "Mã Số"
+    },
+    "amount": {
+      "header": "Số cuối kỳ",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09
+    },
+    "amount2": {
+      "header": "Số đầu kỳ",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09
+    },
+    "payload.chi_tieu": {
+      "header": "Chỉ tiêu"
+    },
+    "payload.so_dau_nam": {
+      "header": "Số đầu năm",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09,
+      "bat_buoc": false
+    },
+    "payload.tai_khoan": {
+      "header": "Tài khoản",
+      "bat_buoc": false
+    },
+    "payload.cong_thuc": {
+      "header": "Công thức tính",
+      "bat_buoc": false
+    },
+    "payload.thuyet_minh": {
+      "header": "Thuyết Minh",
+      "bat_buoc": false
+    }
+  },
+  "ban_ghi": "moi_dong",
+  "loc": [
+    {
+      "cot": "dim1",
+      "dieu_kien": "khac_rong"
+    }
+  ],
+  "payload_them": {
+    "unit": "ty",
+    "nguon_he": "BCĐKT ngày XDV (Cyber tự động)",
+    "chua_len_man": "1"
+  }
+}
