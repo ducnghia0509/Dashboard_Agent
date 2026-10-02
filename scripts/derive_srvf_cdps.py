@@ -90,10 +90,13 @@ def extract(path, period, cong_ty="TC"):
     src, khoi = A._source_id(path), A._khoi_of(path)
 
     def find_tk(tk):
-        for r in rows[hi + 1:]:
-            if r and str(bb.parse_text(r[c["tk"]])).strip() == tk:
-                return r
-        return None
+        # TRÙNG MÃ TK (T07/2026: 2 dòng '33311' — dòng đầu gần trống ~0,4 tr nằm NGOÀI tổng TK cha,
+        # dòng sau mới là số thật 458,3 tỷ): lấy dòng đầu thì GTGT phải nộp T07 ra 400.000đ. Có
+        # trùng thì chọn dòng có tổng trị tuyệt đối các cột số LỚN NHẤT; không trùng -> như cũ.
+        hit = [r for r in rows[hi + 1:] if r and str(bb.parse_text(r[c["tk"]])).strip() == tk]
+        if len(hit) <= 1:
+            return hit[0] if hit else None
+        return max(hit, key=lambda r: sum(abs(v) for v in r if isinstance(v, (int, float))))
 
     def val(r, key):
         j = c[key]
@@ -178,7 +181,15 @@ def extract(path, period, cong_ty="TC"):
         # cuối kỳ = đầu+tăng−giảm (metrics_extra tính lại, field ở đây chỉ để tương thích).
         dau = val(r, "co_dau")
         tang, giam = val(r, "ps_co"), val(r, "ps_no")
-        cuoi = (dau or 0) + (tang or 0) - (giam or 0)
+        # DƯ NỢ trên TK 333 (3335 TNCN khối SR dư Nợ 1,1–1,7 tỷ mọi tháng): Có đầu + PS Có − PS Nợ
+        # không ra Có cuối khi dư Nợ đổi -> lệch dồn sang đầu kỳ tháng sau. Cuối = dư Có cuối của
+        # file, phần dư Nợ thay đổi tính vào 'giảm' (như agent_cli._derive_thue, 02/10/2026).
+        no_dau, no_cuoi = val(r, "no_dau") or 0, val(r, "no_cuoi") or 0
+        if (no_dau or no_cuoi) and val(r, "co_cuoi") is not None:
+            cuoi = val(r, "co_cuoi")
+            giam = (giam or 0) + no_dau - no_cuoi
+        else:
+            cuoi = (dau or 0) + (tang or 0) - (giam or 0)
         if any(abs(v or 0) > 1e-9 for v in (cuoi, dau, tang, giam)):   # bỏ dòng toàn 0
             thue.append({"Kỳ": period, "Đơn vị": cong_ty,
                          "Loại thuế (GTGT ra/vào, TNCN, TNDN, NK, khác)": _label,
