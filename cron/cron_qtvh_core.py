@@ -570,6 +570,21 @@ def ky_cu_co_ban_moi(ctx: Ctx, nguon_list: list, meta: list, periods: list) -> d
     return them
 
 
+# NGUỒN TỰ ĐỘNG CHỈ THEO THÁNG ĐANG CHẠY (chốt user 02/10/2026): "file ngày của bên này không được
+# cập nhật file của tháng 9 nữa, chỉ theo dõi và cập nhật theo tháng đang ở". Bên sinh file tự động
+# (TESTBAOCAOTUDONG) chỉ xuất tháng hiện tại; bản sửa của kế toán cho ngày cũ nằm ở thư mục con
+# `<ngày> ver KT` (xem `_mot_ban_moi_source_id`). Kéo tiếp tháng trước là mỗi lượt xin lại ~30 file
+# không đổi, và mở cửa cho bản tự động cùng tên đè bản kế toán đã chốt.
+# NGOẠI LỆ NGÀY MÙNG 1: file của ngày CUỐI tháng trước tạo lúc ~23:52 nên chỉ về sau nửa đêm — bỏ
+# hẳn tháng trước thì mỗi tháng mất số ngày cuối, im lặng.
+CHI_KY_HIEN_TAI = frozenset({"TEST_SR", "TEST_XDV"})
+
+
+def _ky_nguon_tu_dong(periods: list) -> list:
+    """`periods` = [tháng này, tháng trước] (xem `target_periods`) -> chỉ tháng này, trừ ngày mùng 1."""
+    return list(periods) if datetime.now(VN).day == 1 else list(periods[:1])
+
+
 def pick_targets(ctx: Ctx, nguon_list: list, meta: list, periods: list, them_ky: dict = None):
     """Trả (targets, losers). `targets` = bản sẽ nạp; `losers` = bản cũ cùng slot sẽ xoá rows.
 
@@ -582,6 +597,8 @@ def pick_targets(ctx: Ctx, nguon_list: list, meta: list, periods: list, them_ky:
         # Kỳ mở thêm là RIÊNG TỪNG NGUỒN (xem `ky_cu_co_ban_moi`): mở chung cho cả job là các thư
         # mục khác cũng bị lôi lịch sử về theo, mỗi lượt kéo lại hàng chục file không ai cần.
         ky_nguon = list(periods) + list((them_ky or {}).get((nguon["company"], nguon["rt"]), []))
+        if nguon["company"] in CHI_KY_HIEN_TAI:
+            ky_nguon = _ky_nguon_tu_dong(periods)
         for period, month, year in ky_nguon:
             for e in meta:
                 if e.get("company") != nguon["company"] or e.get("report_type") != nguon["rt"]:
