@@ -23,8 +23,8 @@ RA ĐƯỢC NHỮNG GÌ
            PTHU_D · PTRA_D       (từ CĐPS + chi tiết khách của VHKD_PTHU_HD) -> màn Công nợ
     XDV    PTHU_D                (từ XDV_CN_RO_D, chi tiết theo đối tượng)   -> màn Công nợ
 
-    XDV KHÔNG có CĐKT/CĐPS toàn phần ở nguồn -> không dựng được TS-Nguồn vốn · Tài sản · Thuế ·
-    Tồn kho. Đó là thiếu NGUỒN, không phải thiếu code: phải xin kế toán xuất thêm như SR.
+    XDV    từ 02/10/2026 CÓ CĐKT/CĐPS ngày (nguồn có từ 16/09, spec `xdv_cdkt_ngay`/`xdv_cdps_ngay`)
+           -> dựng đủ BS_D/TS_D/TSNV_D/THUE_D/HH_D/PTRA_D như Showroom. Trước 16/09 chỉ có PTHU_D.
 
 ⚠ BẢNG CÂN ĐỐI CỦA SR CHƯA CÂN. Đo 18/09/2026 trên 6 ngày gần nhất: mã 270 (tổng tài sản) và 440
 (tổng nguồn vốn) lệch từ 4,6 đến 500,6 tỷ, và 15->16/09 tổng tài sản nhảy 2.931 -> 14.330 tỷ do
@@ -259,9 +259,21 @@ def dung(period, cur, ds_id):
         if fs:
             sr[ngay] = fs
 
+    # XDV — từ 02/10/2026 có CĐKT/CĐPS ngày riêng (`xdv_cdkt_ngay`/`xdv_cdps_ngay`, nguồn có từ
+    # 16/09) nên dựng ĐỦ bộ như Showroom. Phải THU giữ nguồn chi tiết theo R/O (XDV_CN_RO_D) như cũ,
+    # thiếu thì lấy tổng TK 131; phải TRẢ chỉ có tổng TK 331.
+    xdv_cdkt = _doc(cur, "XDV_CDKT_D", period, ds_id)
+    xdv_cdps = _doc(cur, "XDV_CDPS_D", period, ds_id)
     xdv = {}
-    for ngay, rows in xdv_ro.items():
-        fs = _facts_congno(rows, "PTHU_D", "no", "ten_doi_tuong", "ma_doi_tuong")
+    for ngay in sorted(set(xdv_ro) | set(xdv_cdkt) | set(xdv_cdps)):
+        fs = list(_facts_cdkt(xdv_cdkt.get(ngay, [])))
+        bytk = {}
+        if ngay in xdv_cdps:
+            f2, bytk = _facts_cdps(xdv_cdps[ngay])
+            fs += f2
+        ct = _facts_congno(xdv_ro.get(ngay, []), "PTHU_D", "no", "ten_doi_tuong", "ma_doi_tuong")
+        fs += ct or _facts_congno_tong(bytk, "131", "PTHU_D", "no", "Phải thu khách hàng (tổng)")
+        fs += _facts_congno_tong(bytk, "331", "PTRA_D", "co", "Phải trả nhà cung cấp (tổng)")
         if fs:
             xdv[ngay] = fs
     return {"TEST_SR": (SR_KHOI, sr), "TEST_XDV": (XDV_KHOI, xdv)}
