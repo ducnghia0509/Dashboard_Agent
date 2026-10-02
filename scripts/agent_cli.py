@@ -3079,7 +3079,18 @@ def _derive_thue(file_path: str, sheet: str, period: str, cong_ty: str):
             pt = "Phải nộp"
             dau = num(r, dau_co)
             tang, giam = num(r, ps_co), num(r, ps_no)
-            cuoi = round((dau or 0) + (tang or 0) - (giam or 0), 9)
+            # TK 333 CÓ DƯ NỢ (nộp thừa/bù trừ — Trạm sạc 3331 T04-T05/2026 dư Nợ 253,9 tr, 3335 T05+
+            # dư Nợ 14,2 tr): phải nộp = dư CÓ, nhưng dau(Có)+PS Có−PS Nợ KHÔNG ra dư Có cuối khi dư
+            # Nợ đổi trong kỳ (T05: 0+381,2−44,6=336,6 vs file 82,7) -> metrics lấy 336,6 làm đầu kỳ
+            # T06 -> màn Thuế 584 tr thay 341 tr. Cuối = dư Có cuối của FILE; phần dư Nợ thay đổi
+            # (Nợ đầu − Nợ cuối) tính vào 'giảm' để đầu + tăng − giảm = cuối vẫn đúng. Dư Nợ = 0 (đa số
+            # tài khoản) -> y hệt cũ.
+            no_dau, no_cuoi = num(r, dau_no) or 0, num(r, cuoi_no) or 0
+            if (no_dau or no_cuoi) and num(r, cuoi_co) is not None:
+                cuoi = num(r, cuoi_co)
+                giam = round((giam or 0) + no_dau - no_cuoi, 9)
+            else:
+                cuoi = round((dau or 0) + (tang or 0) - (giam or 0), 9)
             ten = _thue333_map[code]
         rec = {"Kỳ": period, "Đơn vị": cong_ty,
                "Loại thuế (GTGT ra/vào, TNCN, TNDN, NK, khác)": ten,
