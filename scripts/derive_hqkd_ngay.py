@@ -352,7 +352,11 @@ _UNITS = {
     # Cụm số dư THÁNG của khối này đã có sẵn từ lâu (agent_cli đọc thư mục
     # `baocaotaichinhhopnhatxetai/`, 33 file) — bản ngày PHẢI khớp quy ước đó: lấy cột HỢP NHẤT,
     # `cong_ty = HT`. Đối chứng: `BS` mã 270 kỳ 2026-08 trong DB = 511,6425 tỷ = đúng ô hợp nhất.
+    # `pl_bctc_tu` (chốt user 02/10/2026): TỪ KỲ 09/2026 P&L ngày CHỈ lấy file BCTC hợp nhất
+    # `B5.HT.TCTC.M.<YYYYMMDD>.baocaotaichinhhopnhatxetai`, BỎ HẲN file `...M.<YYYYMM>.baocaongay` —
+    # xem `_ht_pl_tu_bctc`. Số đặt đúng ngày trong tên file; ngày không có file thì không có số.
     "HUNGTHINH": {"layout": "ht", "cong_ty": "HT", "khoi": "Khối KD Xe tải",
+                  "pl_bctc_tu": "2026-09-01",
                   "sodu_matran_trong_file": True,
                   "sheet_sodu": {"cdkt": "BCĐKT hợp nhất "},
                   # TỒN KHO theo ngày từ sổ NXT của file hợp nhất ngày — xem `_hh_ngay_tu_nxt`.
@@ -2792,6 +2796,73 @@ def _ht_day_sheets(wb, period):
     return sorted(out, key=lambda x: x[1])
 
 
+def _ngay_trong_ten_dm(ten_file):
+    """'B5.HT.TCTC.M.20260930.xxx' / '.D.20260930.' -> '2026-09-30'; None nếu tên chỉ có kỳ."""
+    m = re.search(r"\.[DM]\.(\d{4})(\d{2})(\d{2})\D", ten_file)
+    if not m:
+        return None
+    y, mm, dd = (int(x) for x in m.groups())
+    return f"{y:04d}-{mm:02d}-{dd:02d}" if 1 <= mm <= 12 and 1 <= dd <= 31 else None
+
+
+_HT_SHEET_PL_BCTC = "kqkd tổng hợp nhất"
+
+
+def _ht_pl_tu_bctc(path, ngay):
+    """P&L ngày của Xe tải từ CHÍNH file BCTC hợp nhất đang nạp -> ([fact], chẩn đoán).
+
+    CHỐT USER 02/10/2026 ("không lấy file baocaongay nữa, bỏ hẳn; tháng 9 có số bắt đầu từ 18;
+    ngày nào không có file thì không có số"). Lý do đã đo: file `...M.202609.baocaongay` thiếu
+    hệ thống so với BCTC — chi phí tài chính T202 = 0 cả tháng (BCTC 0,55 tỷ ở 01–18, 0,62 ở
+    25–27), thiếu DT tài chính/thu nhập khác, sheet 30.09 chép lại sheet 28.09 (xe ben 2,70 tỷ hai
+    lần) và mất 8,19 tỷ xe Sany — dashboard ngày 30/09 hiện 2,70 tỷ trong khi BCTC ghi 11,01 tỷ.
+
+    Sheet "kqkd tổng hợp nhất" (sau đối trừ nội bộ) có cột theo KỲ PHÁT HÀNH: 'T01'..'T08' rồi
+    '18/09', '21/09', '24/09', '27/09', '30/09' — mỗi cột là số của khoảng TỪ kỳ trước tới ngày đó
+    (sheet XETAIHT_KQKD cùng file ghi rõ '01/09-18/09', '19/09- 21/09'…). Bản sau KHÔNG sửa cột
+    cũ (đã so 5 bản 18→30/09), nên mỗi file chỉ đọc cột trùng NGÀY TRONG TÊN của nó và ghi dưới
+    `source_file` của chính nó -> mỗi ngày đúng một nguồn, không cộng đôi. Cột '18/09' là gộp
+    01–18 nên ngày 18/09 mang cả khoảng đó, trước 18/09 không có số (đúng ý user).
+
+    Dựng lại hàng 5 cột rồi đi qua `_ht_facts` — cùng bộ nhãn/mã với bản cũ, nên màn không đổi
+    nghĩa chỉ tiêu.
+    """
+    try:
+        wb = openpyxl.load_workbook(path, data_only=True, read_only=True)
+    except Exception as e:
+        return [], {"bo_qua": f"không mở được ({type(e).__name__})"}
+    try:
+        sn = _ten_sheet_that(wb, _HT_SHEET_PL_BCTC)
+        if sn not in wb.sheetnames:
+            return [], {"bo_qua": f"không có sheet '{_HT_SHEET_PL_BCTC}'"}
+        rows = [list(r) for r in wb[sn].iter_rows(values_only=True)]
+    finally:
+        wb.close()
+    hi = next((i for i, r in enumerate(rows[:15])
+               if any(_nd(c) == "chi tieu" for c in r if c is not None)), None)
+    if hi is None:
+        return [], {"bo_qua": "không thấy dòng tiêu đề 'Chỉ tiêu'"}
+    hdr = rows[hi]
+    ten_j = next(j for j, c in enumerate(hdr) if _nd(c) == "chi tieu")
+    y, mm, dd = int(ngay[:4]), int(ngay[5:7]), int(ngay[8:10])
+
+    def _cuoi_khoang(c):
+        # '30/09' · '28/09-30/9' · '30/09/2026' -> (ngày, tháng) của ĐẦU MÚT PHẢI
+        t = re.findall(r"(\d{1,2})\s*/\s*(\d{1,2})(?:\s*/\s*\d{2,4})?", str(c or ""))
+        return (int(t[-1][0]), int(t[-1][1])) if t else None
+    cot = next((j for j, c in enumerate(hdr) if j > ten_j and _cuoi_khoang(c) == (dd, mm)), None)
+    if cot is None:
+        return [], {"bo_qua": f"sheet '{sn}' không có cột {dd:02d}/{mm:02d}"}
+    gia = [[None] * ten_j + ["Chỉ tiêu", f"Ngày {dd:02d}"]]
+    for r in rows[hi + 1:]:
+        r = list(r) + [None] * max(0, cot + 1 - len(r))
+        gia.append(list(r[:ten_j + 1]) + [r[cot]])
+    facts = _ht_facts(gia)
+    if not facts:
+        return [], {"bo_qua": f"cột {hdr[cot]} không bóc được chỉ tiêu nào"}
+    return facts, {"cot": str(hdr[cot]), "ngay": ngay}
+
+
 def _ht_facts(rows):
     """rows -> [(None, report_type, dim1, dim3, value_VND)] cho 1 ngày. [] nếu sai layout."""
     hdr_i = next((i for i, r in enumerate(rows[:10])
@@ -3822,6 +3893,29 @@ def derive(path, write=False):
         per_day = [(n, f) for n, f in per_day if n <= hom_nay]
         bo_tuong_lai = {"hom_nay": hom_nay, "so_ngay_bo": len(tl), "dau": tl[0], "cuoi": tl[-1]}
 
+    # P&L XE TẢI TỪ FILE BCTC HỢP NHẤT (`pl_bctc_tu`, chốt user 02/10/2026) — xem `_ht_pl_tu_bctc`.
+    # File tháng `...M.<YYYYMM>.baocaongay` từ mốc: BỎ HẲN P&L nhưng vẫn đi trọn xuống
+    # `DELETE ... WHERE source_file=%s` (gắn `bo_cutover`), để lượt nạp lại dọn sạch số cũ của nó.
+    # File BCTC: thêm P&L của đúng ngày trong tên file vào cụm số dư nó vốn đã ghi.
+    pl_bctc_diag = None
+    moc_bctc = unit.get("pl_bctc_tu")
+    if moc_bctc and not (snap_mode or bcqt_mode) and period >= moc_bctc[:7]:
+        ngay_bctc = _ngay_trong_ten_dm(os.path.basename(path))
+        if not ngay_bctc:
+            cat = sorted(n for n, f in per_day if n >= moc_bctc and any(x[1] in _RT_DONG_CHAY for x in f))
+            per_day = [(n, [x for x in f if not (n >= moc_bctc and x[1] in _RT_DONG_CHAY)])
+                       for n, f in per_day]
+            per_day = [(n, f) for n, f in per_day if f]
+            bo_cutover = {"tu_ngay": moc_bctc, "so_ngay_bo": len(cat),
+                          "dau": cat[0] if cat else None, "cuoi": cat[-1] if cat else None,
+                          "ly_do": "P&L chuyển sang file BCTC hợp nhất (pl_bctc_tu)"}
+        elif ngay_bctc >= moc_bctc and ngay_bctc <= hom_nay:
+            f_bctc, pl_bctc_diag = _ht_pl_tu_bctc(path, ngay_bctc)
+            if f_bctc:
+                theo_ngay = {n: [x for x in f if x[1] not in _RT_DONG_CHAY] for n, f in per_day}
+                theo_ngay.setdefault(ngay_bctc, []).extend(f_bctc)
+                per_day = sorted((n, f) for n, f in theo_ngay.items() if f)
+
     if not per_day and not bo_cutover and not bo_tuong_lai:
         # ĐƠN VỊ DÙNG CHÍNH FILE NÀY LÀM NGUỒN SỐ DƯ -> KHÔNG PHẢI LỖI (18/09/2026).
         #
@@ -3952,6 +4046,7 @@ def derive(path, write=False):
     out = {"ok": True, "file": os.path.basename(path), "period": period, "cong_ty": unit["cong_ty"],
            "layout": layout, "days": len(per_day),
            **({"bo_qua_cutover": bo_cutover} if bo_cutover else {}),
+           **({"pl_tu_bctc": pl_bctc_diag} if pl_bctc_diag else {}),
            **({"bo_ngay_tuong_lai": bo_tuong_lai} if bo_tuong_lai else {}),
            **({"la_nguon_so_du": {"ngay": sorted(n for n, _ in per_day)[-1],
                                   "nap_boi": "chính file này"}} if _chi_so_du else {}),
