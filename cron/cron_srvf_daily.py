@@ -245,6 +245,12 @@ NGUON = [
         # (khớp `file_glob` của 6 spec vhkd_kehoach_*). Không lọc là job này kéo cả kế hoạch Trạm
         # sạc/Xe tải/Xanh VP/An Taxi — ngoài phạm vi, và job XDV cũng kéo trùng.
         "chi_lay": r"^1\.SR\.",
+        # `ca_nam` (03/10/2026): tên file GHIM tháng phát hành (".M.202608.") dù một bản kế hoạch
+        # chở nhiều tháng (sheet T9, T10… thêm dần vào CHÍNH file đó) -> metadata `month=8`. Không
+        # có cờ này thì `pick_targets` chỉ nhận file ở kỳ 2026-08: sang T9/T10 không lượt nào kéo
+        # lại, kế hoạch tháng mới nằm im trong file. Spec tự bóc kỳ từ trong sheet nên kéo lại
+        # ở kỳ chính mỗi ngày là đủ.
+        "ca_nam": True,
     },
     {
         "company": "SRVF", "rt": "baocaotiendoshowroomngay", "che_do": core.THANG,

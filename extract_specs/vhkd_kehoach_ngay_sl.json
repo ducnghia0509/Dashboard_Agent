@@ -2,6 +2,7 @@
   "id": "vhkd_kehoach_ngay_sl",
   "_mo_ta": "Kế hoạch SẢN LƯỢNG bán xe theo NGÀY × kênh của khối Showroom (mục A của sheet KHngày). Đơn vị là XE, KHÔNG phải tiền — bản tiền là `vhkd_kehoach_ngay_gt`.",
   "_bay": [
+    "03/10/2026 — `den_ky: 2026-08`: từ T9 sản lượng ngày theo kênh lấy từ dòng kênh của sheet theo SR (spec vhkd_kehoach_ngay_sl_moi_thang). Chặn để nếu sheet 'KHngàytheokenh' có thêm khối tháng sau thì hai spec không cộng đôi cùng một tháng.",
     "Sheet 'KHngày' xếp NĂM KHỐI THÁNG nối tiếp (THÁNG 8 dòng 2, 9 dòng 13, 10 dòng 24, 11 dòng 35, 12 dòng 46). Kỳ của bản ghi suy từ TÊN FILE, nên nếu đọc cả 5 khối thì cột 'Ngày 01..31' của THÁNG 9 sẽ bị gán vào tháng 8 — kế hoạch tháng sau đè lên tháng này. `chi_doc_khi_o` chốt: chỉ khối trùng tháng của file mới được đọc, 4 khối kia bỏ qua IM LẶNG.",
     "CHỈ đọc 3 dòng KÊNH (B2C/B2B/GF), BỎ dòng 'A. Tổng sản lượng' / 'B.Tổng Doanh thu' ngay trên chúng — cộng cả hai là gấp đôi. Đã verify: 893+762+30 = 1.685 và 526,332+499,410+13,227.575 = 1.038.969,575 tr, khớp đúng ô tổng.",
     "Khớp tuyệt đối kế hoạch THÁNG đang dùng: Σ 31 cột ngày THÁNG 8 = 1.038.969.575.271 = ô 'Cộng tháng' = ô KHDT 'Tháng 8' = Σ VHKD_KH T08 (B2B 499,410 + B2C 526,332 + GF 13,228). Lệch 0.",
@@ -12,6 +13,7 @@
     "CỐ Ý GIỮ GATE THEO TÊN FILE (chỉ đọc tháng phát hành = T8), KHÁC hẳn spec doanh thu cùng sheet `vhkd_kehoach_ngay_gt` (spec đó đã chuyển sang `ky_thang_tu_o` để đọc mọi khối tháng). LÝ DO: khối THÁNG 9 của sheet này KHÔNG ĐỦ — dòng 'Kênh B2C' để 0 trọn 31 ngày nên Σ chỉ ra 903 xe (B2B 863 + GF 40) trong khi kế hoạch tháng ghi 1.796 (B2C 893 + B2B 863 + GF 40). Nạp khối đó là mẫu số CT34 chế độ Ngày hụt gần một nửa -> %HT sản lượng phồng ~2 lần. Vế doanh thu của CHÍNH khối đó thì ĐỦ và khớp tuyệt đối tháng (1.171.891.236.108) nên spec _gt vẫn đọc bình thường. Sản lượng T9 lấy từ sheet 'KHT9ngaytheoSR' qua spec `vhkd_kehoach_ngay_sl_t9`; hai spec KHÔNG chồng kỳ nên không cộng đôi."
   ],
   "report_type": "VHKD_KH_SL_NGAY",
+  "den_ky": "2026-08",
   "giu_ngay_tuong_lai": true,
   "row_index_base": 6640000,
   "khoi": "Khối KD Vinfast - Showroom",

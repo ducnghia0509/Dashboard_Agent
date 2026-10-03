@@ -1,7 +1,10 @@
 {
-  "id": "xdv_kehoach_ngay_t9",
-  "_mo_ta": "KẾ HOẠCH doanh thu + số lượng RO của XDV theo NGÀY, THÁNG 9/2026 — sheet 'KHT9ngày' của 2.XDV.OO.M.<yyyymm>.Kehoachthang.xlsx. Cùng report_type XDV_DTHU_KH với bản T8 (spec xdv_doanhthu_kehoach_ngay) nên mọi ô 'kế hoạch đến nay' của màn xdv0 tự chạy, KHÔNG cần sửa code.",
+  "id": "xdv_kehoach_ngay_moi_thang",
+  "_mo_ta": "KẾ HOẠCH doanh thu + số lượng RO của XDV theo NGÀY, MỌI THÁNG từ T9/2026 — các sheet 'KHT<tháng>ngày' (KHT9ngày, KHT10ngày…) của 2.XDV.OO.M.<yyyymm>.Kehoachthang.xlsx. Cùng report_type XDV_DTHU_KH với bản T8 (spec xdv_doanhthu_kehoach_ngay).",
   "_bay": [
+    "03/10/2026 — ĐỔI THÀNH SPEC DÙNG CHUNG MỌI THÁNG (thay spec `xdv_kehoach_ngay_t9`): bản kế hoạch tháng 10 đổi bố cục so với T9 (T9 header dòng 4, có khối 'Tổng XDV' ở dòng 6-10, cột 'Ma lenh', ngày từ cột I; T10 header dòng 2, KHÔNG có khối 'Tổng XDV', cột đổi tên 'HTTT', ngày từ cột H, số ghi dạng chữ có dấu phẩy). Ghim tên sheet + số dòng như bản T9 là THÁNG NÀO CŨNG phải sửa spec. Nay: sheet chọn bằng `moi_sheet_regex` (mọi sheet tháng, mỗi sheet tự mang kỳ của nó), header tự dò (`tim_o`), ranh giới khối dò theo nhãn (`dong_bat_dau_tim`/`dong_ket_thuc_tim`), dòng mốc ngày/tháng tính TƯƠNG ĐỐI so với header. `source_file_hau_to` giữ nguyên chuỗi cũ để lần nạp đầu XOÁ ĐÚNG các dòng bản T9 đã nạp (đổi hậu tố là T9 bị nạp đôi). Các ghi chú bên dưới là ẢNH CHỤP lúc dựng bản T9 — số dòng nhắc trong đó chỉ đúng cho sheet T9.",
+    "`chi_tu_ky: 2026-09` = KHÔNG BAO GIỜ đọc sheet KHT8ngày (vẫn nằm trong file): kế hoạch ngày T8 đã nạp từ `XDV::…Baocaodoanhthukehoachngay` cùng bộ số — đọc lại là cộng đôi T8 (46,2 -> 92,4 tỷ).",
+    "Dòng bắt đầu = dòng ĐẦU TIÊN có mã xưởng `*_XDV` ở cột B -> tự bỏ khối 'Tổng XDV' (mã VINFAST_SDV) nếu sheet có; dòng kết thúc = ngay trước dòng 'Cộng' ở cột A.",
     "VÌ SAO PHẢI CÓ SPEC NÀY: nguồn T8 (`XDV/baocaodoanhthukehoachngay`) ĐÃ CHẾT — file đó chỉ có sheet 'KHDT theo ngày' của tháng 8 và dòng mốc ngày vẫn ghi THÁNG 8 kể cả ở bản làm mới 09/09/2026. Sang tháng 9 mọi ô 'kế hoạch đến nay'/'mục tiêu đến nay' của xdv0 sẽ RỖNG nếu không mở đường này. Kế hoạch ngày T9 nằm SẴN trên VPS từ trước, chỉ là trong file KHÁC: sheet 'KHT9ngày' của file Kehoachthang (chính file mà spec xdv_kehoach_gt/_sl đang đọc).",
     "TUYỆT ĐỐI KHÔNG khai thêm sheet 'KHT8ngày' vào report_type này (dù cùng file, cùng bố cục): T8 đã nạp từ `XDV::B.2.TC.TCKT.202608.Baocaodoanhthukehoachngay.xlsx` (2.077 dòng). Hai file chở CÙNG một bộ số T8 — đã đối chiếu Ocean Park 01/08 = 179.082.293,396 khớp tới từng chữ số thập phân ở cả hai bản — nên nạp cả hai là CỘNG ĐÔI đúng nghĩa, kế hoạch T8 phình từ 46,2 lên 92,4 tỷ.",
     "KHÔNG dùng `moi_sheet_chua: \"KHT\"` để một spec ăn mọi tháng: T9 LỆCH T8 ĐÚNG MỘT DÒNG. Sheet KHT8ngày có tiêu đề ở dòng 4 và dữ liệu từ dòng 5; sheet KHT9ngày tách 'Số lượng\\nRO' thành hai dòng (dòng 4 'Số lượng', dòng 5 'RO') nên dữ liệu đẩy xuống dòng 6. `moi_sheet_chua` bắt hai sheet dùng CHUNG một `dong_bat_dau` -> sheet nào cũng lệch. Tháng sau có 'KHT10ngày' thì kiểm lại dòng bắt đầu rồi khai spec mới (hoặc gộp khi bố cục hai sheet đã trùng).",
@@ -29,57 +32,46 @@
   ],
   "report_type": "XDV_DTHU_KH",
   "giu_ngay_tuong_lai": true,
+  "chi_tu_ky": "2026-09",
   "row_index_base": 7150000,
   "khoi": "Khối KD Vinfast - XDV",
   "nguon": {
     "folder": "KEHOACH/baocaokehoachthang",
     "file_glob": "2.XDV.*.Kehoachthang.xlsx",
     "sheet": {
-      "ten": "KHT9ngày"
+      "moi_sheet_regex": "^kht\\d{1,2}ngay$",
+      "mo_ta": "KHT<tháng>ngày"
     }
   },
-  "kiem_tra_o": [
-    {
-      "o": "A4",
-      "bang": "STT"
-    },
-    {
-      "o": "C4",
-      "bang": "XDV"
-    },
-    {
-      "o": "D4",
-      "bang": "Ma lenh"
-    },
-    {
-      "o": "C3",
-      "bang": "THÁNG"
-    },
-    {
-      "o": "C11",
-      "bang": "Ocean Park"
-    }
-  ],
   "header": {
-    "dong": 4
+    "tim_o": "STT"
   },
-  "dong_bat_dau": 11,
-  "dong_ket_thuc": 80,
+  "dong_bat_dau_tim": {
+    "cot": "B",
+    "regex": "_XDV\\s*$"
+  },
+  "dong_ket_thuc_tim": {
+    "cot": "A",
+    "regex": "^\\s*Cộng"
+  },
   "cot": {
     "cost_center": {
       "header": "XDV",
       "chuan_hoa": "xdv"
     },
     "dim1": {
-      "header": "Ma lenh",
+      "header": [
+        "Ma lenh",
+        "HTTT"
+      ],
       "chuan_hoa": "cat"
     }
   },
   "ban_ghi": "moi_cot_ngay",
   "cot_ngay": {
-    "dong": 3,
-    "tu": "I",
-    "den": "BS",
+    "dong_tuong_doi": -1,
+    "tu": "F",
+    "den": "BV",
     "lech_amount": 1,
     "lech_amount2": 0,
     "he_so": 1e-09,

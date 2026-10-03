@@ -2,6 +2,7 @@
   "id": "vhkd_kehoach_gt",
   "_mo_ta": "KẾ HOẠCH GIÁ TRỊ khối Vinfast - Showroom theo tháng × kênh (sheet KHDT, phần A GIÁ TRỊ). Nguồn Nextcloud: 0.BANLANHDAO/Kehoachnam2026/1.SR.OO.M.<yyyymm>.Kehoachthang.xlsx.",
   "_bay": [
+    "03/10/2026 — HẾT GHIM DÒNG: sheet KHDT dời dòng tiêu đề HAI LẦN (2 -> 1 hôm 09/09, 1 -> 2 hôm 03/10). Mỗi lần ghim `header.dong` + `kiem_tra_o` C1/B2 là spec DỪNG CÂM (bỏ cả file, số tháng cũ đứng nguyên, kỳ mới không lên). Nay header tự dò theo nhãn 'Khối' (`tim_o`), dải tháng dò theo tiêu đề 'Tháng N' trong D..Z (chèn thêm cột tổng không làm lệch). Lưới an toàn còn lại: thiếu nhãn 'Khối' trong 30 dòng đầu -> BỎ QUA; khối không có nhãn 'GIÁ TRỊ'/'SẢN LƯỢNG' -> `loc dim3` loại hết.",
     "GLOB PHẢI GHIM TIỀN TỐ '1.SR.' — thư mục baocaokehoachthang còn có '2.XDV.OO.M.202608.Kehoachthang.xlsx'. File XDV đó (nhận 2026-08-10) thực chất là BẢN SAO NGUYÊN VĂN của file SR: diff toàn bộ 9 sheet chỉ lệch 3 ô nhãn mã CT ở cột A của 'CT Vận hành', mọi con số đều là của Showroom. Dùng glob '*.Kehoachthang.xlsx' là nạp cùng nội dung 2 lần dưới 2 source_file khác nhau -> kế hoạch Showroom NHÂN ĐÔI (T8 thành 2.229 tỷ) mà `_ghi` không phát hiện được vì nó chỉ xoá theo (report_type, source_file).",
     "MỘT file cấp kế hoạch cho CẢ 12 THÁNG (cột 'Tháng 1'..'Tháng 12') — kỳ KHÔNG lấy theo tên file, chỉ lấy NĂM. Tên file 202608 chỉ là kỳ phát hành bản kế hoạch.",
     "Mã nhóm theo ĐÚNG file: A230 = doanh thu khác, A250 = claim. Thiết kế Dashboard.dc.html ghi NGƯỢC hai mã này (chốt nghiệp vụ 2026-08-10 — lấy theo file).",
@@ -27,18 +28,8 @@
     }
   },
   "header": {
-    "dong": 1
+    "tim_o": "Khối"
   },
-  "kiem_tra_o": [
-    {
-      "o": "C1",
-      "bang": "Khối"
-    },
-    {
-      "o": "B2",
-      "bang": "GIÁ TRỊ"
-    }
-  ],
   "ngu_canh_dong": [
     {
       "khi": [
@@ -64,8 +55,8 @@
   },
   "ban_ghi": "moi_cot_thang",
   "cot_thang": {
-    "tu": "G",
-    "den": "R",
+    "tu": "D",
+    "den": "Z",
     "he_so": 1e-09
   },
   "loc": [

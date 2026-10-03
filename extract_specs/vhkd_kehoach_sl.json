@@ -2,6 +2,7 @@
   "id": "vhkd_kehoach_sl",
   "_mo_ta": "KẾ HOẠCH SẢN LƯỢNG bán xe khối Vinfast - Showroom theo tháng × kênh (sheet KHDT, phần B SẢN LƯỢNG).",
   "_bay": [
+    "03/10/2026 — HẾT GHIM DÒNG: sheet KHDT dời dòng tiêu đề HAI LẦN (2 -> 1 hôm 09/09, 1 -> 2 hôm 03/10). Mỗi lần ghim `header.dong` + `kiem_tra_o` C1/B2 là spec DỪNG CÂM (bỏ cả file, số tháng cũ đứng nguyên, kỳ mới không lên). Nay header tự dò theo nhãn 'Khối' (`tim_o`), dải tháng dò theo tiêu đề 'Tháng N' trong D..Z (chèn thêm cột tổng không làm lệch). Lưới an toàn còn lại: thiếu nhãn 'Khối' trong 30 dòng đầu -> BỎ QUA; khối không có nhãn 'GIÁ TRỊ'/'SẢN LƯỢNG' -> `loc dim3` loại hết.",
     "Tách report_type riêng khỏi VHKD_KH vì ĐƠN VỊ KHÁC: đây là SỐ XE (he_so = 1), VHKD_KH là TỶ ĐỒNG. Gộp chung một report_type là cộng tiền với xe.",
     "Không đổi report_type thành VHKD_KH: `_ghi` xoá theo (report_type, source_file), hai spec cùng report_type + cùng file thì spec chạy sau XOÁ MẤT dữ liệu của spec chạy trước.",
     "Phần B chỉ có A200 (bán xe) — không có kế hoạch sản lượng cho A230/A250.",
@@ -18,18 +19,8 @@
     }
   },
   "header": {
-    "dong": 1
+    "tim_o": "Khối"
   },
-  "kiem_tra_o": [
-    {
-      "o": "C1",
-      "bang": "Khối"
-    },
-    {
-      "o": "B2",
-      "bang": "GIÁ TRỊ"
-    }
-  ],
   "ngu_canh_dong": [
     {
       "khi": [
@@ -55,8 +46,8 @@
   },
   "ban_ghi": "moi_cot_thang",
   "cot_thang": {
-    "tu": "G",
-    "den": "R",
+    "tu": "D",
+    "den": "Z",
     "he_so": 1.0
   },
   "loc": [

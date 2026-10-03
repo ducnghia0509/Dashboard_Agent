@@ -1,0 +1,69 @@
+{
+  "id": "vhkd_kehoach_ngay_gt_moi_thang",
+  "_mo_ta": "KẾ HOẠCH DOANH THU bán xe Showroom theo NGÀY × KÊNH (B2C/B2B/GF), từ T10/2026 — dòng kênh của khối 'B.Tổng Doanh thu' trong các sheet KH…ngày…theoSR của 1.SR.OO.M.<yyyymm>.Kehoachthang.xlsx. Cùng report_type VHKD_KH_NGAY với bản T8/T9 (sheet 'KHngàytheokenh') nên vhkd0/vhkd1/diễn biến ngày ở view toàn khối chạy nguyên, không sửa API.",
+  "_bay": [
+    "VÌ SAO: màn VHKD ở view TOÀN KHỐI đọc `VHKD_KH_NGAY` (chỉ ở view một SR mới tráo sang VHKD_KH_SR_NGAY). Sheet 'KHngàytheokenh' dừng ở khối T9, nên không có spec này thì kế hoạch ngày T10 toàn khối Showroom TRỐNG dù sheet theo SR có đủ số. Đúng mẫu của vhkd_kehoach_ngay_sl_moi_thang (bản sản lượng).",
+    "`chi_tu_ky: 2026-10` + `den_ky: 2026-09` ở spec cũ = ranh giới cứng, không tháng nào có hai nguồn.",
+    "Đọc DÒNG KÊNH ('B2C'/'B2B'/'GF' ở cột A), không cộng dòng SR: dòng kênh là số kế toán chốt cho kênh, đúng cách sheet cũ ghi. Lưu ý T10 bản 03/10: dòng kênh doanh thu khớp tổng 'B.' tới đồng; riêng SẢN LƯỢNG kênh B2C cộng ngày ra 1.171 xe trong khi ô 'Cộng tháng' và Σ dòng SR = 1.169 (lỗi của file)."
+  ],
+  "report_type": "VHKD_KH_NGAY",
+  "giu_ngay_tuong_lai": true,
+  "chi_tu_ky": "2026-10",
+  "row_index_base": 6650000,
+  "khoi": "Khối KD Vinfast - Showroom",
+  "nguon": {
+    "folder": "KEHOACH/baocaokehoachthang",
+    "file_glob": "1.SR.*.Kehoachthang.xlsx",
+    "sheet": {
+      "moi_sheet_regex": "^kh.*ngay.*theosr$",
+      "mo_ta": "KHngayT<tháng>theoSR / KHT<tháng>ngaytheoSR"
+    }
+  },
+  "ky_thang_tu_o": {
+    "cot": "B",
+    "toi_da": 30
+  },
+  "chieu_co_dinh": {
+    "dim1": "A200"
+  },
+  "header": {
+    "tim_o": "Mã"
+  },
+  "dong_bat_dau_tim": {
+    "cot": "A",
+    "regex": "^\\s*B\\.\\s*$"
+  },
+  "dong_ket_thuc_tim": {
+    "cot": "A",
+    "regex": "^\\s*[C-Z]\\.\\s*$"
+  },
+  "cot": {
+    "dim2": {
+      "header": "Mã",
+      "chuan_hoa": "hoa"
+    }
+  },
+  "ban_ghi": "moi_cot_ngay",
+  "cot_ngay": {
+    "dong_tuong_doi": 0,
+    "tu": "F",
+    "den": "AJ",
+    "he_so": 1e-09
+  },
+  "loc": [
+    {
+      "cot": "dim2",
+      "dieu_kien": "thuoc",
+      "gia_tri": [
+        "B2C",
+        "B2B",
+        "GF"
+      ]
+    }
+  ],
+  "payload_them": {
+    "unit": "ty",
+    "nguon": "kehoach_ngay_theo_sr"
+  },
+  "source_file_hau_to": "KHngaytheoSR_GT_KENH"
+}

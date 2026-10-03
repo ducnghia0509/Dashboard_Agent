@@ -57,6 +57,12 @@ NGUON = [
         # `6.XVP.` = lát Xanh Vĩnh Phúc trong thư mục kế hoạch DÙNG CHUNG (khớp `file_glob` của 7
         # spec xvp_kehoach_*). Không lọc là kéo trùng với 3 job nguồn kia và cả 4 khối khác.
         "chi_lay": r"^6\.XVP\.",
+        # `ca_nam` (03/10/2026): tên file GHIM tháng phát hành (".M.202608.") dù một bản kế hoạch
+        # chở nhiều tháng (sheet T9, T10… thêm dần vào CHÍNH file đó) -> metadata `month=8`. Không
+        # có cờ này thì `pick_targets` chỉ nhận file ở kỳ 2026-08: sang T9/T10 không lượt nào kéo
+        # lại, kế hoạch tháng mới nằm im trong file. Spec tự bóc kỳ từ trong sheet nên kéo lại
+        # ở kỳ chính mỗi ngày là đủ.
+        "ca_nam": True,
     },
 ]
 
