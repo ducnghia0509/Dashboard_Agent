@@ -1,7 +1,8 @@
 {
-  "id": "vhkd_kehoach_ngay_sl_t9",
-  "_mo_ta": "KẾ HOẠCH SẢN LƯỢNG bán xe theo NGÀY × kênh của khối Showroom, THÁNG 9/2026 — sheet 'KHT9ngaytheoSR' của 1.SR.OO.M.<yyyymm>.Kehoachthang.xlsx. Cùng report_type VHKD_KH_SL_NGAY với bản T8 (spec vhkd_kehoach_ngay_sl) nên CT34 và `_he_so_co` của app/metrics/vhkd.py tự chạy, không cần sửa code.",
+  "id": "vhkd_kehoach_ngay_sl_moi_thang",
+  "_mo_ta": "KẾ HOẠCH SẢN LƯỢNG bán xe theo NGÀY × kênh của khối Showroom, THÁNG 9/2026 — sheet 'KH…ngày…theoSR (mọi tháng từ T9)' của 1.SR.OO.M.<yyyymm>.Kehoachthang.xlsx. Cùng report_type VHKD_KH_SL_NGAY với bản T8 (spec vhkd_kehoach_ngay_sl) nên CT34 và `_he_so_co` của app/metrics/vhkd.py tự chạy, không cần sửa code.",
   "_bay": [
+    "03/10/2026 — ĐỔI THÀNH SPEC DÙNG CHUNG MỌI THÁNG (thay spec `vhkd_kehoach_ngay_sl_t9`): bản kế hoạch tháng 10 đổi bố cục so với T9 (T9 sheet 'KHT9ngaytheoSR' header dòng 8, nhãn tháng ở B7, khối A. dòng 9-45, khối B. dòng 46-82; T10 sheet 'KHngayT10theoSR' header dòng 2, nhãn tháng ở B1, khối A. dòng 3-36, khối B. dòng 37-71). Ghim tên sheet + số dòng như bản T9 là THÁNG NÀO CŨNG phải sửa spec. Nay: sheet chọn bằng `moi_sheet_regex` (mọi sheet tháng, mỗi sheet tự mang kỳ của nó), header tự dò (`tim_o`), ranh giới khối dò theo nhãn (`dong_bat_dau_tim`/`dong_ket_thuc_tim`), dòng mốc ngày/tháng tính TƯƠNG ĐỐI so với header. `source_file_hau_to` giữ nguyên chuỗi cũ để lần nạp đầu XOÁ ĐÚNG các dòng bản T9 đã nạp (đổi hậu tố là T9 bị nạp đôi). Các ghi chú bên dưới là ẢNH CHỤP lúc dựng bản T9 — số dòng nhắc trong đó chỉ đúng cho sheet T9.",
     "VÌ SAO PHẢI CÓ SPEC NÀY: sheet cũ ('KHngàytheokenh') có khối THÁNG 9 nhưng dòng 'Kênh B2C' để 0 trọn 31 ngày -> Σ chỉ 903 xe thay vì 1.796. Sheet 'KHT9ngaytheoSR' là bản T9 ĐẦY ĐỦ: B2C 918 + B2B 863 + GF 40. B2B và GF TRÙNG KHÍT hai sheet, chỉ khác đúng vế B2C -> đây là cùng một bản kế hoạch, bản mới điền thêm B2C.",
     "KHÔNG nạp cả hai nguồn cho T9: `vhkd_kehoach_ngay_sl` đã được trả về gate theo TÊN FILE (chỉ đọc tháng phát hành = T8) chính vì việc này. Nếu sau này mở lại `ky_thang_tu_o` cho spec đó thì T9 sẽ cộng đôi (903 + 1.821).",
     "LỆCH CÒN TREO 25 XE: sheet này ghi B2C = 918, còn sheet kế hoạch THÁNG (KHDT) ghi B2C = 893 -> tổng 1.821 so 1.796, lệch 1,4%. Số 918 tự nhất quán (Σ 11 dòng showroom = 918) nên chọn nó cho vế NGÀY; vế THÁNG vẫn giữ 1.796 theo KHDT. Nghĩa là %HT sản lượng chế độ Tháng và chế độ Ngày của T9 đo trên hai mẫu số lệch nhau 25 xe — ĐÃ BÁO, chờ kế toán chốt.",
@@ -24,42 +25,28 @@
     "folder": "KEHOACH/baocaokehoachthang",
     "file_glob": "1.SR.*.Kehoachthang.xlsx",
     "sheet": {
-      "ten": "KHT9ngaytheoSR"
+      "moi_sheet_regex": "^kh.*ngay.*theosr$",
+      "mo_ta": "KHngayT<tháng>theoSR / KHT<tháng>ngaytheoSR"
     }
   },
-  "kiem_tra_o": [
-    {
-      "o": "A8",
-      "bang": "Mã"
-    },
-    {
-      "o": "B8",
-      "bang": "Kênh"
-    },
-    {
-      "o": "B7",
-      "bang": "THÁNG 9"
-    },
-    {
-      "o": "B10",
-      "bang": "Kênh B2C"
-    },
-    {
-      "o": "B46",
-      "bang": "Tổng Doanh thu"
-    }
-  ],
   "ky_thang_tu_o": {
-    "o": "B7"
+    "cot": "B",
+    "toi_da": 30
   },
   "chieu_co_dinh": {
     "dim1": "A200"
   },
   "header": {
-    "dong": 8
+    "tim_o": "Mã"
   },
-  "dong_bat_dau": 9,
-  "dong_ket_thuc": 45,
+  "dong_bat_dau_tim": {
+    "cot": "A",
+    "regex": "^\\s*A\\.\\s*$"
+  },
+  "dong_ket_thuc_tim": {
+    "cot": "A",
+    "regex": "^\\s*B\\.\\s*$"
+  },
   "cot": {
     "dim2": {
       "header": "Mã",
@@ -68,7 +55,7 @@
   },
   "ban_ghi": "moi_cot_ngay",
   "cot_ngay": {
-    "dong": 8,
+    "dong_tuong_doi": 0,
     "tu": "F",
     "den": "AJ",
     "he_so": 1.0
@@ -86,7 +73,7 @@
   ],
   "payload_them": {
     "unit": "xe",
-    "nguon": "kehoach_ngay_sheet_KHT9ngaytheoSR"
+    "nguon": "kehoach_ngay_theo_sr"
   },
   "source_file_hau_to": "KHT9ngaytheoSR"
 }

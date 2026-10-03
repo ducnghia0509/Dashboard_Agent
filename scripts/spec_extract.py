@@ -34,12 +34,24 @@ CẤU TRÚC SPEC (khoá tiếng Việt cho kế toán/BA đọc được):
                                         //   đọc MỌI sheet khớp ô mốc; dùng khi TÊN sheet không
                                         //   tách nổi hai họ bảng (xem HQKD năm khối Dự án)
                                         // | {"moi_sheet_ngay": true} — mỗi sheet là 1 ngày
+                                        // | {"moi_sheet_regex": "^kht\\d{1,2}ngay$"} — đọc MỌI
+                                        //   sheet có tên (đã `_nd`) khớp regex; cho họ sheet
+                                        //   tháng đổi tên theo tháng (KHT9ngày, KHT10ngày…)
   },
+  "chi_tu_ky": "2026-09",                // tuỳ chọn — bỏ mọi bản ghi có ngày TRƯỚC kỳ này (tháng
+                                         // cũ nằm lại trong file nhưng đã nạp từ nguồn khác)
+  "den_ky": "2026-09",                   // tuỳ chọn — bỏ mọi bản ghi có ngày SAU kỳ này (nguồn cũ
+                                         // nhường các kỳ sau cho nguồn mới)
   "header": {"dong": 1},                 // | {"dong": [1,2]} gộp 2 dòng header (lấy ô đầu khác rỗng)
                                          // | {"tim_o": "Mã số"} tự dò dòng header theo nhãn mốc
                                          //   (dùng khi vị trí header khác nhau giữa các sheet)
   "dong_bat_dau": 3,                     // tuỳ chọn — mặc định = dòng header cuối + 1
   "dong_ket_thuc": 19,                   // tuỳ chọn — chặn trên của dải dòng (bắt buộc khi dùng `vung`)
+  "dong_bat_dau_tim": {"cot": "A", "regex": "^\\s*B\\.\\s*$"},   // tuỳ chọn — dòng bắt đầu = dòng
+                                         // ĐẦU TIÊN dưới header có ô cột `cot` khớp regex
+  "dong_ket_thuc_tim": {"cot": "A", "regex": "^\\s*Cộng"},       // tuỳ chọn — dừng NGAY TRƯỚC dòng
+                                         // đầu tiên (từ dòng bắt đầu trở xuống) khớp regex
+                                         // (hai khoá này cho bảng mà số dòng đổi theo kỳ)
   "ky_tu_ten_sheet": {"regex": "T(\\d{1,2})$"},   // CHỈ đi kèm `moi_sheet_chua` — THÁNG lấy từ
                                          // TÊN SHEET (năm từ tên file), mọi dòng của sheet neo
                                          // vào ngày CUỐI THÁNG đó. Cho nguồn 1 sheet/tháng mà
@@ -50,6 +62,8 @@ CẤU TRÚC SPEC (khoá tiếng Việt cho kế toán/BA đọc được):
                                          // — cho sheet xếp NHIỀU KHỐI THÁNG, khai trong từng `vung`
                                          // `regex` có nhóm tên `nam` -> ô mang TRỌN năm+tháng và
                                          // tên file thôi phải mang kỳ (họ file tiến độ Showroom)
+                                         // | {"cot": "B", "toi_da": 30} — không ghim ô: lấy ô ĐẦU
+                                         // TIÊN của cột B (dòng 1..30) khớp regex tháng
   "vung": [                              // NHIỀU KHỐI trong CÙNG 1 sheet (xem `extract_file`).
     {"ten": "Sơn Tây", "header": {"dong": [6, 7]}, "dong_bat_dau": 8, "dong_ket_thuc": 19,
      "chieu_co_dinh": {"cost_center": "ST_AT"}, "cot": {"amount": {"header": "TXTX"}}}
@@ -126,6 +140,8 @@ CẤU TRÚC SPEC (khoá tiếng Việt cho kế toán/BA đọc được):
   - "moi_cot_gia_tri" : 1 dòng nguồn -> N bản ghi, mỗi cột giá trị thành 1 dòng có dim1 riêng
                         (bảng ma trận: "Tuổi nợ phải thu" có sẵn cột trong hạn/1-30/>30-90/…).
   - "moi_cot_ngay"    : 1 dòng nguồn -> N bản ghi theo dải cột NGÀY trong tháng (`cot_ngay`).
+                        Mốc ngày ở dòng `cot_ngay.dong`, hoặc `cot_ngay.dong_tuong_doi` (vd -1 =
+                        dòng ngay trên header — khi header tự dò bằng `tim_o`), mặc định = header.
   - "moi_cot_thang"   : 1 dòng nguồn -> N bản ghi theo dải cột THÁNG (`cot_thang`), mỗi bản ghi
                         neo vào ngày cuối tháng đó. Dùng cho bản KẾ HOẠCH năm: một file duy nhất
                         cấp số cho cả 12 kỳ, nên đừng đặt kỳ theo tên file.
@@ -644,6 +660,9 @@ _KH_KHOI = {
     "xedaukeo440": ("T101_1", "Chi tiết"),
     "xeben84": ("T101_2", "Chi tiết"),
     "xediensanny": ("T101_3_SANNY", "Chi tiết"),
+    # Bản 03/10/2026 ghi "Xe điện Sany" (một chữ n) ở khối SẢN LƯỢNG, khối GIÁ TRỊ vẫn "Sanny" —
+    # thiếu biến thể này thì sản lượng xe Sany rơi mất (T7: 80/117 xe) mà dòng TỔNG vẫn đúng.
+    "xediensany": ("T101_3_SANNY", "Chi tiết"),
     "xedienshacman": ("T101_3_SHACMAN", "Chi tiết"),
     "xedienfaw": ("T101_3_FAW", "Chi tiết"),
     "xediendongfeng": ("T101_3_DONGFENG", "Chi tiết"),
@@ -2240,8 +2259,24 @@ def _ky_thang(spec, path):
         ten_sh = _chon_sheet(_mo_wb(path), sh, goc[1] if goc else None)
         if not ten_sh:
             return None, [*w, f"`ky_thang_tu_o`: không chọn được sheet ({sh})"]
-        txt = str(_mo_wb(path)[ten_sh][c_o["o"]].value or "")
-        m = re.search(c_o.get("regex") or r"TH[ÁA]NG\s*(\d{1,2})", txt, re.I)
+        mau = c_o.get("regex") or r"TH[ÁA]NG\s*(\d{1,2})"
+        if c_o.get("o"):
+            txt = str(_mo_wb(path)[ten_sh][c_o["o"]].value or "")
+            m = re.search(mau, txt, re.I)
+        else:
+            # `cot` (03/10/2026): KHÔNG ghim ô — lấy ô ĐẦU TIÊN của cột (dòng 1..`toi_da`) khớp
+            # mẫu. Sheet kế hoạch ngày theo SR đổi vị trí nhãn tháng giữa các bản: 'THÁNG 9' ở B7
+            # (sheet T9 có 6 dòng trống phía trên), 'THÁNG 10' ở B1. Ghim B7 là sheet T10 trượt.
+            j = column_index_from_string(c_o["cot"]) - 1
+            txt, m = "", None
+            for r in _mo_wb(path)[ten_sh].iter_rows(min_row=1, max_row=int(c_o.get("toi_da", 30)),
+                                                    values_only=True):
+                v = r[j] if j < len(r) else None
+                if v not in (None, "") and re.search(mau, str(v), re.I):
+                    txt = str(v)
+                    m = re.search(mau, txt, re.I)
+                    break
+            c_o = {**c_o, "o": f"cột {c_o['cot']}"}      # chỉ để câu cảnh báo bên dưới đọc được
         if not m:
             return None, [*w, f"`ky_thang_tu_o`: ô {c_o['o']} của sheet {ten_sh!r} = {txt.strip()!r}"
                               f" — không dò được số tháng -> bỏ khối"]
@@ -2597,6 +2632,20 @@ def extract_file(spec, path):
     Mỗi vùng vẫn tự dò cột THEO TÊN HEADER trong đúng dòng tiêu đề của nó (nguyên tắc số 1) và
     vẫn kiểm được `kiem_tra_o` riêng, nên chèn/xoá cột trong một khối không lây sang khối khác.
     """
+    # `chi_tu_ky` (03/10/2026): file kế hoạch tháng của XDV giữ lại sheet các tháng cũ (KHT8ngày
+    # nằm cạnh KHT9ngày, KHT10ngày). Kế hoạch ngày T8 đã nạp từ nguồn khác
+    # (`XDV::…Baocaodoanhthukehoachngay`, CÙNG bộ số) nên đọc lại sheet T8 là cộng đôi tháng 8.
+    # Chặn theo KỲ thay vì liệt kê tên sheet cần bỏ: tháng sau thêm sheet mới thì spec không phải sửa.
+    # `den_ky` là chiều ngược lại: nguồn CŨ chỉ phụ trách tới một kỳ, kỳ sau đã có nguồn mới
+    # (kế hoạch ngày theo kênh của Showroom: sheet 'KHngàytheokenh' tới T9, từ T10 lấy dòng kênh
+    # của sheet theo SR). Khai cả hai mốc thì hai spec không bao giờ chồng tháng, kể cả khi kế toán
+    # điền thêm tháng mới vào sheet cũ.
+    if spec.get("chi_tu_ky") or spec.get("den_ky"):
+        recs, warn = extract_file({k: v for k, v in spec.items()
+                                   if k not in ("chi_tu_ky", "den_ky")}, path)
+        tu, den = str(spec.get("chi_tu_ky") or "")[:7], str(spec.get("den_ky") or "9999-12")[:7]
+        return [r for r in recs if not r.get("ngay") or tu <= str(r["ngay"])[:7] <= den], warn
+
     # `moi_sheet_chua` (19/08/2026, báo cáo QTVH Xanh Taxi): MỘT file chứa NHIỀU SHEET THÁNG
     # ("BÁO CÁO THÁNG 8", "BÁO CÁO THÁNG 7"…) và tháng sau lại thêm một sheet nữa vào chính file
     # đó. Khai `sheet.ten` cứng là mỗi kỳ phải sửa spec, còn `theo_thang` chỉ lấy đúng tháng của
@@ -2604,7 +2653,7 @@ def extract_file(spec, path):
     # chứa mốc, mỗi sheet đọc như một file con; kỳ của từng sheet lấy từ chính ô ngày ở dòng tiêu
     # đề (`cot_ngay.ky_tu_o`), không suy từ tên file.
     _sh = (spec.get("nguon") or {}).get("sheet") or {}
-    if "moi_sheet_chua" in _sh or "moi_sheet_theo_o" in _sh:
+    if "moi_sheet_chua" in _sh or "moi_sheet_theo_o" in _sh or "moi_sheet_regex" in _sh:
         # `moi_sheet_theo_o` (20/09/2026, HQKD năm khối Dự án): anh em của `moi_sheet_chua` nhưng
         # lọc sheet theo Ô MỐC thay vì theo TÊN. Bắt buộc ở nguồn này vì tên sheet KHÔNG tách được
         # hai họ: 7 sheet ngày tên "Cao Bằng", "Phú Quốc "… còn 7 sheet luỹ kế tên "Cao Bằng LK" —
@@ -2615,6 +2664,14 @@ def extract_file(spec, path):
         if "moi_sheet_chua" in _sh:
             ten_sheet = [n for n in _wb.sheetnames if _nd(_sh["moi_sheet_chua"]) in _nd(n)]
             thieu = f"không sheet nào chứa '{_sh['moi_sheet_chua']}'"
+        elif "moi_sheet_regex" in _sh:
+            # `moi_sheet_regex` (03/10/2026): tên sheet kế hoạch ngày mang SỐ THÁNG ở giữa
+            # ("KHT9ngày", "KHT10ngày", "KHngayT10theoSR") — `moi_sheet_chua` không bắt được vì
+            # phần chung bị số tháng cắt đôi, còn mốc ngắn kiểu "KHT" thì vớ cả sheet khác. Regex
+            # chạy trên tên đã `_nd` (bỏ dấu, thường, chỉ a-z0-9) và NÊN neo hai đầu để bản sao
+            # "KHT10ngày (2)" không lọt vào mà cộng đôi.
+            ten_sheet = [n for n in _wb.sheetnames if re.search(_sh["moi_sheet_regex"], _nd(n))]
+            thieu = f"không sheet nào khớp regex '{_sh['moi_sheet_regex']}'"
         else:
             _dk = _sh["moi_sheet_theo_o"]
             _dk = _dk if isinstance(_dk, list) else [_dk]
@@ -2937,6 +2994,9 @@ def _extract_vung(spec, path):
             tren = int(hdr_cfg.get("gop_tren", 0))
             dong_gop = [max_hdr] + [max_hdr - k for k in range(1, tren + 1) if max_hdr - k >= 1]
             hmap = _map_header(quet[:max_hdr], dong_gop)
+            # Cho `cot_thang`/`cot_ngay` đọc tiêu đề dải tháng/ngày ở đúng dòng vừa dò (03/10/2026:
+            # sheet KHDT của Showroom dời dòng tiêu đề 2 -> 1 hôm 09/09 rồi 1 -> 2 hôm 03/10).
+            hdr_dong, head_rows = max_hdr, quet[:max_hdr]
         else:
             hdr_dong = hdr_cfg.get("dong", 1)
             max_hdr = max(hdr_dong) if isinstance(hdr_dong, list) else hdr_dong
@@ -3063,6 +3123,29 @@ def _extract_vung(spec, path):
         # "Tổng" của bảng nhân sự và cột "Tổng số xe" của bảng đội xe cùng nằm ở E/C nên số của
         # khối sau vẫn "đọc được" và cộng vào khối trước — sai mà không một dấu hiệu nào.
         ket_thuc = spec.get("dong_ket_thuc")
+        # `dong_bat_dau_tim` / `dong_ket_thuc_tim` (03/10/2026): ranh giới dải dòng DÒ THEO NHÃN
+        # thay vì số dòng. Kế hoạch ngày đổi số dòng mỗi tháng — XDV: khối 'Tổng XDV' có ở T9
+        # (dòng 6-10, phải bỏ vì N/W/I/C của nó không mang tên xưởng, lọc theo giá trị là cộng
+        # đôi) nhưng không có ở T10, dòng 'Cộng' trượt 81 -> 74; SR: khối 'B.' doanh thu từ dòng
+        # 46 (T9) lên 37 (T10). Ghim số dòng là mỗi tháng sửa spec, sửa sót là cộng nhầm khối.
+        # Không tìm được mốc bắt đầu -> BỎ QUA (thà thiếu còn hơn đọc nhầm khối khác).
+        def _tim_dong(cfg, tu_dong):
+            j = column_index_from_string(cfg["cot"]) - 1
+            for i, r in enumerate(ws.iter_rows(min_row=tu_dong, values_only=True), tu_dong):
+                v = r[j] if j < len(r) else None
+                if v not in (None, "") and re.search(cfg["regex"], str(v), re.I):
+                    return i
+            return None
+        if spec.get("dong_bat_dau_tim"):
+            bat_dau = _tim_dong(spec["dong_bat_dau_tim"], max_hdr + 1)
+            if not bat_dau:
+                return [], [*warn, f"BỎ QUA — không thấy dòng bắt đầu khớp "
+                                   f"{spec['dong_bat_dau_tim']} dưới header (sheet '{sheet}')"]
+        if spec.get("dong_ket_thuc_tim"):
+            # Tìm từ dòng SAU dòng bắt đầu: hai mốc có thể cùng mẫu (khối A. dừng trước khối B.).
+            moc = _tim_dong(spec["dong_ket_thuc_tim"], bat_dau + 1)
+            if moc:
+                ket_thuc = moc - 1 if not ket_thuc else min(ket_thuc, moc - 1)
         gia_tri_cols = spec.get("cot_gia_tri") or []
         gt_idx = [(_tim_cot(hmap, c, f"cột giá trị {c.get('dim1') or c.get('header')}", warn), c)
                   for c in gia_tri_cols]
@@ -3106,6 +3189,11 @@ def _extract_vung(spec, path):
                 dong_ngay = nc_ngay.get("dong")
                 if dong_ngay:
                     moc_row = [c.value for c in ws[int(dong_ngay)]]
+                elif nc_ngay.get("dong_tuong_doi") is not None:
+                    # `dong_tuong_doi` (03/10/2026): mốc ngày ở dòng CÁCH header n dòng. Cần khi
+                    # header tự dò (`tim_o`) — kế hoạch ngày XDV để dòng ngày ngay trên header,
+                    # nhưng header nằm ở dòng 4 (sheet T9) rồi dòng 2 (sheet T10).
+                    moc_row = [c.value for c in ws[max_hdr + int(nc_ngay["dong_tuong_doi"])]]
                 else:
                     moc_row = head_rows[(hdr_dong[-1] if isinstance(hdr_dong, list) else hdr_dong) - 1]
                 for j in range(j1, j2 + 1):

@@ -1,7 +1,8 @@
 {
-  "id": "vhkd_kehoach_ngay_sr_gt_t9",
-  "_mo_ta": "Kế hoạch DOANH THU bán xe theo NGÀY × KÊNH × TỪNG SR (showroom) của khối Showroom, THÁNG 9/2026 trở đi — sheet 'KHT9ngaytheoSR' của 1.SR.OO.M.<yyyymm>.Kehoachthang.xlsx, khối B (dòng 46-82). Report_type `VHKD_KH_SR_NGAY`: cùng hình dạng bản ghi với `VHKD_KH_NGAY` (dim1='A200', dim2=kênh, mỗi ngày một dòng) NHƯNG có thêm `cost_center` — nên mọi chỗ đang đọc kế hoạch ngày theo kênh đều dùng lại được khi người xem lọc MỘT showroom.",
+  "id": "vhkd_kehoach_ngay_sr_gt_moi_thang",
+  "_mo_ta": "Kế hoạch DOANH THU bán xe theo NGÀY × KÊNH × TỪNG SR (showroom) của khối Showroom, THÁNG 9/2026 trở đi — sheet 'KH…ngày…theoSR (mọi tháng từ T9)' của 1.SR.OO.M.<yyyymm>.Kehoachthang.xlsx, khối B (dòng 46-82). Report_type `VHKD_KH_SR_NGAY`: cùng hình dạng bản ghi với `VHKD_KH_NGAY` (dim1='A200', dim2=kênh, mỗi ngày một dòng) NHƯNG có thêm `cost_center` — nên mọi chỗ đang đọc kế hoạch ngày theo kênh đều dùng lại được khi người xem lọc MỘT showroom.",
   "_bay": [
+    "03/10/2026 — ĐỔI THÀNH SPEC DÙNG CHUNG MỌI THÁNG (thay spec `vhkd_kehoach_ngay_sr_gt_t9`): bản kế hoạch tháng 10 đổi bố cục so với T9 (T9 sheet 'KHT9ngaytheoSR' header dòng 8, nhãn tháng ở B7, khối A. dòng 9-45, khối B. dòng 46-82; T10 sheet 'KHngayT10theoSR' header dòng 2, nhãn tháng ở B1, khối A. dòng 3-36, khối B. dòng 37-71). Ghim tên sheet + số dòng như bản T9 là THÁNG NÀO CŨNG phải sửa spec. Nay: sheet chọn bằng `moi_sheet_regex` (mọi sheet tháng, mỗi sheet tự mang kỳ của nó), header tự dò (`tim_o`), ranh giới khối dò theo nhãn (`dong_bat_dau_tim`/`dong_ket_thuc_tim`), dòng mốc ngày/tháng tính TƯƠNG ĐỐI so với header. `source_file_hau_to` giữ nguyên chuỗi cũ để lần nạp đầu XOÁ ĐÚNG các dòng bản T9 đã nạp (đổi hậu tố là T9 bị nạp đôi). Các ghi chú bên dưới là ẢNH CHỤP lúc dựng bản T9 — số dòng nhắc trong đó chỉ đúng cho sheet T9.",
     "SHEET NÀY LÀ BỐ CỤC MỚI TỪ T9 — kiểm chéo với khối T8 của sheet 'KHngàytheokenh' xác nhận T8 KHÔNG có breakdown theo SR, chỉ 3 dòng kênh. Trước T9 không có nguồn nào để làm spec này.",
     "ĐỌC ĐỦ CHIỀU KÊNH (sửa 15/09/2026 — bản đầu 14/09 làm PHẲNG mất chiều này): sheet xếp khối B thành 3 khối kênh liên tiếp (B2C dòng 47-58, B2B 59-70, GF 71-82), mỗi khối lặp lại đúng danh sách SR. Bản đầu gộp cả 3 khối rồi cộng theo cost_center nên một SR chỉ còn MỘT con số, không tách được B2C/B2B/GF — trong khi vế thực hiện (KDVH/KDVH_D) có đủ kênh ở dim2 và thanh lọc kênh của dashboard lọc CỨNG theo dim2. Nay dim2 lấy từ dòng tiêu đề kênh bằng `ngu_canh_dong`.",
     "`ngu_canh_dong` THAY CHO mẹo 'lọc bằng chính phép map cost_center' của bản đầu: dòng tiêu đề kênh ('Kênh B2C'/'Kênh B2B'/'Kênh GF', cột A ghi B2C/B2B/GF) và dòng tổng khối ('B.Tổng Doanh thu bán xe', cột A ghi 'B.') nay bị CHÍNH quy tắc ngữ cảnh nuốt — dòng tiêu đề không tự sinh bản ghi. Cách cũ dựa vào việc các dòng đó KHÔNG map được cost_center: đúng tình cờ, và hỏng ngay khi thêm alias (xem `_cc_showroom`) hoặc khi kế toán đổi nhãn dòng tổng thành tên một đơn vị.",
@@ -26,43 +27,88 @@
     "folder": "KEHOACH/baocaokehoachthang",
     "file_glob": "1.SR.*.Kehoachthang.xlsx",
     "sheet": {
-      "ten": "KHT9ngaytheoSR"
+      "moi_sheet_regex": "^kh.*ngay.*theosr$",
+      "mo_ta": "KHngayT<tháng>theoSR / KHT<tháng>ngaytheoSR"
     }
   },
-  "kiem_tra_o": [
-    { "o": "A8", "bang": "Mã" },
-    { "o": "B8", "bang": "Kênh" },
-    { "o": "B7", "bang": "THÁNG 9" },
-    { "o": "B46", "bang": "B.Tổng Doanh thu bán xe" },
-    { "o": "B47", "bang": "Kênh B2C" },
-    { "o": "B59", "bang": "Kênh B2B" },
-    { "o": "B71", "bang": "Kênh GF" }
-  ],
-  "ky_thang_tu_o": { "o": "B7" },
-  "header": { "dong": 8 },
-  "dong_bat_dau": 46,
-  "dong_ket_thuc": 82,
-  "chieu_co_dinh": { "dim1": "A200" },
+  "ky_thang_tu_o": {
+    "cot": "B",
+    "toi_da": 30
+  },
+  "header": {
+    "tim_o": "Mã"
+  },
+  "dong_bat_dau_tim": {
+    "cot": "A",
+    "regex": "^\\s*B\\.\\s*$"
+  },
+  "dong_ket_thuc_tim": {
+    "cot": "A",
+    "regex": "^\\s*[C-Z]\\.\\s*$"
+  },
+  "chieu_co_dinh": {
+    "dim1": "A200"
+  },
   "ngu_canh_dong": [
     {
-      "khi": [{ "cot": "A", "dieu_kien": "regex", "gia_tri": "^\\s*[AB]\\.\\s*$" }],
-      "xoa": ["dim2"]
+      "khi": [
+        {
+          "cot": "A",
+          "dieu_kien": "regex",
+          "gia_tri": "^\\s*[AB]\\.\\s*$"
+        }
+      ],
+      "xoa": [
+        "dim2"
+      ]
     },
     {
-      "khi": [{ "cot": "A", "dieu_kien": "regex", "gia_tri": "^\\s*(B2C|B2B|GF)\\s*$" }],
-      "gan": { "dim2": { "cot": "A", "chuan_hoa": "hoa" } }
+      "khi": [
+        {
+          "cot": "A",
+          "dieu_kien": "regex",
+          "gia_tri": "^\\s*(B2C|B2B|GF)\\s*$"
+        }
+      ],
+      "gan": {
+        "dim2": {
+          "cot": "A",
+          "chuan_hoa": "hoa"
+        }
+      }
     }
   ],
   "cot": {
-    "cost_center": { "header": "Kênh", "chuan_hoa": "sr_showroom", "giu_khi_khong_map": true },
-    "payload.ten_dong": { "header": "Kênh", "chuan_hoa": "cat" }
+    "cost_center": {
+      "header": "Kênh",
+      "chuan_hoa": "sr_showroom",
+      "giu_khi_khong_map": true
+    },
+    "payload.ten_dong": {
+      "header": "Kênh",
+      "chuan_hoa": "cat"
+    }
   },
   "ban_ghi": "moi_cot_ngay",
-  "cot_ngay": { "dong": 8, "tu": "F", "den": "AJ", "he_so": 1e-09 },
+  "cot_ngay": {
+    "dong_tuong_doi": 0,
+    "tu": "F",
+    "den": "AJ",
+    "he_so": 1e-09
+  },
   "loc": [
-    { "cot": "dim2", "dieu_kien": "khac_rong" },
-    { "cot": "payload.ten_dong", "dieu_kien": "khac_rong" }
+    {
+      "cot": "dim2",
+      "dieu_kien": "khac_rong"
+    },
+    {
+      "cot": "payload.ten_dong",
+      "dieu_kien": "khac_rong"
+    }
   ],
-  "payload_them": { "unit": "ty", "nguon": "kehoach_ngay_sheet_KHT9ngaytheoSR" },
+  "payload_them": {
+    "unit": "ty",
+    "nguon": "kehoach_ngay_theo_sr"
+  },
   "source_file_hau_to": "KHT9ngaytheoSR_SR_GT"
 }
