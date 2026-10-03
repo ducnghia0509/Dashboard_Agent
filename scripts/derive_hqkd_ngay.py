@@ -1185,7 +1185,12 @@ def _tcode_cong_tu_con(rows):
             con.setdefault(cur, []).append(v)
     moi = dict(byco)
     for ma, vs in con.items():
-        moi[ma] = (byco[ma][0], sum(vs))
+        # Chỉ tin dòng con khi CÓ dòng con mang số (03/10/2026). Bản 30/09 sửa 16:48 ghi THẲNG giá vốn
+        # vào ô T201 = 400.016.106 (số gõ, không công thức) trong khi 4 dòng con D18:D21 trống/0 —
+        # chính T200 của file `=D17+D22+D23+D29` vẫn cộng ô T201. Thay cha bằng Σ con = 0 là mất
+        # 400 tr giá vốn im lặng. Ca 21/09 (cha 0, con 5,28 tr) vẫn đi nhánh cộng từ con như cũ.
+        if any(abs(v) > 0 for v in vs):
+            moi[ma] = (byco[ma][0], sum(vs))
     g = lambda m: (moi.get(m) or (None, 0))[1] or 0  # noqa: E731
     if "T101" in moi:
         moi["T100"] = (byco.get("T100", ("T100",))[0], g("T101") + g("T102") + g("T103"))
