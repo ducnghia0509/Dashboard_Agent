@@ -6,8 +6,8 @@
     "CỘT 'Ngày' LÀ NGÀY GÕ TAY lẫn datetime ('2026-08-31') và chuỗi 'dd/mm/yyyy' -> kieu date_tay. Dòng 'Tồn đầu' (331 dòng) mang ngày 31/08 và đánh dấu ở cột R (không có header) -> payload.loai_dong.",
     "Cột Q 'Loại' = 'Nhập mới - Xuất bán' chỉ có ở dòng Tồn đầu; dòng phát sinh để TRỐNG. Mapping dặn lọc Q='Nhập mới - Xuất bán' để bỏ 'Điều chuyển' (sheet Sheet1 liệt kê hai loại) — hiện KHÔNG có dòng điều chuyển nào, nhưng nếu xuất hiện (Q='Điều chuyển') builder tách vế điều chuyển, không cộng vào nhập/xuất.",
     "Đo 04/10/2026 (bản 18/09): 44 dòng phát sinh từ 03/09 đến 16/09 trên 331 dòng tồn đầu; cuối cùng tồn 3.336 / 108,74 tỷ theo dòng tổng H1..O1 (đã gồm phụ tùng).",
-    "File tên lỗi 'B.5.HT.D202609…' (thiếu dấu chấm, sửa 30/09 — MỚI HƠN bản chuẩn sửa 18/09) KHÔNG nạp theo chỉ định của bên gửi; `file_glob` đòi '.D.' nên tự bỏ. Cần xác nhận bản nào đúng.",
-    "DÒNG CUỐI SHEET (dòng 377: LZZ1CLVB2TD560090, xuất 1 xe 1,176 tỷ) KHÔNG CÓ NGÀY, cũng không có khối/cost center — kế toán nhập dở. Engine bỏ (không gán được kỳ) và báo ở canh_bao; số tồn cuối ngày vì thế cao hơn thực tế 1 xe cho tới khi kế toán điền ngày."
+    "HAI TÊN FILE CHO CÙNG MỘT SỔ: 'B.5.HT.D.202609…' (sửa 18/09) và 'B.5.HT.D202609…' (thiếu dấu chấm, sửa 30/09). Người dùng chốt 04/10/2026: BẢN MỚI HƠN LÀ ĐÚNG. Đã đo: bản 30/09 là TẬP CON ĐẦY ĐỦ HƠN của bản 18/09 (399 vs 375 dòng; thêm 25 bút toán tới 28/09, và bút toán xuất xe LZZ1CLVB2TD560090 trước đây không có ngày nay đã ghi 16/09). `file_glob` nhận cả hai tên; `moi_ky_ky_regex` gom chúng về một kỳ để `mot_file` chỉ giữ MỘT bản (chọn theo mtime file về sau — cron chỉ kéo bản có modifiedAt mới nhất nên thứ tự mtime khớp thứ tự sửa). Thiếu `moi_ky_ky_regex` thì cả hai bản được nạp và mọi bút toán bị cộng đôi.",
+    "Sổ có thể còn bút toán KHÔNG CÓ NGÀY (nhập dở): engine bỏ và báo ở canh_bao; số tồn cuối ngày lệch bấy nhiêu cho tới khi kế toán điền ngày."
   ],
   "_kiem_chung": [
     "Tồn đầu 31/08: Σ SL 3.326 · Σ GT 93.988.881.502 đ = đúng số tồn cuối T08 của file tháng."
@@ -21,7 +21,7 @@
   },
   "nguon": {
     "folder": "TONKHOTAPDOAN/tonkhotapdoanngay",
-    "file_glob": "*.D.*.Baocaotonkhoxetai.xlsx",
+    "file_glob": "*.D*.Baocaotonkhoxetai.xlsx",
     "sheet": {
       "ten": "NXT"
     }
@@ -155,5 +155,6 @@
     "unit_amount2": "ty",
     "unit_tien": "ty"
   },
-  "moi_ky_lay_file_moi_nhat": "mot_file"
+  "moi_ky_lay_file_moi_nhat": "mot_file",
+  "moi_ky_ky_regex": "\\.D\\.?(\\d{6})\\.Baocaotonkhoxetai"
 }
