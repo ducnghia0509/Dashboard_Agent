@@ -2,6 +2,7 @@
   "id": "htxt_tonkho_tuoi",
   "_mo_ta": "TUỔI TỒN kho xe tải — sheet 'TỒN KHO THEO TUỔI' cùng file tháng -> HTXT_TON_TUOI. Mapping sheet 'Quản lý tồn kho 22.09.26' dòng 16-20: < 3 tháng = Σ cột J · 3-6 tháng = Σ cột L · > 6 tháng = Σ cột N + cột P, từ dòng 5. Payload cùng khoá `tsac_tonkho_tuoi` (gt_duoi3/gt_3_6/gt_6_12/gt_tren12). Neo ngày cuối tháng.",
   "_bay": [
+    "BẮT BUỘC chieu_co_dinh.khoi = 'Khối KD Xe tải' và cong_ty = 'HT'. Spec này được nhân bản từ tsac_tonkho_* và bản đầu (04/10/2026) quên đổi chieu_co_dinh: dòng nạp vào mang khoi='Khối KD Trạm sạc Vgreen', cong_ty='TC' -> bị bộ lọc khối/công ty loại khỏi màn xe tải. File có 2 pháp nhân (Hưng Thịnh 407 dòng, Thịnh Cường 7 dòng); pháp nhân thật giữ ở payload.don_vi.",
     "SHEET CÓ HAI KHỐI CẠNH NHAU: A..P (nguồn) và R..AI (bản sao 'tự động lấy từ sheet NHAP_XUAT') — header trùng tên nhưng engine lấy cột ĐẦU TIÊN; spec vẫn khai theo CHỮ CỘT + kiem_tra_o để chắc không nhảy sang khối sao.",
     "Hàng 3 là dòng tổng (E3..P3), hàng 4 là tiêu đề — đọc từ dòng 5. Sheet KHÔNG có cột nhóm: bao gồm cả phụ tùng — builder nối với HTXT_TON_THANG theo mã để lọc 'Hàng hóa'.",
     "Hai ngày đầu hàng 2 ('Ngày đầu kỳ', 'Đến ngày báo cáo') là serial Excel — tuổi tính TỚI ngày báo cáo trong file."
@@ -13,8 +14,8 @@
   "row_index_base": 9160000,
   "khoi": "Khối KD Xe tải",
   "chieu_co_dinh": {
-    "cong_ty": "TC",
-    "khoi": "Khối KD Trạm sạc Vgreen"
+    "cong_ty": "HT",
+    "khoi": "Khối KD Xe tải"
   },
   "nguon": {
     "folder": "TONKHOTAPDOAN/tonkhotapdoanthang",
