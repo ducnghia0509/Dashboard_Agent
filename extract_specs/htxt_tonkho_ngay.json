@@ -1,0 +1,159 @@
+{
+  "id": "htxt_tonkho_ngay",
+  "_mo_ta": "SỔ NXT KHO XE TẢI THEO NGÀY — sheet 'NXT' của TONKHOTAPDOAN/tonkhotapdoanngay/B.5.HT.D.<yyyymm>.Baocaotonkhoxetai.xlsx -> HTXT_TON_NGAY, tab Ngày của màn htxt1. Mapping 5.HTxetai_Mapping_Dashboard.xlsx sheet 'Quản lý tồn kho 22.09.26' cột J. Mỗi dòng là MỘT BÚT TOÁN của một mã hàng ở ngày `Ngày` (cột P): các dòng 'Tồn đầu' (cột R) mang số dư mở đầu ngày 31/08, các dòng còn lại là PHÁT SINH (nhập J/K, xuất L/M, N/O = biến động tồn của dòng đó, âm khi xuất).",
+  "_bay": [
+    "FILE NÀY LÀ SỔ CÁI CHẠY MỘT FILE XUYÊN SUỐT (mapping K: 'chỉ có 1 file xuyên suốt, hàng ngày kế toán vào điền số phát sinh'), KHÔNG phải mỗi ngày một file. Tồn cuối ngày D = số dư mở đầu + Σ cột N các dòng có ngày <= D — builder tự dồn (htxt.py::_nxt_ngay), không đọc tồn cuối từng dòng.",
+    "CỘT 'Ngày' LÀ NGÀY GÕ TAY lẫn datetime ('2026-08-31') và chuỗi 'dd/mm/yyyy' -> kieu date_tay. Dòng 'Tồn đầu' (331 dòng) mang ngày 31/08 và đánh dấu ở cột R (không có header) -> payload.loai_dong.",
+    "Cột Q 'Loại' = 'Nhập mới - Xuất bán' chỉ có ở dòng Tồn đầu; dòng phát sinh để TRỐNG. Mapping dặn lọc Q='Nhập mới - Xuất bán' để bỏ 'Điều chuyển' (sheet Sheet1 liệt kê hai loại) — hiện KHÔNG có dòng điều chuyển nào, nhưng nếu xuất hiện (Q='Điều chuyển') builder tách vế điều chuyển, không cộng vào nhập/xuất.",
+    "Đo 04/10/2026 (bản 18/09): 44 dòng phát sinh từ 03/09 đến 16/09 trên 331 dòng tồn đầu; cuối cùng tồn 3.336 / 108,74 tỷ theo dòng tổng H1..O1 (đã gồm phụ tùng).",
+    "File tên lỗi 'B.5.HT.D202609…' (thiếu dấu chấm, sửa 30/09 — MỚI HƠN bản chuẩn sửa 18/09) KHÔNG nạp theo chỉ định của bên gửi; `file_glob` đòi '.D.' nên tự bỏ. Cần xác nhận bản nào đúng.",
+    "DÒNG CUỐI SHEET (dòng 377: LZZ1CLVB2TD560090, xuất 1 xe 1,176 tỷ) KHÔNG CÓ NGÀY, cũng không có khối/cost center — kế toán nhập dở. Engine bỏ (không gán được kỳ) và báo ở canh_bao; số tồn cuối ngày vì thế cao hơn thực tế 1 xe cho tới khi kế toán điền ngày."
+  ],
+  "_kiem_chung": [
+    "Tồn đầu 31/08: Σ SL 3.326 · Σ GT 93.988.881.502 đ = đúng số tồn cuối T08 của file tháng."
+  ],
+  "report_type": "HTXT_TON_NGAY",
+  "row_index_base": 9170000,
+  "khoi": "Khối KD Xe tải",
+  "chieu_co_dinh": {
+    "cong_ty": "HT",
+    "khoi": "Khối KD Xe tải"
+  },
+  "nguon": {
+    "folder": "TONKHOTAPDOAN/tonkhotapdoanngay",
+    "file_glob": "*.D.*.Baocaotonkhoxetai.xlsx",
+    "sheet": {
+      "ten": "NXT"
+    }
+  },
+  "kiem_tra_o": [
+    {
+      "o": "D2",
+      "bang": "HÀNG HOÁ"
+    },
+    {
+      "o": "J2",
+      "bang": "SL nhập trong kỳ"
+    },
+    {
+      "o": "L2",
+      "bang": "SL xuất trong kỳ"
+    },
+    {
+      "o": "N2",
+      "bang": "SL tồn cuối kỳ"
+    },
+    {
+      "o": "P2",
+      "bang": "Ngày"
+    }
+  ],
+  "header": {
+    "dong": 2
+  },
+  "dong_bat_dau": 3,
+  "cot": {
+    "dim1": {
+      "header": "MÃ HÀNG HOÁ"
+    },
+    "dim3": {
+      "header": "TÊN HÀNG HOÁ"
+    },
+    "amount": {
+      "header": "SL tồn cuối kỳ",
+      "kieu": "so_co_rong"
+    },
+    "amount2": {
+      "header": "Giá trị tồn cuối kỳ",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09
+    },
+    "payload.ma_vat_tu": {
+      "header": "MÃ HÀNG HOÁ"
+    },
+    "payload.dvt": {
+      "header": "ĐVT",
+      "bat_buoc": false
+    },
+    "payload.nhom": {
+      "header": "PHÂN LOẠI NHÓM",
+      "bat_buoc": false
+    },
+    "payload.ton_dau": {
+      "header": "SL đầu kỳ",
+      "kieu": "so_co_rong"
+    },
+    "payload.du_dau": {
+      "header": "Giá trị tồn đầu kỳ",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09
+    },
+    "payload.sl_nhap": {
+      "header": "SL nhập trong kỳ",
+      "kieu": "so_co_rong"
+    },
+    "payload.tien_nhap": {
+      "header": "Giá trị nhập trong kỳ",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09
+    },
+    "payload.sl_xuat": {
+      "header": "SL xuất trong kỳ",
+      "kieu": "so_co_rong"
+    },
+    "payload.tien_xuat": {
+      "header": "Giá trị xuất trong kỳ",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09
+    },
+    "payload.ton_cuoi": {
+      "header": "SL tồn cuối kỳ",
+      "kieu": "so_co_rong"
+    },
+    "payload.du_cuoi": {
+      "header": "Giá trị tồn cuối kỳ",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09
+    },
+    "dim2": {
+      "header": "PHÂN LOẠI NHÓM"
+    },
+    "payload.don_vi": {
+      "header": "Pháp nhân",
+      "bat_buoc": false
+    },
+    "payload.cost_center_goc": {
+      "header": "Cost Center",
+      "bat_buoc": false
+    },
+    "payload.ten": {
+      "header": "TÊN HÀNG HOÁ",
+      "bat_buoc": false
+    },
+    "ngay": {
+      "header": "Ngày",
+      "kieu": "date_tay"
+    },
+    "payload.loai_dong": {
+      "cot": "R",
+      "bat_buoc": false
+    },
+    "payload.loai": {
+      "header": "Loại",
+      "bat_buoc": false
+    }
+  },
+  "ban_ghi": "moi_dong",
+  "loc": [
+    {
+      "cot": "payload.ma_vat_tu",
+      "dieu_kien": "khac_rong"
+    }
+  ],
+  "payload_them": {
+    "unit": "cai",
+    "unit_amount2": "ty",
+    "unit_tien": "ty"
+  },
+  "moi_ky_lay_file_moi_nhat": "mot_file"
+}

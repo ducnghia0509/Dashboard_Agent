@@ -15,8 +15,10 @@ KÉO GÌ (chọn trong available_metadata.json):
   · HUNGTHINH/baocaocapnhatkinhdoanhxetai — 2 tháng gần nhất (mỗi tháng một file, tháng cũ còn có thể
     được sửa lại).
   · TONKHOTAPDOAN/tonkhotapdoanthang — file '*.M.<yyyymm>.Baocaotonkhoxetai.xlsx' của 2 tháng gần
-    nhất. BẢN NGÀY (`.D.`) KHÔNG kéo: tồn kho xe tải theo ngày đã có HH_D (26/09/2026).
-    Mục tên lỗi 'B.5.HT.D202609…' (thiếu dấu chấm) bị bỏ vì regex đòi '.M.<6 số>.'.
+    nhất, và tonkhotapdoanngay — SỔ NXT theo ngày '*.D.<yyyymm>.Baocaotonkhoxetai.xlsx' (một sổ xuyên
+    suốt, mapping sheet tồn kho cột J) của tháng gần nhất. Mục tên lỗi 'B.5.HT.D202609…' (thiếu dấu
+    chấm) bị bỏ vì regex đòi '.M.<6 số>.' / '.D.<6 số>.' — NHƯNG nó SỬA MỚI HƠN bản chuẩn (30/09 so với
+    18/09): cần kế toán xác nhận bản nào đúng.
   · Google Sheet nhúng link trong mapping KHÔNG kéo được (agent chỉ đọc file trên đĩa).
 
 `refresh=True` luôn: tên file/tháng MỚI xuất hiện theo tháng, danh sách cũ không có.
@@ -42,8 +44,9 @@ DB = {"test": "postgresql://tc:tc_%24production@localhost:5435/tc_dashboard",
       "prod": "postgresql://tc:tc_%24production@localhost:5434/tc_dashboard"}
 
 SPECS = ("htxt_giao", "htxt_hopdong", "htxt_lead", "htxt_lead_t10", "htxt_ncc_hd", "htxt_ncc_lo",
-         "htxt_tonkho_thang", "htxt_tonkho_tuoi")
+         "htxt_tonkho_thang", "htxt_tonkho_tuoi", "htxt_tonkho_ngay")
 _RE_TON_THANG = re.compile(r"\.M\.(\d{6})\.Baocaotonkhoxetai\.xlsx$", re.I)
+_RE_TON_NGAY = re.compile(r"\.D\.(\d{6})\.Baocaotonkhoxetai\.xlsx$", re.I)
 SO_THANG_GAN = 2
 
 
@@ -73,6 +76,11 @@ def chon_file(meta):
            and e.get("report_type") == "tonkhotapdoanthang" and _RE_TON_THANG.search(e["fileName"])]
     ton.sort(key=lambda e: _RE_TON_THANG.search(e["fileName"]).group(1))
     chon.update((e["company"], e["report_type"], e["fileName"]) for e in ton[-SO_THANG_GAN:])
+
+    ngay = [e for e in ds if e.get("company") == "TONKHOTAPDOAN"
+            and e.get("report_type") == "tonkhotapdoanngay" and _RE_TON_NGAY.search(e["fileName"])]
+    ngay.sort(key=lambda e: _RE_TON_NGAY.search(e["fileName"]).group(1))
+    chon.update((e["company"], e["report_type"], e["fileName"]) for e in ngay[-1:])
     return chon
 
 

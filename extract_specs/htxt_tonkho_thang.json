@@ -2,6 +2,7 @@
   "id": "htxt_tonkho_thang",
   "_mo_ta": "NXT kho XE TẢI theo tháng — sheet 'NXT' của TONKHOTAPDOAN/tonkhotapdoanthang/B.5.HT.M.<yyyymm>.Baocaotonkhoxetai.xlsx -> HTXT_TON_THANG, màn htxt-cungung phần A. Mapping 5.HTxetai_Mapping_Dashboard.xlsx sheet 'Quản lý tồn kho 22.09.26' cột I: tồn đầu = Σ H/I, nhập = Σ J/K, xuất = Σ L/M, tồn cuối = Σ N/O, từ dòng 3. Mỗi mã hàng một dòng; cùng khoá payload với `tsac_tonkho_thang` để dùng chung `vhkd_pin.nxt_thang`. Tiền theo TỶ, neo ngày cuối tháng.",
   "_bay": [
+    "BẮT BUỘC chieu_co_dinh.khoi = 'Khối KD Xe tải' và cong_ty = 'HT'. Spec này được nhân bản từ tsac_tonkho_* và bản đầu (04/10/2026) quên đổi chieu_co_dinh: dòng nạp vào mang khoi='Khối KD Trạm sạc Vgreen', cong_ty='TC' -> bị bộ lọc khối/công ty loại khỏi màn xe tải. File có 2 pháp nhân (Hưng Thịnh 407 dòng, Thịnh Cường 7 dòng); pháp nhân thật giữ ở payload.don_vi.",
     "HÀNG 1 LÀ DÒNG TỔNG (H1..O1), hàng 2 là tiêu đề — đọc từ dòng 3. Dòng tổng KHÔNG nạp.",
     "FILE GỒM CẢ PHỤ TÙNG: cột F 'PHÂN LOẠI NHÓM' = 'Phụ tùng' (280 dòng, ~3.283 cái) và 'Hàng hóa' (134 dòng: xe, trụ sạc, mooc…). Số lượng 'xe' chỉ là nhóm Hàng hóa — cộng cả hai là SL phình gấp trăm lần. Nhóm lưu ở dim2 + payload.nhom, builder tự lọc.",
     "HAI PHÁP NHÂN trong cùng khối: 'Công ty TNHH XNK và Khai thác Hưng Thịnh' (407 dòng, cost center 'Xe tải điện - Hưng Thịnh') và 'Công ty Cổ phần Thịnh Cường' (7 dòng, 'Xe tải điện - Thịnh Cường'). Giữ cả hai, tách ở payload.don_vi/cost_center_goc.",
@@ -15,8 +16,8 @@
   "row_index_base": 9150000,
   "khoi": "Khối KD Xe tải",
   "chieu_co_dinh": {
-    "cong_ty": "TC",
-    "khoi": "Khối KD Trạm sạc Vgreen"
+    "cong_ty": "HT",
+    "khoi": "Khối KD Xe tải"
   },
   "nguon": {
     "folder": "TONKHOTAPDOAN/tonkhotapdoanthang",
