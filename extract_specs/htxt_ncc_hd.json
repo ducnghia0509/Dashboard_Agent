@@ -1,0 +1,108 @@
+{
+  "khoi": "Khối KD Xe tải",
+  "chieu_co_dinh": {
+    "cong_ty": "HT"
+  },
+  "ban_ghi": "moi_dong",
+  "moi_ky_lay_file_moi_nhat": "mot_file",
+  "nguon": {
+    "folder": "HUNGTHINH/theodoidonhangtheohopdong",
+    "file_glob": "*.xlsx",
+    "sheet": {
+      "ten": "02_HopDong"
+    }
+  },
+  "id": "htxt_ncc_hd",
+  "report_type": "HTXT_NCC_HD",
+  "row_index_base": 9130000,
+  "_mo_ta": "ĐƠN ĐẶT HÀNG NHÀ CUNG CẤP (hợp đồng mua/nhập khẩu) khối Xe tải — sheet '02_HopDong' của HUNGTHINH/theodoidonhangtheohopdong -> HTXT_NCC_HD. Mapping '2. Mapping 17.9' dòng 50: I 'Loại hàng' · H 'Số lượng' · L 'Giá trị HĐ ký kết (NT)' · J 'Ngày ký'. Mỗi dòng một HĐ mua. amount = giá trị HĐ NGUYÊN TỆ (USD), amount2 = số lượng.",
+  "_bay": [
+    "THEO LOẠI HÀNG CHỨ KHÔNG THEO DÒNG XE (user chốt 04/10/2026): cột 'Loại hàng' là chữ gõ tay ('đầu kéo 423', 'xe ben 8x4', 'trụ sạc 400', 'phụ tùng'…), file không có mã T101 để quy đổi. Giữ nguyên làm dim1; ĐỪNG tự đổi sang dòng xe.",
+    "GIÁ TRỊ LÀ USD (cột K 'Nguyên tệ' = USD ở cả 34 HĐ); cột O là quy đổi VND theo TỶ GIÁ KẾ HOẠCH nên chỉ để payload.gia_tri_vnd. Mapping dòng 53 cũng ghi '(USD)'.",
+    "'Ngày ký' LÀ NGÀY GÕ TAY lẫn 'd/m/yy' ('22/9/25') và 'd/m/yyyy' -> `kieu: date_tay`.",
+    "Σ SỐ LƯỢNG GỒM PHỤ TÙNG (3.311 cái) — builder phải tách `phụ tùng` ra khỏi tổng 'xe' (user chốt).",
+    "Hai đơn vị trong cùng sheet: 'Công ty TNHH XNK và KT Hưng Thịnh' và 'Công ty Cổ Phần Thịnh Cường' — cùng khối Xe tải, mapping không lọc đơn vị nên lấy cả hai (payload.don_vi để truy)."
+  ],
+  "kiem_tra_o": [
+    {
+      "o": "A4",
+      "bang": "Mã quản lý HĐ"
+    },
+    {
+      "o": "H4",
+      "bang": "Số lượng"
+    },
+    {
+      "o": "I4",
+      "bang": "Loại hàng"
+    },
+    {
+      "o": "J4",
+      "bang": "Ngày ký"
+    },
+    {
+      "o": "L4",
+      "bang": "Giá trị HĐ ký kết"
+    }
+  ],
+  "header": {
+    "dong": 4
+  },
+  "dong_bat_dau": 5,
+  "cot": {
+    "ngay": {
+      "header": "Ngày ký",
+      "kieu": "date_tay"
+    },
+    "dim1": {
+      "header": "Loại hàng"
+    },
+    "dim2": {
+      "header": "Mã quản lý HĐ"
+    },
+    "dim3": {
+      "header": "Tên đối tác"
+    },
+    "amount": {
+      "header": "Giá trị HĐ ký kết (NT)",
+      "kieu": "so"
+    },
+    "amount2": {
+      "header": "Số lượng",
+      "kieu": "so"
+    },
+    "payload.nguyen_te": {
+      "header": "Nguyên tệ"
+    },
+    "payload.gia_tri_vnd": {
+      "header": "Giá trị HĐ quy đổi (VND)",
+      "kieu": "so",
+      "he_so": 1e-09
+    },
+    "payload.don_vi": {
+      "header": "Đơn vị"
+    },
+    "payload.trang_thai": {
+      "header": "Trạng thái",
+      "bat_buoc": false
+    },
+    "payload.loai_hd": {
+      "header": "Loại HĐ",
+      "bat_buoc": false
+    }
+  },
+  "loc": [
+    {
+      "cot": "dim1",
+      "dieu_kien": "khac_rong"
+    },
+    {
+      "cot": "dim2",
+      "dieu_kien": "khac_rong"
+    }
+  ],
+  "payload_them": {
+    "unit": "usd",
+    "unit2": "cai"
+  }
+}

@@ -1,0 +1,136 @@
+{
+  "id": "htxt_tonkho_tuoi",
+  "_mo_ta": "TUỔI TỒN kho xe tải — sheet 'TỒN KHO THEO TUỔI' cùng file tháng -> HTXT_TON_TUOI. Mapping sheet 'Quản lý tồn kho 22.09.26' dòng 16-20: < 3 tháng = Σ cột J · 3-6 tháng = Σ cột L · > 6 tháng = Σ cột N + cột P, từ dòng 5. Payload cùng khoá `tsac_tonkho_tuoi` (gt_duoi3/gt_3_6/gt_6_12/gt_tren12). Neo ngày cuối tháng.",
+  "_bay": [
+    "SHEET CÓ HAI KHỐI CẠNH NHAU: A..P (nguồn) và R..AI (bản sao 'tự động lấy từ sheet NHAP_XUAT') — header trùng tên nhưng engine lấy cột ĐẦU TIÊN; spec vẫn khai theo CHỮ CỘT + kiem_tra_o để chắc không nhảy sang khối sao.",
+    "Hàng 3 là dòng tổng (E3..P3), hàng 4 là tiêu đề — đọc từ dòng 5. Sheet KHÔNG có cột nhóm: bao gồm cả phụ tùng — builder nối với HTXT_TON_THANG theo mã để lọc 'Hàng hóa'.",
+    "Hai ngày đầu hàng 2 ('Ngày đầu kỳ', 'Đến ngày báo cáo') là serial Excel — tuổi tính TỚI ngày báo cáo trong file."
+  ],
+  "_kiem_chung": [
+    "T08/2026 (đo 04/10): 297 lô; Σ SL tồn 3.326 / 94,35 tỷ (NXT 93,99 — lệch 0,36 tỷ do giá bình quân) · < 3 tháng 59,25 tỷ · 3-6 tháng 29,67 tỷ · 6-12 tháng 5,43 tỷ · > 12 tháng 0."
+  ],
+  "report_type": "HTXT_TON_TUOI",
+  "row_index_base": 9160000,
+  "khoi": "Khối KD Xe tải",
+  "chieu_co_dinh": {
+    "cong_ty": "TC",
+    "khoi": "Khối KD Trạm sạc Vgreen"
+  },
+  "nguon": {
+    "folder": "TONKHOTAPDOAN/tonkhotapdoanthang",
+    "file_glob": "*.Baocaotonkhoxetai.xlsx",
+    "sheet": {
+      "ten": "TỒN KHO THEO TUỔI"
+    }
+  },
+  "kiem_tra_o": [
+    {
+      "o": "A4",
+      "bang": "Mã vật tư"
+    },
+    {
+      "o": "E4",
+      "bang": "Số lượng"
+    },
+    {
+      "o": "F4",
+      "bang": "Giá trị"
+    },
+    {
+      "o": "J4",
+      "bang": "GT < 3"
+    },
+    {
+      "o": "L4",
+      "bang": "GT 3-6"
+    },
+    {
+      "o": "N4",
+      "bang": "GT 6-12"
+    },
+    {
+      "o": "P4",
+      "bang": "GT > 12"
+    }
+  ],
+  "header": {
+    "dong": 4
+  },
+  "dong_bat_dau": 5,
+  "ky_tu_ten_file": {
+    "regex_nam": "\\.M\\.(\\d{4})\\d{2}\\.",
+    "regex_thang": "\\.M\\.\\d{4}(\\d{2})\\."
+  },
+  "moi_ky_lay_file_moi_nhat": true,
+  "cot": {
+    "dim3": {
+      "cot": "A"
+    },
+    "amount": {
+      "cot": "E",
+      "kieu": "so_co_rong"
+    },
+    "amount2": {
+      "cot": "F",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09
+    },
+    "payload.ten": {
+      "cot": "B"
+    },
+    "payload.dvt": {
+      "cot": "C"
+    },
+    "payload.ngay_lo_cu": {
+      "cot": "G",
+      "kieu": "date_tay",
+      "bat_buoc": false
+    },
+    "payload.gt_duoi3": {
+      "cot": "J",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09
+    },
+    "payload.gt_3_6": {
+      "cot": "L",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09
+    },
+    "payload.gt_6_12": {
+      "cot": "N",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09
+    },
+    "payload.gt_tren12": {
+      "cot": "P",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09
+    },
+    "payload.sl_duoi3": {
+      "cot": "I",
+      "kieu": "so_co_rong"
+    },
+    "payload.sl_3_6": {
+      "cot": "K",
+      "kieu": "so_co_rong"
+    },
+    "payload.sl_6_12": {
+      "cot": "M",
+      "kieu": "so_co_rong"
+    },
+    "payload.sl_tren12": {
+      "cot": "O",
+      "kieu": "so_co_rong"
+    }
+  },
+  "ban_ghi": "moi_dong",
+  "loc": [
+    {
+      "cot": "dim3",
+      "dieu_kien": "khac_rong"
+    }
+  ],
+  "payload_them": {
+    "unit_tien": "ty"
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "id": "htxt_hopdong",
+  "_mo_ta": "HỢP ĐỒNG BÁN khối Xe tải — sheet 'Hop dong ban' của HUNGTHINH/baocaocapnhatvanhanhxetai -> HTXT_HD. Mapping '2. Mapping 17.9' dòng 40-44: H 'Mã theo dõi' · K 'SL theo HĐ' · M 'Giá trị HĐ' · N 'SL đã giao' · Q 'SL chưa giao' · V 'Giá trị chưa giao' · B 'Ngày ký HĐ'. Mỗi dòng một hợp đồng × một dòng xe. amount = giá trị HĐ (tỷ, đã VAT — mapping dòng 40 ghi 'Giá đã có VAT'), amount2 = SL theo HĐ.",
+  "_bay": [
+    "'Ngày ký HĐ' LÀ NGÀY GÕ TAY: lẫn số serial Excel (46109) và chuỗi 'dd/mm/yyyy' ('15/05/2026'); 7/84 HĐ để trống (chưa ký). Spec lọc `ngay khac_rong` — HĐ chưa ký không vào số 'đã ký' và cũng không vào 'cần bàn giao' (mapping dòng 41: 'lọc các hợp đồng đã ký tính đến ngày cuối kỳ').",
+    "CỘT O/T ('đã xuất hóa đơn') KHÔNG DÙNG: file ghi theo HOÁ ĐƠN chứ không theo HĐ (HĐ 28032026/HĐHT-HD: SL đã giao 1, 'đã xuất hóa đơn' 3, 'chưa xuất' ÂM 2; Σ giá trị xuất HĐ 4,77 tỷ lặp ở 3 HĐ khác nhau). Mapping dòng 42 ('đã bàn giao xuất hóa đơn') ghi 'Theo BC TCKT' chứ không trỏ cột này -> lấy từ HTXT_GIAO. Vẫn lưu O/T vào payload để đối chiếu.",
+    "ẢNH CHỤP, KHÔNG PHẢI LỊCH SỬ: 'SL đã giao/chưa giao' phản ánh thời điểm sửa file, không phải cuối kỳ đang xem. Xem kỳ cũ thì 'cần bàn giao' vẫn là số hiện tại của các HĐ ký tới kỳ đó — builder phải ghi chú, đừng trình như số lịch sử.",
+    "Σ (đo 04/10/2026, 84 dòng): SL theo HĐ 492 · đã giao 297 · chưa giao 195 (K = N + Q ở mọi dòng) · Giá trị HĐ 1.089,7 tỷ · giá trị chưa giao 440,6 tỷ.",
+    "`mot_file` bắt buộc — cùng lý do htxt_giao (file lũy kế, ghi đè, tên tháng lạc hậu)."
+  ],
+  "report_type": "HTXT_HD",
+  "row_index_base": 9110000,
+  "khoi": "Khối KD Xe tải",
+  "nguon": {
+    "folder": "HUNGTHINH/baocaocapnhatvanhanhxetai",
+    "file_glob": "*.xlsx",
+    "sheet": {"ten": "Hop dong ban"}
+  },
+  "moi_ky_lay_file_moi_nhat": "mot_file",
+  "kiem_tra_o": [
+    {"o": "A3", "bang": "Số hợp đồng"},
+    {"o": "B3", "bang": "Ngày ký HĐ"},
+    {"o": "H3", "bang": "Mã theo dõi"},
+    {"o": "K3", "bang": "SL theo HĐ"},
+    {"o": "M3", "bang": "Giá trị HĐ"},
+    {"o": "N3", "bang": "SL đã giao"},
+    {"o": "Q3", "bang": "SL chưa giao"},
+    {"o": "V3", "bang": "Giá trị chưa giao"}
+  ],
+  "header": {"dong": 3},
+  "dong_bat_dau": 4,
+  "cot": {
+    "ngay": {"header": "Ngày ký HĐ", "kieu": "date"},
+    "dim1": {"header": "Mã theo dõi"},
+    "dim2": {"header": "Số hợp đồng"},
+    "dim3": {"header": "Tên khách hàng"},
+    "amount": {"header": "Giá trị HĐ", "kieu": "so", "he_so": 1e-09},
+    "amount2": {"header": "SL theo HĐ", "kieu": "so"},
+    "payload.sl_da_giao": {"header": "SL đã giao", "kieu": "so"},
+    "payload.sl_chua_giao": {"header": "SL chưa giao", "kieu": "so"},
+    "payload.gt_da_giao": {"header": "Giá trị đã giao", "kieu": "so", "he_so": 1e-09},
+    "payload.gt_chua_giao": {"header": "Giá trị chưa giao", "kieu": "so", "he_so": 1e-09},
+    "payload.sl_da_xuat_hd": {"header": "SL đã giao đã xuất hóa đơn", "kieu": "so", "bat_buoc": false},
+    "payload.gt_da_xuat_hd": {"header": "Giá trị đã xuất hóa đơn", "kieu": "so", "he_so": 1e-09, "bat_buoc": false},
+    "payload.trang_thai_hd": {"header": "Trạng thái hợp đồng"},
+    "payload.trang_thai_giao": {"header": "Trạng thái giao xe", "bat_buoc": false},
+    "payload.ma_sp": {"header": "Mã SP"},
+    "payload.model": {"header": "Loại xe/Model"},
+    "payload.nvkd": {"header": "NVKD", "bat_buoc": false}
+  },
+  "chieu_co_dinh": {"cong_ty": "HT"},
+  "ban_ghi": "moi_dong",
+  "loc": [
+    {"cot": "ngay", "dieu_kien": "khac_rong"},
+    {"cot": "dim1", "dieu_kien": "khac_rong"}
+  ],
+  "payload_them": {"unit": "ty", "unit2": "xe", "da_vat": true}
+}

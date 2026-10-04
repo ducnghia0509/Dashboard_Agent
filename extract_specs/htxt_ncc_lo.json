@@ -1,0 +1,113 @@
+{
+  "khoi": "Khối KD Xe tải",
+  "chieu_co_dinh": {
+    "cong_ty": "HT"
+  },
+  "ban_ghi": "moi_dong",
+  "moi_ky_lay_file_moi_nhat": "mot_file",
+  "nguon": {
+    "folder": "HUNGTHINH/theodoidonhangtheohopdong",
+    "file_glob": "*.xlsx",
+    "sheet": {
+      "ten": "03_LoHang"
+    }
+  },
+  "id": "htxt_ncc_lo",
+  "report_type": "HTXT_NCC_LO",
+  "row_index_base": 9140000,
+  "_mo_ta": "LÔ HÀNG NHẬP TỪ NCC khối Xe tải — sheet '03_LoHang' của HUNGTHINH/theodoidonhangtheohopdong -> HTXT_NCC_LO. Mapping dòng 53-56: T 'Tình trạng' (đã nhận/chưa nhận) · H 'Loại hàng' · I 'Số lượng' · O 'Giá trị lô (NT)' · Q 'Giá trị ghi nhận (VND)' · L 'Ngày hàng về'. Mỗi dòng một lô/đợt. amount = giá trị lô USD, amount2 = số lượng.",
+  "_bay": [
+    "'Tình trạng' có BA giá trị: 'đã nhận' (41) · 'chưa nhận' (7) · 'hủy HĐ' (4) — mapping chỉ nhắc hai giá trị đầu. Lô 'hủy HĐ' phải ra khỏi cả 'đã đặt' lẫn 'chưa nhận' (user chốt 04/10/2026), nhưng vẫn được đếm riêng.",
+    "LÔ 'CHƯA NHẬN' KHÔNG CÓ 'Ngày hàng về' (cả cột 'Ngày dự kiến về' cũng trống 53/53) nên `_ghi` sẽ bỏ im lặng đúng nhóm cần thấy nhất. `ngay_thieu_dung_ngay_nap` gắn ngày nạp + payload.ngay_thieu=true: đó là SỐ TẠI THỜI ĐIỂM NẠP, builder không được gán vào tháng phát sinh.",
+    "'Ngày hàng về' là ngày gõ tay lẫn serial Excel (46081) và 'd/m/yyyy' -> `kieu: date_tay`.",
+    "Cột N 'Nguyên tệ' trong sheet này chứa SỐ (100, 20, 25…) chứ không phải mã tiền tệ — không dùng. Tiền tệ là USD (theo HĐ).",
+    "THEO LOẠI HÀNG chứ không theo dòng xe — cùng lý do htxt_ncc_hd. Đối chiếu: sheet '03_TongHop_NhapKho_ChuaGiao' của chính file cho đặt 3.910 · đã nhận 3.732 · chưa giao 178 (gồm phụ tùng 3.311)."
+  ],
+  "ngay_thieu_dung_ngay_nap": true,
+  "kiem_tra_o": [
+    {
+      "o": "A4",
+      "bang": "Mã lô"
+    },
+    {
+      "o": "H4",
+      "bang": "Loại hàng"
+    },
+    {
+      "o": "I4",
+      "bang": "Số lượng"
+    },
+    {
+      "o": "L4",
+      "bang": "Ngày hàng về"
+    },
+    {
+      "o": "O4",
+      "bang": "Giá trị lô"
+    },
+    {
+      "o": "T4",
+      "bang": "Tình trạng"
+    }
+  ],
+  "header": {
+    "dong": 4
+  },
+  "dong_bat_dau": 5,
+  "cot": {
+    "ngay": {
+      "header": "Ngày hàng về",
+      "kieu": "date_tay"
+    },
+    "dim1": {
+      "header": "Loại hàng"
+    },
+    "dim2": {
+      "header": "Mã lô"
+    },
+    "dim3": {
+      "header": "Tên đối tác"
+    },
+    "amount": {
+      "header": "Giá trị lô (NT)",
+      "kieu": "so"
+    },
+    "amount2": {
+      "header": "Số lượng",
+      "kieu": "so"
+    },
+    "payload.tinh_trang": {
+      "header": "Tình trạng"
+    },
+    "payload.trang_thai": {
+      "header": "Trạng thái",
+      "bat_buoc": false
+    },
+    "payload.ma_hd": {
+      "header": "Mã quản lý HĐ"
+    },
+    "payload.gia_tri_vnd": {
+      "header": "Giá trị ghi nhận (VND)",
+      "kieu": "so",
+      "he_so": 1e-09
+    },
+    "payload.don_vi": {
+      "header": "Đơn vị",
+      "bat_buoc": false
+    }
+  },
+  "loc": [
+    {
+      "cot": "dim1",
+      "dieu_kien": "khac_rong"
+    },
+    {
+      "cot": "dim2",
+      "dieu_kien": "khac_rong"
+    }
+  ],
+  "payload_them": {
+    "unit": "usd",
+    "unit2": "cai"
+  }
+}
