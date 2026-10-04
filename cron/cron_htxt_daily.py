@@ -16,9 +16,8 @@ KÉO GÌ (chọn trong available_metadata.json):
     được sửa lại).
   · TONKHOTAPDOAN/tonkhotapdoanthang — file '*.M.<yyyymm>.Baocaotonkhoxetai.xlsx' của 2 tháng gần
     nhất, và tonkhotapdoanngay — SỔ NXT theo ngày '*.D.<yyyymm>.Baocaotonkhoxetai.xlsx' (một sổ xuyên
-    suốt, mapping sheet tồn kho cột J) của tháng gần nhất. Mục tên lỗi 'B.5.HT.D202609…' (thiếu dấu
-    chấm) bị bỏ vì regex đòi '.M.<6 số>.' / '.D.<6 số>.' — NHƯNG nó SỬA MỚI HƠN bản chuẩn (30/09 so với
-    18/09): cần kế toán xác nhận bản nào đúng.
+    suốt, mapping sheet tồn kho cột J) của tháng gần nhất — kể cả tên thiếu dấu chấm
+    'B.5.HT.D202609…': cùng một sổ, bản sửa mới nhất thắng.
   · Google Sheet nhúng link trong mapping KHÔNG kéo được (agent chỉ đọc file trên đĩa).
 
 `refresh=True` luôn: tên file/tháng MỚI xuất hiện theo tháng, danh sách cũ không có.
@@ -29,6 +28,7 @@ môi trường dùng CHUNG received_reports. Giờ crontab là UTC (trừ 7 so v
 Chạy: .venv/bin/python cron/cron_htxt_daily.py [--env test|prod] [--pull]
 """
 import argparse
+import json
 import os
 import re
 import subprocess
@@ -46,7 +46,7 @@ DB = {"test": "postgresql://tc:tc_%24production@localhost:5435/tc_dashboard",
 SPECS = ("htxt_giao", "htxt_hopdong", "htxt_lead", "htxt_lead_t10", "htxt_ncc_hd", "htxt_ncc_lo",
          "htxt_tonkho_thang", "htxt_tonkho_tuoi", "htxt_tonkho_ngay")
 _RE_TON_THANG = re.compile(r"\.M\.(\d{6})\.Baocaotonkhoxetai\.xlsx$", re.I)
-_RE_TON_NGAY = re.compile(r"\.D\.(\d{6})\.Baocaotonkhoxetai\.xlsx$", re.I)
+_RE_TON_NGAY = re.compile(r"\.D\.?(\d{6})\.Baocaotonkhoxetai\.xlsx$", re.I)
 SO_THANG_GAN = 2
 
 
@@ -79,9 +79,32 @@ def chon_file(meta):
 
     ngay = [e for e in ds if e.get("company") == "TONKHOTAPDOAN"
             and e.get("report_type") == "tonkhotapdoanngay" and _RE_TON_NGAY.search(e["fileName"])]
-    ngay.sort(key=lambda e: _RE_TON_NGAY.search(e["fileName"]).group(1))
+    # BẢN SỬA MỚI NHẤT (modifiedAt), không xếp theo tên: hai tên 'D.202609' / 'D202609' cùng là một
+    # sổ và bản thiếu dấu chấm mới hơn (người dùng chốt 04/10/2026: bản mới hơn là đúng).
+    ngay.sort(key=lambda e: (_RE_TON_NGAY.search(e["fileName"]).group(1), e.get("modifiedAt") or ""))
     chon.update((e["company"], e["report_type"], e["fileName"]) for e in ngay[-1:])
     return chon
+
+
+def xoa_ban_bi_thay(env_url, spec_id, bo):
+    """XOÁ dòng đã nạp của các bản file BỊ THAY THẾ (engine chỉ BỎ QUA chúng, không xoá).
+
+    Ca thật 04/10/2026: sổ NXT ngày có hai tên 'D.202609' (18/09) và 'D202609' (30/09). Đổi sang bản
+    mới thì bản cũ vẫn nằm trong raw_rows dưới source_file của nó và mọi bút toán bị CỘNG ĐÔI (`_ghi`
+    chỉ xoá theo đúng source_file đang ghi). Phải xoá ở đây vì CLI `spec_extract` không làm việc này."""
+    if not bo:
+        return 0
+    import psycopg
+    sp = json.load(open(os.path.join(ROOT, "extract_specs", f"{spec_id}.json"), encoding="utf-8"))
+    goc = sp["nguon"]["folder"].split("/")[0]
+    ids = [f"{goc}::{b}" for b in bo]
+    with psycopg.connect(env_url) as conn:
+        cur = conn.cursor()
+        cur.execute("DELETE FROM raw_rows WHERE report_type=%s AND source_file = ANY(%s)",
+                    (sp["report_type"], ids))
+        n = cur.rowcount
+        conn.commit()
+    return n
 
 
 def main():
@@ -109,6 +132,12 @@ def main():
                             os.path.join(ROOT, "scripts", "spec_extract.py"), sp, "--write"],
                            env=env, capture_output=True, text=True)
         ghi = re.findall(r'"written":\s*(\d+)', r.stdout)
+        if r.returncode == 0:
+            m = re.search(r'"_bo_qua_anh_chup_cu":\s*(\[[^\]]*\])', r.stdout)
+            bo = json.loads(m.group(1)) if m else []
+            n_xoa = xoa_ban_bi_thay(DB[a.env], sp, bo)
+            if n_xoa:
+                log(f"  XOÁ {n_xoa} dòng của bản bị thay thế: {', '.join(bo)}")
         log(f"TRÍCH XUẤT [{a.env}] {sp}: rc={r.returncode} written={'+'.join(ghi) or 0}")
         if r.returncode:
             rc_all = r.returncode
