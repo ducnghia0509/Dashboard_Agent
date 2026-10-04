@@ -327,6 +327,31 @@ def _date(v):
         return None
 
 
+def _date_tay(v):
+    """Ngày GÕ TAY lẫn lộn trong cùng một cột -> 'YYYY-MM-DD' | None. Ngoài các dạng của `_date`
+    còn nhận 'd/m/yy' (năm 2 chữ số, hiểu là 20yy) và số serial Excel chưa định dạng (30000-70000).
+    Sinh ra cho file theo dõi đơn hàng NCC (cột 'Ngày ký': '22/9/25', '30/7/2026'; 'Ngày hàng về':
+    46081, '12/3/2026'). Tách riêng khỏi `_date` để KHÔNG đổi hành vi của mọi spec đang chạy."""
+    r = _date(v)
+    if r or v is None or isinstance(v, (dt.date, dt.datetime)):
+        return r
+    s = str(v).strip()
+    m = re.match(r"^(\d{1,2})/(\d{1,2})/(\d{2})$", s)
+    if m:
+        d, mo, y = (int(x) for x in m.groups())
+        try:
+            return dt.date(2000 + y, mo, d).isoformat()
+        except ValueError:
+            return None
+    try:
+        n = float(s)
+    except ValueError:
+        return None
+    if 30000 <= n <= 70000:
+        return (dt.date(1899, 12, 30) + dt.timedelta(days=int(n))).isoformat()
+    return None
+
+
 # ─────────────────────────── hook chuẩn hoá ───────────────────────────
 _CC_CACHE = {}
 
@@ -1482,7 +1507,33 @@ def _kho_vattu_duan(ten):
     return {"dim1": ten, "_khong_map": ten}
 
 
+def _htxt_lead_ma(v):
+    """Báo cáo KH Sany (HUNGTHINH/baocaocapnhatkinhdoanhxetai) — mã chỉ tiêu từ chuỗi ghép
+    "<Chỉ tiêu> | <Mô tả> | <giá trị>" (khai `ghep_header` + cột chính là cột KẾT QUẢ).
+
+    Vì sao cột chính là cột kết quả: sheet 'Báo cáo tổng hợp' là bảng nhãn–giá trị, KHÔNG có cột
+    mã, và nhãn nằm LẶP LẠI ở hai ô tuỳ hàng — hàng con (Hot/Warm/Cold…) để trống ô Chỉ tiêu, hàng
+    'Tỷ lệ chuyển đổi' để trống ô Mô tả. Engine chỉ ghép khi ô chính khác rỗng nên ô chính phải
+    là ô LUÔN có số. Trả "" khi không nhận ra -> `loc` bỏ dòng (tiêu đề nhóm, dòng trống) thay vì
+    đẻ mã lạ."""
+    t = str(v if v is not None else "").lower().replace("đ", "d")
+    t = "".join(c for c in unicodedata.normalize("NFD", t) if unicodedata.category(c) != "Mn")
+    t = re.sub(r"\s+", " ", t)
+    for khoa, ma in ((r"(?:^|\| )- hot", "hot"), (r"(?:^|\| )- warm", "warm"), (r"(?:^|\| )- cold", "cold"),
+                     (r"khong lien lac", "khong_lien_lac"), (r"khong dien trang thai", "khong_dien_tt"),
+                     (r"(?:^|\| )- khach hang tham quan", "tham_quan"),
+                     (r"(?:^|\| )- khach hang tham gia thu tai", "thu_tai"),
+                     (r"ty le chuyen", "ty_le_chuyen_doi"),
+                     (r"k[yi] hop dong", "ky_hd"),
+                     (r"tham gia thu tai", "thu_tai"),
+                     (r"da tiep can", "tiep_can")):
+        if re.search(khoa, t):
+            return ma
+    return ""
+
+
 _CHUAN_HOA = {
+    "htxt_lead_ma": _htxt_lead_ma,
     "cc_duan": _cc_duan,
     "kho_vattu_duan": _kho_vattu_duan,
     "cc_qlts": _cc_qlts,
@@ -1932,6 +1983,8 @@ def _lay_o(row, j, cfg, dem_loi=None):
         return _so_co_rong(v, float(cfg.get("he_so", 1.0)))
     if kieu == "date":
         return _date(v)
+    if kieu == "date_tay":
+        return _date_tay(v)
     if kieu == "thang_cuoi":
         return _thang_cuoi(v, cfg.get("_nam"))
     if kieu == "ngay_trong_thang":
@@ -3493,6 +3546,14 @@ def _extract_vung(spec, path):
                     # mất số; đã kiểm 61/61 số hoá đơn đều có trong bản 27/08.
                     bo_khac_ngay += 1
                 else:
+                    # `ngay_thieu_dung_ngay_nap` (04/10/2026): bảng ẢNH CHỤP mà một số dòng CHƯA có
+                    # ngày vì sự kiện chưa xảy ra (lô hàng 'chưa nhận' chưa có 'Ngày hàng về').
+                    # `_ghi` bỏ dòng không ngày, tức là đúng nhóm dòng cần thấy nhất ("NCC chưa
+                    # giao") biến mất. Gắn ngày nạp + cờ payload.ngay_thieu để builder biết đó là
+                    # "tại thời điểm nạp", không phải ngày phát sinh.
+                    if spec.get("ngay_thieu_dung_ngay_nap") and not r2.get("ngay"):
+                        r2["ngay"] = dt.date.today().isoformat()
+                        r2.setdefault("payload", {})["ngay_thieu"] = True
                     recs.append(r2)
         for _j, c, (co, so) in lech_cot:
             if co and so / co > float(c.get("ti_le_so_toi_da", 0.2)):

@@ -1,0 +1,71 @@
+{
+  "report_type": "HTXT_LEAD",
+  "row_index_base": 9120000,
+  "khoi": "Khối KD Xe tải",
+  "nguon": {
+    "folder": "HUNGTHINH/baocaocapnhatkinhdoanhxetai",
+    "file_glob": "*DIENSANY.xlsx",
+    "sheet": {
+      "ten": "Báo cáo tổng hợp"
+    }
+  },
+  "moi_ky_lay_file_moi_nhat": true,
+  "ky_tu_ten_file": {
+    "regex_nam": "M(\\d{4})\\.\\d{1,2}\\.",
+    "regex_thang": "M\\d{4}\\.(\\d{1,2})\\."
+  },
+  "chieu_co_dinh": {
+    "cong_ty": "HT"
+  },
+  "ban_ghi": "moi_dong",
+  "loc": [
+    {
+      "cot": "dim1",
+      "dieu_kien": "khac_rong"
+    }
+  ],
+  "payload_them": {
+    "unit": "kh",
+    "dong_xe": "SANY"
+  },
+  "id": "htxt_lead",
+  "_mo_ta": "PHÁT TRIỂN THỊ TRƯỜNG & KHÁCH HÀNG xe điện SANY (bản T9 trở về trước) — sheet 'Báo cáo tổng hợp' của B.5.HT.M<năm>.<tháng>.BC CAPNHATKINHDOANHXETAIDIENSANY -> HTXT_LEAD. Mapping '2. Mapping 17.9' dòng 35-39. Mỗi dòng một chỉ tiêu: tiep_can (tổng KH tiếp cận) · thu_tai · tham_quan · hot/warm/cold/khong_lien_lac/khong_dien_tt (đánh giá quan tâm) · ky_hd (KH đồng ý ký HĐ) · ty_le_chuyen_doi. amount = số (KH hoặc tỷ lệ 0-1).",
+  "_bay": [
+    "NGUỒN CHỈ LÀ XE ĐIỆN SANY — file ghi rõ 'TẢI ĐIỆN SANY', không tách theo dòng xe khác. Thiết kế vẽ bảng 'theo dòng xe' nhưng chỉ có MỘT dòng có số; đừng chia đều sang dòng khác.",
+    "MAPPING GHI Ô CỨNG (C9 tiếp cận, C11 thử tải, E3 ký HĐ, C16 tỷ lệ) trên sheet 'Số KH tiếp cận, thử tải, tỷ lệ' và 'KH kí HĐ và tỷ lệ chuyển đổi'. Cùng số nằm ở sheet 'Báo cáo tổng hợp' (F7 87 · F15 3 · F16 0,0345) và được đọc theo NHÃN (hook htxt_lead_ma), không theo toạ độ. Đã đo T9/2026: tiếp cận 87 = Hot 0 + Warm 13 + Cold 55 + không LL 7 + không điền 12; ký HĐ 3; chuyển đổi 3/87 = 3,45% ✓.",
+    "THỬ TẢI = tham gia thử tải + tham quan đánh giá: mapping dòng 36 gộp một ô C11 (=1) — file thật ghi hai dòng (0 + 1). Builder cộng hai mã.",
+    "BỐ CỤC T10 KHÁC T9 (header dòng 4, kèm 31 cột ngày) -> spec htxt_lead_t10; kiem_tra_o chặn nên file nào không đúng bố cục thì bị bỏ, không đọc nhầm."
+  ],
+  "kiem_tra_o": [
+    {
+      "o": "C5",
+      "bang": "Chỉ tiêu"
+    },
+    {
+      "o": "E5",
+      "bang": "Mô tả"
+    },
+    {
+      "o": "F5",
+      "bang": "Kết quả kinh doanh"
+    }
+  ],
+  "header": {
+    "dong": 5
+  },
+  "dong_bat_dau": 6,
+  "cot": {
+    "dim1": {
+      "cot": "F",
+      "ghep_header": [
+        "Chỉ tiêu",
+        "Mô tả"
+      ],
+      "chuan_hoa": "htxt_lead_ma"
+    },
+    "amount": {
+      "cot": "F",
+      "kieu": "so"
+    }
+  }
+}

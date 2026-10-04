@@ -1,0 +1,69 @@
+{
+  "report_type": "HTXT_LEAD",
+  "row_index_base": 9120000,
+  "khoi": "Khối KD Xe tải",
+  "nguon": {
+    "folder": "HUNGTHINH/baocaocapnhatkinhdoanhxetai",
+    "file_glob": "*DIENSANY.xlsx",
+    "sheet": {
+      "ten": "Báo cáo tổng hợp"
+    }
+  },
+  "moi_ky_lay_file_moi_nhat": true,
+  "ky_tu_ten_file": {
+    "regex_nam": "M(\\d{4})\\.\\d{1,2}\\.",
+    "regex_thang": "M\\d{4}\\.(\\d{1,2})\\."
+  },
+  "chieu_co_dinh": {
+    "cong_ty": "HT"
+  },
+  "ban_ghi": "moi_dong",
+  "loc": [
+    {
+      "cot": "dim1",
+      "dieu_kien": "khac_rong"
+    }
+  ],
+  "payload_them": {
+    "unit": "kh",
+    "dong_xe": "SANY"
+  },
+  "id": "htxt_lead_t10",
+  "_mo_ta": "Như htxt_lead nhưng cho BỐ CỤC T10/2026 trở đi của file BC CAPNHATKINHDOANHXETAIDIENSANY: header ở dòng 4 (A Nhóm chỉ tiêu · B Chỉ tiêu · C Công thức · D Mô tả · E 'Cập nhật kinh doanh Tháng 10.2026' · F Chiếm tỷ lệ %), kèm 31 cột ngày H..AL (bỏ qua). Cột F KHÔNG phải kết quả mà là TỶ LỆ — kết quả ở cột E.",
+  "_bay": [
+    "Bản T10 (đo 04/10/2026) gần như rỗng: tiếp cận 2 (Cold 1, Warm 0,5?). Các chỉ tiêu ngày ở cột H.. KHÔNG nạp — mapping không đòi theo ngày.",
+    "Hàng 'Tỷ lệ chuyển đổi' có công thức 'E14/E7*100%' — nếu ô trống/0 thì ra 0, đúng nghĩa 'chưa có hợp đồng'."
+  ],
+  "kiem_tra_o": [
+    {
+      "o": "B4",
+      "bang": "Chỉ tiêu"
+    },
+    {
+      "o": "D4",
+      "bang": "Mô tả"
+    },
+    {
+      "o": "E4",
+      "bang": "Cập nhật kinh doanh"
+    }
+  ],
+  "header": {
+    "dong": 4
+  },
+  "dong_bat_dau": 5,
+  "cot": {
+    "dim1": {
+      "cot": "E",
+      "ghep_header": [
+        "Chỉ tiêu",
+        "Mô tả"
+      ],
+      "chuan_hoa": "htxt_lead_ma"
+    },
+    "amount": {
+      "cot": "E",
+      "kieu": "so"
+    }
+  }
+}

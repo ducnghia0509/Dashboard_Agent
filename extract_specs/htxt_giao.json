@@ -1,0 +1,50 @@
+{
+  "id": "htxt_giao",
+  "_mo_ta": "NHẬT KÝ GIAO HÀNG khối Xe tải (Hưng Thịnh) — sheet 'Nhat ky giao hang' của HUNGTHINH/baocaocapnhatvanhanhxetai -> HTXT_GIAO. Mapping 5.HTxetai_Mapping_Dashboard.xlsx sheet '2. Mapping 17.9' dòng 21-34: cột F 'Mã theo dõi' (T101.x) · O 'Giá trị thanh toán' · J 'Số lượng giao' · R 'Ngày giao chuẩn'. Mỗi dòng một lần giao xe/trụ/mooc. amount = GIÁ TRỊ TRƯỚC VAT (tỷ), amount2 = số lượng; giá trị SAU VAT (cột O, đúng chữ mapping) để ở payload.sau_vat.",
+  "_bay": [
+    "MAPPING GHI CỘT O 'GIÁ TRỊ THANH TOÁN' (SAU VAT) NHƯNG amount LÀ CỘT M 'GIÁ TRỊ TRƯỚC VAT'. Đã đo 04/10/2026: Σ cột M theo tháng giao T5 238,68 tỷ · T6 88,39 tỷ KHỚP ĐÚNG doanh thu BCTC (xem memory xetai-lnst-x2-t6-mat) — còn cột O lớn hơn 8% (VAT) nên %HT so với kế hoạch (kế hoạch ghi chưa thuế) sẽ bị thổi 8%. Cả hai cột đều lưu: sau VAT ở payload.sau_vat.",
+    "TÊN FILE GHI 'M2026.08' NHƯNG NỘI DUNG LŨY KẾ TỚI 27/09/2026 (file ghi đè, người dùng cập nhật tay). Kỳ KHÔNG lấy từ tên file mà từ cột R 'Ngày giao chuẩn' của từng dòng. `moi_ky_lay_file_moi_nhat: mot_file` bắt buộc — khi đổi sang tên 'M2026.09' mà không chặn thì cùng một lần giao ghi hai lần dưới hai source_file (cộng đôi).",
+    "SHEET CÓ ~1.900 DÒNG CÔNG THỨC KÉO DÀI (mã theo dõi '0', ngày trống) — bộ lọc `ngay khac_rong` bỏ hết; Σ khớp.",
+    "'Tình trạng' = Bán | Tặng. Xe TẶNG vẫn có dòng (SL>0, giá trị có thể >0) — KHÔNG lọc ở đây, builder chỉ cộng Bán vào doanh thu/sản lượng bán (mapping dòng 43: 'hàng Bán').",
+    "Mã theo dõi chỉ có T101.1 (đầu kéo dầu) · T101.2 (ben dầu) · T101.3 (xe điện SANY...) · T101.4 (trụ sạc) · T101.5 (mooc). T101.3 gộp mọi xe điện: tách Shacman/Faw/Dongfeng phải theo cột 'Mã SP' / 'Dòng xe' (sheet 'Danh muc xe' ghi mã 'T1013.2/3/4' thiếu dấu chấm) — chưa có dòng nào của ba hãng này trong nhật ký (đo 04/10)."
+  ],
+  "report_type": "HTXT_GIAO",
+  "row_index_base": 9100000,
+  "khoi": "Khối KD Xe tải",
+  "nguon": {
+    "folder": "HUNGTHINH/baocaocapnhatvanhanhxetai",
+    "file_glob": "*.xlsx",
+    "sheet": {"ten": "Nhat ky giao hang"}
+  },
+  "moi_ky_lay_file_moi_nhat": "mot_file",
+  "kiem_tra_o": [
+    {"o": "F4", "bang": "Mã theo dõi"},
+    {"o": "J4", "bang": "Số lượng giao"},
+    {"o": "M4", "bang": "Giá trị trước VAT"},
+    {"o": "O4", "bang": "Giá trị thanh toán"},
+    {"o": "R4", "bang": "Ngày giao chuẩn"}
+  ],
+  "header": {"dong": 4},
+  "dong_bat_dau": 5,
+  "cot": {
+    "ngay": {"header": "Ngày giao chuẩn", "kieu": "date"},
+    "dim1": {"header": "Mã theo dõi"},
+    "dim2": {"header": "Dòng xe"},
+    "dim3": {"header": "Tên khách hàng"},
+    "amount": {"header": "Giá trị trước VAT", "kieu": "so", "he_so": 1e-09},
+    "amount2": {"header": "Số lượng giao", "kieu": "so"},
+    "payload.sau_vat": {"header": "Giá trị thanh toán", "kieu": "so", "he_so": 1e-09},
+    "payload.ma_sp": {"header": "Mã SP"},
+    "payload.model": {"header": "Loại xe/Model"},
+    "payload.tinh_trang": {"header": "Tình trạng"},
+    "payload.nhom_hang": {"header": "Nhóm hàng"},
+    "payload.so_hd": {"header": "Số hợp đồng", "bat_buoc": false},
+    "payload.nvkd": {"header": "NVKD", "bat_buoc": false}
+  },
+  "chieu_co_dinh": {"cong_ty": "HT"},
+  "ban_ghi": "moi_dong",
+  "loc": [
+    {"cot": "ngay", "dieu_kien": "khac_rong"}
+  ],
+  "payload_them": {"unit": "ty", "unit2": "xe"}
+}
