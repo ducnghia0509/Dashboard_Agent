@@ -7,7 +7,8 @@
     "BẢNG PHÂN CẤP, mọi tầng có số ở CÙNG một cột — `dim2` phân biệt Tổng / Nhóm / Chi tiết. Cộng cả bảng là nhân đôi: lọc `dim2` trước khi cộng, hoặc đọc thẳng dòng `dim2='Tổng'`.",
     "Tách GIÁ TRỊ / SẢN LƯỢNG thành hai spec vì ĐƠN VỊ khác (`cot_thang.he_so` mỗi spec một giá trị) và vì `_ghi` xoá theo (report_type, source_file).",
     "TRỘN HAI ĐƠN VỊ trong cùng phần B: A200 + 6 đời xe đếm CHIẾC XE, còn T101_4 đếm BỘ TRỤ SẠC. Dòng Tổng của file cộng thẳng hai thứ (T7: 117 = 100 xe + 17 bộ). Giữ nguyên như file, nhưng ĐỪNG đọc 'sản lượng khối' thành số xe — lọc `dim1` khi cần số xe thuần.",
-    "Nhãn 6 đời xe TRÙNG y hệt phần A GIÁ TRỊ nên cùng mã dim1; phân biệt bằng `dim3` (spec này cố định 'SẢN LƯỢNG') và bằng report_type riêng."
+    "Nhãn 6 đời xe TRÙNG y hệt phần A GIÁ TRỊ nên cùng mã dim1; phân biệt bằng `dim3` (spec này cố định 'SẢN LƯỢNG') và bằng report_type riêng.",
+    "05/10/2026 KT dời header KHDT từ dòng 2 lên dòng 1 (bản sửa 11:57) -> spec ghim `header.dong 2` + `kiem_tra_o` G2/B3/C14 dừng an toàn, T10 đứng ở số cũ 402,21 tỷ. Nay dò header theo nhãn 'Khối' và dò đầu/cuối khối GIÁ TRỊ / SẢN LƯỢNG theo nhãn cột B (cùng cách vhkd_kehoach_gt 03/10). Cùng bản này mã cột B của các dòng Shacman/Faw/Dongfeng bị xoá trắng — dim1 lấy theo NHÃN cột C nên không ảnh hưởng."
   ],
   "_kiem_chung": [
     "T7: Tổng 117 = A200 100 (= T101_2 20 + T101_3_SANNY 80) + T101_4 17 bộ.",
@@ -25,32 +26,12 @@
     }
   },
   "header": {
-    "dong": 2
+    "tim_o": "Khối"
   },
-  "dong_bat_dau": 14,
-  "dong_ket_thuc": 22,
-  "kiem_tra_o": [
-    {
-      "o": "C2",
-      "bang": "Khối"
-    },
-    {
-      "o": "G2",
-      "bang": "Tháng 1"
-    },
-    {
-      "o": "B14",
-      "bang": "SẢN LƯỢNG"
-    },
-    {
-      "o": "C14",
-      "bang": "Xe tải"
-    },
-    {
-      "o": "C15",
-      "bang": "SẢN LƯỢNG BÁN XE"
-    }
-  ],
+  "dong_bat_dau_tim": {
+    "cot": "B",
+    "regex": "^\\s*SẢN LƯỢNG\\s*$"
+  },
   "chieu_co_dinh": {
     "dim3": "SẢN LƯỢNG"
   },

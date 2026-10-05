@@ -7,7 +7,8 @@
     "BẢNG PHÂN CẤP, mọi tầng có số ở CÙNG một cột — `dim2` phân biệt Tổng / Nhóm / Chi tiết. Cộng cả bảng là nhân đôi: lọc `dim2` trước khi cộng, hoặc đọc thẳng dòng `dim2='Tổng'`.",
     "Tách GIÁ TRỊ / SẢN LƯỢNG thành hai spec vì ĐƠN VỊ khác (`cot_thang.he_so` mỗi spec một giá trị) và vì `_ghi` xoá theo (report_type, source_file).",
     "BA TẦNG THẬT SỰ ở bản này: Tổng = A200 (bán xe) + T101_4 (trụ sạc) + T102 (tài chính) + T103 (khác); riêng A200 lại tách tiếp 6 dòng đời xe (T101_1 đầu kéo, T101_2 ben, T101_3_SANNY/SHACMAN/FAW/DONGFENG). Σ 6 đời xe = A200, KHÔNG gồm trụ sạc — đây là chỗ dễ cộng nhầm nhất: 'Doanh thu trụ sạc' mang mã T101.4 trông như con của A200 nhưng nằm NGOÀI A200.",
-    "T102 (hoạt động tài chính) và T103 (khác) chỉ có số ở T1..T6; T7..T12 bỏ trống."
+    "T102 (hoạt động tài chính) và T103 (khác) chỉ có số ở T1..T6; T7..T12 bỏ trống.",
+    "05/10/2026 KT dời header KHDT từ dòng 2 lên dòng 1 (bản sửa 11:57) -> spec ghim `header.dong 2` + `kiem_tra_o` G2/B3/C14 dừng an toàn, T10 đứng ở số cũ 402,21 tỷ. Nay dò header theo nhãn 'Khối' và dò đầu/cuối khối GIÁ TRỊ / SẢN LƯỢNG theo nhãn cột B (cùng cách vhkd_kehoach_gt 03/10). Cùng bản này mã cột B của các dòng Shacman/Faw/Dongfeng bị xoá trắng — dim1 lấy theo NHÃN cột C nên không ảnh hưởng."
   ],
   "_kiem_chung": [
     "T7: Tổng 268,5 = A200 259,695 + T101_4 8,805 tỷ. A200 = T101_2 31,695 + T101_3_SANNY 228 tỷ.",
@@ -25,32 +26,16 @@
     }
   },
   "header": {
-    "dong": 2
+    "tim_o": "Khối"
   },
-  "dong_bat_dau": 3,
-  "dong_ket_thuc": 13,
-  "kiem_tra_o": [
-    {
-      "o": "C2",
-      "bang": "Khối"
-    },
-    {
-      "o": "G2",
-      "bang": "Tháng 1"
-    },
-    {
-      "o": "B3",
-      "bang": "GIÁ TRỊ"
-    },
-    {
-      "o": "C3",
-      "bang": "Xe tải"
-    },
-    {
-      "o": "C4",
-      "bang": "Doanh thu bán xe"
-    }
-  ],
+  "dong_bat_dau_tim": {
+    "cot": "B",
+    "regex": "^\\s*GIÁ TRỊ\\s*$"
+  },
+  "dong_ket_thuc_tim": {
+    "cot": "B",
+    "regex": "^\\s*SẢN LƯỢNG\\s*$"
+  },
   "chieu_co_dinh": {
     "dim3": "GIÁ TRỊ"
   },
