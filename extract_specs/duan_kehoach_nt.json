@@ -1,0 +1,80 @@
+{
+  "id": "duan_kehoach_nt",
+  "_mo_ta": "KẾ HOẠCH DOANH THU NGHIỆM THU (xuất hoá đơn) 12 tháng khối KD Dự án × dự án — sheet 'KH2026' phần A 'TỔNG DOANH THU XUẤT HÓA ĐƠN - NGHIỆM THU', file 4.DuAn.OO.M.<yyyy>.<mm>.Kehoachthang.xlsx. Nuôi vế kế hoạch dòng 'Doanh thu nghiệm thu' bảng điểm màn duan0.",
+  "_bay": [
+    "GLOB PHẢI GHIM '4.DuAn.' — thư mục `baocaokehoachthang` có MỖI KHỐI MỘT FILE cùng đuôi '*.Kehoachthang.xlsx'.",
+    "BỐ CỤC 06/10/2026 (bản phát hành 10:07, đúng như mapping cùng ngày): nhãn dự án ở cột B (bản 03/10 ở cột C), Tháng 1..12 ở F..Q (bản cũ G..R), có thêm dòng DỰ ÁN BÌNH PHƯỚC, và dòng TỔNG nằm NGAY Ở DÒNG TIÊU ĐỀ của mỗi phần ('A | TỔNG DOANH THU XUẤT HÓA ĐƠN - NGHIỆM THU' dòng 3, 'B | DOANH SỐ - SẢN XUẤT KINH DOANH - (SẢN LƯỢNG)' dòng 8) — bản cũ để dòng tổng ở CUỐI mỗi phần. Dòng tiêu đề-tổng bắt bằng `ngu_canh_dong` (không sinh bản ghi), nạp vào là gấp đôi. Tháng dò theo TIÊU ĐỀ cột (`cot_thang` E..T) nên chèn/bớt một cột tổng không làm lệch.",
+    "Dải dòng dò theo NHÃN cột B: bắt đầu ở dòng tiêu đề chứa 'NGHIỆM THU', dừng NGAY TRƯỚC dòng tiêu đề chứa 'SẢN LƯỢNG' (nếu có). Không thấy mốc bắt đầu -> spec BỎ QUA cả file kèm cảnh báo, KHÔNG xoá dữ liệu cũ (dừng câm — xem kehoachthang-bocuc-moi).",
+    "Tên dự án -> mã qua hook `cc_duan` (cùng bảng với báo cáo HQKD Dự án): 'THỔ CHU - PHÚ QUỐC' -> TC_DA (luật gộp Phú Quốc vào Thổ Chu 21/09/2026). Dự án lạ -> cảnh báo `_khong_map`, không đẻ mã ma.",
+    "TÊN FILE khối Dự án ghi kỳ có DẤU CHẤM ('.M.2026.08.') khác 6 khối kia ('.M.202608.') — regex mặc định của `_ky_thang` không khớp và spec BỎ QUA cả file. `ky_thang_tu_ten_file` nhận cả hai dạng; chỉ lấy NĂM, tháng đọc theo tiêu đề cột."
+  ],
+  "_kiem_chung": [
+    "T8/2026: Cao Bằng 17,2635 + Tân Thịnh 6,8882 + Thổ Chu 4,4306 = 28,5823 tỷ = ô M3 (dòng tổng phần A) = đúng `DTHU.amount2` khối Dự án T8 (file 0.KH.GR.Y Kehoachdoanhthu) — kế hoạch doanh thu khối ở màn Doanh thu–giá vốn CHÍNH LÀ kế hoạch nghiệm thu.",
+    "T11/2026 bản 06/10: 25,9602 = Cao Bằng 10,7658 + Thổ Chu 5,1944 + Bình Phước 10,0 = ô P3."
+  ],
+  "report_type": "DUAN_KH_NT",
+  "row_index_base": 9180000,
+  "khoi": "Khối KD Dự án",
+  "chieu_co_dinh": {
+    "cong_ty": "TC"
+  },
+  "nguon": {
+    "folder": "KEHOACH/baocaokehoachthang",
+    "file_glob": "4.DuAn.*.Kehoachthang.xlsx",
+    "sheet": {
+      "ten": "KH2026"
+    },
+    "chi_file_khop_glob": true
+  },
+  "ky_thang_tu_ten_file": {
+    "regex": "\\.M\\.(?P<nam>\\d{4})\\.?(?P<thang>\\d{1,2})\\."
+  },
+  "header": {
+    "tim_o": "Khối"
+  },
+  "dong_bat_dau_tim": {
+    "cot": "B",
+    "regex": "NGHIỆM THU"
+  },
+  "dong_ket_thuc_tim": {
+    "cot": "B",
+    "regex": "SẢN LƯỢNG"
+  },
+  "ngu_canh_dong": [
+    {
+      "khi": [
+        {
+          "cot": "B",
+          "dieu_kien": "regex",
+          "gia_tri": "(?i)^\\s*(TỔNG DOANH THU|DOANH SỐ)"
+        }
+      ]
+    }
+  ],
+  "cot": {
+    "cost_center": {
+      "header": "Khối",
+      "chuan_hoa": "cc_duan"
+    },
+    "dim1": {
+      "header": "Khối"
+    }
+  },
+  "ban_ghi": "moi_cot_thang",
+  "cot_thang": {
+    "tu": "E",
+    "den": "T",
+    "he_so": 1e-09
+  },
+  "loc": [
+    {
+      "cot": "cost_center",
+      "dieu_kien": "khac_rong"
+    }
+  ],
+  "payload_them": {
+    "unit": "ty",
+    "loai": "kehoach",
+    "chi_tieu": "Doanh thu nghiệm thu (xuất hoá đơn)"
+  }
+}
