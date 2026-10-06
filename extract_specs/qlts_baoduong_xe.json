@@ -22,7 +22,7 @@
   "row_index_base": 7904200,
   "nguon": {
     "folder": "QLTS/baocaobaoduong",
-    "bo_qua_file": "^B\\.9\\.TC\\.H5\\.[DM]\\.2026\\.9\\.BCbaoduong",
+    "bo_qua_file": "^B\\.9\\.TC\\.H5\\.D\\.2026\\.9\\.BCbaoduong",
     "file_glob": "*.BCbaoduongxe.xlsx",
     "sheet": {
       "ten": "th Xe"
