@@ -23,7 +23,8 @@
     "file_glob": "5.HT.*.Kehoachthang.xlsx",
     "sheet": {
       "ten": "KHDT"
-    }
+    },
+    "chi_file_khop_glob": true
   },
   "header": {
     "tim_o": "Khối"
