@@ -1,0 +1,66 @@
+{
+  "id": "duan_kehoach_ngay_nt",
+  "_mo_ta": "KẾ HOẠCH NGÀY doanh thu nghiệm thu khối KD Dự án × dự án — sheet 'KH NgàyT<tháng>' của file 4.DuAn.OO.M.<yyyy>.<mm>.Kehoachthang.xlsx, cột 'Doanh thu Xuất hóa đơn' của từng ngày. Nuôi vế kế hoạch ở tab Ngày màn duan0 (mapping 06/10/2026: 'lấy giá trị tại H4, J4, L4…').",
+  "_bay": [
+    "MỖI THÁNG MỘT SHEET ('KH NgàyT8', 'KH NgàyT9', 'KH NgàyT10'…) và còn BẢN SAO 'KH NgàyT8 - Gốc' / 'KH NgàyT10 - Gốc' — `moi_sheet_regex` neo hai đầu `^khngayt\\d{1,2}$` để bản 'Gốc' không lọt vào mà cộng đôi.",
+    "MỖI NGÀY MỘT CẶP CỘT (sản lượng | xuất hoá đơn); ô NGÀY (datetime) chỉ nằm ở cột đầu của cặp (G, I, K… dòng 2). Spec _sx đọc đúng cột có ngày, spec _nt đọc cột kế bên (`lech_amount: 1`). Hai report_type RIÊNG: engine bỏ cả bản ghi khi ô chính = 0, gộp một spec (amount/amount2) là mất nghiệm thu của ngày sản lượng 0.",
+    "Sheet ngày KHÔNG rải đều: T8 sản lượng chia cho 27 ngày làm việc (Thổ Chu 356.482.000 × 27 = 9.625.014.000), ngày nghỉ để 0. Đừng thay bằng kế hoạch tháng ÷ số ngày — 01/08 sẽ ra 666 triệu thay vì 764.953.746 (user bắt 06/10/2026).",
+    "TỔNG THÁNG CỦA SHEET NGÀY LỆCH KH2026 ở T9/T10 (bản 06/10/2026): sản lượng T9 19,29 vs 24,48 tỷ, T10 26,35 vs 38,39 tỷ; nghiệm thu T10 12,86 vs 24,96 tỷ. Mapping chỉ định NGÀY đọc sheet ngày, THÁNG đọc KH2026 — nên tab Ngày chọn trọn T9/T10 KHÔNG bằng tab Tháng cho tới khi kế toán sửa file.",
+    "Dòng 'TỔNG THÁNG n' cuối bảng: dừng NGAY TRƯỚC nó (`dong_ket_thuc_tim`), không nạp.",
+    "`giu_ngay_tuong_lai`: kế hoạch rải trọn tháng, ngày chưa tới là phần có ích nhất."
+  ],
+  "_kiem_chung": [
+    "01/08/2026 Σ 4 dự án = 764.953.746 (sản lượng) / 922.010.225 (xuất HĐ) = đúng ô G8/H8 'TỔNG THÁNG 8'.",
+    "Σ cả tháng 8 = ô E8/F8: sản lượng 20.653.751.153, xuất HĐ 28.582.316.986 (= KH2026 tháng 8)."
+  ],
+  "report_type": "DUAN_KH_NT_NGAY",
+  "row_index_base": 9210000,
+  "khoi": "Khối KD Dự án",
+  "chieu_co_dinh": {
+    "cong_ty": "TC"
+  },
+  "nguon": {
+    "folder": "KEHOACH/baocaokehoachthang",
+    "file_glob": "4.DuAn.*.Kehoachthang.xlsx",
+    "sheet": {
+      "moi_sheet_regex": "^khngayt\\d{1,2}$"
+    },
+    "chi_file_khop_glob": true
+  },
+  "header": {
+    "tim_o": "Hạng mục"
+  },
+  "dong_ket_thuc_tim": {
+    "cot": "B",
+    "regex": "^\\s*TỔNG"
+  },
+  "cot": {
+    "cost_center": {
+      "header": "Hạng mục",
+      "chuan_hoa": "cc_duan"
+    },
+    "dim1": {
+      "header": "Hạng mục"
+    }
+  },
+  "ban_ghi": "moi_cot_ngay",
+  "cot_ngay": {
+    "tu": "G",
+    "den": "BZ",
+    "ky_tu_o": true,
+    "he_so": 1e-09,
+    "lech_amount": 1
+  },
+  "giu_ngay_tuong_lai": true,
+  "loc": [
+    {
+      "cot": "cost_center",
+      "dieu_kien": "khac_rong"
+    }
+  ],
+  "payload_them": {
+    "unit": "ty",
+    "loai": "kehoach",
+    "chi_tieu": "Kế hoạch ngày doanh thu nghiệm thu"
+  }
+}
