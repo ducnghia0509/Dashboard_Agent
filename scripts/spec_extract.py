@@ -1660,8 +1660,19 @@ def specs_for_path(path):
         folder = ((sp.get("nguon") or {}).get("folder") or "").strip("/")
         if not folder:
             continue
-        if f"/{folder}/" in p:
-            out.append(sp)
+        if f"/{folder}/" not in p:
+            continue
+        # Opt-in: chọn theo thư mục là chạy spec trên MỌI file trong đó; spec dò header theo nhãn
+        # chung ('Khối') khớp KHDT của mọi khối -> XTAI_KH nhận số SR/XVP/AnTX (06/10/2026).
+        # Không bật mặc định: nguồn An Taxi tháng đang sống nhờ file '01B...- Copy' lệch glob.
+        n = sp.get("nguon") or {}
+        if n.get("chi_file_khop_glob"):
+            mau = (n.get("file_glob") or "*.xlsx").lower()
+            ten = os.path.basename(p).lower()
+            if not (fnmatch.fnmatch(ten, mau)
+                    or fnmatch.fnmatch(os.path.splitext(ten)[0] + ".xlsx", mau)):
+                continue
+        out.append(sp)
     return out
 
 

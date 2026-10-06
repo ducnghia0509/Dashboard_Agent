@@ -21,7 +21,8 @@
     "file_glob": "5.HT.*.Kehoachthang.xlsx",
     "sheet": {
       "ten": "CT Vận hành"
-    }
+    },
+    "chi_file_khop_glob": true
   },
   "header": {
     "dong": 4
