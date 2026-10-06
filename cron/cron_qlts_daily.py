@@ -100,6 +100,15 @@ NGUON = [
     # tháng Showroom/XDV dạng `.Xls` (nạp tay, xem vhkd5/xdv5) -> `chi_lay` CHỈ kéo file trạm sạc.
     {"company": "TONKHOTAPDOAN", "rt": "tonkhotapdoanthang", "che_do": core.THANG,
      "ten": "Tồn kho trạm sạc tháng (tsac2)", "chi_lay": r"Baocaotonkhotramsac"},
+
+    # ── duan0 "Tổng quan KPI dự án" (06/10/2026): kế hoạch doanh thu sản xuất + nghiệm thu tháng
+    # (spec duan_kehoach_sx/_nt). Khai ở job này vì đây là job đã quản nguồn khối Dự án (duan3).
+    # `4.DuAn.` = lát Dự án trong thư mục kế hoạch DÙNG CHUNG — không lọc là kéo trùng kế hoạch
+    # của 6 khối kia (job SRVF/XDV/XVP/An Taxi đã quản lát của chúng). `ca_nam`: tên file ghim
+    # tháng phát hành ('.M.2026.08.') dù một file chở cả 12 tháng; kéo lại mỗi ngày để T11/T12
+    # tự lên khi kỳ đó được khai sinh (spec bỏ qua kỳ chưa có dataset).
+    {"company": "KEHOACH", "rt": "baocaokehoachthang", "che_do": core.THANG,
+     "ten": "Kế hoạch tháng Dự án (duan0)", "chi_lay": r"^4\.DuAn\.", "ca_nam": True},
 ]
 
 
