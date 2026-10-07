@@ -7,7 +7,8 @@
     "Bản THÁNG của cùng con số là `atx_kehoach_gt` (dòng DT_TAXI_XECT). Hai bản phải khớp — xem `_kiem_chung`.",
     "Tiêu đề cột ghi 'Ngày 01'..'Ngày 31', không phải số trần.",
     "CHỐT NHẬN DẠNG KHỐI LÀ BẮT BUỘC Ở SHEET NÀY: `specs_for_path` chọn spec theo THƯ MỤC và BỎ QUA `file_glob`, nên nút 'Phân tích AI'/'Đồng bộ & nạp' trên MỘT file kế hoạch sẽ chạy TẤT CẢ spec của thư mục lên nó. Sheet 'KH ngày' của An Taxi và XVP giống hệt nhau (cùng tiêu đề B1, cùng nhãn dòng) và sheet 'KHngày' của Showroom cũng khớp tên sau chuẩn hoá — không có chốt thì spec này đọc file khối khác và đẻ ra 31 dòng kế hoạch SAI dưới một source_file mới, `_ghi` không chặn được vì nó chỉ xoá theo (report_type, source_file). Đã kiểm chéo 6 spec × 6 file ngày 18/08/2026: có chốt thì 0 lượt đọc nhầm.",
-    "KỲ CỦA TỪNG KHỐI NAY ĐỌC TỪ Ô NHÃN, KHÔNG TỪ TÊN FILE (09/09/2026). Sheet xếp NĂM KHỐI THÁNG nối tiếp, còn tháng thì `_ky_thang` suy từ tên file ('.M.202608.' -> 8) — mà tên file KHÔNG lăn tháng (một bản kế hoạch phát hành một lần cho nhiều tháng), nên chỉ khối trùng tháng phát hành được đọc và T9-T12 nằm im trong file. Ngày 09/09/2026 lỗi này thành thấy được: kế hoạch NGÀY dừng ở T8 nên chế độ Ngày tháng 9 lấy kế hoạch CẢ THÁNG làm mẫu số (Showroom: thực hiện 9,34 tỷ / kế hoạch 1.154,64 tỷ). Nay mỗi `vung` khai `ky_thang_tu_o` trỏ ĐÚNG ô nhãn của nó — khối nào nói 'THÁNG n' thì ghi vào tháng n. ĐỪNG đổi sang ghim cứng tháng cho từng vùng: thứ tự khối chạy theo tháng PHÁT HÀNH (bản T8 mở đầu bằng THÁNG 8, bản T10 sẽ mở đầu bằng THÁNG 10) nên ghim cứng là bản sau trượt gate và mất sạch dữ liệu trong im lặng. `chi_doc_khi_o` giữ lại làm chốt tự kiểm."
+    "KỲ CỦA TỪNG KHỐI NAY ĐỌC TỪ Ô NHÃN, KHÔNG TỪ TÊN FILE (09/09/2026). Sheet xếp NĂM KHỐI THÁNG nối tiếp, còn tháng thì `_ky_thang` suy từ tên file ('.M.202608.' -> 8) — mà tên file KHÔNG lăn tháng (một bản kế hoạch phát hành một lần cho nhiều tháng), nên chỉ khối trùng tháng phát hành được đọc và T9-T12 nằm im trong file. Ngày 09/09/2026 lỗi này thành thấy được: kế hoạch NGÀY dừng ở T8 nên chế độ Ngày tháng 9 lấy kế hoạch CẢ THÁNG làm mẫu số (Showroom: thực hiện 9,34 tỷ / kế hoạch 1.154,64 tỷ). Nay mỗi `vung` khai `ky_thang_tu_o` trỏ ĐÚNG ô nhãn của nó — khối nào nói 'THÁNG n' thì ghi vào tháng n. ĐỪNG đổi sang ghim cứng tháng cho từng vùng: thứ tự khối chạy theo tháng PHÁT HÀNH (bản T8 mở đầu bằng THÁNG 8, bản T10 sẽ mở đầu bằng THÁNG 10) nên ghim cứng là bản sau trượt gate và mất sạch dữ liệu trong im lặng. `chi_doc_khi_o` giữ lại làm chốt tự kiểm.",
+    "07/10/2026 — KHỐI THÁNG KHÔNG CÒN NẰM Ở DÒNG CỐ ĐỊNH: bản phát hành 06/10 nới khối THÁNG 9 thành 10 dòng (thêm xe TQ/thuê/phí QL), chèn 1 dòng trống, THÁNG 10 dời xuống B17 — năm vùng ghim cứng 2/6/11/16/21 trượt và kế hoạch ngày T10 lặng lẽ không nạp. Nay khai một vùng cho MỖI dòng B2..B60 (vùng nào ô B không ghi 'THÁNG n' thì `chi_doc_khi_o` bỏ qua im lặng). Bất biến duy nhất còn dựa vào là VỊ TRÍ TƯƠNG ĐỐI trong khối, đã đúng ở cả ba khối T8/T9/T10: nhãn +0, dòng 'Ngày 01..' +1, số xe +2, doanh thu taxi +3."
   ],
   "_kiem_chung": [
     "T8: 31 bản ghi, Σ = 3,16575 tỷ = ô C5 'Cộng tháng' = ô ATX_KH T8 dòng DT_TAXI_XECT (3,16575 tỷ). Lệch 0.",
@@ -57,6 +58,75 @@
       }
     },
     {
+      "ten": "khối tháng @dòng 3 · doanh thu",
+      "chi_doc_khi_o": [
+        {
+          "o": "B3",
+          "bang": "THÁNG {thang}"
+        }
+      ],
+      "header": {
+        "dong": 4
+      },
+      "dong_bat_dau": 6,
+      "dong_ket_thuc": 6,
+      "cot_ngay": {
+        "dong": 4,
+        "tu": "D",
+        "den": "AH",
+        "he_so": 1e-09
+      },
+      "ky_thang_tu_o": {
+        "o": "B3"
+      }
+    },
+    {
+      "ten": "khối tháng @dòng 4 · doanh thu",
+      "chi_doc_khi_o": [
+        {
+          "o": "B4",
+          "bang": "THÁNG {thang}"
+        }
+      ],
+      "header": {
+        "dong": 5
+      },
+      "dong_bat_dau": 7,
+      "dong_ket_thuc": 7,
+      "cot_ngay": {
+        "dong": 5,
+        "tu": "D",
+        "den": "AH",
+        "he_so": 1e-09
+      },
+      "ky_thang_tu_o": {
+        "o": "B4"
+      }
+    },
+    {
+      "ten": "khối tháng @dòng 5 · doanh thu",
+      "chi_doc_khi_o": [
+        {
+          "o": "B5",
+          "bang": "THÁNG {thang}"
+        }
+      ],
+      "header": {
+        "dong": 6
+      },
+      "dong_bat_dau": 8,
+      "dong_ket_thuc": 8,
+      "cot_ngay": {
+        "dong": 6,
+        "tu": "D",
+        "den": "AH",
+        "he_so": 1e-09
+      },
+      "ky_thang_tu_o": {
+        "o": "B5"
+      }
+    },
+    {
       "ten": "khối tháng @dòng 6 · doanh thu",
       "chi_doc_khi_o": [
         {
@@ -77,6 +147,98 @@
       },
       "ky_thang_tu_o": {
         "o": "B6"
+      }
+    },
+    {
+      "ten": "khối tháng @dòng 7 · doanh thu",
+      "chi_doc_khi_o": [
+        {
+          "o": "B7",
+          "bang": "THÁNG {thang}"
+        }
+      ],
+      "header": {
+        "dong": 8
+      },
+      "dong_bat_dau": 10,
+      "dong_ket_thuc": 10,
+      "cot_ngay": {
+        "dong": 8,
+        "tu": "D",
+        "den": "AH",
+        "he_so": 1e-09
+      },
+      "ky_thang_tu_o": {
+        "o": "B7"
+      }
+    },
+    {
+      "ten": "khối tháng @dòng 8 · doanh thu",
+      "chi_doc_khi_o": [
+        {
+          "o": "B8",
+          "bang": "THÁNG {thang}"
+        }
+      ],
+      "header": {
+        "dong": 9
+      },
+      "dong_bat_dau": 11,
+      "dong_ket_thuc": 11,
+      "cot_ngay": {
+        "dong": 9,
+        "tu": "D",
+        "den": "AH",
+        "he_so": 1e-09
+      },
+      "ky_thang_tu_o": {
+        "o": "B8"
+      }
+    },
+    {
+      "ten": "khối tháng @dòng 9 · doanh thu",
+      "chi_doc_khi_o": [
+        {
+          "o": "B9",
+          "bang": "THÁNG {thang}"
+        }
+      ],
+      "header": {
+        "dong": 10
+      },
+      "dong_bat_dau": 12,
+      "dong_ket_thuc": 12,
+      "cot_ngay": {
+        "dong": 10,
+        "tu": "D",
+        "den": "AH",
+        "he_so": 1e-09
+      },
+      "ky_thang_tu_o": {
+        "o": "B9"
+      }
+    },
+    {
+      "ten": "khối tháng @dòng 10 · doanh thu",
+      "chi_doc_khi_o": [
+        {
+          "o": "B10",
+          "bang": "THÁNG {thang}"
+        }
+      ],
+      "header": {
+        "dong": 11
+      },
+      "dong_bat_dau": 13,
+      "dong_ket_thuc": 13,
+      "cot_ngay": {
+        "dong": 11,
+        "tu": "D",
+        "den": "AH",
+        "he_so": 1e-09
+      },
+      "ky_thang_tu_o": {
+        "o": "B10"
       }
     },
     {
@@ -103,6 +265,98 @@
       }
     },
     {
+      "ten": "khối tháng @dòng 12 · doanh thu",
+      "chi_doc_khi_o": [
+        {
+          "o": "B12",
+          "bang": "THÁNG {thang}"
+        }
+      ],
+      "header": {
+        "dong": 13
+      },
+      "dong_bat_dau": 15,
+      "dong_ket_thuc": 15,
+      "cot_ngay": {
+        "dong": 13,
+        "tu": "D",
+        "den": "AH",
+        "he_so": 1e-09
+      },
+      "ky_thang_tu_o": {
+        "o": "B12"
+      }
+    },
+    {
+      "ten": "khối tháng @dòng 13 · doanh thu",
+      "chi_doc_khi_o": [
+        {
+          "o": "B13",
+          "bang": "THÁNG {thang}"
+        }
+      ],
+      "header": {
+        "dong": 14
+      },
+      "dong_bat_dau": 16,
+      "dong_ket_thuc": 16,
+      "cot_ngay": {
+        "dong": 14,
+        "tu": "D",
+        "den": "AH",
+        "he_so": 1e-09
+      },
+      "ky_thang_tu_o": {
+        "o": "B13"
+      }
+    },
+    {
+      "ten": "khối tháng @dòng 14 · doanh thu",
+      "chi_doc_khi_o": [
+        {
+          "o": "B14",
+          "bang": "THÁNG {thang}"
+        }
+      ],
+      "header": {
+        "dong": 15
+      },
+      "dong_bat_dau": 17,
+      "dong_ket_thuc": 17,
+      "cot_ngay": {
+        "dong": 15,
+        "tu": "D",
+        "den": "AH",
+        "he_so": 1e-09
+      },
+      "ky_thang_tu_o": {
+        "o": "B14"
+      }
+    },
+    {
+      "ten": "khối tháng @dòng 15 · doanh thu",
+      "chi_doc_khi_o": [
+        {
+          "o": "B15",
+          "bang": "THÁNG {thang}"
+        }
+      ],
+      "header": {
+        "dong": 16
+      },
+      "dong_bat_dau": 18,
+      "dong_ket_thuc": 18,
+      "cot_ngay": {
+        "dong": 16,
+        "tu": "D",
+        "den": "AH",
+        "he_so": 1e-09
+      },
+      "ky_thang_tu_o": {
+        "o": "B15"
+      }
+    },
+    {
       "ten": "khối tháng @dòng 16 · doanh thu",
       "chi_doc_khi_o": [
         {
@@ -126,6 +380,98 @@
       }
     },
     {
+      "ten": "khối tháng @dòng 17 · doanh thu",
+      "chi_doc_khi_o": [
+        {
+          "o": "B17",
+          "bang": "THÁNG {thang}"
+        }
+      ],
+      "header": {
+        "dong": 18
+      },
+      "dong_bat_dau": 20,
+      "dong_ket_thuc": 20,
+      "cot_ngay": {
+        "dong": 18,
+        "tu": "D",
+        "den": "AH",
+        "he_so": 1e-09
+      },
+      "ky_thang_tu_o": {
+        "o": "B17"
+      }
+    },
+    {
+      "ten": "khối tháng @dòng 18 · doanh thu",
+      "chi_doc_khi_o": [
+        {
+          "o": "B18",
+          "bang": "THÁNG {thang}"
+        }
+      ],
+      "header": {
+        "dong": 19
+      },
+      "dong_bat_dau": 21,
+      "dong_ket_thuc": 21,
+      "cot_ngay": {
+        "dong": 19,
+        "tu": "D",
+        "den": "AH",
+        "he_so": 1e-09
+      },
+      "ky_thang_tu_o": {
+        "o": "B18"
+      }
+    },
+    {
+      "ten": "khối tháng @dòng 19 · doanh thu",
+      "chi_doc_khi_o": [
+        {
+          "o": "B19",
+          "bang": "THÁNG {thang}"
+        }
+      ],
+      "header": {
+        "dong": 20
+      },
+      "dong_bat_dau": 22,
+      "dong_ket_thuc": 22,
+      "cot_ngay": {
+        "dong": 20,
+        "tu": "D",
+        "den": "AH",
+        "he_so": 1e-09
+      },
+      "ky_thang_tu_o": {
+        "o": "B19"
+      }
+    },
+    {
+      "ten": "khối tháng @dòng 20 · doanh thu",
+      "chi_doc_khi_o": [
+        {
+          "o": "B20",
+          "bang": "THÁNG {thang}"
+        }
+      ],
+      "header": {
+        "dong": 21
+      },
+      "dong_bat_dau": 23,
+      "dong_ket_thuc": 23,
+      "cot_ngay": {
+        "dong": 21,
+        "tu": "D",
+        "den": "AH",
+        "he_so": 1e-09
+      },
+      "ky_thang_tu_o": {
+        "o": "B20"
+      }
+    },
+    {
       "ten": "khối tháng @dòng 21 · doanh thu",
       "chi_doc_khi_o": [
         {
@@ -146,6 +492,903 @@
       },
       "ky_thang_tu_o": {
         "o": "B21"
+      }
+    },
+    {
+      "ten": "khối tháng @dòng 22 · doanh thu",
+      "chi_doc_khi_o": [
+        {
+          "o": "B22",
+          "bang": "THÁNG {thang}"
+        }
+      ],
+      "header": {
+        "dong": 23
+      },
+      "dong_bat_dau": 25,
+      "dong_ket_thuc": 25,
+      "cot_ngay": {
+        "dong": 23,
+        "tu": "D",
+        "den": "AH",
+        "he_so": 1e-09
+      },
+      "ky_thang_tu_o": {
+        "o": "B22"
+      }
+    },
+    {
+      "ten": "khối tháng @dòng 23 · doanh thu",
+      "chi_doc_khi_o": [
+        {
+          "o": "B23",
+          "bang": "THÁNG {thang}"
+        }
+      ],
+      "header": {
+        "dong": 24
+      },
+      "dong_bat_dau": 26,
+      "dong_ket_thuc": 26,
+      "cot_ngay": {
+        "dong": 24,
+        "tu": "D",
+        "den": "AH",
+        "he_so": 1e-09
+      },
+      "ky_thang_tu_o": {
+        "o": "B23"
+      }
+    },
+    {
+      "ten": "khối tháng @dòng 24 · doanh thu",
+      "chi_doc_khi_o": [
+        {
+          "o": "B24",
+          "bang": "THÁNG {thang}"
+        }
+      ],
+      "header": {
+        "dong": 25
+      },
+      "dong_bat_dau": 27,
+      "dong_ket_thuc": 27,
+      "cot_ngay": {
+        "dong": 25,
+        "tu": "D",
+        "den": "AH",
+        "he_so": 1e-09
+      },
+      "ky_thang_tu_o": {
+        "o": "B24"
+      }
+    },
+    {
+      "ten": "khối tháng @dòng 25 · doanh thu",
+      "chi_doc_khi_o": [
+        {
+          "o": "B25",
+          "bang": "THÁNG {thang}"
+        }
+      ],
+      "header": {
+        "dong": 26
+      },
+      "dong_bat_dau": 28,
+      "dong_ket_thuc": 28,
+      "cot_ngay": {
+        "dong": 26,
+        "tu": "D",
+        "den": "AH",
+        "he_so": 1e-09
+      },
+      "ky_thang_tu_o": {
+        "o": "B25"
+      }
+    },
+    {
+      "ten": "khối tháng @dòng 26 · doanh thu",
+      "chi_doc_khi_o": [
+        {
+          "o": "B26",
+          "bang": "THÁNG {thang}"
+        }
+      ],
+      "header": {
+        "dong": 27
+      },
+      "dong_bat_dau": 29,
+      "dong_ket_thuc": 29,
+      "cot_ngay": {
+        "dong": 27,
+        "tu": "D",
+        "den": "AH",
+        "he_so": 1e-09
+      },
+      "ky_thang_tu_o": {
+        "o": "B26"
+      }
+    },
+    {
+      "ten": "khối tháng @dòng 27 · doanh thu",
+      "chi_doc_khi_o": [
+        {
+          "o": "B27",
+          "bang": "THÁNG {thang}"
+        }
+      ],
+      "header": {
+        "dong": 28
+      },
+      "dong_bat_dau": 30,
+      "dong_ket_thuc": 30,
+      "cot_ngay": {
+        "dong": 28,
+        "tu": "D",
+        "den": "AH",
+        "he_so": 1e-09
+      },
+      "ky_thang_tu_o": {
+        "o": "B27"
+      }
+    },
+    {
+      "ten": "khối tháng @dòng 28 · doanh thu",
+      "chi_doc_khi_o": [
+        {
+          "o": "B28",
+          "bang": "THÁNG {thang}"
+        }
+      ],
+      "header": {
+        "dong": 29
+      },
+      "dong_bat_dau": 31,
+      "dong_ket_thuc": 31,
+      "cot_ngay": {
+        "dong": 29,
+        "tu": "D",
+        "den": "AH",
+        "he_so": 1e-09
+      },
+      "ky_thang_tu_o": {
+        "o": "B28"
+      }
+    },
+    {
+      "ten": "khối tháng @dòng 29 · doanh thu",
+      "chi_doc_khi_o": [
+        {
+          "o": "B29",
+          "bang": "THÁNG {thang}"
+        }
+      ],
+      "header": {
+        "dong": 30
+      },
+      "dong_bat_dau": 32,
+      "dong_ket_thuc": 32,
+      "cot_ngay": {
+        "dong": 30,
+        "tu": "D",
+        "den": "AH",
+        "he_so": 1e-09
+      },
+      "ky_thang_tu_o": {
+        "o": "B29"
+      }
+    },
+    {
+      "ten": "khối tháng @dòng 30 · doanh thu",
+      "chi_doc_khi_o": [
+        {
+          "o": "B30",
+          "bang": "THÁNG {thang}"
+        }
+      ],
+      "header": {
+        "dong": 31
+      },
+      "dong_bat_dau": 33,
+      "dong_ket_thuc": 33,
+      "cot_ngay": {
+        "dong": 31,
+        "tu": "D",
+        "den": "AH",
+        "he_so": 1e-09
+      },
+      "ky_thang_tu_o": {
+        "o": "B30"
+      }
+    },
+    {
+      "ten": "khối tháng @dòng 31 · doanh thu",
+      "chi_doc_khi_o": [
+        {
+          "o": "B31",
+          "bang": "THÁNG {thang}"
+        }
+      ],
+      "header": {
+        "dong": 32
+      },
+      "dong_bat_dau": 34,
+      "dong_ket_thuc": 34,
+      "cot_ngay": {
+        "dong": 32,
+        "tu": "D",
+        "den": "AH",
+        "he_so": 1e-09
+      },
+      "ky_thang_tu_o": {
+        "o": "B31"
+      }
+    },
+    {
+      "ten": "khối tháng @dòng 32 · doanh thu",
+      "chi_doc_khi_o": [
+        {
+          "o": "B32",
+          "bang": "THÁNG {thang}"
+        }
+      ],
+      "header": {
+        "dong": 33
+      },
+      "dong_bat_dau": 35,
+      "dong_ket_thuc": 35,
+      "cot_ngay": {
+        "dong": 33,
+        "tu": "D",
+        "den": "AH",
+        "he_so": 1e-09
+      },
+      "ky_thang_tu_o": {
+        "o": "B32"
+      }
+    },
+    {
+      "ten": "khối tháng @dòng 33 · doanh thu",
+      "chi_doc_khi_o": [
+        {
+          "o": "B33",
+          "bang": "THÁNG {thang}"
+        }
+      ],
+      "header": {
+        "dong": 34
+      },
+      "dong_bat_dau": 36,
+      "dong_ket_thuc": 36,
+      "cot_ngay": {
+        "dong": 34,
+        "tu": "D",
+        "den": "AH",
+        "he_so": 1e-09
+      },
+      "ky_thang_tu_o": {
+        "o": "B33"
+      }
+    },
+    {
+      "ten": "khối tháng @dòng 34 · doanh thu",
+      "chi_doc_khi_o": [
+        {
+          "o": "B34",
+          "bang": "THÁNG {thang}"
+        }
+      ],
+      "header": {
+        "dong": 35
+      },
+      "dong_bat_dau": 37,
+      "dong_ket_thuc": 37,
+      "cot_ngay": {
+        "dong": 35,
+        "tu": "D",
+        "den": "AH",
+        "he_so": 1e-09
+      },
+      "ky_thang_tu_o": {
+        "o": "B34"
+      }
+    },
+    {
+      "ten": "khối tháng @dòng 35 · doanh thu",
+      "chi_doc_khi_o": [
+        {
+          "o": "B35",
+          "bang": "THÁNG {thang}"
+        }
+      ],
+      "header": {
+        "dong": 36
+      },
+      "dong_bat_dau": 38,
+      "dong_ket_thuc": 38,
+      "cot_ngay": {
+        "dong": 36,
+        "tu": "D",
+        "den": "AH",
+        "he_so": 1e-09
+      },
+      "ky_thang_tu_o": {
+        "o": "B35"
+      }
+    },
+    {
+      "ten": "khối tháng @dòng 36 · doanh thu",
+      "chi_doc_khi_o": [
+        {
+          "o": "B36",
+          "bang": "THÁNG {thang}"
+        }
+      ],
+      "header": {
+        "dong": 37
+      },
+      "dong_bat_dau": 39,
+      "dong_ket_thuc": 39,
+      "cot_ngay": {
+        "dong": 37,
+        "tu": "D",
+        "den": "AH",
+        "he_so": 1e-09
+      },
+      "ky_thang_tu_o": {
+        "o": "B36"
+      }
+    },
+    {
+      "ten": "khối tháng @dòng 37 · doanh thu",
+      "chi_doc_khi_o": [
+        {
+          "o": "B37",
+          "bang": "THÁNG {thang}"
+        }
+      ],
+      "header": {
+        "dong": 38
+      },
+      "dong_bat_dau": 40,
+      "dong_ket_thuc": 40,
+      "cot_ngay": {
+        "dong": 38,
+        "tu": "D",
+        "den": "AH",
+        "he_so": 1e-09
+      },
+      "ky_thang_tu_o": {
+        "o": "B37"
+      }
+    },
+    {
+      "ten": "khối tháng @dòng 38 · doanh thu",
+      "chi_doc_khi_o": [
+        {
+          "o": "B38",
+          "bang": "THÁNG {thang}"
+        }
+      ],
+      "header": {
+        "dong": 39
+      },
+      "dong_bat_dau": 41,
+      "dong_ket_thuc": 41,
+      "cot_ngay": {
+        "dong": 39,
+        "tu": "D",
+        "den": "AH",
+        "he_so": 1e-09
+      },
+      "ky_thang_tu_o": {
+        "o": "B38"
+      }
+    },
+    {
+      "ten": "khối tháng @dòng 39 · doanh thu",
+      "chi_doc_khi_o": [
+        {
+          "o": "B39",
+          "bang": "THÁNG {thang}"
+        }
+      ],
+      "header": {
+        "dong": 40
+      },
+      "dong_bat_dau": 42,
+      "dong_ket_thuc": 42,
+      "cot_ngay": {
+        "dong": 40,
+        "tu": "D",
+        "den": "AH",
+        "he_so": 1e-09
+      },
+      "ky_thang_tu_o": {
+        "o": "B39"
+      }
+    },
+    {
+      "ten": "khối tháng @dòng 40 · doanh thu",
+      "chi_doc_khi_o": [
+        {
+          "o": "B40",
+          "bang": "THÁNG {thang}"
+        }
+      ],
+      "header": {
+        "dong": 41
+      },
+      "dong_bat_dau": 43,
+      "dong_ket_thuc": 43,
+      "cot_ngay": {
+        "dong": 41,
+        "tu": "D",
+        "den": "AH",
+        "he_so": 1e-09
+      },
+      "ky_thang_tu_o": {
+        "o": "B40"
+      }
+    },
+    {
+      "ten": "khối tháng @dòng 41 · doanh thu",
+      "chi_doc_khi_o": [
+        {
+          "o": "B41",
+          "bang": "THÁNG {thang}"
+        }
+      ],
+      "header": {
+        "dong": 42
+      },
+      "dong_bat_dau": 44,
+      "dong_ket_thuc": 44,
+      "cot_ngay": {
+        "dong": 42,
+        "tu": "D",
+        "den": "AH",
+        "he_so": 1e-09
+      },
+      "ky_thang_tu_o": {
+        "o": "B41"
+      }
+    },
+    {
+      "ten": "khối tháng @dòng 42 · doanh thu",
+      "chi_doc_khi_o": [
+        {
+          "o": "B42",
+          "bang": "THÁNG {thang}"
+        }
+      ],
+      "header": {
+        "dong": 43
+      },
+      "dong_bat_dau": 45,
+      "dong_ket_thuc": 45,
+      "cot_ngay": {
+        "dong": 43,
+        "tu": "D",
+        "den": "AH",
+        "he_so": 1e-09
+      },
+      "ky_thang_tu_o": {
+        "o": "B42"
+      }
+    },
+    {
+      "ten": "khối tháng @dòng 43 · doanh thu",
+      "chi_doc_khi_o": [
+        {
+          "o": "B43",
+          "bang": "THÁNG {thang}"
+        }
+      ],
+      "header": {
+        "dong": 44
+      },
+      "dong_bat_dau": 46,
+      "dong_ket_thuc": 46,
+      "cot_ngay": {
+        "dong": 44,
+        "tu": "D",
+        "den": "AH",
+        "he_so": 1e-09
+      },
+      "ky_thang_tu_o": {
+        "o": "B43"
+      }
+    },
+    {
+      "ten": "khối tháng @dòng 44 · doanh thu",
+      "chi_doc_khi_o": [
+        {
+          "o": "B44",
+          "bang": "THÁNG {thang}"
+        }
+      ],
+      "header": {
+        "dong": 45
+      },
+      "dong_bat_dau": 47,
+      "dong_ket_thuc": 47,
+      "cot_ngay": {
+        "dong": 45,
+        "tu": "D",
+        "den": "AH",
+        "he_so": 1e-09
+      },
+      "ky_thang_tu_o": {
+        "o": "B44"
+      }
+    },
+    {
+      "ten": "khối tháng @dòng 45 · doanh thu",
+      "chi_doc_khi_o": [
+        {
+          "o": "B45",
+          "bang": "THÁNG {thang}"
+        }
+      ],
+      "header": {
+        "dong": 46
+      },
+      "dong_bat_dau": 48,
+      "dong_ket_thuc": 48,
+      "cot_ngay": {
+        "dong": 46,
+        "tu": "D",
+        "den": "AH",
+        "he_so": 1e-09
+      },
+      "ky_thang_tu_o": {
+        "o": "B45"
+      }
+    },
+    {
+      "ten": "khối tháng @dòng 46 · doanh thu",
+      "chi_doc_khi_o": [
+        {
+          "o": "B46",
+          "bang": "THÁNG {thang}"
+        }
+      ],
+      "header": {
+        "dong": 47
+      },
+      "dong_bat_dau": 49,
+      "dong_ket_thuc": 49,
+      "cot_ngay": {
+        "dong": 47,
+        "tu": "D",
+        "den": "AH",
+        "he_so": 1e-09
+      },
+      "ky_thang_tu_o": {
+        "o": "B46"
+      }
+    },
+    {
+      "ten": "khối tháng @dòng 47 · doanh thu",
+      "chi_doc_khi_o": [
+        {
+          "o": "B47",
+          "bang": "THÁNG {thang}"
+        }
+      ],
+      "header": {
+        "dong": 48
+      },
+      "dong_bat_dau": 50,
+      "dong_ket_thuc": 50,
+      "cot_ngay": {
+        "dong": 48,
+        "tu": "D",
+        "den": "AH",
+        "he_so": 1e-09
+      },
+      "ky_thang_tu_o": {
+        "o": "B47"
+      }
+    },
+    {
+      "ten": "khối tháng @dòng 48 · doanh thu",
+      "chi_doc_khi_o": [
+        {
+          "o": "B48",
+          "bang": "THÁNG {thang}"
+        }
+      ],
+      "header": {
+        "dong": 49
+      },
+      "dong_bat_dau": 51,
+      "dong_ket_thuc": 51,
+      "cot_ngay": {
+        "dong": 49,
+        "tu": "D",
+        "den": "AH",
+        "he_so": 1e-09
+      },
+      "ky_thang_tu_o": {
+        "o": "B48"
+      }
+    },
+    {
+      "ten": "khối tháng @dòng 49 · doanh thu",
+      "chi_doc_khi_o": [
+        {
+          "o": "B49",
+          "bang": "THÁNG {thang}"
+        }
+      ],
+      "header": {
+        "dong": 50
+      },
+      "dong_bat_dau": 52,
+      "dong_ket_thuc": 52,
+      "cot_ngay": {
+        "dong": 50,
+        "tu": "D",
+        "den": "AH",
+        "he_so": 1e-09
+      },
+      "ky_thang_tu_o": {
+        "o": "B49"
+      }
+    },
+    {
+      "ten": "khối tháng @dòng 50 · doanh thu",
+      "chi_doc_khi_o": [
+        {
+          "o": "B50",
+          "bang": "THÁNG {thang}"
+        }
+      ],
+      "header": {
+        "dong": 51
+      },
+      "dong_bat_dau": 53,
+      "dong_ket_thuc": 53,
+      "cot_ngay": {
+        "dong": 51,
+        "tu": "D",
+        "den": "AH",
+        "he_so": 1e-09
+      },
+      "ky_thang_tu_o": {
+        "o": "B50"
+      }
+    },
+    {
+      "ten": "khối tháng @dòng 51 · doanh thu",
+      "chi_doc_khi_o": [
+        {
+          "o": "B51",
+          "bang": "THÁNG {thang}"
+        }
+      ],
+      "header": {
+        "dong": 52
+      },
+      "dong_bat_dau": 54,
+      "dong_ket_thuc": 54,
+      "cot_ngay": {
+        "dong": 52,
+        "tu": "D",
+        "den": "AH",
+        "he_so": 1e-09
+      },
+      "ky_thang_tu_o": {
+        "o": "B51"
+      }
+    },
+    {
+      "ten": "khối tháng @dòng 52 · doanh thu",
+      "chi_doc_khi_o": [
+        {
+          "o": "B52",
+          "bang": "THÁNG {thang}"
+        }
+      ],
+      "header": {
+        "dong": 53
+      },
+      "dong_bat_dau": 55,
+      "dong_ket_thuc": 55,
+      "cot_ngay": {
+        "dong": 53,
+        "tu": "D",
+        "den": "AH",
+        "he_so": 1e-09
+      },
+      "ky_thang_tu_o": {
+        "o": "B52"
+      }
+    },
+    {
+      "ten": "khối tháng @dòng 53 · doanh thu",
+      "chi_doc_khi_o": [
+        {
+          "o": "B53",
+          "bang": "THÁNG {thang}"
+        }
+      ],
+      "header": {
+        "dong": 54
+      },
+      "dong_bat_dau": 56,
+      "dong_ket_thuc": 56,
+      "cot_ngay": {
+        "dong": 54,
+        "tu": "D",
+        "den": "AH",
+        "he_so": 1e-09
+      },
+      "ky_thang_tu_o": {
+        "o": "B53"
+      }
+    },
+    {
+      "ten": "khối tháng @dòng 54 · doanh thu",
+      "chi_doc_khi_o": [
+        {
+          "o": "B54",
+          "bang": "THÁNG {thang}"
+        }
+      ],
+      "header": {
+        "dong": 55
+      },
+      "dong_bat_dau": 57,
+      "dong_ket_thuc": 57,
+      "cot_ngay": {
+        "dong": 55,
+        "tu": "D",
+        "den": "AH",
+        "he_so": 1e-09
+      },
+      "ky_thang_tu_o": {
+        "o": "B54"
+      }
+    },
+    {
+      "ten": "khối tháng @dòng 55 · doanh thu",
+      "chi_doc_khi_o": [
+        {
+          "o": "B55",
+          "bang": "THÁNG {thang}"
+        }
+      ],
+      "header": {
+        "dong": 56
+      },
+      "dong_bat_dau": 58,
+      "dong_ket_thuc": 58,
+      "cot_ngay": {
+        "dong": 56,
+        "tu": "D",
+        "den": "AH",
+        "he_so": 1e-09
+      },
+      "ky_thang_tu_o": {
+        "o": "B55"
+      }
+    },
+    {
+      "ten": "khối tháng @dòng 56 · doanh thu",
+      "chi_doc_khi_o": [
+        {
+          "o": "B56",
+          "bang": "THÁNG {thang}"
+        }
+      ],
+      "header": {
+        "dong": 57
+      },
+      "dong_bat_dau": 59,
+      "dong_ket_thuc": 59,
+      "cot_ngay": {
+        "dong": 57,
+        "tu": "D",
+        "den": "AH",
+        "he_so": 1e-09
+      },
+      "ky_thang_tu_o": {
+        "o": "B56"
+      }
+    },
+    {
+      "ten": "khối tháng @dòng 57 · doanh thu",
+      "chi_doc_khi_o": [
+        {
+          "o": "B57",
+          "bang": "THÁNG {thang}"
+        }
+      ],
+      "header": {
+        "dong": 58
+      },
+      "dong_bat_dau": 60,
+      "dong_ket_thuc": 60,
+      "cot_ngay": {
+        "dong": 58,
+        "tu": "D",
+        "den": "AH",
+        "he_so": 1e-09
+      },
+      "ky_thang_tu_o": {
+        "o": "B57"
+      }
+    },
+    {
+      "ten": "khối tháng @dòng 58 · doanh thu",
+      "chi_doc_khi_o": [
+        {
+          "o": "B58",
+          "bang": "THÁNG {thang}"
+        }
+      ],
+      "header": {
+        "dong": 59
+      },
+      "dong_bat_dau": 61,
+      "dong_ket_thuc": 61,
+      "cot_ngay": {
+        "dong": 59,
+        "tu": "D",
+        "den": "AH",
+        "he_so": 1e-09
+      },
+      "ky_thang_tu_o": {
+        "o": "B58"
+      }
+    },
+    {
+      "ten": "khối tháng @dòng 59 · doanh thu",
+      "chi_doc_khi_o": [
+        {
+          "o": "B59",
+          "bang": "THÁNG {thang}"
+        }
+      ],
+      "header": {
+        "dong": 60
+      },
+      "dong_bat_dau": 62,
+      "dong_ket_thuc": 62,
+      "cot_ngay": {
+        "dong": 60,
+        "tu": "D",
+        "den": "AH",
+        "he_so": 1e-09
+      },
+      "ky_thang_tu_o": {
+        "o": "B59"
+      }
+    },
+    {
+      "ten": "khối tháng @dòng 60 · doanh thu",
+      "chi_doc_khi_o": [
+        {
+          "o": "B60",
+          "bang": "THÁNG {thang}"
+        }
+      ],
+      "header": {
+        "dong": 61
+      },
+      "dong_bat_dau": 63,
+      "dong_ket_thuc": 63,
+      "cot_ngay": {
+        "dong": 61,
+        "tu": "D",
+        "den": "AH",
+        "he_so": 1e-09
+      },
+      "ky_thang_tu_o": {
+        "o": "B60"
       }
     }
   ],
