@@ -1013,6 +1013,13 @@ def _ngay_phat_hanh(fn: str):
     if not m:
         return None
     phan = [int(x) for x in re.findall(r"\d+", m.group(2))][:3]
+    # CHỈ CÓ THÁNG = BẢN CHỐT THÁNG, xếp SAU mọi bản giữa tháng (07/10/2026). Đệm ngày 0 như cũ
+    # thì '…M.2026.9.BCDauCaoBang' (chốt, phát hành 03/10) thành (2026,9,0) < '…M.2026.9.15.…'
+    # (bản dở dang 15/09) -> bộ dọn trùng bản chốt xoá BẢN CHỐT, giữ bản dở dang: prod mất trắng
+    # Dầu T9 của 4 dự án. Quy ước tên QLTS/XVP: '.M.YYYY.M.<tên>' là bản tháng, '.M.YYYY.M.D.' là
+    # ảnh chụp trong tháng. So hai bản cùng chỉ-có-tháng thì vẫn xếp theo tháng như trước.
+    if len(phan) == 1:
+        return (int(m.group(1)), phan[0], 32, 0)
     return tuple([int(m.group(1))] + phan + [0] * (3 - len(phan)))
 
 
