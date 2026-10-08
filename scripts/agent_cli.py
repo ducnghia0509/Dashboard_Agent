@@ -4671,19 +4671,15 @@ def _derive_congno(file_path: str, sheet: str, canonical_kind: str, period: str,
     # T09, còn 'Sổ tổng hợp CN phải thu/trả' vẫn ghi "Từ ngày 01/08/2026 Đến ngày 31/08/2026" và số
     # T8 từng ô. Nạp vào là màn Công nợ hiện số dư T8 dưới nhãn T9, không ai thấy sai. Sổ TỰ KHAI kỳ
     # ở tiêu đề -> tháng của "Đến ngày" phải trùng kỳ đang nạp. Sổ không khai thì giữ hành vi cũ.
+    # CHỈ TỪ CHỐI, KHÔNG XOÁ (khác nhánh sai TK ở trên): file Xe tải 2025 có CẢ sheet công nợ thật lẫn
+    # 'Sheet4'/'Sheet5' chứa sổ T01/2026 — xoá theo file+kỳ ở đây có thể xoá luôn số của sheet thật.
     _den = next((m for r in rows[:12] for c in r if isinstance(c, str)
                  for m in [_re_bcqt.search(r"đến\s*ngày\s*:?\s*(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})",
                                            c.lower())] if m), None)
     if _den and f"{_den.group(3)}-{int(_den.group(2)):02d}" != period:
-        _twin, _adv, _ = _ADV_CUA[canonical_kind]
-        _db = bb.db.get_db()
-        _src = _source_id(file_path)
-        _db.execute("DELETE FROM raw_rows WHERE source_file=? AND period_month=? AND "
-                    "(report_type=? OR (report_type=? AND payload LIKE ?))",
-                    (_src, period, _twin, _adv, '%"bu_rong": true%'))
-        _db.commit()
         return {"ok": False, "error": f"sổ ghi kỳ đến {_den.group(1)}/{_den.group(2)}/{_den.group(3)} "
-                                      f"≠ kỳ {period} (sheet chép từ kỳ khác) -> không nạp {_twin}"}
+                                      f"≠ kỳ {period} (sheet chép từ kỳ khác) -> không nạp "
+                                      f"{_ADV_CUA[canonical_kind][0]}"}
 
     # SỔ TỔNG HỢP GỘP NHIỀU TK (vd HTX 'THCN PHẢI THU' = TK 131+138; 'THCN PHẢI TRẢ' = 331+338): có
     # CỘT 'TÀI KHOẢN' đánh dấu TK từng dòng. Phải LỌC đúng TK gốc (131 phải thu / 331 phải trả), loại
