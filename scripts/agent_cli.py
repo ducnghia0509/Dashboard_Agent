@@ -5253,12 +5253,15 @@ def _cmd_autofill_impl(args):
             ledger.append({"sheet": sheet, "bucket": status.replace("skip_metadata", "skip"),
                            "target_sheet": None})
             continue
-        # SHEET LỆCH KỲ (08/10/2026): file BCTC Trạm sạc M.202609 là bản T8 chép lại — 10/11 sheet
-        # (CĐKT, CĐPS, sổ công nợ, biểu khấu hao…) ghi "Từ ngày 01/08/2026 Đến ngày 31/08/2026" và
-        # số T8 từng ô, chỉ BCHQKD lên T09. Nạp vào là mọi màn số dư hiện T8 dưới nhãn T9. Sheet TỰ
-        # KHAI kỳ ở tiêu đề -> tháng của "Đến ngày" phải trùng kỳ đang nạp; sheet không khai thì đi
-        # tiếp như cũ (BCHQKD chỉ ghi "Kỳ: 2026").
-        _den = next((m for _hr in (headers.get(sheet) or [])[:12] for _c in _hr if isinstance(_c, str)
+        # SHEET SỐ DƯ LỆCH KỲ (08/10/2026): file BCTC Trạm sạc M.202609 là bản T8 chép lại — CĐKT,
+        # CĐPS, sổ công nợ… ghi "Từ ngày 01/08/2026 Đến ngày 31/08/2026" và số T8 từng ô, chỉ BCHQKD
+        # lên T09. Nạp vào là mọi màn số dư hiện T8 dưới nhãn T9. Sheet số dư TỰ KHAI kỳ ở tiêu đề ->
+        # tháng của "Đến ngày" phải trùng kỳ đang nạp; sheet không khai thì đi tiếp như cũ.
+        # CHỈ 4 loại số dư: quét 1.757 lượt nạp trên prod, 475 sheet "lệch kỳ" phần lớn HỢP LỆ —
+        # workbook nhiều tháng (SRVF T01..T12, Trạm sạc doanh thu chi hộ 'Tháng 1..7'), bảng tham chiếu
+        # cố định (GA 'phân bổ'), sheet luỹ kế năm (An Taxi 'BCQT PT'). Với sheet số dư thì lệch kỳ
+        # luôn là số sai (SRVF M.202512 'CĐPS' chỉ ghi số dư vào đúng 2025-12, không đổi hành vi).
+        _den = None if ck not in ("CDKT", "CDPS", "TK131", "TK331") else next((m for _hr in (headers.get(sheet) or [])[:12] for _c in _hr if isinstance(_c, str)
                      for m in [_re_bcqt.search(r"đến\s*ngày\s*:?\s*(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})",
                                                _c.lower())] if m), None)
         if _den and period and f"{_den.group(3)}-{int(_den.group(2)):02d}" != period:
