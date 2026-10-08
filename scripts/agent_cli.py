@@ -5253,6 +5253,20 @@ def _cmd_autofill_impl(args):
             ledger.append({"sheet": sheet, "bucket": status.replace("skip_metadata", "skip"),
                            "target_sheet": None})
             continue
+        # SHEET LỆCH KỲ (08/10/2026): file BCTC Trạm sạc M.202609 là bản T8 chép lại — 10/11 sheet
+        # (CĐKT, CĐPS, sổ công nợ, biểu khấu hao…) ghi "Từ ngày 01/08/2026 Đến ngày 31/08/2026" và
+        # số T8 từng ô, chỉ BCHQKD lên T09. Nạp vào là mọi màn số dư hiện T8 dưới nhãn T9. Sheet TỰ
+        # KHAI kỳ ở tiêu đề -> tháng của "Đến ngày" phải trùng kỳ đang nạp; sheet không khai thì đi
+        # tiếp như cũ (BCHQKD chỉ ghi "Kỳ: 2026").
+        _den = next((m for _hr in (headers.get(sheet) or [])[:12] for _c in _hr if isinstance(_c, str)
+                     for m in [_re_bcqt.search(r"đến\s*ngày\s*:?\s*(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})",
+                                               _c.lower())] if m), None)
+        if _den and period and f"{_den.group(3)}-{int(_den.group(2)):02d}" != period:
+            ledger.append({"sheet": sheet, "bucket": "skip_lech_ky", "target_sheet": None,
+                           "canonical_kind": ck,
+                           "reason": f"sheet ghi kỳ đến {_den.group(1)}/{_den.group(2)}/{_den.group(3)} "
+                                     f"≠ kỳ {period} (chép từ kỳ khác) — không nạp"})
+            continue
         # GUARD SHEET SIÊU RỘNG: bỏ qua sheet nhiều cột bệnh lý (vd CĐPS của HO = 16350 cột) TRƯỚC
         # mọi nhánh route -> không deriver nào materialize nổi ~5.6M ô (thue + tonkho_cdps = 2 lượt
         # ×25s). Không mất dữ liệu thật: các sheet này là phantom-column, extractor luôn fail ("không

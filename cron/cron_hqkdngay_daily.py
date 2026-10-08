@@ -331,6 +331,26 @@ def _canh_bao_cong_thuc(js: dict) -> list:
     return out
 
 
+def du_phong_so_du(periods: list) -> None:
+    """Số dư THÁNG dự phòng từ báo cáo ngày cuối tháng (`scripts/du_phong_sodu_ngay_cuoi_thang.py`)
+    cho các kỳ vừa kéo — chỉ ghi loại số dư mà khối/kỳ CHƯA có bản tháng thật, và chỉ khi ngày cuối
+    tháng đã về. Chạy lại mỗi lượt để bản dự phòng theo kịp file ngày cuối tháng phát hành lại.
+    Hỏng thì nuốt lỗi như `soat_cong_thuc`."""
+    try:
+        cmd = [AGENT_PY, "scripts/du_phong_sodu_ngay_cuoi_thang.py", "--write"] + \
+              [a for p in periods for a in ("--period", p)]
+        p = subprocess.run(cmd, cwd=AGENT, env={**os.environ, "DATABASE_URL": DATABASE_URL},
+                           capture_output=True, text=True, timeout=300)
+        kq = json.loads(p.stdout or "{}")
+    except Exception as ex:                              # noqa: BLE001
+        log(f"  số dư tháng dự phòng: BỎ QUA ({type(ex).__name__}: {str(ex)[:140]})")
+        return
+    for ky, ds in kq.items():
+        ghi = [f"{d['rt']}({d['dong']})" for d in ds if d.get("ghi")]
+        if ghi:
+            log(f"  số dư tháng dự phòng {ky} từ ngày cuối tháng: {', '.join(ghi)}")
+
+
 def soat_cong_thuc(periods: list) -> dict:
     """LỚP 2 — chạy `scripts/soat_cong_thuc.py` trên DB của môi trường này cho các kỳ vừa kéo.
 
@@ -646,6 +666,7 @@ def main():
             **({"canh_bao_cong_thuc": cb_ct[:10]} if cb_ct else {}))
 
     log(f"XONG — nạp thành công {ok}/{len(targets)} báo cáo ngày")
+    du_phong_so_du(sorted({e["_period"] for e in targets}))
     sct = soat_cong_thuc(sorted({e["_period"] for e in targets}))
     if st:
         st.set_run(nap_thanh_cong=ok, so_file_keo=len(targets), soat_cong_thuc=sct)
