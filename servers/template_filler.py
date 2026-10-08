@@ -456,6 +456,16 @@ def import_filled(path: str, cong_ty: str = None, khoi: str = None, source_file:
         db.execute("UPDATE raw_rows SET khoi=? WHERE dataset_id=? AND id>? "
                    "AND (khoi IS NULL OR khoi='') AND report_type<>'THUCHI'", [khoi, target, before_id])
         db.commit()
+    if grain == "month" and file_types:
+        # Bản tháng THẬT đã vào -> gỡ số dư DỰ PHÒNG dựng từ báo cáo ngày cuối tháng cùng loại/khối
+        # (scripts/du_phong_sodu_ngay_cuoi_thang.py), để màn số dư không cộng đôi.
+        tph = ",".join(["?"] * len(file_types))
+        db.execute(f"DELETE FROM raw_rows WHERE dataset_id=? AND id<=? AND report_type IN ({tph}) "
+                   f"AND payload LIKE ? AND khoi IN (SELECT DISTINCT khoi FROM raw_rows "
+                   f"WHERE dataset_id=? AND id>?)",
+                   [target, before_id, *file_types, '%"du_phong_ngay_cuoi_thang": true%',
+                    target, before_id])
+        db.commit()
     if grain == "month" and result.get("period"):
         bb.set_period(target, result["period"])
     return {"ok": True, "dataset_id": target, "grain": grain, "cong_ty": cong_ty,
