@@ -4667,6 +4667,20 @@ def _derive_congno(file_path: str, sheet: str, canonical_kind: str, period: str,
         _db.commit()
         return {"ok": False, "error": f"sổ khai 'Tài khoản: {_tk_khai}' ≠ TK {_tk_goc} -> không nạp {_twin}"}
 
+    # SỔ LỆCH KỲ (08/10/2026): file BCTC Trạm sạc M.202609 là bản T8 chép lại — chỉ sheet BCHQKD lên
+    # T09, còn 'Sổ tổng hợp CN phải thu/trả' vẫn ghi "Từ ngày 01/08/2026 Đến ngày 31/08/2026" và số
+    # T8 từng ô. Nạp vào là màn Công nợ hiện số dư T8 dưới nhãn T9, không ai thấy sai. Sổ TỰ KHAI kỳ
+    # ở tiêu đề -> tháng của "Đến ngày" phải trùng kỳ đang nạp. Sổ không khai thì giữ hành vi cũ.
+    # CHỈ TỪ CHỐI, KHÔNG XOÁ (khác nhánh sai TK ở trên): file Xe tải 2025 có CẢ sheet công nợ thật lẫn
+    # 'Sheet4'/'Sheet5' chứa sổ T01/2026 — xoá theo file+kỳ ở đây có thể xoá luôn số của sheet thật.
+    _den = next((m for r in rows[:12] for c in r if isinstance(c, str)
+                 for m in [_re_bcqt.search(r"đến\s*ngày\s*:?\s*(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})",
+                                           c.lower())] if m), None)
+    if _den and f"{_den.group(3)}-{int(_den.group(2)):02d}" != period:
+        return {"ok": False, "error": f"sổ ghi kỳ đến {_den.group(1)}/{_den.group(2)}/{_den.group(3)} "
+                                      f"≠ kỳ {period} (sheet chép từ kỳ khác) -> không nạp "
+                                      f"{_ADV_CUA[canonical_kind][0]}"}
+
     # SỔ TỔNG HỢP GỘP NHIỀU TK (vd HTX 'THCN PHẢI THU' = TK 131+138; 'THCN PHẢI TRẢ' = 331+338): có
     # CỘT 'TÀI KHOẢN' đánh dấu TK từng dòng. Phải LỌC đúng TK gốc (131 phải thu / 331 phải trả), loại
     # 138/338/133/336… (phải thu/phải trả KHÁC — báo cáo tách riêng). Dò cột theo GIÁ TRỊ (dòng dữ liệu
@@ -4766,6 +4780,14 @@ def _derive_congno(file_path: str, sheet: str, canonical_kind: str, period: str,
     imp = tf.import_filled(out, cong_ty=cong_ty, khoi=_khoi_of(file_path), source_file=_source_id(file_path))
     adv = _ghi_congno_nguoc_chieu(file_path, period, canonical_kind, adv_recs) \
         if imp.get("rows_imported") else None
+    if imp.get("rows_imported") and canonical_kind == "TK131":
+        # Sổ công nợ THẬT đã về -> gỡ số dư DỰ PHÒNG dựng từ file tuổi nợ cùng khối/kỳ
+        # (derive_congno_tuoino `_ghi_pthu_du_phong`), để màn Công nợ không cộng đôi.
+        _db = bb.db.get_db()
+        _db.execute("DELETE FROM raw_rows WHERE report_type IN ('PTHU','PTHU_ADV') AND period_month=? "
+                    "AND khoi=? AND payload LIKE ?",
+                    (period, _khoi_of(file_path), '%"du_phong_tuoino": true%'))
+        _db.commit()
     return {"ok": bool(imp.get("rows_imported")), "rows": imp.get("rows_imported"),
             "target": spec["target"], "report_type": spec["target"],
             "partial_dau_ky": bool(meta.get("partial")), "out": out, "nguoc_chieu": adv}

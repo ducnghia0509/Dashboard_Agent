@@ -589,6 +589,89 @@ def _agg_hanno_tong(rows, cols=None):
             "lech_tong_vs_chi_tiet": lech, "payload": _hanno_payload(agg)}
 
 
+# SỐ DƯ PHẢI THU DỰ PHÒNG từ file tuổi nợ (08/10/2026). Màn Công nợ đọc số dư cuối kỳ từ PTHU/
+# PTHU_ADV = sổ tổng hợp công nợ 131 trong file BCTC tháng. File BCTC T09 của Trạm sạc là bản T8
+# chép lại (chỉ BCHQKD lên T09) nên agent_cli chặn sổ lệch kỳ -> T09 trống. File tuổi nợ của
+# Trạm sạc có dư Nợ (cột "Tổng nợ phải thu") + dư Có (cột "có" ngay bên phải) từng khách, đối
+# chiếu T08 khớp sổ công nợ 59/59 khách, 0 đồng -> dùng làm số dư khi kỳ đó CHƯA có sổ thật.
+#   - Chỉ ghi khi khối/kỳ chưa có dòng PTHU nào ngoài chính bản dự phòng. agent_cli `_derive_congno`
+#     nạp được sổ thật thì tự xoá bản dự phòng (cờ `du_phong_tuoino`) -> không cộng đôi.
+#   - Đầu kỳ = cuối kỳ trước của từng khách (PTHU/PTHU_ADV kỳ trước). Phát sinh tăng/giảm để TRỐNG:
+#     file tuổi nợ không có, và Σ phát sinh của báo cáo ngày T09 không khép với số dư (lệch 1,89 tỷ).
+# Chỉ bật cho đơn vị đã đối chiếu cột Có; đơn vị khác thêm vào sau khi kiểm như trên.
+_DU_PHONG_PTHU = {"TRAMSAC"}
+
+
+def _so_du_khach(rows):
+    """{mã khách: [tên, dư Nợ VND, dư Có VND]} từ file tuổi nợ mode 'hanno'. Cột Có = ô ngay phải
+    cột tổng, header chính trống + sub-header 'có' (bố cục Trạm sạc). Không đúng bố cục -> None."""
+    cols = _find_cols_hanno(rows)
+    if cols is None:
+        return None
+    h, sub = rows[cols["hdr_i"]], rows[cols["hdr_i"] + 1]
+    co_i = cols["tong"] + 1
+    if co_i >= len(sub) or _nd(sub[co_i]) != "co" or (co_i < len(h) and h[co_i]):
+        return None
+    ten_i = next((j for j, c in enumerate(h) if c and _nd(c).startswith("ten khach")), None)
+    out = {}
+    for r in rows[cols["data_start"]:]:
+        if not r or cols["ma"] >= len(r) or not r[cols["ma"]]:
+            continue
+        ma = str(r[cols["ma"]]).strip()
+        e = out.setdefault(ma, [None, 0.0, 0.0])
+        if e[0] is None and ten_i is not None and ten_i < len(r) and r[ten_i]:
+            e[0] = str(r[ten_i]).strip()
+        e[1] += _num(r[cols["tong"]]) or 0.0
+        e[2] += (_num(r[co_i]) if co_i < len(r) else None) or 0.0
+    return out
+
+
+def _ghi_pthu_du_phong(cur, khach, source_file, dataset_id, period, cong_ty, khoi):
+    """Ghi PTHU (dư RÒNG Nợ−Có, như `_derive_congno`) + PTHU_ADV (dư Có, cờ bu_rong) dự phòng."""
+    cur.execute("DELETE FROM raw_rows WHERE source_file=%s AND report_type IN ('PTHU','PTHU_ADV') "
+                "AND payload LIKE %s", (source_file, '%"du_phong_tuoino": true%'))
+    cur.execute("SELECT 1 FROM raw_rows WHERE report_type='PTHU' AND period_month=%s AND khoi=%s "
+                "AND payload NOT LIKE %s LIMIT 1", (period, khoi, '%"du_phong_tuoino": true%'))
+    if cur.fetchone():
+        return {"ghi": False, "ly_do": "khối/kỳ đã có sổ công nợ thật"}
+    y, m = int(period[:4]), int(period[5:7])
+    ky_truoc = f"{y - (m == 1)}-{(m - 2) % 12 + 1:02d}"
+    dau = {}   # mã -> [tên, ròng đầu, Có đầu]
+    cur.execute("SELECT report_type, dim1, amount, payload FROM raw_rows WHERE period_month=%s "
+                "AND khoi=%s AND (report_type='PTHU' OR (report_type='PTHU_ADV' AND payload LIKE %s))",
+                (ky_truoc, khoi, '%"bu_rong": true%'))
+    for rt, ten, amt, pl in cur.fetchall():
+        ma = (json.loads(pl) if isinstance(pl, str) else (pl or {})).get("ma_dt") or ten
+        e = dau.setdefault(ma, [ten, 0.0, 0.0])
+        e[1 if rt == "PTHU" else 2] += float(amt or 0)
+    ngay = _period_end(period)
+    nguon = "file tuổi nợ (sổ công nợ BCTC chưa có/lệch kỳ)"
+    n_pt = n_adv = 0
+    for k, ma in enumerate(sorted(set(khach) | set(dau))):
+        ten, no, co = khach.get(ma, [None, 0.0, 0.0])
+        ten = ten or dau.get(ma, [ma])[0] or ma
+        d = dau.get(ma, [None, 0.0, 0.0])
+        cur.execute(
+            "INSERT INTO raw_rows (dataset_id, report_type, row_index, ngay, cong_ty, khoi, cost_center, "
+            "period_month, amount, amount2, dim1, dim2, dim3, payload, source_file) "
+            "VALUES (%s,'PTHU',%s,%s,%s,%s,NULL,%s,%s,NULL,%s,NULL,NULL,%s,%s)",
+            (dataset_id, 5000000 + k, ngay, cong_ty, khoi, period, (no - co) * 1e-9, ten,
+             json.dumps({"du_dau": d[1], "ps_tang": None, "ps_giam": None, "ma_dt": ma, "unit": "ty",
+                         "nguon": nguon, "du_phong_tuoino": True}, ensure_ascii=False), source_file))
+        n_pt += 1
+        if co or d[2]:
+            cur.execute(
+                "INSERT INTO raw_rows (dataset_id, report_type, row_index, ngay, cong_ty, khoi, cost_center, "
+                "period_month, amount, amount2, dim1, dim2, dim3, payload, source_file) "
+                "VALUES (%s,'PTHU_ADV',%s,%s,%s,%s,NULL,%s,%s,NULL,%s,NULL,NULL,%s,%s)",
+                (dataset_id, 6500000 + k, ngay, cong_ty, khoi, period, co * 1e-9, ten,
+                 json.dumps({"ma_dt": ma, "du_dau": d[2], "unit": "ty", "nguon": "TK131 dư Có — " + nguon,
+                             "bu_rong": True, "du_phong_tuoino": True}, ensure_ascii=False), source_file))
+            n_adv += 1
+    return {"ghi": True, "PTHU": n_pt, "PTHU_ADV": n_adv, "ky_truoc_dau_ky": ky_truoc,
+            "dau_ky_du_no_ty": round(sum(v[1] + v[2] for v in dau.values()), 9)}
+
+
 def derive(path, period, write=False):
     folder = _source_id(path).split("::", 1)[0]
     unit = _UNITS.get(folder)
@@ -643,6 +726,12 @@ def derive(path, period, write=False):
 
     report_type = _report_type(path)
     out["report_type"] = report_type
+    khach = (_so_du_khach(rows) if folder in _DU_PHONG_PTHU and report_type == "PTHU_TUOINO"
+             else None)
+    if khach is not None:
+        out["so_du_du_phong"] = {"khach": len(khach),
+                                 "du_no_ty": round(sum(v[1] for v in khach.values()) * 1e-9, 9),
+                                 "du_co_ty": round(sum(v[2] for v in khach.values()) * 1e-9, 9)}
 
     if write:
         source_file = _source_id(path)
@@ -670,6 +759,9 @@ def derive(path, period, write=False):
                 (dataset_id, report_type, 6100000, ngay, cong_ty, khoi, None, period,
                  tong_all, None, cong_ty, None, None,
                  json.dumps(payload, ensure_ascii=False), source_file))
+            if khach is not None:
+                out["so_du_du_phong"].update(_ghi_pthu_du_phong(
+                    cur, khach, source_file, dataset_id, period, cong_ty, khoi))
             conn.commit()
             out["written"] = 1
         finally:
