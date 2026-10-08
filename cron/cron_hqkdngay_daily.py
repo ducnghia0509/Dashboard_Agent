@@ -322,6 +322,41 @@ def _ky_moi_tao(js: dict) -> list:
     return sorted(ks)
 
 
+def _canh_bao_cong_thuc(js: dict) -> list:
+    """Cảnh báo LỚP 1 của soát công thức (derive_hqkd_ngay._soat_cong_thuc_facts) trong JSON nạp."""
+    out = []
+    for x in [js] + list(js.get("derived") or []) + list(js.get("processed") or []):
+        if isinstance(x, dict):
+            out.extend(x.get("canh_bao_cong_thuc") or [])
+    return out
+
+
+def soat_cong_thuc(periods: list) -> dict:
+    """LỚP 2 — chạy `scripts/soat_cong_thuc.py` trên DB của môi trường này cho các kỳ vừa kéo.
+
+    Chạy bằng python + cwd của checkout tc-admin-api (VERIFY_API_DIR) vì script tính số bằng CHÍNH
+    hàm backend, như `verify()`. Bắt được cái lớp 1 không thấy: file khác đường nạp (engine spec
+    JSON — XDV/SR tự động), dòng cũ nạp trước khi có bản vá, cộng đôi GIỮA hai file. Hỏng thì nuốt
+    lỗi — lớp giám sát hỏng mà kéo theo `done()` là mất artifact, bị đọc thành "cron không chạy"."""
+    try:
+        cmd = [f"{VERIFY_API_DIR}/.venv/bin/python", os.path.join(AGENT, "scripts", "soat_cong_thuc.py"),
+               "--json"] + [a for p in periods for a in ("--ky", p)]
+        p = subprocess.run(cmd, cwd=VERIFY_API_DIR, env={**os.environ, "DATABASE_URL": DATABASE_URL},
+                           capture_output=True, text=True, timeout=900)
+        kq = json.loads((p.stdout or "").strip().splitlines()[-1])
+    except Exception as ex:                              # noqa: BLE001
+        log(f"  soát công thức: BỎ QUA ({type(ex).__name__}: {str(ex)[:140]})")
+        return {"loi_chay": f"{type(ex).__name__}: {str(ex)[:140]}"}
+    log(f"  soát công thức {periods}: {kq['so_lat']} lát, {kq['so_loi']} lệch,"
+        f" {kq['so_ngoai_le']} đã khai ngoại lệ")
+    for r in kq["loi"][:30]:
+        log(f"    CANH BAO cong thuc {r['check']} {r['grain']} {r['ky']} [{r['khoi']}]: "
+            + (f"LNST Tong quan {r['lnst_tong_quan']:.4f} != 1112 {r['lnst_hqkd_1112']:.4f}"
+               + (" (GAP DOI)" if r.get("gap_doi") else "") if r["check"] == "C1" else
+               f"DT+DTTC&TN-CP {r['cong_thuc']:.4f} != LNTT {r['lntt']:.4f}"))
+    return {"so_lat": kq["so_lat"], "so_loi": kq["so_loi"], "loi": kq["loi"][:30]}
+
+
 def autofill(entry: dict):
     """agent_cli.py autofill: is_daily_report() gate tự dispatch sang derive_hqkd_ngay.derive()
     (DELETE-then-insert idempotent theo source_file, đọc lại TOÀN BỘ ngày có trong file — xem
@@ -596,6 +631,9 @@ def main():
             continue
         ok += 1
         soat_cost_center(e)
+        cb_ct = _canh_bao_cong_thuc(af_js)
+        for c in cb_ct[:10]:
+            log(f"  CANH BAO cong thuc [{unit}] {c.get('ngay')} {c.get('check')}: {c}")
         vr = verify(e, yday if yday.startswith(e["_period"]) else "0000-00-00")
         van_tay_cu = st.van_tay_cu.get(unit) if st else None
         state, doi_luc = cron_status.state_from_verify(
@@ -604,11 +642,13 @@ def main():
             max_ngay=vr.get("max_ngay"), max_ngay_sodu=vr.get("max_ngay_sodu"),
             verify_code=vr.get("code"),
             van_tay=vr.get("van_tay"), doi_luc=doi_luc,
-            ly_do=_ly_do(state, vr, yday, van_tay_cu, doi_luc, today))
+            ly_do=_ly_do(state, vr, yday, van_tay_cu, doi_luc, today),
+            **({"canh_bao_cong_thuc": cb_ct[:10]} if cb_ct else {}))
 
     log(f"XONG — nạp thành công {ok}/{len(targets)} báo cáo ngày")
+    sct = soat_cong_thuc(sorted({e["_period"] for e in targets}))
     if st:
-        st.set_run(nap_thanh_cong=ok, so_file_keo=len(targets))
+        st.set_run(nap_thanh_cong=ok, so_file_keo=len(targets), soat_cong_thuc=sct)
     return done(cron_status.RUN_OK, rc=0 if ok else 1)
 
 

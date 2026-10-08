@@ -1,0 +1,11 @@
+{
+  "_ghi_chu": "Cấu hình cho scripts/soat_cong_thuc.py. Mỗi mục BẮT BUỘC có ly_do — không có lý do thì không phải ngoại lệ, là lỗi chưa điều tra. Ưu tiên khai 'khoan_ngoai_the' (cộng đúng khoản đó vào công thức, các lệch khác vẫn bị bắt) hơn 'ngoai_le' (miễn soát cả phép cho khối/kỳ).",
+  "khoan_ngoai_the": [
+    {
+      "khoi": "Khối KD Vinfast - XDV",
+      "dim1_ilike": "%doanh thu chiến dịch%",
+      "ly_do": "B831 'Doanh thu chiến dịch' (TK 511124) nằm ở B830 Hoạt động khác và được cộng vào B840 LNTT, nhưng CỐ Ý không thuộc DT thuần B210 lẫn 515/711 (review DB của KT XDV, sửa 04/09/2026). Màn Hiệu quả KD có thẻ riêng khi lọc XDV. Đối chiếu 08/10/2026: lệch C2 = −B831 tới đồng ở 18 kỳ tháng 2024-09..2026-07 và ngày 23–30/09/2026."
+    }
+  ],
+  "ngoai_le": []
+}
