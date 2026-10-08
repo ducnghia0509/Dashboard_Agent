@@ -148,7 +148,7 @@ Chỉ báo SỐ LƯỢNG và hướng ảnh hưởng, **không đọc nguyên v�
 
 Artifact BÁO CÁO NGÀY có khối `soat_cong_thuc` ở mức lượt chạy (cron chạy `scripts/soat_cong_thuc.py`
 cho các kỳ vừa kéo), và bản ghi đơn vị có thể có `canh_bao_cong_thuc` (soát ngay lúc nạp file). Hai
-phép: **C1** LNST màn Tổng quan phải bằng LNST màn Hiệu quả KD; **C2** Doanh thu + DT tài chính & TN
+phép: **C1** LNST + thuế TNDN phải bằng lợi nhuận trước thuế; **C2** Doanh thu + DT tài chính & TN
 khác − Chi phí phải bằng lợi nhuận trước thuế. Lệch là **số trên dashboard đang mâu thuẫn chính nó**
 — lớp lỗi này từng nằm 3 tuần không ai biết (LNST Xe tải T9 hiện 2,63 tỷ thay vì 1,31).
 

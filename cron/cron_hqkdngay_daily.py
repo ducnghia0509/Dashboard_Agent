@@ -351,7 +351,7 @@ def soat_cong_thuc(periods: list) -> dict:
         f" {kq['so_ngoai_le']} đã khai ngoại lệ")
     for r in kq["loi"][:30]:
         log(f"    CANH BAO cong thuc {r['check']} {r['grain']} {r['ky']} [{r['khoi']}]: "
-            + (f"LNST Tong quan {r['lnst_tong_quan']:.4f} != 1112 {r['lnst_hqkd_1112']:.4f}"
+            + (f"LNST {r['lnst_tong_quan']:.4f} + thue {r['thue_tndn']:.4f} != LNTT 1112 {r['lnst_hqkd_1112']:.4f}"
                + (" (GAP DOI)" if r.get("gap_doi") else "") if r["check"] == "C1" else
                f"DT+DTTC&TN-CP {r['cong_thuc']:.4f} != LNTT {r['lntt']:.4f}"))
     return {"so_lat": kq["so_lat"], "so_loi": kq["so_loi"], "loi": kq["loi"][:30]}
