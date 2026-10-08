@@ -1124,10 +1124,14 @@ def _derive_kqkd_xdv(rows, period, cong_ty, file_path):
         ("ha khanh", "HK_XDV"), ("ho chi minh", "HCM_XDV"),
     ]
 
+    # Bỏ cột 'Showroom …': sheet 2025 có cột 'Showroom Xuân Mai' cạnh 'XDV Xuân Mai' — khớp từ khoá
+    # 'xuan mai' trên mọi header là có thể bắt nhầm cột showroom tuỳ thứ tự cột.
     def _find_xdv_col(kw):
         return next((j for r in rows[:12] for j, c in enumerate(r)
-                     if isinstance(c, str) and kw in _norm(c)), None)
+                     if isinstance(c, str) and kw in _norm(c) and not _norm(c).startswith("showroom")),
+                    None)
     xdv_cols = [(cc, j) for kw, cc in _XDV_BRANCH_CC for j in [_find_xdv_col(kw)] if j is not None]
+    _XDV_CC_CON_LAI = "XDV - ngoài 14 chi nhánh"
 
     def vj(cds, j):
         s, got = 0.0, False
@@ -1144,14 +1148,31 @@ def _derive_kqkd_xdv(rows, period, cong_ty, file_path):
             records.append({"Kỳ (yyyy-mm)": period, "Chỉ tiêu KQKD": ten,
                             "Thực hiện (tỷ)": val, _CC_COL: cc})
     if len(xdv_cols) >= 10:   # đủ chi nhánh mới tách theo CC; thiếu (đổi layout) -> fallback TỔNG như cũ
+        _chi_tieu = (("Doanh thu thuần", ("B210",), ("B100",)),                       # -> 1000 + DTHU
+                     ("Tổng chi phí", ("B300", "B500", "B810", "B822", "B833"), None),  # -> 1047 (GỒM giá vốn)
+                     ("Lợi nhuận trước thuế", ("B840",), None),                       # -> 1112
+                     ("Giá vốn hàng bán", ("B300",), None),                           # -> PNLT
+                     ("Lợi nhuận gộp", ("B410",), None),                              # -> PNLT
+                     ("Lợi nhuận sau thuế", ("B900",), None))                         # -> PNLT
+        da_tach = {}
         for cc, j in xdv_cols:
-            dt_j = vj(("B210",), j) or vj(("B100",), j)
-            addcc(cc, "Doanh thu thuần", dt_j)                                       # -> 1000 + DTHU
-            addcc(cc, "Tổng chi phí", vj(("B300", "B500", "B810", "B822", "B833"), j))  # -> 1047 (GỒM giá vốn)
-            addcc(cc, "Lợi nhuận trước thuế", vj(("B840",), j))                       # -> 1112
-            addcc(cc, "Giá vốn hàng bán", vj(("B300",), j))                          # -> PNLT
-            addcc(cc, "Lợi nhuận gộp", vj(("B410",), j))                             # -> PNLT
-            addcc(cc, "Lợi nhuận sau thuế", vj(("B900",), j))                        # -> PNLT
+            for ten, cds, du_phong in _chi_tieu:
+                x = vj(cds, j)
+                if du_phong and not x:                      # y hệt bản cũ: vj(B210) or vj(B100)
+                    x = vj(du_phong, j)
+                addcc(cc, ten, x)
+                da_tach[ten] = da_tach.get(ten, 0.0) + (x or 0.0)
+        # PHẦN CÒN LẠI = cột 'Kỳ này' − Σ chi nhánh đã nhận (SỬA 08/10/2026). Sheet 2025 có cột ngoài 14
+        # chi nhánh ('CHI NHÁNH VINFAST HÀ NỘI…' T03/T04/T06, 'Showroom Xuân Mai' T01) mà cột tổng VẪN
+        # cộng vào -> trước đây rơi im lặng: 1112 cao hơn file 0,08–0,46 tỷ, 1047 hụt đúng chừng đó (C2
+        # vẫn khép nên soát không thấy). Ghi phần lệch vào 1 cost center riêng để tổng khối = cột tổng.
+        for ten, cds, du_phong in _chi_tieu:
+            tong = vsum(*cds)
+            if du_phong and not tong:
+                tong = vsum(*du_phong)
+            con_lai = round((tong or 0.0) - da_tach.get(ten, 0.0), 9)
+            if tong is not None and abs(con_lai) >= 1e-6:      # >= 1.000 đ
+                addcc(_XDV_CC_CON_LAI, ten, con_lai)
     else:
         add("Doanh thu thuần", dt)                              # -> 1000 + DTHU
         # Tổng chi phí(1047) = B300 (giá vốn) + B500 (CP xưởng) + B810 (cố định) + B822 (lãi vay) + B833
@@ -1314,7 +1335,11 @@ def _derive_kqkd_srvf(rows, period, cong_ty, file_path):
     # MÃ LỢI NHUẬN đổi theo niên độ: bản 2026 (T{mm}BC) có 'A600 LỢI NHUẬN SHOW ROOM'; bản 2025
     # (sheet T{mm}) KHÔNG có A600 mà dùng 'U300 LỢI NHUẬN VINFAST' (+ U301 thuế TNDN, U302 sau thuế
     # — kiểm 12/12 sheet 2025). Thử theo THỨ TỰ để bản 2026 giữ nguyên hành vi 100%.
-    _profit_cd = next((c for c in ("A600", "U300", "U302") if c in codes), None)
+    # SỬA 08/10/2026: bản 2025 có 'A400 LỢI NHUẬN SHOW ROOM' (= A100 − A300, đúng 12/12 tháng) —
+    # trước đây bỏ qua A400 nên rơi xuống U300 'LỢI NHUẬN VINFAST' = A400 + B800 Xưởng dịch vụ + T300
+    # Trạm sạc, trong khi DT/CP lại chỉ của Showroom: LNST Showroom 2025 thấp 13,35 tỷ (gánh lỗ XDV)
+    # và Trạm sạc 2025 cộng đôi ở cấp tập đoàn. Bắt bởi scripts/soat_cong_thuc.py (C2).
+    _profit_cd = next((c for c in ("A600", "A400", "U300", "U302") if c in codes), None)
     if not ({"A100", "A300"} <= codes) or _profit_cd is None:
         return None
 
@@ -1384,15 +1409,26 @@ def _derive_kqkd_srvf(rows, period, cong_ty, file_path):
     # này khi tính tổng theo khối (bỏ qua breakdown cùng file, tránh đếm đôi) — xem _per_file_resolved.
     add("Doanh thu thuần", dt)                     # -> 1000 + DTHU
     add("Tổng chi phí", cp)                        # -> 1047 (A300 TỔNG CHI PHÍ SHOW ROOM)
-    add("Lợi nhuận trước thuế", lntt)              # -> 1112 (A600 = U302 LNST; P&L quản trị ko tách TNDN)
+    add("Lợi nhuận trước thuế", lntt)              # -> 1112 (A600/A400 = lợi nhuận Showroom TRƯỚC thuế)
     add("Giá vốn hàng bán", v("A310"))             # -> PNLT
     if len(sr_cols) >= 8:   # đủ showroom mới tách theo CC; thiếu (đổi layout) -> chỉ còn dòng khối-tổng ở trên
         for cc, j in sr_cols:
             addcc(cc, "Doanh thu thuần", vj("A100", j))        # -> byCC (group_sum đã loại dòng khối-tổng khỏi UNALLOCATED)
             addcc(cc, "Tổng chi phí", vj("A300", j))           # -> byCC
-            addcc(cc, "Lợi nhuận trước thuế", vj("A600", j))   # -> byCC
+            addcc(cc, "Lợi nhuận trước thuế", vj(_profit_cd if _profit_cd in ("A600", "A400") else "A600", j))   # -> byCC
             addcc(cc, "Giá vốn hàng bán", vj("A310", j))       # -> byCC
-    add("Lợi nhuận sau thuế", v("U302") or lntt)   # -> PNLT (nuôi thẻ LNST; giữ TỔNG, chưa tách CC)
+    # LNST: bản 2026 (T{mm}BC, sheet riêng Showroom) U302 = A600 − thuế khối B2C (T301..T303). Bản 2025
+    # (sheet TOÀN KHỐI VINFAST) U302 là sau thuế của CẢ chi nhánh -> lấy A400 − U301 (thuế TNDN cả chi
+    # nhánh; sheet 2025 không tách thuế theo khối, chỉ Showroom có lãi chịu thuế — T12/2025 XDV lỗ 3,10).
+    if _profit_cd == "A400":
+        _lnst = round(lntt - (v("U301") or 0.0), 9)
+    else:
+        _lnst = v("U302") or lntt
+    add("Lợi nhuận sau thuế", _lnst)               # -> PNLT (nuôi thẻ LNST; giữ TỔNG, chưa tách CC)
+    # THUẾ TNDN = LNTT − LNST (08/10/2026): 1112 là lợi nhuận TRƯỚC thuế, nên ghi riêng phần thuế để
+    # LNST + thuế = 1112 kiểm được (soát công thức C1) — trước đây kỳ có thuế nhìn như mâu thuẫn.
+    if _lnst is not None and abs(lntt - _lnst) >= 1e-6:
+        add("Thuế TNDN", round(lntt - _lnst, 9))   # -> PNLT
     add("Doanh thu HH, DV", v("A100"))             # -> PNLT (chỉ tiêu #1 bảng 50 = A100 'TỔNG DOANH THU SHOWROOM'
     #   theo Mapping QTTC: T05BC cột M dòng 2. KHÔNG dùng A200 'bán xe XHĐ' (loại DT khác+Claim -> under-count).
     #   Giữ TỔNG (chưa tách CC) — user chốt 2026-07-23 chỉ tách 4 chỉ tiêu trên trước.
@@ -2331,11 +2367,18 @@ def _derive_kqkd_ankhachsan_2025(file_path: str, period: str, cong_ty: str):
         return _rowval(val_j, *starts)
     dt_ks = rowval("doanh thu khach san")
     dt_nh = rowval("doanh thu nha hang")
+    # Bản phát hành lại 31/08/2026 (sheet 'BCQT') gom Mục I.1 'DOANH THU HOẠT ĐỘNG' = 'Doanh thu Nhà
+    # hàng, khách sạn' + 'Doanh thu dịch vụ khác'. Cộng KS + NH như mẫu 'Sheet1' cũ thì chỉ trúng dòng
+    # đầu (nhãn bắt đầu 'doanh thu nha hang') -> DT hụt đúng dòng 'dịch vụ khác' 1–2 tr/tháng, bắt bởi
+    # scripts/soat_cong_thuc.py (C2) 08/10/2026. Có Mục I.1 thì lấy thẳng nó.
+    dt_hd = rowval("doanh thu hoat dong")
     ln = rowval("loi nhuan")
     if ln is None and dt is not None and cp is not None:
         ln = round(dt - cp, 9)
     # DT thuần = KS + Nhà hàng (bỏ 'Thu khác'). Cả 2 đều thiếu -> lùi về Mục I để không mất kỳ.
     dt_core = None if (dt_ks is None and dt_nh is None) else round((dt_ks or 0.0) + (dt_nh or 0.0), 9)
+    if dt_hd is not None:
+        dt_core = dt_hd
     if dt_core is None:
         dt_core = dt
     records = []

@@ -8,7 +8,9 @@ tiêu suốt 3 tuần mà không ai biết. Cùng lỗi đã xảy ra ở bản 
 Cả hai lần đều là phép cộng trừ đơn giản phát hiện được, nên soát bằng phép cộng trừ.
 
 Hai phép soát:
-  C1  LNST hai màn phải bằng nhau: Σ PNLT "lợi nhuận…sau thuế" (Tổng quan) == HQKD 1112 (Hiệu quả KD).
+  C1  LNST + thuế TNDN == LNTT: Σ PNLT "lợi nhuận…sau thuế" + Σ PNLT "thuế tndn…" == HQKD 1112.
+      (Ban đầu là "LNST Tổng quan == 1112"; 08/10/2026 thẻ LNST Hiệu quả KD chuyển sang đọc PNLT và
+      1112 được xác nhận là LNTT, nên kỳ có thuế phải cộng lại thuế mới so được.)
   C2  Công thức kế toán: Doanh thu + DT tài chính & TN khác − Chi phí (1047) == LNTT (1112 + 1111).
 
 TÍNH BẰNG CHÍNH HÀM CỦA BACKEND (`metrics.flow_by_khoi` + `grain_scope`), không tự viết SQL: chọn
@@ -110,6 +112,7 @@ def _lat(ds, frm, to):
         "tnk": fk(ds, "PNLT", frm, to, dim1_ilike="%thu nhập khác%"),
         "cp": fk(ds, "HQKD", frm, to, dim1=mr.HQKD_COST),
         "lnst": fk(ds, "PNLT", frm, to, dim1_ilike=mr.LNST_ILIKE),
+        "thue": fk(ds, "PNLT", frm, to, dim1_ilike="thuế tndn%"),
         "m1112": fk(ds, "HQKD", frm, to, dim1=mr.HQKD_PROFIT_AT),
         "m1111": fk(ds, "HQKD", frm, to, dim1=mr.HQKD_TAX_TNDN),
     }
@@ -128,10 +131,11 @@ def _soat_lat(grain, ky, ds, frm, to, nl, khoan):
         phat = []
         # C1 chỉ soát khi CẢ HAI phía có số: thiếu một phía là chuyện "nguồn chưa có chỉ tiêu",
         # không phải hai màn mâu thuẫn nhau.
-        if lnst is not None and m1112 is not None and abs(lnst - m1112) > tol:
-            phat.append({"check": "C1", "lnst_tong_quan": lnst, "lnst_hqkd_1112": m1112,
-                         "chenh": lnst - m1112,
-                         "gap_doi": abs(m1112) > tol and abs(lnst - 2 * m1112) <= tol})
+        thue = v["thue"] or 0.0
+        if lnst is not None and m1112 is not None and abs(lnst + thue - m1112) > tol:
+            phat.append({"check": "C1", "lnst_tong_quan": lnst, "thue_tndn": thue, "lnst_hqkd_1112": m1112,
+                         "chenh": lnst + thue - m1112,
+                         "gap_doi": abs(m1112) > tol and abs(lnst - 2 * (m1112 - thue)) <= tol})
         if dt is not None and cp is not None and lntt is not None:
             ct = dt + fin - cp
             if abs(ct - lntt) > tol:
@@ -183,8 +187,9 @@ def main():
     print(f"{kq['so_lat']} lát kỳ | {kq['so_loi']} lệch | {kq['so_ngoai_le']} lệch đã khai ngoại lệ")
     for r in kq["loi"]:
         if r["check"] == "C1":
-            print(f"  C1 {r['grain']:5} {r['ky']:10} {r['khoi'][:34]:34} LNST Tổng quan {_f(r['lnst_tong_quan'])}"
-                  f" ≠ 1112 {_f(r['lnst_hqkd_1112'])}{'  (GẤP ĐÔI)' if r['gap_doi'] else ''}")
+            print(f"  C1 {r['grain']:5} {r['ky']:10} {r['khoi'][:34]:34} LNST {_f(r['lnst_tong_quan'])}"
+                  f" + thuế {_f(r['thue_tndn'])} ≠ LNTT 1112 {_f(r['lnst_hqkd_1112'])}"
+                  f"{'  (GẤP ĐÔI)' if r['gap_doi'] else ''}")
         else:
             print(f"  C2 {r['grain']:5} {r['ky']:10} {r['khoi'][:34]:34} DT {_f(r['doanh_thu'])}"
                   f" + TC {_f(r['dttc_tnkhac'])} − CP {_f(r['chi_phi'])} = {_f(r['cong_thuc'])}"

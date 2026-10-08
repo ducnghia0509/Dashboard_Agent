@@ -3725,12 +3725,13 @@ def _ilike(pat):
 
 _RX_LNST, _RX_DTTC, _RX_TNK = _ilike("%lợi nhuận%sau thu%"), _ilike("%doanh thu%tài chính%"), \
     _ilike("%thu nhập khác%")
+_RX_THUE = _ilike("thuế tndn%")
 
 
 def _soat_cong_thuc_facts(per_day, khoi):
     """LỚP 1 của soát công thức (08/10/2026) — chạy trên CHÍNH các fact sắp ghi, trước khi ghi.
     Hai phép y hệt `scripts/soat_cong_thuc.py` (lớp 2, soát trên DB qua hàm backend):
-      C1  Σ PNLT 'lợi nhuận…sau thuế' == HQKD 1112   (LNST màn Tổng quan == màn Hiệu quả KD)
+      C1  Σ PNLT 'lợi nhuận…sau thuế' + Σ PNLT 'thuế tndn…' == HQKD 1112 (LNST + thuế = LNTT)
       C2  DT + DT tài chính & TN khác − 1047 == 1112 + 1111   (công thức kế toán)
     Gộp theo luật của `repository._per_file_resolved`: có dòng không cost center thì lấy dòng đó,
     không thì cộng cost center. CHỈ BÁO: số vẫn ghi, cảnh báo đi theo JSON cho cron đưa lên bảng
@@ -3760,12 +3761,13 @@ def _soat_cong_thuc_facts(per_day, khoi):
         cp, m1112 = tong(f, RT_HQKD, la(MA_CP)), tong(f, RT_HQKD, la(MA_LNTT))
         m1111 = tong(f, RT_HQKD, la("1111")) or 0.0
         lnst = tong(f, RT_PNLT, khop(_RX_LNST))
+        thue = tong(f, RT_PNLT, khop(_RX_THUE)) or 0.0
         fin = sum(tong(f, RT_PNLT, khop(rx)) or 0.0 for rx in (_RX_DTTC, _RX_TNK, *them))
         tol = max(1e6, 1e-3 * max(abs(dt or 0), abs(cp or 0)))
-        if lnst is not None and m1112 is not None and abs(lnst - m1112) > tol:
+        if lnst is not None and m1112 is not None and abs(lnst + thue - m1112) > tol:
             loi.append({"ngay": ngay, "check": "C1", "lnst_tong_quan_ty": round(lnst * 1e-9, 6),
-                        "lnst_hqkd_1112_ty": round(m1112 * 1e-9, 6),
-                        "gap_doi": abs(m1112) > tol and abs(lnst - 2 * m1112) <= tol})
+                        "thue_tndn_ty": round(thue * 1e-9, 6), "lntt_1112_ty": round(m1112 * 1e-9, 6),
+                        "gap_doi": abs(m1112) > tol and abs(lnst - 2 * (m1112 - thue)) <= tol})
         if dt is not None and cp is not None and m1112 is not None:
             ct, lntt = dt + fin - cp, m1112 + m1111
             if abs(ct - lntt) > tol:
