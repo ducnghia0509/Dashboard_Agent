@@ -2888,7 +2888,7 @@ def _ht_facts(rows):
         return []
 
     # byco: mã -> (nhãn gốc, giá trị). Nhận CẢ mã con "T203.7" (bản tháng cũng gom vậy).
-    byco, lnst = {}, None
+    byco, lnst, lnst_code = {}, None, None
     for r in body:
         v = _num(r[val_j]) if val_j < len(r) else None
         code = str(r[ma_j] or "").strip() if ma_j < len(r) else ""
@@ -2897,6 +2897,7 @@ def _ht_facts(rows):
             byco[code] = (lab, v)
         if lnst is None and ten_j < len(r) and _nd(r[ten_j]).startswith("loi nhuan sau thue"):
             lnst = v
+            lnst_code = code or None
     if "T200" not in byco or "T300" not in byco:
         return []
 
@@ -2937,8 +2938,12 @@ def _ht_facts(rows):
     # hàng bán' (nguồn HT gõ 'Gía vốn' — dấu sắc trên i — làm metrics.build_revenue lọc
     # ILIKE '%giá vốn%' ACCENT-SENSITIVE trượt) và T103 -> 'Thu nhập khác' (HT gõ 'Doanh thu khác').
     # Mã CON giữ nguyên nhãn typo -> KHÔNG khớp filter -> KHÔNG đếm đôi với dòng tổng đã chuẩn hoá.
+    # Dòng LNST đã ghi ở trên với nhãn chuẩn -> KHÔNG emit lại. File ngày cũ (.baocaongay) để dòng
+    # LNST không mã nên không vướng; từ 09/2026 P&L ngày lấy sheet 'kqkd tổng hợp nhất' của file BCTC
+    # 3 ngày, ở đó LNST mang mã T500 "LỢI NHUẬN SAU THUẾ TNDN" -> BE ILIKE '%lợi nhuận%sau thu%' cộng
+    # cả 2 dòng, LNST ×2 (T9: 1,31 -> 2,63 tỷ). Cùng lỗi bản tháng đã vá ở agent_cli 23/09.
     for code, (lab, v) in byco.items():
-        if code in ("T100", "T200", "T300") or not v:
+        if code in ("T100", "T200", "T300", lnst_code) or not v:
             continue
         ten = _HT_CANON.get(code, lab)
         facts.append((None, RT_PNLT, ten, ten, v))
