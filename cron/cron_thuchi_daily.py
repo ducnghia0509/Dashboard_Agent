@@ -471,9 +471,46 @@ def main():
             ly_do=_ly_do(state, vr, yday, la_ky_chinh))
 
     log(f"XONG — nạp thành công {ok}/{len(cash)} kỳ thu chi")
+    ke_hoach_thu(meta, periods)
     if st:
         st.set_run(nap_thanh_cong=ok, so_ky_keo=len(cash))
     return done(cron_status.RUN_OK, rc=0 if ok else 1)
+
+
+def ke_hoach_thu(meta: list, periods: list) -> None:
+    """Kế hoạch dự thu theo ngày (THUCHI_KH — cột "Kế hoạch" của mục Thu trong kỳ, màn Dòng tiền).
+
+    Mỗi đơn vị một file `...\\CONGNOPHAITHUNGAY\\B.x...M.<YYYYMM>_Kehoachthu<đơn vị>.xlsx` (Xanh VP:
+    KEHOACHPHAITHUNGAY), kế toán sửa giữa tháng -> kéo lại MỌI lượt cho kỳ tháng này + tháng trước rồi
+    nạp lại bằng `scripts/derive_kehoach_thu_ngay.py` (đơn vị nào có file mới nhất thì thay bản cũ).
+    Bỏ VINFASTQUANGNINH (spec không khai) và bộ file B.9 cũ ở TCGROUP\\PHAITHUTAPDOAN. Hỏng thì chỉ
+    ghi log — không kéo theo trạng thái job thu chi."""
+    kys = {p for p, _, _ in periods}
+    rx = re.compile(r"\.M\.(\d{4})(\d{2})_Kehoachthu", re.I)
+    chon = []
+    for e in meta:
+        pa, fn = (e.get("path") or "").upper(), e.get("fileName") or ""
+        m = rx.search(fn)
+        if (m and f"{m.group(1)}-{m.group(2)}" in kys and "VINFASTQUANGNINH" not in pa
+                and ("/CONGNOPHAITHUNGAY/" in pa or "/KEHOACHPHAITHUNGAY/" in pa)):
+            chon.append(e)
+    if not chon:
+        log("  kế hoạch dự thu: không có file Kehoachthu nào cho kỳ cần kéo")
+        return
+    log(f"KÉO {len(chon)} file kế hoạch dự thu")
+    try:
+        wait_arrival(chon, request_files(chon))
+        cmd = [AGENT_PY, "scripts/derive_kehoach_thu_ngay.py", "--write"] + \
+              [a for k in sorted(kys) for a in ("--period", k)]
+        p = subprocess.run(cmd, cwd=AGENT, env={**os.environ, "DATABASE_URL": DATABASE_URL},
+                           capture_output=True, text=True, timeout=900)
+        for d in json.loads(p.stdout or "[]"):
+            log(f"  kế hoạch dự thu {d['ky']} {d['don_vi']}: "
+                + (f"{d.get('dong')} dòng, {d.get('tong_ty')} tỷ" if d.get("ghi") else d.get("ly_do", "")))
+            for c in (d.get("canh_bao") or [])[:5]:
+                log(f"    ! {c}")
+    except Exception as ex:                              # noqa: BLE001
+        log(f"  kế hoạch dự thu: LỖI ({type(ex).__name__}: {str(ex)[:160]})")
 
 
 def _ly_do(state: str, vr: dict, ngay_can: str, la_ky_chinh: bool) -> str:
