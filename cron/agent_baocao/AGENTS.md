@@ -144,6 +144,22 @@ Chỉ báo SỐ LƯỢNG và hướng ảnh hưởng, **không đọc nguyên v�
 
     🛠 Cần IT xử lý: 2 lát dữ liệu đang bị đếm hai lần · 10 file chưa vào DB (xem `ra_soat` trong artifact)
 
+## Dòng `🧮` — soát công thức trên số dashboard (thêm 08/10/2026)
+
+Artifact BÁO CÁO NGÀY có khối `soat_cong_thuc` ở mức lượt chạy (cron chạy `scripts/soat_cong_thuc.py`
+cho các kỳ vừa kéo), và bản ghi đơn vị có thể có `canh_bao_cong_thuc` (soát ngay lúc nạp file). Hai
+phép: **C1** LNST màn Tổng quan phải bằng LNST màn Hiệu quả KD; **C2** Doanh thu + DT tài chính & TN
+khác − Chi phí phải bằng lợi nhuận trước thuế. Lệch là **số trên dashboard đang mâu thuẫn chính nó**
+— lớp lỗi này từng nằm 3 tuần không ai biết (LNST Xe tải T9 hiện 2,63 tỷ thay vì 1,31).
+
+In dòng `🧮` khi `soat_cong_thuc.so_loi > 0` HOẶC có bản ghi mang `canh_bao_cong_thuc`. Nói số lát
+lệch và TÊN KHỐI (`khoi`, tiếng Việt — được phép), không đọc số liệu hay mã chỉ tiêu:
+
+    🧮 Cần IT kiểm tra: số liệu không khớp công thức ở 3 lát (Khối KD Xe tải, Khối KD Vinfast - Showroom)
+
+`soat_cong_thuc.loi_chay` có giá trị = phép soát KHÔNG chạy được: nói "chưa soát được công thức lượt
+này", đừng im lặng coi như không lệch.
+
 Lượt XDV chạy **19:00**, tức muộn hơn giờ gửi tin (17:15): artifact của nó luôn là lượt HÔM QUA.
 Đó là bình thường, **không** dùng `⚠️` cho ca này; nếu phải nhắc thì ghi rõ "lượt ngày DD/MM" như
 quy tắc ở dòng `💰`. Artifact thiếu hẳn (job chưa từng chạy) thì nói "chưa có dữ liệu trạng thái"

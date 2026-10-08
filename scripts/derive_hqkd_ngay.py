@@ -575,7 +575,9 @@ _KQKD_ANCHOR = {
     "ln_gop": "v. loi nhuan gop",
     "cp_bien_doi": "vi. chi phi bien doi",
     "cp_co_dinh": "viii. chi phi co dinh",
+    "dt_tai_chinh": "1. doanh thu tai chinh",      # IX.1
     "cp_tai_chinh": "2. chi phi tai chinh",
+    "tn_khac": "1. thu nhap khac",                 # X.1
     "cp_khac": "2. chi phi khac",
     "pb_chung": "xii. phan bo chi phi chung",
     "lntt": ("loi nhuan truoc thue tndn",),
@@ -680,8 +682,14 @@ def _kqkd_facts(rows):
             facts.append((cc, RT_CHIPHI, nhom, ten, v))
         if tong_cp:
             facts.append((cc, RT_HQKD, MA_CP, MA_CP, tong_cp))
+        # DT tài chính (IX.1) + Thu nhập khác (X.1): có trong LNTT của file nhưng trước 08/10/2026
+        # không được ghi ra -> thẻ "DT tài chính & TN khác" Taxi Xanh chế độ Ngày luôn 0, và
+        # DT + DTTC&TN − Chi phí hụt LNTT ~8 triệu/ngày (XVP 01/09: 8,07 tr). Bắt bởi
+        # scripts/soat_cong_thuc.py (C2). Tên dim1 y hệt layout An Taxi.
         for key, rt, dim1 in (("lntt", RT_HQKD, MA_LNTT), ("gia_von", RT_PNLT, "Giá vốn hàng bán"),
                               ("ln_gop", RT_PNLT, "Lợi nhuận gộp"),
+                              ("dt_tai_chinh", RT_PNLT, "Doanh thu tài chính"),
+                              ("tn_khac", RT_PNLT, "Thu nhập khác"),
                               ("lntt", RT_PNLT, "Lợi nhuận trước thuế"),
                               ("lnst", RT_PNLT, "Lợi nhuận sau thuế")):
             v = val(key, j)
@@ -3542,6 +3550,7 @@ def _ho_facts(rows):
     # ngay TRƯỚC 'Chỉ tiêu'. Excel lưu mã dạng số ('5118' -> 5118.0) nên phải bỏ đuôi '.0'.
     ma_j = next((j for j, c in enumerate(hdr) if _nd(c) == "ma so"), ten_j - 1)
     dt_511, co_511 = 0.0, False
+    theo_ma = {}
     if ma_j >= 0:
         for r in rows[hdr_i + 1:]:
             if not r or ma_j >= len(r) or r[ma_j] in (None, ""):
@@ -3553,6 +3562,8 @@ def _ho_facts(rows):
             if code.startswith("511") and v is not None:
                 dt_511 += v
                 co_511 = True
+            if v is not None and code not in theo_ma:
+                theo_ma[code] = v
 
     facts = []
     # Không dòng 511* nào có số -> rơi về dòng "Tổng Doanh thu" (sheet đổi layout, mất cột mã).
@@ -3564,6 +3575,14 @@ def _ho_facts(rows):
         # LN gộp = DT thuần (HO không có giá vốn) — Y HỆT bản THÁNG, chốt Mapping 2026-07-18.
         # Bản ngày trước đây THIẾU dòng này -> thẻ "Lợi nhuận gộp" của HO luôn trống ở chế độ Ngày.
         facts.append((None, RT_PNLT, "Lợi nhuận gộp", "Lợi nhuận gộp", dt))
+    # DT tài chính (515.01 + 515.02) + Thu nhập khác (7111) — ĐÚNG bộ mã bản THÁNG
+    # (agent_cli._derive_kqkd_ho, KT chốt 17/09 + 26/09). "Tổng lợi nhuận" của file đã gồm hai khoản
+    # này; trước 08/10/2026 bản ngày bỏ qua -> thẻ "DT tài chính & TN khác" HO chế độ Ngày luôn 0 và
+    # DT + DTTC&TN − CP hụt LNTT (31/08: 10,7 tr). Bắt bởi scripts/soat_cong_thuc.py (C2).
+    for dim1, ma in (("Doanh thu tài chính", ("515.01", "515.02")), ("Thu nhập khác", ("7111",))):
+        v = sum(theo_ma.get(m) or 0.0 for m in ma)
+        if v:
+            facts.append((None, RT_PNLT, dim1, dim1, v))
     tong_cp = val("tong_cp")
     if tong_cp:
         facts.append((None, RT_HQKD, MA_CP, MA_CP, tong_cp))
@@ -3695,6 +3714,66 @@ def _ban_sinh_doi(path):
 
 
 # ---------------------------------------------------------------------------------------------
+_SOAT_CFG = os.path.join(os.path.dirname(os.path.abspath(__file__)), "soat_cong_thuc_ngoai_le.json")
+
+
+def _ilike(pat):
+    """Mẫu ILIKE của BE ('%lợi nhuận%sau thu%') -> regex Python. ILIKE của Postgres KHÔNG bỏ dấu,
+    chỉ không phân biệt hoa thường — giữ đúng như vậy để khớp y hệt thẻ trên dashboard."""
+    return re.compile("^" + ".*".join(re.escape(p) for p in pat.lower().split("%")) + "$")
+
+
+_RX_LNST, _RX_DTTC, _RX_TNK = _ilike("%lợi nhuận%sau thu%"), _ilike("%doanh thu%tài chính%"), \
+    _ilike("%thu nhập khác%")
+
+
+def _soat_cong_thuc_facts(per_day, khoi):
+    """LỚP 1 của soát công thức (08/10/2026) — chạy trên CHÍNH các fact sắp ghi, trước khi ghi.
+    Hai phép y hệt `scripts/soat_cong_thuc.py` (lớp 2, soát trên DB qua hàm backend):
+      C1  Σ PNLT 'lợi nhuận…sau thuế' == HQKD 1112   (LNST màn Tổng quan == màn Hiệu quả KD)
+      C2  DT + DT tài chính & TN khác − 1047 == 1112 + 1111   (công thức kế toán)
+    Gộp theo luật của `repository._per_file_resolved`: có dòng không cost center thì lấy dòng đó,
+    không thì cộng cost center. CHỈ BÁO: số vẫn ghi, cảnh báo đi theo JSON cho cron đưa lên bảng
+    giám sát. Ra đời từ LNST Xe tải T9 ×2 (T500 ghi hai lần) — sai suốt 3 tuần không ai biết."""
+    try:
+        with open(_SOAT_CFG, encoding="utf-8") as f:
+            cfg = json.load(f)
+    except (OSError, ValueError):
+        cfg = {}
+    them = [_ilike(k["dim1_ilike"]) for k in cfg.get("khoan_ngoai_the", []) if k.get("khoi") == khoi]
+
+    def tong(f, rt, khop):
+        d = [x[4] for x in f if x[1] == rt and not x[0] and khop(x[2])]
+        c = [x[4] for x in f if x[1] == rt and x[0] and khop(x[2])]
+        return sum(d) if d else (sum(c) if c else None)
+
+    def la(s):
+        return lambda d: d == s
+
+    def khop(rx):
+        return lambda d: bool(rx.match(str(d or "").lower()))
+
+    loi = []
+    for ngay, f in per_day:
+        dthu = tong(f, RT_DTHU, lambda d: True)
+        dt = dthu if dthu is not None else tong(f, RT_HQKD, la(MA_DT))
+        cp, m1112 = tong(f, RT_HQKD, la(MA_CP)), tong(f, RT_HQKD, la(MA_LNTT))
+        m1111 = tong(f, RT_HQKD, la("1111")) or 0.0
+        lnst = tong(f, RT_PNLT, khop(_RX_LNST))
+        fin = sum(tong(f, RT_PNLT, khop(rx)) or 0.0 for rx in (_RX_DTTC, _RX_TNK, *them))
+        tol = max(1e6, 1e-3 * max(abs(dt or 0), abs(cp or 0)))
+        if lnst is not None and m1112 is not None and abs(lnst - m1112) > tol:
+            loi.append({"ngay": ngay, "check": "C1", "lnst_tong_quan_ty": round(lnst * 1e-9, 6),
+                        "lnst_hqkd_1112_ty": round(m1112 * 1e-9, 6),
+                        "gap_doi": abs(m1112) > tol and abs(lnst - 2 * m1112) <= tol})
+        if dt is not None and cp is not None and m1112 is not None:
+            ct, lntt = dt + fin - cp, m1112 + m1111
+            if abs(ct - lntt) > tol:
+                loi.append({"ngay": ngay, "check": "C2", "cong_thuc_ty": round(ct * 1e-9, 6),
+                            "lntt_ty": round(lntt * 1e-9, 6), "chenh_ty": round((ct - lntt) * 1e-9, 6)})
+    return loi
+
+
 def derive(path, write=False):
     folder = _source_id(path).split("::", 1)[0]
     unit = _UNITS.get(folder)
@@ -4053,8 +4132,10 @@ def derive(path, write=False):
     _chi_so_du = (unit.get("sodu_matran_trong_file") and bool(per_day)
                   and not any(x[1] in _RT_DONG_CHAY for _n, f in per_day for x in f))
 
+    _cb_ct = _soat_cong_thuc_facts(per_day, unit["khoi"])
     out = {"ok": True, "file": os.path.basename(path), "period": period, "cong_ty": unit["cong_ty"],
            "layout": layout, "days": len(per_day),
+           **({"canh_bao_cong_thuc": _cb_ct} if _cb_ct else {}),
            **({"bo_qua_cutover": bo_cutover} if bo_cutover else {}),
            **({"pl_tu_bctc": pl_bctc_diag} if pl_bctc_diag else {}),
            **({"bo_ngay_tuong_lai": bo_tuong_lai} if bo_tuong_lai else {}),
