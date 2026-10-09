@@ -126,6 +126,10 @@ RT_HQKD, RT_PNLT, RT_CHIPHI, RT_DTHU = "HQKD_D", "PNLT_D", "CHIPHI_D", "DTHU_D"
 # Cơ cấu GIÁ VỐN theo 7 khoản mục, riêng layout "duan" — xem `_DUAN_GV_CT` để biết vì sao phải là
 # report_type riêng thay vì thêm dim1 vào RT_CHIPHI.
 RT_DUAN_GV = "DUAN_GV_D"
+# Cơ cấu DOANH THU 3 loại của khối Dự án (mapping 09/10/2026 dòng 26-28). Trước 17/09 do spec
+# `duan_dtmix_ngay` đọc FILE NĂM; từ 17/09 file năm ngừng điền, deriver đọc sheet HQKD của file
+# BCTC ngày — xem `_DUAN_NGAY_DTMIX`. Cùng report_type để màn đọc một chuỗi liền mạch.
+RT_DUAN_DTMIX = "DUAN_DTMIX_D"
 # Cụm DÒNG CHẢY (cộng được theo khoảng), đối lại cụm SỐ DƯ đọc qua `snapshot_sum`. Dùng để hỏi
 # "ngày này đã có P&L chưa" mà không đếm nhầm dòng số dư của cùng ngày — xem `_pl_quet_thu_muc`.
 _RT_DONG_CHAY = frozenset((RT_HQKD, RT_PNLT, RT_CHIPHI, RT_DTHU))
@@ -3181,12 +3185,16 @@ _DUAN_GV_CT = [
     ("khac tai du an", "Chi phí khác tại dự án"),
 ]
 
+# Mapping 09/10/2026 gộp "CHI PHÍ CỐ ĐỊNH" + "CHI PHÍ KHÁC" thành MỘT nhóm "CHI PHÍ HO" (dòng 60):
+# bảng chi phí Dự án còn 3 nhóm Giá vốn · HO · Tài chính, cùng nhãn với file ngày (`_duan_ngay_facts`).
+# "Chi phí biến đổi" mapping không có dòng nào — giữ nhãn riêng (đo DB 09/10: chưa ngày nào khác 0)
+# để nếu có số thì màn vẫn hiện ra, không bị nhét lén vào nhóm khác.
 _DUAN_CP = [
     ("gia_von", "Giá vốn hàng bán", "Giá vốn hàng bán"),
     ("cp_bien_doi", "Chi phí biến đổi", "Chi phí biến đổi"),
-    ("cp_co_dinh", "Chi phí cố định", "Chi phí cố định"),
+    ("cp_co_dinh", "Chi phí HO", "Chi phí cố định"),
     ("cp_tai_chinh", "Chi phí tài chính", "Chi phí tài chính"),
-    ("cp_khac", "Chi phí khác", "Chi phí khác"),
+    ("cp_khac", "Chi phí HO", "Chi phí khác"),
 ]
 
 
@@ -3386,17 +3394,35 @@ _DUAN_NGAY_GV_CT = [
     ("chi phi ban buon", "Chi phí bán buôn"),
 ]
 
+# Cơ cấu doanh thu theo ĐÚNG dòng mapping 09/10/2026 (dòng 26-28): sản xuất = dòng 7 "Doanh thu
+# thực hiện dự án", dịch vụ = dòng 8 + 9 (bán dầu + bán vật tư thầu phụ), khác = dòng 12 "Thu
+# khác". `dim1` "Doanh thu bán hàng" là KHOÁ cũ của spec file năm (cột B cùng nghĩa) — giữ nguyên
+# để chuỗi trước/sau 17/09 cùng một nhãn; tên hiển thị đổi ở tầng màn (duan.py).
+# Dòng 10-11 (tiền ăn thầu phụ, thu dương dầu) và 13-14 (điều chỉnh, giảm trừ) mapping KHÔNG xếp
+# vào loại nào, nên Σ 3 loại có thể ≠ "Tổng doanh thu ròng" — đo 15/09→06/10: các dòng đó đều 0.
+_DUAN_NGAY_DTMIX = [
+    ("doanh thu thuc hien du an", "Doanh thu bán hàng"),
+    ("doanh thu ban dau thau phu", "Doanh thu dịch vụ"),
+    ("doanh thu ban vat tu thau phu", "Doanh thu dịch vụ"),
+    ("thu khac", "Doanh thu khác"),
+]
+
 
 def _duan_ngay_facts(rows):
     """Sheet "HQKD" của file BCTC NGÀY Khối Dự án -> [fact] cùng chỉ tiêu/nhãn với `_duan_facts`.
 
     Bố cục (24/09/2026): dòng tên dự án có "Tổng dự án" (bỏ, như bản tháng), nhãn ở cột B, các
-    khối theo thứ tự: "Tổng doanh thu ròng" · "Giá vốn" + 8 dòng con · "Lợi nhuận gộp" · các
-    dòng PHÂN BỔ (HO, lương+BH, khấu hao, bán buôn, VAT, CP chung, thuế) · "Thu nhập trước lãi suất
-    & thuế" · "Chi phí lãi vay" · "Thu nhập trước thuế" · "Thuế thu nhập" · "Thu nhập ròng".
-    Quy về nhóm chi phí của bản tháng: phân bổ -> "Chi phí khác" (X.2 bản tháng chính là phân bổ
-    chi phí chung/Tập đoàn), lãi vay -> "Chi phí tài chính". Tổng chi phí = DT − LNTT để luôn khớp
-    đẳng thức của chính file."""
+    khối theo thứ tự: "Tổng doanh thu ròng" + 8 dòng con · "Giá vốn" + 8 dòng con · "Lợi nhuận
+    gộp" · các dòng PHÂN BỔ (HO, lương+BH, khấu hao, bán buôn, VAT, CP chung, thuế) · "Thu nhập
+    trước lãi suất & thuế" · "Chi phí lãi vay" · "Thu nhập trước thuế" · "Thuế thu nhập" · "Thu
+    nhập ròng".
+
+    NHÓM CHI PHÍ THEO MAPPING 09/10/2026 (dòng 50-61): Giá vốn = dòng "Giá vốn" · "Chi phí HO" =
+    ĐÚNG dòng "Chi phí phân bổ HO" (KHÔNG cộng 6 dòng phân bổ bên dưới như bản 24/09 — mapping chỉ
+    trỏ dòng 27) · "Chi phí tài chính" = "Chi phí lãi vay". Tổng chi phí (mã 1047) = Giá vốn + HO +
+    lãi vay, đúng công thức dòng 50. Đẳng thức phải giữ: tổng đó = DT − LNTT của chính file (đo
+    15/09→06/10: khớp mọi ngày, dòng 27-33 và 37 đều 0). Ngày nào các dòng phân bổ 28-33 mang số
+    mà dòng 27 không gồm thì đẳng thức vỡ — hỏi KT, đừng tự cộng thêm dòng."""
     hdr_i = next((i for i, r in enumerate(rows[:10])
                   if any(_nd(c) == "tong du an" for c in r if c is not None)), None)
     if hdr_i is None:
@@ -3420,10 +3446,15 @@ def _duan_ngay_facts(rows):
 
     r_dt, r_gv, r_gop = dong("tong doanh thu rong"), dong("gia von"), dong("loi nhuan gop")
     r_lntt, r_lnst, r_lv = dong("thu nhap truoc thue"), dong("thu nhap rong"), dong("chi phi lai vay")
+    r_ho = dong("chi phi phan bo ho")
     if r_dt is None or r_lntt is None:
         return []
-    phan_bo = khoang("loi nhuan gop", "thu nhap truoc lai suat & thue")
     gv_con = [(ten, r) for n, r in nhan for kw, ten in _DUAN_NGAY_GV_CT if n == kw]
+    # Chỉ dò trong khối doanh thu (giữa "Tổng doanh thu ròng" và "Giá vốn"): nhãn "Thu khác" ngắn,
+    # đừng để nó bắt nhầm một dòng cùng tên ở khối khác nếu kế toán thêm sau.
+    khoi_dt = khoang("tong doanh thu rong", "gia von")
+    dt_con = [(ten, r) for kw, ten in _DUAN_NGAY_DTMIX
+              for r in [next((r for r in khoi_dt if _nd(r[lab_j]) == kw), None)] if r is not None]
 
     def v(r, j):
         return _num(r[j]) if r is not None and j < len(r) else None
@@ -3443,16 +3474,22 @@ def _duan_ngay_facts(rows):
             x = v(r, j)
             if x:
                 facts.append((cc, RT_DUAN_GV, ten, ten, x, "Giá vốn"))
+        mix = {}
+        for ten, r in dt_con:
+            mix[ten] = mix.get(ten, 0.0) + (v(r, j) or 0.0)
+        for ten, x in mix.items():
+            if x:
+                facts.append((cc, RT_DUAN_DTMIX, ten, ten, x))
         gop = v(r_gop, j)
         if gop:
             facts.append((cc, RT_PNLT, "Lợi nhuận gộp", "Lợi nhuận gộp", gop))
-        pb = sum(v(r, j) or 0.0 for r in phan_bo)
-        if pb:
-            facts.append((cc, RT_CHIPHI, "Chi phí khác", "Chi phí khác", pb))
+        ho = v(r_ho, j)
+        if ho:
+            facts.append((cc, RT_CHIPHI, "Chi phí HO", "Chi phí HO", ho))
         lv = v(r_lv, j)
         if lv:
             facts.append((cc, RT_CHIPHI, "Chi phí tài chính", "Chi phí tài chính", lv))
-        tong_cp = (dt or 0.0) - (lntt or 0.0)
+        tong_cp = (gv or 0.0) + (ho or 0.0) + (lv or 0.0)
         if tong_cp:
             facts.append((cc, RT_HQKD, MA_CP, MA_CP, tong_cp))
         if lntt:
@@ -3935,7 +3972,7 @@ def derive(path, write=False):
         # DUY NHẤT; số dư của file tháng (nếu có) giữ nguyên — mốc chỉ nói về dòng chảy.
         moc_ngay = unit["pl_ho_file_rieng"].get("file_ngay_tu")
         if moc_ngay:
-            _pl_rt = _RT_DONG_CHAY | {RT_DUAN_GV}
+            _pl_rt = _RT_DONG_CHAY | {RT_DUAN_GV, RT_DUAN_DTMIX}
             per_day = [(n, [x for x in f if not (n >= moc_ngay and x[1] in _pl_rt)])
                        for n, f in per_day]
             per_day = [(n, f) for n, f in per_day if f]
@@ -3947,6 +3984,13 @@ def derive(path, write=False):
             for ngay, facts in gop_pl.items():
                 theo_ngay.setdefault(ngay, []).extend(facts)
             per_day = sorted(theo_ngay.items())
+        if moc_ngay:
+            # Cơ cấu doanh thu TRƯỚC mốc thuộc về spec file năm (`duan_dtmix_ngay`, loc `truoc_ngay`
+            # cùng mốc). File ngày có thể lấp một ngày trước mốc khi file tháng trống ngày đó —
+            # P&L thì được, cơ cấu thì không: hai nguồn cùng ghi một ngày = cộng đôi.
+            per_day = [(n, [x for x in f if not (x[1] == RT_DUAN_DTMIX and n < moc_ngay)])
+                       for n, f in per_day]
+            per_day = [(n, f) for n, f in per_day if f]
         pl_diag = {"pl_tu_anh_chup": {
             "so_ngay": len(gop_pl), "ngay": sorted(gop_pl),
             **({"bo_qua_file": bo_qua_pl} if bo_qua_pl else {})}}
@@ -4253,13 +4297,17 @@ def derive(path, write=False):
         # HTX_XTQ, HTX_XVP) cùng ghi `BS_D` cho CÙNG NGÀY từ ba file khác nhau — xoá theo khối là
         # file chạy sau quét sạch dòng của hai file kia, và khối mất 2/3 số mà vẫn "chạy bình
         # thường". Cùng lý do phải kèm khối: AAG vừa là An Taxi vừa là An Khách sạn.
-        _rt_sd = sorted({f[1] for _n, fs in per_day for f in fs} - _RT_DONG_CHAY)
-        _ngay_sd = sorted({n for n, fs in per_day if any(f[1] not in _RT_DONG_CHAY for f in fs)})
+        # Cơ cấu Dự án (giá vốn 8 khoản mục, doanh thu 3 loại) cũng là DÒNG CHẢY dù không nằm trong
+        # `_RT_DONG_CHAY` — để lọt vào đây là lệnh xoá dưới quét luôn dòng cơ cấu file năm của MỌI
+        # ngày có số dư (đo trên DB test 09/10/2026: "Doanh thu dịch vụ" tháng 9 rơi 1,47 -> 0,18 tỷ).
+        _ngoai_sd = _RT_DONG_CHAY | {RT_DUAN_GV, RT_DUAN_DTMIX}
+        _rt_sd = sorted({f[1] for _n, fs in per_day for f in fs} - _ngoai_sd)
+        _ngay_sd = sorted({n for n, fs in per_day if any(f[1] not in _ngoai_sd for f in fs)})
         # Đúng công thức đang dùng ở `recs.append`: cost center (f[0]) quyết công ty, không có thì
         # lấy công ty của đơn vị. Suy lại ở đây thay vì hardcode `unit["cong_ty"]` để khoá xoá
         # trùng khít khoá ghi.
         _cty_sd = sorted({_CC_CONGTY.get(f[0]) or unit["cong_ty"]
-                          for _n, fs in per_day for f in fs if f[1] not in _RT_DONG_CHAY})
+                          for _n, fs in per_day for f in fs if f[1] not in _ngoai_sd})
         if _rt_sd and _ngay_sd and _cty_sd:
             cur.execute(
                 "DELETE FROM raw_rows WHERE dataset_id=%s AND report_type = ANY(%s) "
