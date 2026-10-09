@@ -130,7 +130,7 @@ CẤU TRÚC SPEC (khoá tiếng Việt cho kế toán/BA đọc được):
                                          // -> mỗi dòng nguồn đẻ N bản ghi, amount lấy từng cột;
                                          // ngoài dim1..3 còn gán được cost_center/cong_ty/khoi
                                          // khi CHIỀU ĐƠN VỊ nằm ở cột (mỗi xưởng một cột)
-  "loc": [{"cot": "ngay", "dieu_kien": "khac_rong"}],
+  "loc": [{"cot": "ngay", "dieu_kien": "khac_rong"}],   // + "truoc_ngay" (gia_tri 'YYYY-MM-DD')
   "dan_xuat": {"payload.lng": "amount - payload.gia_von"},
   "payload_them": {"unit": "ty"}
 }
@@ -2038,6 +2038,11 @@ def _qua_loc(rec, loc):
         if dk == "nho_hon" and not (isinstance(v, (int, float)) and v < gt):
             return False
         if dk == "chua" and _nd(gt) not in _nd(v):
+            return False
+        # So NGÀY dạng 'YYYY-MM-DD' (đầu ra của `kieu: "date"`) — `nho_hon` chỉ so số. Dùng khi hai
+        # nguồn chia nhau một report_type theo MỐC NGÀY (vd cơ cấu doanh thu Dự án: file năm trước
+        # 17/09/2026, file BCTC ngày từ 17/09): ngày trống không qua, để không lọt dòng không ngày.
+        if dk == "truoc_ngay" and not (v and str(v)[:10] < str(gt)):
             return False
     return True
 

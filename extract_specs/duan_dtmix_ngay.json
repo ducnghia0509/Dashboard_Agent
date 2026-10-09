@@ -11,7 +11,8 @@
     "LỌC SHEET THEO Ô MỐC, KHÔNG THEO TÊN (`moi_sheet_theo_o`). 7 sheet ngày tên 'Cao Bằng', 'Phú Quốc '… còn 7 sheet luỹ kế tên 'Cao Bằng LK' — mọi mốc TÊN khớp sheet ngày đều khớp luôn sheet LK của cùng dự án. Nạp nhầm sheet LK là cộng số luỹ kế THÁNG vào số NGÀY. Hai họ chỉ khác chắc chắn ở nhãn A4: 'Ngày' vs 'Tháng'. Mốc A4 cũng loại luôn 'Tổng hợp' (A4 = 'Dự án') và 'Odoo ngày' (A4 trống).",
     "SHEET NGÀY CÓ ĐỦ 365 DÒNG CẢ NĂM, PHẦN LỚN LÀ 0. `loc` trên `amount` với `khac_rong` cắt chúng (hàm `_qua_loc` coi 0 là rỗng) — không cắt thì mỗi lượt nạp đẻ ~7.600 dòng 0 đ và bảng cơ cấu hiện đủ 7 dự án trong đó 4 dự án toàn số 0.",
     "ĐƠN VỊ GHI SAI Ở CHÍNH FILE NGUỒN: ô A2 ghi 'Đơn vị tính: nghìn đồng (VNĐ)' nhưng giá trị là ĐỒNG (đối chiếu 16/09 với file tháng và với sổ). `he_so` 1e-09 là đổi ĐỒNG -> TỶ, đúng. Đừng thấy dòng chú thích đó rồi nhân thêm 1.000.",
-    "DỮ LIỆU CHỈ CÓ TỪ THÁNG 7/2026. T01→T06 trống sạch ở mọi dự án — không phải lỗi nạp. File tháng trong thư mục cũng chỉ có T8 và T9, nên riêng T7 hiện chỉ spec này có số."
+    "DỮ LIỆU CHỈ CÓ TỪ THÁNG 7/2026. T01→T06 trống sạch ở mọi dự án — không phải lỗi nạp. File tháng trong thư mục cũng chỉ có T8 và T9, nên riêng T7 hiện chỉ spec này có số.",
+    "TỪ 17/09/2026 SPEC NÀY KHÔNG CÒN LÀ CHỦ (mapping 09/10/2026, dòng 26-28): cơ cấu doanh thu đọc sheet HQKD của file BCTC NGÀY `D.<yyyymmdd>.Baocaotaichinhrieng` qua `derive_hqkd_ngay._duan_ngay_facts` (cùng report_type, cùng dim1). File năm ngừng điền từ 16/09; `loc` `truoc_ngay` chặn nó ghi lại ngày ≥ 17/09 nếu kế toán điền bù — mốc PHẢI trùng `file_ngay_tu` của DUAN trong `derive_hqkd_ngay._UNITS`, lệch một bên là hai nguồn cùng ghi một ngày = cộng đôi."
   ],
   "report_type": "DUAN_DTMIX_D",
   "row_index_base": 8930000,
@@ -77,6 +78,11 @@
     {
       "cot": "amount",
       "dieu_kien": "khac_rong"
+    },
+    {
+      "cot": "ngay",
+      "dieu_kien": "truoc_ngay",
+      "gia_tri": "2026-09-17"
     }
   ],
   "payload_them": {
