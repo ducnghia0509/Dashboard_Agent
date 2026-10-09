@@ -4662,8 +4662,8 @@ def _derive_congno(file_path: str, sheet: str, canonical_kind: str, period: str,
         _db = bb.db.get_db()
         _src = _source_id(file_path)
         _db.execute("DELETE FROM raw_rows WHERE source_file=? AND period_month=? AND "
-                    "(report_type=? OR (report_type=? AND payload LIKE ?))",
-                    (_src, period, _twin, _adv, '%"bu_rong": true%'))
+                    "(report_type=? OR (report_type=? AND (payload LIKE ? OR payload LIKE ?)))",
+                    (_src, period, _twin, _adv, '%"bu_rong": true%', '%"duong_nguoc_chieu": true%'))
         _db.commit()
         return {"ok": False, "error": f"sổ khai 'Tài khoản: {_tk_khai}' ≠ TK {_tk_goc} -> không nạp {_twin}"}
 
@@ -4791,7 +4791,8 @@ def _derive_congno(file_path: str, sheet: str, canonical_kind: str, period: str,
     out = os.path.join(tf.FILLED_DIR, f"{canonical_kind}_{period}_{cong_ty or 'NA'}_{spec['target']}.xlsx")
     tf.fill(spec["target"], records, out)
     imp = tf.import_filled(out, cong_ty=cong_ty, khoi=_khoi_of(file_path), source_file=_source_id(file_path))
-    adv = _ghi_congno_nguoc_chieu(file_path, period, canonical_kind, adv_recs) \
+    adv = _ghi_congno_nguoc_chieu(file_path, period, canonical_kind, adv_recs,
+                                  bu_rong=not _phai_thu_rong(cong_ty, file_path, canonical_kind)) \
         if imp.get("rows_imported") else None
     if imp.get("rows_imported") and canonical_kind == "TK131":
         # Sổ công nợ THẬT đã về -> gỡ số dư DỰ PHÒNG dựng từ file tuổi nợ cùng khối/kỳ
@@ -4818,7 +4819,26 @@ def _derive_congno(file_path: str, sheet: str, canonical_kind: str, period: str,
 _ADV_CUA = {"TK131": ("PTHU", "PTHU_ADV", "TK131 dư Có"), "TK331": ("PTRA", "PTRA_ADV", "TK331 dư Nợ")}
 
 
-def _ghi_congno_nguoc_chieu(file_path, period, canonical_kind, recs):
+def _phai_thu_rong(cong_ty, file_path, canonical_kind):
+    """Guide đơn vị khai `don_vi.phai_thu_so_du_rong: true` -> thẻ "Phải thu KH" = số dư RÒNG của sổ
+    131 (phải thu − đã thu), KHÔNG cộng lại dư Có. Khối Dự án chốt 09/10/2026: T07 = cột I − cột J =
+    37,38 − 11,44 = 25,94 tỷ (không phải dư Nợ 37,38 như quy tắc chung KSNB 30/09)."""
+    if canonical_kind != "TK131":
+        return False
+    try:
+        from servers.common import contract as _contract
+        from servers.common.extraction import load_guide as _load_guide
+        fname = os.path.basename(file_path)
+        g = _load_guide(_contract.resolve_company(cong_ty, fname, prefer_file_name=True), fname) or {}
+        return bool(((g.get("content") or {}).get("don_vi") or {}).get("phai_thu_so_du_rong"))
+    except Exception:  # noqa: BLE001 — không đọc được guide thì giữ quy tắc chung
+        return False
+
+
+def _ghi_congno_nguoc_chieu(file_path, period, canonical_kind, recs, bu_rong=True):
+    """Ghi dư NGƯỢC chiều (PTHU_ADV/PTRA_ADV). `bu_rong=False` (đơn vị dùng số dư ròng): dòng vẫn ghi —
+    thẻ "Người mua trả trước" đọc nó — nhưng debt.py KHÔNG cộng lại vào phải thu. Cờ sở hữu
+    `duong_nguoc_chieu` để lượt sau dọn đúng dòng của đường này dù bu_rong là false."""
     twin, adv_rt, nguon = _ADV_CUA[canonical_kind]
     from servers.common import be_bridge as bb
     db = bb.db.get_db()
@@ -4829,7 +4849,8 @@ def _ghi_congno_nguoc_chieu(file_path, period, canonical_kind, recs):
         return {"ok": False, "error": f"không thấy {twin} vừa nạp"}
     # Chỉ dọn dòng do CHÍNH đường này ghi (cờ bu_rong) — không đụng ADV của deriver khác.
     db.execute("DELETE FROM raw_rows WHERE source_file=? AND period_month=? AND report_type=? "
-               "AND payload LIKE ?", (src, period, adv_rt, '%"bu_rong": true%'))
+               "AND (payload LIKE ? OR payload LIKE ?)",
+               (src, period, adv_rt, '%"bu_rong": true%', '%"duong_nguoc_chieu": true%'))
     for k, r in enumerate(recs):
         db.execute(
             "INSERT INTO raw_rows (dataset_id, report_type, row_index, ngay, cong_ty, khoi, cost_center, "
@@ -4838,7 +4859,7 @@ def _ghi_congno_nguoc_chieu(file_path, period, canonical_kind, recs):
             (t["dataset_id"], adv_rt, 6500000 + k, t["ngay"], t["cong_ty"], t["khoi"], None, period,
              round(r["cuoi"], 9), None, r["ten"], None, None,
              json.dumps({"ma_dt": r["ma"], "du_dau": r["dau"], "unit": "ty", "nguon": nguon,
-                         "bu_rong": True}, ensure_ascii=False), src))
+                         "bu_rong": bu_rong, "duong_nguoc_chieu": True}, ensure_ascii=False), src))
     db.commit()
     return {"ok": True, "report_type": adv_rt, "rows": len(recs),
             "tong": round(sum(r["cuoi"] for r in recs), 9)}
