@@ -4695,9 +4695,14 @@ def _derive_congno(file_path: str, sheet: str, canonical_kind: str, period: str,
         _sample = rows[_ds:_ds + 150]
         _best = 2
         for _j in range(min(4, max((len(r) for r in _sample), default=0))):
-            _cnt = sum(1 for r in _sample if _j < len(r) and r[_j] is not None
-                       and (_s := str(r[_j]).strip())[:2] == _cls and _s[:3].isdigit() and len(_s) <= 6)
-            if _cnt > _best:
+            _co = [str(r[_j]).strip() for r in _sample
+                   if _j < len(r) and r[_j] not in (None, "") and str(r[_j]).strip()]
+            _cnt = sum(1 for _s in _co if _s[:2] == _cls and _s[:3].isdigit() and len(_s) <= 6)
+            # Cột tài khoản thì GẦN NHƯ MỌI ô là mã TK cùng lớp. Cột STT (mẫu tự dựng của Dự án từ
+            # T05/2026: B=TT 1..1000, C=mã KH) cũng có 13, 130-139 (hay 33, 330-339) — 11/150 ô "trông
+            # như mã TK" — và từng bị chọn làm cột TK: bộ lọc '131' bỏ MỌI khách hàng thật, chỉ giữ
+            # dòng chữ ký cuối sheet ('KẾ TOÁN TRƯỞNG', 'BBB') -> phải thu Dự án T05-T08 = 0.
+            if _cnt > _best and _cnt * 2 > len(_co):
                 _best, tk_col = _cnt, _j
         # Header lỗi (HTX_XVP T04: col 'Tên ĐT' TRÙNG cột TK) -> heuristic map tên NHẦM vào cột TK.
         # Nếu name_i CHÍNH LÀ tk_col, chọn lại cột tên THẬT (nhiều chuỗi dài, ≠ mã TK, ≠ tk_col/code_i).
@@ -4764,6 +4769,14 @@ def _derive_congno(file_path: str, sheet: str, canonical_kind: str, period: str,
             rec[spec["inc_col"]] = num(r, inc_i)
         if dec_i is not None:
             rec[spec["dec_col"]] = num(r, dec_i)
+        # Dòng KHÔNG có ô số nào là chữ ký cuối sheet ('KẾ TOÁN TRƯỞNG', 'GIÁM ĐỐC', 'BBB'), không
+        # phải đối tượng. Mẫu tự dựng của Dự án còn đệm ~1.000 dòng công thức trống ra tên '0', mã
+        # '0', số 0 — nạp vào là 1.000 "đối tượng" rác trong top/biểu đồ theo đối tượng.
+        _so = [v for k, v in rec.items() if k.endswith("(tỷ)")]
+        if all(v is None for v in _so):
+            continue
+        if str(name).strip() == "0" and str(_code_val or "0").strip() == "0":
+            continue
         if any(v not in (None, "") for k, v in rec.items() if k not in ("Kỳ", "Đơn vị")):
             records.append(rec)
             # Dư NGƯỢC chiều của đối tượng (TK131 dư Có / TK331 dư Nợ) — đầu + cuối kỳ, đọc từ ĐÚNG
