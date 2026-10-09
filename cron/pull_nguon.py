@@ -24,6 +24,8 @@ ROOT = "/home/itadmin/AI_Dashboard_QT"
 CONNECT = f"{ROOT}/Connect_VPS"
 AVAILABLE_META = f"{CONNECT}/available_metadata.json"
 RECEIVED_DIR = f"{CONNECT}/received_reports"
+# Cờ TẮT do panel "Chạy tự động" (API `source_bridge._AUTO_JOBS`) ghi: `cron_<id>[_prod].disabled`.
+LOGS_DIR = f"{ROOT}/AI_coding/logs"
 RECEIVER_URL = "http://127.0.0.1:8090"
 
 ARRIVE_TIMEOUT = 300        # giây, chờ file thực sự về đĩa (cùng mốc cron_thuchi_daily)
@@ -137,3 +139,17 @@ def keo(chon, log=print, refresh: bool = False, timeout: int = ARRIVE_TIMEOUT) -
         log(f"  KHÔNG VỀ sau {timeout}s: {fn[:55]}"
             + (" — dùng bản cũ trên đĩa" if truoc.get(fn) else " — chưa từng có bản nào"))
     return {"xin": len(targets), "ve": ve, "thieu": sorted(con_lai)}
+
+
+def bi_tat(job_id: str, env: str, log=print) -> bool:
+    """True = job đang bị TẮT ở panel "Chạy tự động" -> bỏ qua lượt này (09/10/2026).
+
+    Panel chỉ ghi/xoá file cờ, KHÔNG sửa crontab, nên script phải tự đọc cờ — thiếu bước này thì nút
+    "Tắt" chỉ là nút giả: panel báo đã tắt mà cron vẫn kéo + ghi DB. `job_id` PHẢI khớp `id` khai
+    trong `_AUTO_JOBS` của API (cùng gốc tên log `cron_<id>[_prod].log`)."""
+    co = os.path.join(LOGS_DIR, f"cron_{job_id}{'_prod' if env == 'prod' else ''}.disabled")
+    if os.path.exists(co):
+        log(f"ĐANG TẮT ở panel Chạy tự động ({co}) — bỏ qua lượt này")
+        return True
+    return False
+

@@ -39,6 +39,8 @@ def main():
     ap.add_argument("--env", choices=("test", "prod"), default="test")
     ap.add_argument("--pull", action="store_true", help="kéo file nguồn về trước khi nạp")
     a = ap.parse_args()
+    if pull_nguon.bi_tat("kehoach_doanhthu", a.env, log):
+        sys.exit(0)
     nam = datetime.now(VN).year
 
     if a.pull:

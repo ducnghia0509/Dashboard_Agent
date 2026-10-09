@@ -41,6 +41,8 @@ def main():
     ap.add_argument("--pull", action="store_true", help="kéo file nguồn về trước khi trích xuất")
     ap.add_argument("--thang", type=int, default=None, help="tháng của báo cáo NH cần kéo (mặc định: tháng hiện tại)")
     a = ap.parse_args()
+    if pull_nguon.bi_tat("vay_ngay", a.env, log):
+        sys.exit(0)
 
     if a.pull:
         thang = a.thang or datetime.now(VN).month

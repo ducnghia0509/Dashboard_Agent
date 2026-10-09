@@ -112,6 +112,8 @@ def main():
     ap.add_argument("--env", choices=("test", "prod"), default="test")
     ap.add_argument("--pull", action="store_true", help="kéo file nguồn về trước khi trích xuất")
     a = ap.parse_args()
+    if pull_nguon.bi_tat("htxt_daily", a.env, log):
+        sys.exit(0)
 
     if a.pull:
         log("KÉO file Hưng Thịnh xe tải…")

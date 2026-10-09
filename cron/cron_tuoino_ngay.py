@@ -57,6 +57,8 @@ def main():
     ap.add_argument("--pull", action="store_true", help="kéo file nguồn về trước khi nạp")
     ap.add_argument("--ngay", type=int, default=CUA_SO_NGAY, help="cửa sổ số ngày gần nhất")
     a = ap.parse_args()
+    if pull_nguon.bi_tat("tuoino_ngay", a.env, log):
+        sys.exit(0)
 
     # DATABASE_URL phải đặt TRƯỚC khi import deriver: nó đọc biến môi trường lúc import.
     os.environ["DATABASE_URL"] = core.moi_truong("tuoino_ngay")[a.env]["database_url"]

@@ -91,6 +91,8 @@ def main():
     ap.add_argument("--env", choices=("test", "prod"), default="test")
     ap.add_argument("--pull", action="store_true", help="kéo file nguồn về trước khi trích xuất")
     a = ap.parse_args()
+    if pull_nguon.bi_tat("duan_quantri", a.env, log):
+        sys.exit(0)
 
     if a.pull and pull_nguon.refresh_metadata(log) is False:
         log("  (không làm mới được danh sách — dùng bản hiện có)")
