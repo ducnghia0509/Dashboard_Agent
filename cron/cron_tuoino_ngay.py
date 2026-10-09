@@ -8,8 +8,11 @@ phaithu.xlsx`, mỗi ngày một file) mà không job nào kéo: các cron QTVH 
 (xem docstring `cron_xvp_daily.py`), còn bản tháng thì kéo tay. Kết quả: 10 file đã nằm trên nguồn,
 cả hai DB không có dòng nào.
 
-CHỌN FILE: mọi entry trong thư mục tuổi nợ (`report_type` chứa 'tuoino', mọi đơn vị) có token ngày
-`.D.YYYYMMDD.` (xem `derive_congno_tuoino.ngay_trong_ten`) nằm trong `CUA_SO_NGAY` ngày gần nhất.
+CHỌN FILE: mọi entry trong thư mục tuổi nợ (`report_type` chứa 'tuoino' — gồm cả `baocaotuoinongay`
+khi máy gửi tách thư mục ngày) có mã kỳ ĐỦ NGÀY trong tên, `.D.20261005` hay `.M.20261005`/`M20261006`
+(09/10/2026: sáu đơn vị ghi file ngày bằng `.M.` — xem `derive_congno_tuoino.ngay_trong_ten`), nằm
+trong `CUA_SO_NGAY` ngày gần nhất. Tên sai quy ước (`.M.2026010`, `.M.202610.07`) không có ngày nên
+không được chọn — phải báo kế toán sửa tên, không đoán.
 Kéo lại cả cửa sổ chứ không chỉ hôm nay vì kế toán hay sửa lại file vài ngày trước. File ngày kiểu
 cũ chỉ mang tháng (`.D.202608`, Showroom) KHÔNG thuộc job này — không có ngày để xếp.
 

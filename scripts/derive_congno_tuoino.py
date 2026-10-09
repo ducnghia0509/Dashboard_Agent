@@ -222,15 +222,31 @@ def _find_sheet(wb, period=None, hints=None, mot_sheet_ok=False):
     return sn
 
 
+def _sheet_theo_ngay(wb, ngay):
+    """File NGÀY mà kế toán để MỖI NGÀY MỘT SHEET (An Taxi 10/2026: '1.9-5.10.26', '6.10.26') ->
+    sheet có tên KẾT THÚC bằng đúng ngày của file ('6.10.26', '06.10.2026', '6-10'…). Không có, hoặc
+    nhiều sheet cùng khớp -> None để đường chọn sheet thường xử lý; không đoán sheet gần nhất —
+    file 05/10 của An Taxi chỉ có tới 'AN T9.26 TT', đọc nó là ghi số T9 dưới nhãn 05/10."""
+    if not ngay:
+        return None
+    pat = re.compile(rf"(?<![0-9])0?{ngay.day}[./-]0?{ngay.month}(?:[./-](?:20)?{ngay:%y})?\s*$")
+    cand = [sn for sn in wb.sheetnames if pat.search(_nd(sn))]
+    return cand[0] if len(cand) == 1 else None
+
+
 _RE_FILE_NGAY = re.compile(r"\.D[.\d]")
 
 
-_RE_NGAY_TEN = re.compile(r"\.D\.?(\d{4})(\d{2})(\d{2})(?!\d)")
+# Mã kỳ ĐỦ 8 CHỮ SỐ sau '.M'/'.D' là một NGÀY, bất kể chữ M hay D: 09/10/2026 sáu đơn vị (Showroom,
+# Trạm sạc, Dự án, Xe tải, An Taxi…) phát hành tuổi nợ NGÀY mà vẫn ghi `.M.20261005`/`M20261006`, chỉ
+# khối Xanh ghi `.D.`. Bản tháng luôn 6 chữ số (`.M.202609`, `M202501`) nên không đụng nhau.
+_RE_NGAY_TEN = re.compile(r"\.[MD]\.?(\d{4})(\d{2})(\d{2})(?!\d)", re.I)
 
 
 def ngay_trong_ten(path):
-    """'B.6.XVP.D.20261005.Baocaotuoinophaithu.xlsx' -> date(2026,10,5); tên chỉ có tháng
-    (`.D.202608`) hoặc không hợp lệ -> None."""
+    """'B.6.XVP.D.20261005.Baocaotuoinophaithu.xlsx' / 'B.3.TC.TCKT.M.20261005.Baocaotuoino.xlsx'
+    -> date(2026,10,5); tên chỉ có tháng (`.D.202608`, `.M.202609`) hoặc ngày không hợp lệ
+    (`.D.20260500`, `.M.2026010`) -> None."""
     m = _RE_NGAY_TEN.search(os.path.basename(path))
     if not m:
         return None
@@ -253,8 +269,18 @@ def _la_file_ngay(path):
     Nhận diện theo TOKEN 'D' trong tên file (`.D.202608.` hoặc `.D20260902.`), KHÔNG bắt chữ D lẻ
     trong từ. Mặc định về THÁNG khi không thấy token — 13 file Showroom kỳ 2025 đặt tên viết liền
     'M202501' không có dấu chấm, và mọi file còn lại đều là báo cáo chốt tháng, nên nghiêng về
-    tháng là chiều an toàn (giữ đúng hành vi cũ cho 100/102 file hiện có)."""
-    return bool(_RE_FILE_NGAY.search(os.path.basename(path)))
+    tháng là chiều an toàn (giữ đúng hành vi cũ cho 100/102 file hiện có).
+
+    09/10/2026 — thêm hai dấu hiệu, vì token 'D' không còn đủ: sáu đơn vị ghi file ngày bằng `.M.`
+    + ngày 8 chữ số, nằm CHUNG thư mục `baocaotuoino` với bản tháng. Không bắt thì một lượt nạp tháng
+    quét cả thư mục sẽ cho file ngày tranh `PTHU_TUOINO` với bản chốt — đúng bệnh 08/09 ở trên.
+      * mã kỳ đủ NGÀY trong tên (xem `ngay_trong_ten`);
+      * nằm trong thư mục loại NGÀY (`baocaotuoinongay` — máy gửi tách theo thư mục nguồn
+        TUOINOPHAITHU_NGAY/TUOINOPHAITHUNGAY, bất kể tên file ghi gì)."""
+    thu_muc = _nd(os.path.basename(os.path.dirname(path)))
+    if "tuoino" in thu_muc and thu_muc.replace(" ", "").endswith("ngay"):
+        return True
+    return bool(_RE_FILE_NGAY.search(os.path.basename(path))) or ngay_trong_ten(path) is not None
 
 
 def _report_type(path):
@@ -716,9 +742,10 @@ def derive(path, period, write=False):
     is_tuoino_file = "tuoino" in _nd(path)
     wb = openpyxl.load_workbook(path, data_only=True, read_only=True)
     try:
-        sn = _find_sheet(wb, period if is_tuoino_file else None,
-                         sheet_hints if is_tuoino_file else None,
-                         mot_sheet_ok=is_tuoino_file and _la_file_ngay(path))
+        file_ngay = is_tuoino_file and _la_file_ngay(path)
+        sn = (_sheet_theo_ngay(wb, ngay_trong_ten(path)) if file_ngay else None) or _find_sheet(
+            wb, period if is_tuoino_file else None, sheet_hints if is_tuoino_file else None,
+            mot_sheet_ok=file_ngay)
         if not sn:
             # Đơn vị có `sheet_hints` = tên sheet XÁC ĐỊNH -> file trong thư mục tuoino mà không có
             # sheet đó là BÁO CÁO KHÁC, skip CÂM (không báo lỗi mỗi lượt nạp). Cụ thể
