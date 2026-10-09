@@ -28,6 +28,11 @@ BA REPORT_TYPE (đơn vị tỷ, cong_ty TC, khối "Khối KD Dự án"):
                  nghiệm thu), neo CUỐI THÁNG CUỐI CÙNG CÓ SỐ của sheet (luỹ kế tới tháng báo cáo).
   DUAN_CN_HD     ẢNH CHỤP công nợ theo hợp đồng (bảng theo dõi HĐ), neo NGÀY PHÁT SINH CUỐI (sheet
                  "Chi tiết phát sinh", không vượt ngày sửa file).
+  DUAN_QT_NGAY   (vòng 2) chỉ tiêu NGÀY × dự án từ báo cáo ngày Thổ Chu (`duanpqbcngay`) và Cao
+                 Bằng (`duancbbcngay`): nhân công, nhiên liệu, khấu hao, lương thợ lái, sửa chữa,
+                 khác, thầu phụ, + 'Khối lượng (m³)' (payload.unit='m3', KHÔNG phải tỷ).
+  DUAN_TP_THANG  (vòng 2) thầu phụ Thổ Chu theo tháng (`duanpqdbthauphu`): sản lượng · nghiệm thu
+                 · dở dang.
   Hai cụm ảnh chụp đọc BẢN MỚI NHẤT ≤ cuối cửa sổ xem, không cộng qua kỳ. KHÔNG neo theo ngày sửa
   file: dữ liệu lọc theo dataset từng tháng, neo 08/10 thì xem tháng 8-9 không thấy số luỹ kế nào.
 
@@ -336,7 +341,200 @@ def doc_theodoi_hopdong(path):
     return {RT_CN: out}, warn
 
 
+# ───────────────────── vòng 2 · báo cáo NGÀY Thổ Chu / Cao Bằng · thầu phụ Thổ Chu ─────────────────────
+# Mapping dòng 66-77 (Thổ Chu — sheet "TH báo cáo ngày"): chỉ tiêu = Σ các dòng nhãn cột B. Nhãn đã
+# `_nd`. Dòng "Thợ sửa chữa + bảo dưỡng" xuất hiện HAI lần (24 và 26) — mapping chỉ lấy dòng 24 nên
+# chỉ khớp LẦN ĐẦU của mỗi nhãn.
+_PQ_NGAY = {
+    "Chi phí nhân công": ["chiphinhancong"],                                   # dòng 17
+    "Chi phí nhiên liệu": ["chiphinhienlieu"],                                 # dòng 7
+    "Chi phí khấu hao": ["chiphikhauhao"],                                     # dòng 43
+    "Lương thợ lái": ["laimayxuckl", "laixekhoiluong", "laimayui"],            # dòng 19+20+21
+    "Chi phí sửa chữa": ["thosuachuabaoduong", "chiphisuachua"],               # dòng 24+30
+    "Chi phí khác": ["cuocvanchuyenvattuthietbi", "chiquytienmat"],            # dòng 41+42
+    # Thiết bị xúc / m³ (mapping dòng 74-77): tử số theo m³ khối lượng (dòng 4).
+    "Dầu máy xúc": ["daumayxuckl"],                                            # dòng 8
+    "Lương lái máy xúc": ["laimayxuckl"],                                      # dòng 19
+    "Vật tư sửa chữa máy xúc": ["vattusuachuamayxuckl", "vattusuachuamayxuclat"],  # dòng 31+37
+}
+# Mapping dòng 46/66-72 (Cao Bằng — sheet "CT BC Ngay", ngày ở cột B, dữ liệu từ dòng 10).
+_CB_NGAY = {"Chi phí nhân công": "BG", "Chi phí nhiên liệu": "BE", "Chi phí khấu hao": "BU",
+            "Chi phí sửa chữa": "BJ", "Chi phí khác": "BV", "Sản lượng thầu phụ": "BM"}
+RT_NGAY, RT_TP = "DUAN_QT_NGAY", "DUAN_TP_THANG"
+_RE_KY_FILE = re.compile(r"\.(?:D|N|M)\.(\d{4})(\d{1,2})\.", re.I)
+
+_bay += [
+    "BC DASHBOARD CAO BẰNG KHÔNG DÙNG — mapping dòng 46 trỏ sheet 'CT BC Ngay' cột BM của file này, "
+    "nhưng đó là MỘT bản làm việc không mang tháng (không ô nào ghi kỳ, cột B chỉ 1..31) và BM = 0 "
+    "mọi ngày. File BCNGAY tháng của Cao Bằng có ĐÚNG sheet + cột đó (BM = 'THẦU PHỤ KHOAN NỔ · số "
+    "tiền') cho từng tháng -> đọc BM từ BCNGAY.",
+    "THỔ CHU NGÀY CỘNG RA THÁNG — mapping dòng 66-77 ghi 'Tổng của tháng = Tổng các ngày': không có "
+    "nguồn tháng riêng, DUAN_QT_NGAY của Thổ Chu nuôi cả tab Tháng (API cộng ngày).",
+    "NGÀY TOÀN SỐ 0 BỊ BỎ — file tháng hiện hành có sẵn cột cho mọi ngày tới cuối tháng (T10 có 31 "
+    "cột, mới điền 1-2/10). Ngày không có ô số khác 0 nào là ngày chưa báo cáo, không sinh dòng.",
+]
+
+
+def _ky_file(path):
+    m = _RE_KY_FILE.search(os.path.basename(path))
+    return (int(m.group(1)), int(m.group(2))) if m else (None, None)
+
+
+def _ngay_o_hop_le(v, nam, thang):
+    d = _ngay_o(v)
+    return d.isoformat() if d and (d.year, d.month) == (nam, thang) else None
+
+
+def _rec_m3(ngay, cc, v, **payload):
+    """Khối lượng (m³) — KHÔNG quy tỷ; payload.unit = 'm3' để API không cộng lẫn với tiền."""
+    return {"ngay": ngay, "cong_ty": CONG_TY, "khoi": KHOI, "cost_center": cc, "amount": float(v),
+            "dim1": "Khối lượng (m³)", "dim2": None, "dim3": None, "payload": {"unit": "m3", **payload}}
+
+
+def doc_bcngay_pq(path):
+    """Thổ Chu: sheet 'TH báo cáo ngày' — dòng 3 mang NGÀY ở cột E, G, I… (cột kế bên là tỷ lệ/DT),
+    nhãn cột B. Lấy ngày theo tiêu đề, không theo số cột: T02 có thêm cột 'Kế hoạch' ở D."""
+    nam, thang = _ky_file(path)
+    wb = openpyxl.load_workbook(path, data_only=True, read_only=True)
+    ten = next((s for s in wb.sheetnames if SE._nd(s) == "thbaocaongay"), None)
+    if not ten or not nam:
+        return {RT_NGAY: []}, [f"không thấy sheet 'TH báo cáo ngày' / kỳ trong tên file"]
+    rows = [list(r) for r in wb[ten].iter_rows(max_row=60, values_only=True)]
+    hang = next((i for i, r in enumerate(rows[:6]) if sum(1 for c in r if _ngay_o(c)) >= 5), None)
+    if hang is None:
+        return {RT_NGAY: []}, ["không thấy dòng tiêu đề ngày"]
+    cot = {j: d for j, c in enumerate(rows[hang]) for d in [_ngay_o_hop_le(c, nam, thang)] if d}
+    nhan = {}
+    for i, r in enumerate(rows):
+        k = SE._nd(r[1]) if len(r) > 1 and r[1] else ""
+        if k and k not in nhan:
+            nhan[k] = i
+    kl_i = nhan.get("khoiluong")
+    if kl_i is None:
+        # Từ T09/2026 dòng 4 ghi TÊN HẠNG MỤC ('+', 'Đào xúc đất, đá, vận chuyển…') thay chữ
+        # 'Khối lượng' — vẫn là m³ của ngày. Lấy dòng '+' ngay dưới dòng ngày.
+        kl_i = next((i for i in range(hang + 1, min(hang + 3, len(rows)))
+                     if str(rows[i][0] or "").strip() == "+"), None)
+    thieu = sorted({k for ks in _PQ_NGAY.values() for k in ks if k not in nhan})
+    warn = [f"thiếu dòng: {', '.join(thieu)}"] if thieu else []
+    nguon = os.path.basename(path)
+    ngay_gt = []
+    for j, ngay in sorted(cot.items(), key=lambda x: x[1]):
+        def o(i):
+            v = rows[i][j] if i is not None and j < len(rows[i]) else None
+            return float(v) if isinstance(v, (int, float)) else 0.0
+        ngay_gt.append((ngay, {ct: sum(o(nhan.get(k)) for k in ks) for ct, ks in _PQ_NGAY.items()},
+                        o(kl_i)))
+    # Khấu hao được CHIA SẴN cho mọi ngày của tháng (T10: 187.908 đ/ngày tới 31/10 dù mới báo 2 ngày)
+    # -> ngày "có báo cáo" = có khối lượng hoặc một khoản KHÁC khấu hao. Cắt các ngày sau ngày có báo
+    # cáo cuối cùng; ngày nghỉ giữa tháng (chỉ khấu hao) vẫn giữ.
+    co = [n for n, gt, kl in ngay_gt if kl or any(v for ct, v in gt.items() if ct != "Chi phí khấu hao")]
+    cuoi = max(co) if co else None
+    out = []
+    for ngay, gt, kl in ngay_gt:
+        if cuoi is None or ngay > cuoi:
+            continue
+        out += [_rec(ngay, "TC_DA", ct, v, nguon=nguon) for ct, v in gt.items()]
+        out.append(_rec_m3(ngay, "TC_DA", kl, nguon=nguon))
+    # SHEET CHÉP TỪ THÁNG KHÁC: T03/2026 mang ngày tháng 3 nhưng TỪNG Ô bằng T02 (nhiên liệu 0,40 tỷ;
+    # BCTONGHOP T03 = 3,94). Neo kiểm = nhiên liệu tháng của BCTONGHOP (T02, T08 khớp TỚI ĐỒNG). Lệch
+    # quá 1% -> bỏ cả tháng, để API giữ số tháng BCTONGHOP; BCTONGHOP chưa có tháng đó thì nhận.
+    neo = _nhien_lieu_bctonghop(path, nam, thang)
+    nl = sum(r["amount"] for r in out if r["dim1"] == "Chi phí nhiên liệu")
+    if neo and abs(nl - neo) > 0.01 * abs(neo):
+        return {RT_NGAY: []}, warn + [f"Σ nhiên liệu ngày {nl:.4f} tỷ ≠ BCTONGHOP {neo:.4f} tỷ tháng "
+                                      f"{thang:02d}/{nam} — sheet chép từ kỳ khác, bỏ cả tháng"]
+    return {RT_NGAY: out}, warn
+
+
+_CACHE_TH = {}
+
+
+def _nhien_lieu_bctonghop(path, nam, thang):
+    """Chi phí nhiên liệu tháng của Thổ Chu trong BCTONGHOP năm nằm CẠNH thư mục báo cáo ngày
+    (`<DUAN>/duanbctonghopnam`) — None nếu không có file / ô trống / 0."""
+    goc = os.path.dirname(os.path.dirname(os.path.abspath(path)))
+    tep = sorted(glob.glob(os.path.join(goc, "duanbctonghopnam", f"*.N.{nam}.*.xls*")),
+                 key=os.path.getmtime)
+    if not tep:
+        return None
+    if tep[-1] not in _CACHE_TH:
+        try:
+            _CACHE_TH[tep[-1]] = doc_bctonghop(tep[-1])[0][RT_THANG]
+        except Exception:                               # noqa: BLE001 — thiếu neo thì nhận như cũ
+            _CACHE_TH[tep[-1]] = []
+    ngay = _cuoi_thang(nam, thang)
+    v = sum(r["amount"] for r in _CACHE_TH[tep[-1]] if r["cost_center"] == "TC_DA" and not r["dim3"]
+            and r["dim1"] == "Chi phí nhiên liệu" and r["ngay"] == ngay)
+    return v or None
+
+
+def doc_bcngay_cb(path):
+    """Cao Bằng: sheet 'CT BC Ngay' — cột B = ngày trong tháng (1..31), dữ liệu từ dòng 10, tháng lấy
+    ở tên file `.D.<yyyymm>.`. Cột theo mapping (BG/BE/BU/BJ/BV/BM); tiêu đề dòng 4/7 dùng kiểm."""
+    from openpyxl.utils import column_index_from_string as ci
+    nam, thang = _ky_file(path)
+    wb = openpyxl.load_workbook(path, data_only=True, read_only=True)
+    if "CT BC Ngay" not in wb.sheetnames or not nam:
+        return {RT_NGAY: []}, ["không thấy sheet 'CT BC Ngay' / kỳ trong tên file"]
+    rows = [list(r) for r in wb["CT BC Ngay"].iter_rows(max_row=45, values_only=True)]
+    tieu_de = {c: " ".join(SE._nd(rows[k][ci(c) - 1]) for k in (3, 6) if ci(c) - 1 < len(rows[k])
+                           and rows[k][ci(c) - 1]) for c in _CB_NGAY.values()}
+    ky_vong = {"BG": "nhancong", "BJ": "vattusuachua", "BU": "khauhao", "BV": "laivay", "BM": "sotien",
+               "BE": "sotien"}
+    warn = [f"cột {c} tiêu đề '{tieu_de[c]}' khác kỳ vọng" for c, k in ky_vong.items()
+            if k not in tieu_de[c]]
+    so_ngay = calendar.monthrange(nam, thang)[1]
+    nguon = os.path.basename(path)
+    out = []
+    for r in rows[9:9 + 31]:
+        d = r[1] if len(r) > 1 else None
+        if not isinstance(d, (int, float)) or not 1 <= int(d) <= so_ngay:
+            continue
+        ngay = dt.date(nam, thang, int(d)).isoformat()
+        gt = {ct: (float(r[ci(c) - 1]) if ci(c) - 1 < len(r) and isinstance(r[ci(c) - 1], (int, float))
+                   else 0.0) for ct, c in _CB_NGAY.items()}
+        if any(gt.values()):
+            out += [_rec(ngay, "CB_DA", ct, v, nguon=nguon) for ct, v in gt.items()]
+    return {RT_NGAY: out}, warn
+
+
+def doc_db_thauphu(path):
+    """Thổ Chu thầu phụ (mapping dòng 46-48): cột A tháng (ô trống = cùng tháng dòng trên, T06 có 2
+    dòng 2 đơn giá), I doanh thu = sản lượng thực hiện, J đã xuất HĐ = nghiệm thu, K chưa xuất HĐ =
+    dở dang. File KHÔNG ghi năm -> năm của ngày sửa file. Dòng 'Tổng' bỏ."""
+    nam = int((_ngay_sua(path) or "2026")[:4])
+    wb = openpyxl.load_workbook(path, data_only=True, read_only=True)
+    ws = wb[wb.sheetnames[0]]
+    gom, thang = {}, None
+    for r in ws.iter_rows(min_row=3, max_col=11, values_only=True):
+        a = r[0]
+        if isinstance(a, str) and SE._nd(a).startswith("tong"):
+            break
+        try:
+            thang = int(float(a)) if a not in (None, "") else thang
+        except (TypeError, ValueError):
+            continue
+        if not thang or not 1 <= thang <= 12:
+            continue
+        g = gom.setdefault(thang, [0.0, 0.0, 0.0])
+        for k, j in enumerate((8, 9, 10)):
+            if isinstance(r[j], (int, float)):
+                g[k] += float(r[j])
+    nguon = os.path.basename(path)
+    out = []
+    for m, (sl, nt, dd) in sorted(gom.items()):
+        ngay = _cuoi_thang(nam, m)
+        out += [_rec(ngay, "TC_DA", "Sản lượng thầu phụ", sl, nguon=nguon),
+                _rec(ngay, "TC_DA", "Nghiệm thu thầu phụ", nt, nguon=nguon),
+                _rec(ngay, "TC_DA", "Dở dang thầu phụ", dd, nguon=nguon)]
+    return {RT_TP: out}, []
+
+
 _THU_MUC = {
+    "duanpqbcngay": doc_bcngay_pq,
+    "duancbbcngay": doc_bcngay_cb,
+    "duanpqdbthauphu": doc_db_thauphu,
     "duanbctonghopnam": doc_bctonghop,
     "duanttbctonghop": lambda p: doc_bctonghop(p, chi_sheet="Tân Thịnh"),
     "duanpqbcthang": doc_bcthang_pq,
@@ -356,7 +554,8 @@ def derive(path, write=False):
         return {"file": os.path.basename(path), "ok": False, "error": f"{type(e).__name__}: {e}"}
     out = {"file": os.path.basename(path), "ok": True, "warn": warn,
            "dong": {rt: len(v) for rt, v in theo_rt.items()},
-           "tong_ty": {rt: round(sum(r["amount"] for r in v if not r.get("dim3")), 6)
+           "tong_ty": {rt: round(sum(r["amount"] for r in v if not r.get("dim3")
+                                     and r["payload"].get("unit") != "m3"), 6)
                        for rt, v in theo_rt.items()}}
     if write:
         # Mỗi (report_type, file) một phạm vi xoá — cùng quy ước `spec_extract._ghi`; bản ghi 0 dòng

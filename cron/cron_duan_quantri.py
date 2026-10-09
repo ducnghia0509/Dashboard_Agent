@@ -4,7 +4,9 @@
 
 Mapping `4.DU_AN.Mapping_Dashboard copy.xlsx` sheet "2. Mapping 09.10 - Final": BCTONGHOP năm,
 BCTONGHOPTANTHINH, BCTHANG Thổ Chu, BC DashBoard Tân Thịnh, bảng theo dõi hợp đồng xây dựng ->
-`DUAN_QT_THANG` · `DUAN_QT_HD` · `DUAN_CN_HD`.
+`DUAN_QT_THANG` · `DUAN_QT_HD` · `DUAN_CN_HD`; vòng 2 (cùng ngày): báo cáo NGÀY Thổ Chu / Cao Bằng
+và DB báo cáo thầu phụ Thổ Chu -> `DUAN_QT_NGAY` · `DUAN_TP_THANG`. ('BC DASHBOARD CAO BẰNG' không
+kéo: bản làm việc không mang kỳ — xem `_bay` của deriver.)
 
 VÌ SAO CẦN CRON RIÊNG (09/10/2026): cả 5 họ là FILE LUỸ KẾ GIỮ TÊN và bị GHI ĐÈ khi KT cập nhật
 (BCTONGHOP năm sửa 08/10 vẫn tên N.2026; bảng theo dõi HĐ mang ngày '23.9' trong tên nhưng sửa
@@ -39,9 +41,12 @@ DB = {"test": "postgresql://tc:tc_%24production@localhost:5435/tc_dashboard",
       "prod": "postgresql://tc:tc_%24production@localhost:5434/tc_dashboard"}
 CONG_TY = "DUAN"
 THU_MUC = ("duanbctonghopnam", "duanttbctonghop", "duanpqbcthang", "duanttbcdashboard",
-           "duantheodoihopdong")
-RT = ("DUAN_QT_THANG", "DUAN_QT_HD", "DUAN_CN_HD")
-_RE_THANG = re.compile(r"\.M\.(\d{6})\.", re.I)
+           "duantheodoihopdong", "duanpqbcngay", "duancbbcngay", "duanpqdbthauphu")
+# Họ file MỖI THÁNG MỘT BẢN (khoá bản = tháng trong tên): BCTHANG `.M.<yyyymm>.`, báo cáo ngày
+# Thổ Chu `.N.<yyyymm>.` / Cao Bằng `.D.<yyyymm>.`.
+THEO_THANG = ("duanpqbcthang", "duanpqbcngay", "duancbbcngay")
+RT = ("DUAN_QT_THANG", "DUAN_QT_HD", "DUAN_CN_HD", "DUAN_QT_NGAY", "DUAN_TP_THANG")
+_RE_THANG = re.compile(r"\.[MND]\.(\d{6})\.", re.I)
 
 
 def log(msg):
@@ -50,7 +55,7 @@ def log(msg):
 
 def _nhom(e):
     """Khoá 'một bản' của file: BCTHANG theo tháng trong tên, các họ khác cả thư mục là một bản."""
-    if e["report_type"] == "duanpqbcthang":
+    if e["report_type"] in THEO_THANG:
         m = _RE_THANG.search(e["fileName"])
         return (e["report_type"], m.group(1) if m else e["fileName"])
     return (e["report_type"], "")
