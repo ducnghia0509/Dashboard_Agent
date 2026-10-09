@@ -137,9 +137,51 @@ def test_ho_khong_co_du_lieu():
         _ok("HO: file vẫn rỗng (đúng lý do giữ mode 'age')")
 
 
+def test_file_ngay_lay_ngay_trong_ten():
+    """09/10/2026: file ngày mang `.D.YYYYMMDD.` -> `ngay` là ngày trong tên, KHÔNG phải ngày sửa
+    file (ba file 05/06/07 kế toán chép cùng lúc từng bị dồn chung một ngày)."""
+    print("\n== File ngày: ngày lấy từ tên ==")
+    import datetime as _dt
+    cases = {"B.6.XVP.D.20261005.Baocaotuoinophaithu.xlsx": _dt.date(2026, 10, 5),
+             "B.1.TC.TCKT.D.202608.Baocaotuoinophaithu.xlsx": None,      # kiểu cũ: chỉ có tháng
+             "B.6.XVP.D.20261399.x.xlsx": None}                          # ngày không hợp lệ
+    for ten, mong in cases.items():
+        got = d.ngay_trong_ten(ten)
+        if got == mong:
+            _ok(f"ngay_trong_ten({ten}) = {got}")
+        else:
+            _fail(f"ngay_trong_ten({ten})", f"= {got}, mong {mong}")
+    path = os.path.join(_RECEIVED, "XANHVINHPHUC", "baocaotuoino",
+                        "B.6.XVP.D.20261005.Baocaotuoinophaithu.xlsx")
+    if os.path.exists(path):
+        got = d._ngay_ban_ngay(path, "2026-10")
+        if got == _dt.date(2026, 10, 5):
+            _ok("_ngay_ban_ngay file thật XVP 05/10")
+        else:
+            _fail("_ngay_ban_ngay file thật XVP 05/10", f"= {got}")
+
+
+def test_file_mot_sheet_ten_thang_cu():
+    """09/10/2026: file ngày HTX là bản tháng chép sang, một sheet duy nhất tên 'T8'/'T9' — kỳ 10
+    vẫn phải đọc được (trước đây báo 'không thấy sheet')."""
+    print("\n== File một sheet, tên tháng cũ ==")
+    path = os.path.join(_RECEIVED, "HTXXANHTUYENQUANG", "baocaotuoino",
+                        "B.6.HTX_XTQ.D.20261007.Baocaotuoinophaithu.xlsx")
+    if not os.path.exists(path):
+        _ok("HTX_XTQ D.20261007: không có file để kiểm (bỏ qua)")
+        return
+    o = d.derive(path, "2026-10", False)
+    if o.get("sheet") == "T9" and _close(o.get("tong_ty"), 0.039448053):
+        _ok("HTX_XTQ D.20261007 đọc sheet 'T9' = 0,039448053 tỷ")
+    else:
+        _fail("HTX_XTQ D.20261007", repr({k: o.get(k) for k in ("sheet", "tong_ty", "error")}))
+
+
 if __name__ == "__main__":
     test_units_mode()
     test_ho_khong_co_du_lieu()
+    test_file_ngay_lay_ngay_trong_ten()
+    test_file_mot_sheet_ten_thang_cu()
     if _failed:
         print("\n== CÓ TEST FAIL ==")
         sys.exit(1)

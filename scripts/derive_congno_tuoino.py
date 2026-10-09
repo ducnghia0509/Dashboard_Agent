@@ -174,7 +174,7 @@ def _source_id(path):
     return f"{folder}::{os.path.basename(path)}"
 
 
-def _find_sheet(wb, period=None, hints=None):
+def _find_sheet(wb, period=None, hints=None, mot_sheet_ok=False):
     """`hints` (2026-08-06): gợi ý tên sheet khai ở `_UNITS` cho đơn vị mà tên sheet KHÔNG chứa
     'tuổi nợ' và cũng không theo dạng 'T{mm}' — HT dùng sheet "Phải thu", Dự án dùng "Tháng {m}".
     Ưu tiên khớp '<hint> {mm}' (đúng THÁNG của kỳ, tránh vớ nhầm 'Tháng 6' khi đang xử lý kỳ 07 nếu
@@ -212,10 +212,32 @@ def _find_sheet(wb, period=None, hints=None):
         return sn
     mm = int(period[5:7])
     pat = re.compile(rf"(?<![0-9])t0?{mm}(?![0-9])")
-    return next((s for s in wb.sheetnames if pat.search(_nd(s))), None)
+    sn = next((s for s in wb.sheetnames if pat.search(_nd(s))), None)
+    # FILE NGÀY chỉ MỘT sheet: đọc sheet đó. File ngày của HTX (10/2026) là bản tháng chép sang, sheet
+    # còn tên tháng cũ ('T8'/'T9') nên khớp 'T{mm}' không ra; ngày lấy từ tên file nên không lệch kỳ.
+    # CHỈ file ngày (`mot_sheet_ok`): với file THÁNG, tên sheet lệch kỳ là dấu hiệu chép nhầm tháng
+    # — `HTX_XTQ.M.202607` có đúng một sheet 'T6' — đọc vào sẽ ghi số T6 dưới nhãn T7 mà không báo.
+    if sn is None and mot_sheet_ok and len(wb.sheetnames) == 1:
+        sn = wb.sheetnames[0]
+    return sn
 
 
 _RE_FILE_NGAY = re.compile(r"\.D[.\d]")
+
+
+_RE_NGAY_TEN = re.compile(r"\.D\.?(\d{4})(\d{2})(\d{2})(?!\d)")
+
+
+def ngay_trong_ten(path):
+    """'B.6.XVP.D.20261005.Baocaotuoinophaithu.xlsx' -> date(2026,10,5); tên chỉ có tháng
+    (`.D.202608`) hoặc không hợp lệ -> None."""
+    m = _RE_NGAY_TEN.search(os.path.basename(path))
+    if not m:
+        return None
+    try:
+        return dt.date(int(m.group(1)), int(m.group(2)), int(m.group(3)))
+    except ValueError:
+        return None
 
 
 def _la_file_ngay(path):
@@ -427,6 +449,12 @@ def _ngay_ban_ngay(path, period):
     Ngoài kỳ thì KẸP về ngày cuối kỳ: file có thể được sửa/gửi sang tháng sau (bản này gửi về VPS
     06/09), mà `ngay` lệch khỏi `period_month` sẽ làm chính kỳ đó lọc from/to không thấy dòng nào."""
     end = _period_end(period)
+    # Tên file MANG NGÀY (`.D.20261005.` — XVP/HTX từ 10/2026) thì đó là mốc số liệu, tin tên file
+    # trước: `modified_at` chỉ là lần sửa sau cùng, ba file 05/06/07 kế toán chép cùng lúc sẽ dồn
+    # chung một ngày (đo 09/10/2026: file D.20261005 của XVP bị gán 06/10).
+    d = ngay_trong_ten(path)
+    if d and dt.date(end.year, end.month, 1) <= d <= end:
+        return d
     try:
         with io.open(os.path.splitext(path)[0] + ".json", encoding="utf-8") as fh:
             mod = (json.load(fh) or {}).get("modified_at") or ""
@@ -689,7 +717,8 @@ def derive(path, period, write=False):
     wb = openpyxl.load_workbook(path, data_only=True, read_only=True)
     try:
         sn = _find_sheet(wb, period if is_tuoino_file else None,
-                         sheet_hints if is_tuoino_file else None)
+                         sheet_hints if is_tuoino_file else None,
+                         mot_sheet_ok=is_tuoino_file and _la_file_ngay(path))
         if not sn:
             # Đơn vị có `sheet_hints` = tên sheet XÁC ĐỊNH -> file trong thư mục tuoino mà không có
             # sheet đó là BÁO CÁO KHÁC, skip CÂM (không báo lỗi mỗi lượt nạp). Cụ thể
