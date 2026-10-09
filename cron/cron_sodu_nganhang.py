@@ -37,6 +37,8 @@ def main():
     ap.add_argument("--env", choices=("test", "prod"), default="test")
     ap.add_argument("--pull", action="store_true", help="kéo file nguồn về trước khi trích xuất")
     a = ap.parse_args()
+    if pull_nguon.bi_tat("sodu_nganhang", a.env, log):
+        sys.exit(0)
 
     if a.pull:
         # 12 file số dư nằm ở report_type 'sodu<đơn vị>' (soduhungthinh/soduthinhcuong/
