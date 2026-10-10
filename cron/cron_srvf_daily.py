@@ -261,7 +261,10 @@ NGUON = [
         # `slot` BẮT BUỘC: thiếu nó thì hai file rơi vào CÙNG một slot (rt, kỳ) và bị coi là hai
         # bản chốt của nhau -> mỗi lượt giữ đúng một cái, cái kia bị xoá khỏi DB. Nhóm bắt được
         # ('13' / '30') tách chúng ra làm hai lát độc lập.
-        "slot": r"_(\d+)_NGAY",
+        # TỪ T10/2026 VHKD phát hành sổ kế hoạch TÁCH KÊNH: `..._30_NGAY_T10_<B2C|B2B|GF>.xlsx`
+        # (3 spec `vhkd_kehoach_giaoxe_kenh_*`). Nhóm thứ hai (tháng + kênh) giữ mỗi kênh một lát
+        # riêng, không chung lát '30' với bản T9.
+        "slot": r"_(\d+)_NGAY(?:_(T\d+_(?:B2B|B2C|GF)))?",
         # `ca_nam` BẮT BUỘC, cùng lý do như `ANTAXI/baocaoqtvhthang`: tên file KHÔNG có một chữ số
         # kỳ nào (`CHI_TIET_TIEN_DO_TUNG_SHOWROOM_TUNG_DONG_XE_13_NGAY.xlsx`) nên metadata trả
         # `month=null` và `thang_tu_ten_file` cũng chịu -> phép lọc `thang != month` loại file
