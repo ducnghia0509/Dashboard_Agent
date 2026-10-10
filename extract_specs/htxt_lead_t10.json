@@ -6,7 +6,10 @@
     "folder": "HUNGTHINH/baocaocapnhatkinhdoanhxetai",
     "file_glob": "*DIENSANY.xlsx",
     "sheet": {
-      "ten": "Báo cáo tổng hợp"
+      "ten": [
+        "Báo cáo kinh doanh theo ngày",
+        "Báo cáo tổng hợp"
+      ]
     }
   },
   "moi_ky_lay_file_moi_nhat": true,
@@ -31,7 +34,9 @@
   "id": "htxt_lead_t10",
   "_mo_ta": "Như htxt_lead nhưng cho BỐ CỤC T10/2026 trở đi của file BC CAPNHATKINHDOANHXETAIDIENSANY: header ở dòng 4 (A Nhóm chỉ tiêu · B Chỉ tiêu · C Công thức · D Mô tả · E 'Cập nhật kinh doanh Tháng 10.2026' · F Chiếm tỷ lệ %), kèm 31 cột ngày H..AL (bỏ qua). Cột F KHÔNG phải kết quả mà là TỶ LỆ — kết quả ở cột E.",
   "_bay": [
-    "Bản T10 (đo 04/10/2026) gần như rỗng: tiếp cận 2 (Cold 1, Warm 0,5?). Các chỉ tiêu ngày ở cột H.. KHÔNG nạp — mapping không đòi theo ngày.",
+    "05/10/2026 SHEET ĐỔI TÊN 'Báo cáo tổng hợp' -> 'Báo cáo kinh doanh theo ngày ' (CÓ dấu cách cuối — `ten` so theo `_nd` nên không sao) ở CẢ file T9 lẫn T10, bố cục cột giữ nguyên. Spec chỉ ghim tên cũ nên từ 05/10 tới 10/10 ghi 0 dòng mỗi lượt, dashboard đứng ở số nạp ngày 30/09–04/10 (T10: tiếp cận 3, file ghi 11). Mapping '2. Mapping 09.10 - AnhKSNB' dòng 36-40 trỏ đúng sheet mới: tháng = cột E (E7 tiếp cận · E8 thử tải/tham quan · E9..E13 Hot/Warm/Cold/không LL/không điền · E14 ký HĐ · E15 tỷ lệ). Spec này giờ đọc cả bản T9 (bố cục mới) nên `htxt_lead` (bố cục cũ, cột F) chỉ còn là đường lùi cho file cũ.",
+    "Cột NGÀY H..AL nạp bằng spec RIÊNG `htxt_lead_ngay` (report_type HTXT_LEAD_NGAY) — mapping 09.10 cột K đòi số theo ngày.",
+    "Bản T10 (đo 04/10/2026) gần như rỗng: tiếp cận 2 (Cold 1, Warm 0,5?).",
     "Hàng 'Tỷ lệ chuyển đổi' có công thức 'E14/E7*100%' — nếu ô trống/0 thì ra 0, đúng nghĩa 'chưa có hợp đồng'."
   ],
   "kiem_tra_o": [

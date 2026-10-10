@@ -1,0 +1,60 @@
+{
+  "id": "xtai_kehoach_ngay_sl",
+  "_mo_ta": "KẾ HOẠCH SẢN LƯỢNG khối KD Xe tải THEO NGÀY — phần B SẢN LƯỢNG của các sheet 'KHT<tháng>ngay' trong 5.HT.OO.M.<yyyymm>.Kehoachthang.xlsx -> XTAI_KH_SL_NGAY. Mapping '2. Mapping 09.10 - AnhKSNB' dòng 9 (E15->AH15) và dòng 33 (theo dòng xe, E16->AH21) cột K. Cùng mã với XTAI_KH_SL: TONG (xe + trụ sạc) / A200 (sản lượng bán xe) / 6 dòng xe / T101_4 (trụ sạc).",
+  "_bay": [
+    "Tách khỏi spec giá trị vì ĐƠN VỊ khác (xe, he_so 1) và vì `_ghi` xoá theo (report_type, source_file) — chung report_type là spec chạy sau xoá phần của spec chạy trước. Cùng lý do tách xtai_kehoach_gt / _sl.",
+    "Không có `dong_ket_thuc_tim`: khối SẢN LƯỢNG chạy tới hết sheet (dòng cuối là 'SẢN LƯỢNG TRỤ SẠC').",
+    "PHẠM VI: dòng Tổng = A200 (xe) + trụ sạc (KHT9ngay: 164 = 104 + 60). Builder htxt0 dùng dòng Tổng cho KPI sản lượng, cùng phạm vi với kế hoạch tháng XTAI_KH_SL — mapping ghi 'E15' (A200) nhưng cột thực hiện của chính KPI đó lại gồm cả mooc mà không có trụ sạc; giữ phạm vi đang chạy cho tới khi người dùng chốt.",
+    "LỖI NGUỒN (đo 10/10/2026, KHT9ngay): ô ngày đã LÀM TRÒN TỪNG NGÀY nên Σ ngày HỤT tháng — Tổng 5 xe/ngày × 30 = 150 (ô D14 'Tháng 9' = 164); A200 3 × 30 = 90 (D15 = 104); xe ben 6 xe/tháng -> 0 mỗi ngày; Shacman 4 -> 0. Giữ đúng số file (mapping trỏ thẳng các ô này), KHÔNG tự chia đều lại; tab Ngày cả tháng sẽ ra kế hoạch 150 trong khi tab Tháng ra 164 — cần kế toán sửa công thức sheet ngày (để số lẻ hoặc dồn phần dư vào ngày cuối)."
+  ],
+  "report_type": "XTAI_KH_SL_NGAY",
+  "giu_ngay_tuong_lai": true,
+  "row_index_base": 8230000,
+  "khoi": "Khối KD Xe tải",
+  "nguon": {
+    "folder": "KEHOACH/baocaokehoachthang",
+    "file_glob": "5.HT.*.Kehoachthang.xlsx",
+    "sheet": {
+      "moi_sheet_regex": "^kht\\d{1,2}ngay$",
+      "mo_ta": "KHT<tháng>ngay"
+    },
+    "chi_file_khop_glob": true
+  },
+  "ky_thang_tu_o": {
+    "cot": "D",
+    "toi_da": 10
+  },
+  "header": {
+    "tim_o": "Khối"
+  },
+  "dong_bat_dau_tim": {
+    "cot": "B",
+    "regex": "^\\s*SẢN LƯỢNG\\s*$"
+  },
+  "chieu_co_dinh": {
+    "dim3": "SẢN LƯỢNG"
+  },
+  "cot": {
+    "dim1": {
+      "header": "Khối",
+      "chuan_hoa": "kh_khoi_dong"
+    }
+  },
+  "ban_ghi": "moi_cot_ngay",
+  "cot_ngay": {
+    "dong_tuong_doi": 0,
+    "tu": "E",
+    "den": "AI",
+    "he_so": 1.0
+  },
+  "loc": [
+    {
+      "cot": "dim2",
+      "dieu_kien": "khac_rong"
+    }
+  ],
+  "payload_them": {
+    "unit": "xe",
+    "loai": "kehoach_ngay"
+  }
+}

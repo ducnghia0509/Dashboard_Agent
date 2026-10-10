@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Cron: Hưng Thịnh XE TẢI (htxt0/htxt1) — KÉO file lũy kế rồi TRÍCH XUẤT 8 spec `htxt_*`.
+"""Cron: Hưng Thịnh XE TẢI (htxt0/htxt1) — KÉO file lũy kế rồi TRÍCH XUẤT các spec `htxt_*` + kế hoạch ngày.
 
 VÌ SAO CẦN CRON RIÊNG (đo 04/10/2026): các file nguồn của màn này là FILE LŨY KẾ GIỮ NGUYÊN TÊN và
 bị GHI ĐÈ khi người dùng cập nhật tay (BC cập nhật vận hành tên 'M2026.08' nhưng nội dung tới
@@ -18,7 +18,15 @@ KÉO GÌ (chọn trong available_metadata.json):
     nhất, và tonkhotapdoanngay — SỔ NXT theo ngày '*.D.<yyyymm>.Baocaotonkhoxetai.xlsx' (một sổ xuyên
     suốt, mapping sheet tồn kho cột J) của tháng gần nhất — kể cả tên thiếu dấu chấm
     'B.5.HT.D202609…': cùng một sổ, bản sửa mới nhất thắng.
+  · KEHOACH/baocaokehoachthang — CHỈ bản '5.HT.*.Kehoachthang.xlsx' mới nhất (10/10/2026, mapping
+    09.10): kế hoạch NGÀY nằm ở sheet 'KHT<tháng>ngay' của chính file kế hoạch tháng, tên file KHÔNG
+    lăn tháng (vẫn '202608') nên sheet tháng mới chỉ lên khi được kéo lại.
   · Google Sheet nhúng link trong mapping KHÔNG kéo được (agent chỉ đọc file trên đĩa).
+
+Bẫy ĐỔI TÊN FILE (10/10/2026): BC cập nhật vận hành đổi 'B.5.HT.M2026.08…' -> 'B.5.HT.D2026.10…', cả hai
+tên nằm lại trên đĩa. Trước bản vá `spec_extract.loc_file_moi_nhat`, `mot_file` giữ CẢ HAI khi tên
+không suy được kỳ -> GIAO/HD cộng đôi. Nay engine trả bản cũ trong `_bo_qua_anh_chup_cu` và
+`xoa_ban_bi_thay` bên dưới xoá dòng của nó.
 
 `refresh=True` luôn: tên file/tháng MỚI xuất hiện theo tháng, danh sách cũ không có.
 
@@ -43,8 +51,10 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DB = {"test": "postgresql://tc:tc_%24production@localhost:5435/tc_dashboard",
       "prod": "postgresql://tc:tc_%24production@localhost:5434/tc_dashboard"}
 
-SPECS = ("htxt_giao", "htxt_hopdong", "htxt_lead", "htxt_lead_t10", "htxt_ncc_hd", "htxt_ncc_lo",
-         "htxt_tonkho_thang", "htxt_tonkho_tuoi", "htxt_tonkho_ngay")
+SPECS = ("htxt_giao", "htxt_hopdong", "htxt_lead", "htxt_lead_t10", "htxt_lead_ngay",
+         "htxt_ncc_hd", "htxt_ncc_lo", "htxt_tonkho_thang", "htxt_tonkho_tuoi", "htxt_tonkho_ngay",
+         "xtai_kehoach_ngay_gt", "xtai_kehoach_ngay_sl")
+_RE_KH_HT = re.compile(r"^5\.HT\..*\.Kehoachthang\.xlsx$", re.I)
 _RE_TON_THANG = re.compile(r"\.M\.(\d{6})\.Baocaotonkhoxetai\.xlsx$", re.I)
 _RE_TON_NGAY = re.compile(r"\.D\.?(\d{6})\.Baocaotonkhoxetai\.xlsx$", re.I)
 SO_THANG_GAN = 2
@@ -72,7 +82,12 @@ def chon_file(meta):
     kd.sort(key=lambda e: ((e.get("year") or 0), (e.get("month") or 0), e["fileName"]))
     chon.update((e["company"], e["report_type"], e["fileName"]) for e in kd[-SO_THANG_GAN:])
 
-    ton = [e for e in ds if e.get("company") == "TONKHOTAPDOAN"
+    kh = [e for e in ds if e.get("company") == "KEHOACH"
+          and e.get("report_type") == "baocaokehoachthang" and _RE_KH_HT.search(e["fileName"])]
+    kh.sort(key=lambda e: (e.get("modifiedAt") or "", e["fileName"]))
+    chon.update((e["company"], e["report_type"], e["fileName"]) for e in kh[-1:])
+
+    ton =[e for e in ds if e.get("company") == "TONKHOTAPDOAN"
            and e.get("report_type") == "tonkhotapdoanthang" and _RE_TON_THANG.search(e["fileName"])]
     ton.sort(key=lambda e: _RE_TON_THANG.search(e["fileName"]).group(1))
     chon.update((e["company"], e["report_type"], e["fileName"]) for e in ton[-SO_THANG_GAN:])
