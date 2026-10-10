@@ -371,8 +371,13 @@ def _cc_showroom(ten):
     KHÔNG khai alias cho "+ P.Kinh doanh GF": không có cost center nào tương ứng ở vế thực hiện
     (và kế hoạch của nó = 0), bịa ra mã mới là đẻ một dòng rỗng trên mọi bảng xếp hạng.
     """
+    # SỔ KẾ HOẠCH THEO KÊNH (10/10/2026, `CHI_TIET_..._30_NGAY_T10_<B2B|GF>`): kênh B2B ghi
+    # "SR OceanPark"/"SR SmartCity", kênh GF ghi "Showroom OCP". Tiền tố "SR " chỉ bóc Ở ĐÂY
+    # (không đưa vào `_bo_tien_to` dùng chung mọi khối); "ocp" là viết tắt Ocean Park.
+    ten = re.sub(r"^\s*SR\s+", "", str(ten or ""), flags=re.I)
     return _cc_theo_khoi(ten, "Khối KD Vinfast - Showroom",
-                         {"b2b": ("B2B_SR", "TC"), "pkinhdoanhb2b": ("B2B_SR", "TC")})
+                         {"b2b": ("B2B_SR", "TC"), "pkinhdoanhb2b": ("B2B_SR", "TC"),
+                          "ocp": ("OCP_SR", "TC")})
 
 
 def _cc_hcns_xdv(ten):
@@ -1406,6 +1411,24 @@ def _sr_loai_xe(v):
     return {"dim1": ma, "_khong_map": ma}
 
 
+# TÊN HIỂN THỊ dòng xe -> mã của sổ bán xe (10/10/2026). Sổ kế hoạch theo kênh T10
+# (`CHI_TIET_..._30_NGAY_T10_<B2C|B2B|GF>`) ghi dòng xe bằng tên ("VF MPV 7", "Limo Green",
+# "LimoGreen", "Limo", "Herio") chứ không bằng mã kiểu xe. Mã ra PHẢI trùng mã `KDVH` (LM1/MPV/
+# MNO/HRO…) để chỉ tiêu ghép được vào thực hiện của BCKD. Tên lạ -> đi tiếp `_sr_loai_xe` (bắt
+# được "VF 2"/"EC Van"/mã kiểu xe), còn trượt thì giữ nguyên + kêu.
+# "VF Wild" chưa có mã nào trong mọi nguồn thực hiện (rà KDVH/TONHD/HDONG 10/10) -> "VFWILD".
+_SR_TEN_DONG_XE = {
+    "vfmpv7": "MPV", "mpv7": "MPV", "limogreen": "LM1", "limo": "LM1",
+    "miniogreen": "MNO", "minio": "MNO", "heriogreen": "HRO", "herio": "HRO",
+    "ecvan": "ECV", "vfwild": "VFWILD", "vfe34": "VFE34",
+}
+
+
+def _sr_ten_dong_xe(v):
+    ma = _SR_TEN_DONG_XE.get(_nd(v))
+    return {"dim1": ma} if ma else _sr_loai_xe(v)
+
+
 # Mã CON của A200 (bán xe) trong file tự động `Baocaotaichinhrieng-HQKD` -> kênh bán, dùng cho
 # `vhkd_kdvh_ngay` (report_type KDVH_D, thay nguồn tay `SRVF/baocaohqkdngay` bị cutover 01/09/2026,
 # xem `derive_hqkd_ngay.py::_UNITS["SRVF"]["bo_tu_ngay"]`). Đối chiếu 3 ngày độc lập (08/09, 09/09,
@@ -1563,6 +1586,7 @@ _CHUAN_HOA = {
     "xvp_nhan_doanh_thu": _xvp_nhan_doanh_thu,
     "xvp_don_vi": _xvp_don_vi,
     "sr_loai_xe": _sr_loai_xe,
+    "sr_ten_dong_xe": _sr_ten_dong_xe,
     "claim_ky_du_lieu": _claim_ky_du_lieu,
     "a200_kenh_tu_dong": _a200_kenh_tu_dong,
     "hoa": lambda v: str(v or "").strip().upper() or None,
@@ -2368,6 +2392,17 @@ def _ky_thang(spec, path):
     g = m.groupdict()
     if g.get("nam") and g.get("thang"):
         return (int(g["nam"]), int(g["thang"])), []
+    # `nam: "gan_hom_nay"` (10/10/2026): tên file CHỈ có tháng ('..._30_NGAY_T10_B2C.xlsx') và
+    # trong file không ô nào mang năm (sheet chỉ ghi "Ngày 1".."Ngày 31"). Lấy năm làm kỳ GẦN HÔM
+    # NAY NHẤT (năm trước / năm nay / năm sau): sổ kế hoạch tháng chỉ phát hành quanh chính tháng
+    # đó, nên T12 nhận tháng 1 năm sau vẫn ra năm trước. Chỉ spec nào khai mới đổi hành vi.
+    if g.get("thang") and c.get("nam") == "gan_hom_nay":
+        thang, hn = int(g["thang"]), dt.date.today()
+        if not 1 <= thang <= 12:
+            return None, [f"tháng {thang} từ tên file ngoài 1..12: {os.path.basename(path)}"]
+        nam = min((hn.year - 1, hn.year, hn.year + 1),
+                  key=lambda y: abs((y - hn.year) * 12 + thang - hn.month))
+        return (nam, thang), []
     return (int(m.group(1)), int(m.group(2))), []
 
 

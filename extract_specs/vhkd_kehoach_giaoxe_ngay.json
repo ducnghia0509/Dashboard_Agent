@@ -6,7 +6,8 @@
   "khoi": "Khối KD Vinfast - Showroom",
   "nguon": {
     "folder": "SRVF/baocaotiendoshowroomngay",
-    "file_glob": "*13_NGAY*.xlsx"
+    "file_glob": "*_13_NGAY.xlsx",
+    "chi_file_khop_glob": true
   },
   "ky_thang_tu_o": {
     "o": "A2",

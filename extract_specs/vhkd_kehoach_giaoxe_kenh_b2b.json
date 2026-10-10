@@ -1,0 +1,78 @@
+{
+  "id": "vhkd_kehoach_giaoxe_kenh_b2b",
+  "_mo_ta": "Sổ KẾ HOẠCH GIAO XE theo NGÀY × SHOWROOM × DÒNG XE, TÁCH THEO KÊNH (VHKD phát hành từ T10/2026: 'CHI_TIET_TIEN_DO_TUNG_SHOWROOM_TUNG_DONG_XE_30_NGAY_T10_<B2C|B2B|GF>.xlsx'). Ghi CÙNG report_type với bản T9 `vhkd_giaoxe_ngay` (VHKD_TH_GIAOXE_NGAY — tiền tố TH_ là tên lịch sử, nghiệp vụ đã đính chính đây là KẾ HOẠCH, xem app/metrics/vhkd_bckd.py) vì BCKD vhkd1 đọc đúng report_type đó làm mẫu số; dim2 = KÊNH (B2C/B2B/GF) — đúng cột mà bộ lọc Kênh của màn đọc (`_KENH_RT`), khác bản T9 ghi dim2 = 'GIAOXE' vì không tách kênh. dim1 dùng ĐÚNG mã của sổ bán xe (LM1/MPV/MNO/HRO/ECV/VF*) qua hook `sr_ten_dong_xe`. Bản B2B: sheet 'KHDT theo ngày T10 ', dòng 13 = tiêu đề + mốc NGÀY THẬT (01/10..31/10), dòng 14 = Số lượng/Doanh thu; amount = xe, amount2 = doanh thu (tỷ).",
+  "_bay": [
+    "Tiêu đề dòng 3 ghi 'THÁNG 8/2026' là nhãn chép từ mẫu cũ — kỳ lấy từ CHÍNH ô ngày dòng 13 (01/10/2026..31/10/2026), không tin nhãn.",
+    "'B2B_PKD 1'/'B2B_PKD 2' = đội B2B tập trung -> B2B_SR (alias sẵn có 'b2b…' của `_cc_showroom`). Dòng 'SR <tên>' = showroom bán qua kênh B2B.",
+    "Đối chiếu 10/10/2026: Σ cột 'Tổng SL' = Σ ngày = 700 xe = dòng TỔNG CỘNG; doanh thu 428,98104 tỷ khớp tới đồng. Dòng TỔNG CỘNG (cột B trống) tự rơi ở bộ lọc cost_center."
+  ],
+  "report_type": "VHKD_TH_GIAOXE_NGAY",
+  "row_index_base": 8580000,
+  "khoi": "Khối KD Vinfast - Showroom",
+  "giu_ngay_tuong_lai": true,
+  "chieu_tu_ten_file": {
+    "dim2": {
+      "regex": "_T\\d{1,2}_(B2B|B2C|GF)",
+      "hoa": true
+    }
+  },
+  "ban_ghi": "moi_cot_ngay",
+  "loc": [
+    {
+      "cot": "cost_center",
+      "dieu_kien": "khac_rong"
+    }
+  ],
+  "nguon": {
+    "folder": "SRVF/baocaotiendoshowroomngay",
+    "file_glob": "*_30_NGAY_T*_B2B.xlsx",
+    "chi_file_khop_glob": true,
+    "sheet": {
+      "chua": "KHDT theo ngày"
+    }
+  },
+  "kiem_tra_o": [
+    {
+      "o": "A13",
+      "bang": "STT"
+    },
+    {
+      "o": "B13",
+      "bang": "Showroom/Phòng ban"
+    },
+    {
+      "o": "D13",
+      "bang": "Dòng xe"
+    }
+  ],
+  "header": {
+    "dong": 13
+  },
+  "dong_bat_dau": 15,
+  "cot": {
+    "cost_center": {
+      "header": "Showroom/Phòng ban",
+      "chuan_hoa": "sr_showroom"
+    },
+    "dim1": {
+      "header": "Dòng xe",
+      "chuan_hoa": "sr_ten_dong_xe"
+    }
+  },
+  "cot_ngay": {
+    "dong": 13,
+    "tu": "J",
+    "den": "BS",
+    "ky_tu_o": true,
+    "lech_amount": 0,
+    "lech_amount2": 1,
+    "he_so": 1,
+    "he_so_amount2": 1e-09
+  },
+  "payload_them": {
+    "unit": "xe",
+    "unit_amount2": "ty",
+    "nguon": "kehoach_giaoxe_kenh",
+    "kenh": "B2B"
+  }
+}
