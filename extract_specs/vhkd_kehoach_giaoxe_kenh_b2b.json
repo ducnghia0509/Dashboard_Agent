@@ -4,7 +4,8 @@
   "_bay": [
     "Tiêu đề dòng 3 ghi 'THÁNG 8/2026' là nhãn chép từ mẫu cũ — kỳ lấy từ CHÍNH ô ngày dòng 13 (01/10/2026..31/10/2026), không tin nhãn.",
     "'B2B_PKD 1'/'B2B_PKD 2' = đội B2B tập trung -> B2B_SR (alias sẵn có 'b2b…' của `_cc_showroom`). Dòng 'SR <tên>' = showroom bán qua kênh B2B.",
-    "Đối chiếu 10/10/2026: Σ cột 'Tổng SL' = Σ ngày = 700 xe = dòng TỔNG CỘNG; doanh thu 428,98104 tỷ khớp tới đồng. Dòng TỔNG CỘNG (cột B trống) tự rơi ở bộ lọc cost_center."
+    "Đối chiếu 10/10/2026: Σ cột 'Tổng SL' = Σ ngày = 700 xe = dòng TỔNG CỘNG; doanh thu 428,98104 tỷ khớp tới đồng. Dòng TỔNG CỘNG (cột B trống) tự rơi ở bộ lọc cost_center.",
+    "TẤT CẢ HOẶC KHÔNG (user chốt 10/10/2026): sai bố cục thì KHÔNG ghi nhận dòng nào — `kiem_tra_o` (ô tiêu đề), `kiem_tra_tong_dong` (Σ cột ngày từng dòng = cột tổng), `khong_map_bo_ca_file` (showroom/dòng xe lạ). Không đạt -> BỎ CẢ FILE, số đã nạp trước đó của file giữ nguyên."
   ],
   "report_type": "VHKD_TH_GIAOXE_NGAY",
   "row_index_base": 8580000,
@@ -43,6 +44,10 @@
     {
       "o": "D13",
       "bang": "Dòng xe"
+    },
+    {
+      "o": "H13",
+      "bang": "Tổng SL"
     }
   ],
   "header": {
@@ -74,5 +79,9 @@
     "unit_amount2": "ty",
     "nguon": "kehoach_giaoxe_kenh",
     "kenh": "B2B"
-  }
+  },
+  "kiem_tra_tong_dong": {
+    "header": "Tổng SL"
+  },
+  "khong_map_bo_ca_file": true
 }

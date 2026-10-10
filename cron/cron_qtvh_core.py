@@ -196,6 +196,17 @@ def sidecar_saved_at(entry: dict):
         return None
 
 
+def sidecar_modified_at(entry: dict):
+    """`modified_at` của BẢN ĐANG NẰM TRÊN ĐĨA (sidecar .json do receiver ghi lúc nhận file)."""
+    p = os.path.join(RECEIVED_DIR, entry.get("company") or "", entry.get("report_type") or "",
+                     os.path.splitext(entry["fileName"])[0] + ".json")
+    try:
+        with open(p, encoding="utf-8") as fh:
+            return json.load(fh).get("modified_at")
+    except (OSError, json.JSONDecodeError):
+        return None
+
+
 def xlsx_path(entry: dict) -> str:
     return os.path.join(RECEIVED_DIR, entry.get("company") or "",
                         entry.get("report_type") or "", entry["fileName"])
@@ -1623,6 +1634,28 @@ def run(job: str, nhan: str, nguon_list: list, schedule_vn: str, argv=None) -> i
         for e in bo:
             ctx.log(f"  bỏ qua (đã nạp, không phải bản mới nhất): {e['fileName'][:50]}")
         targets = [e for e in targets if e not in bo]
+
+    # `chi_nap_khi_doi` (10/10/2026, sổ kế hoạch giao xe theo kênh): CHỈ kéo + nạp file MỚI (kỳ
+    # mới, chưa có dòng nào trong DB) hoặc file ĐÃ SỬA (modifiedAt ở nguồn khác bản trên đĩa).
+    # File không đổi mà DB đã có số -> bỏ, không xin lại mỗi ngày. File từng nạp ra 0 dòng (sai
+    # bố cục) vẫn được thử lại ở lượt sau — không có dòng nào thì không coi là "đã nạp".
+    ko_doi = [e for e in targets if e["_nguon"].get("chi_nap_khi_doi") and e.get("modifiedAt")
+              and sidecar_modified_at(e) == e.get("modifiedAt")]
+    if ko_doi:
+        da_co = da_co_dong(ctx, [source_id(e) for e in ko_doi])
+        bo = [e for e in ko_doi if source_id(e) in da_co]
+        for e in bo:
+            ctx.log(f"  bỏ qua (file không đổi, đã có số): {e['fileName'][:50]}"
+                    f" modifiedAt={e.get('modifiedAt')}")
+            if st and e["_period"] == ky_chinh and not args.dry_run:
+                st.record(muc_cua(e["_nguon"]), state=cron_status.STATE_DU, arrived=False,
+                          ly_do="file không đổi kể từ lần nạp trước, giữ số đã nạp")
+        targets = [e for e in targets if e not in bo]
+        if not targets:
+            ctx.log("XONG — mọi file đều không đổi kể từ lần nạp trước, không có gì để nạp")
+            if st:
+                st.set_run(nap_thanh_cong=0, so_file_keo=0)
+            return done(cron_status.RUN_OK, rc=0)
 
     for e in targets:
         ctx.log(f"  chọn [{e['_period']}] [{e.get('report_type')}] {e['fileName'][:48]}"

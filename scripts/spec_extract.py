@@ -108,6 +108,10 @@ CẤU TRÚC SPEC (khoá tiếng Việt cho kế toán/BA đọc được):
   "kiem_tra_lech_cot": [{"header": "Tình trạng hồ sơ", "ti_le_so_toi_da": 0.2}],
                                          // cột CHỮ mà > 20% ô là SỐ -> dữ liệu lệch cột so với
                                          // tiêu đề -> BỎ CẢ FILE, kêu rõ (claim B2B T1 9.15-9.25)
+  "kiem_tra_tong_dong": {"header": "Tổng tháng"},   // `moi_cot_ngay`: Σ các cột ngày của MỖI dòng
+                                         // phải = ô cột tổng của dòng đó, lệch 1 dòng -> BỎ CẢ FILE
+  "khong_map_bo_ca_file": true,          // có dòng mang số mà không map được (đơn vị/dòng xe lạ)
+                                         // -> BỎ CẢ FILE thay vì nạp phần còn lại
   "bo_dong_an": true,                    // bỏ dòng file đang ẨN (bộ lọc/ẩn tay) — theo đúng dòng
                                          // tổng SUBTOTAL của người làm file (xem `_dong_an`)
   "chi_lay_ngay_cua_file": true,         // bỏ dòng có `ngay` khác ngày suy từ TÊN FILE — cho nguồn
@@ -3256,6 +3260,15 @@ def _extract_vung(spec, path):
         gt_idx = [(j, c) for j, c in gt_idx if j is not None]
         # `kiem_tra_lech_cot` (28/09/2026): cột CHỮ mà phần lớn ô là SỐ -> vùng dữ liệu đã lệch so
         # với dòng tiêu đề -> BỎ CẢ FILE (đếm trong vòng quét dòng, quyết sau vòng). Xem khai báo.
+        # `kiem_tra_tong_dong` (10/10/2026, sổ kế hoạch giao xe theo kênh): Σ cột ngày của từng
+        # dòng phải bằng ô cột tổng của chính dòng đó. Lệch -> bố cục đã đổi (chèn/xoá cột ngày,
+        # tháng ngắn mà file kéo dài 31 ngày…) -> BỎ CẢ FILE, không nạp nửa vời.
+        ktt = spec.get("kiem_tra_tong_dong")
+        j_tong = _tim_cot(hmap, ktt, "kiem_tra_tong_dong", warn) if ktt else None
+        if ktt and j_tong is None:
+            return [], [*warn, f"BỎ QUA — không thấy cột tổng {ktt.get('header') or ktt.get('cot')!r}"
+                               " để đối chiếu"]
+        lech_tong = []
         lech_cot = [(j, c, [0, 0]) for j, c in
                     ((_tim_cot(hmap, {**c, "bat_buoc": False}, f"kiem_tra_lech_cot {c.get('header')}",
                                warn), c) for c in spec.get("kiem_tra_lech_cot") or [])
@@ -3521,6 +3534,15 @@ def _extract_vung(spec, path):
                         r2["amount2"] = _so(row[j2v] if j2v < len(row) else None,
                                             float(nc_ngay.get("he_so_amount2", 1.0)))
                     outs.append(r2)
+                # Chỉ đối chiếu dòng DỮ LIỆU (qua `loc`): dòng TỔNG CỘNG của chính file có thể sai
+                # công thức (B2B T10: ô tổng 700 nhưng Σ ô ngày của dòng đó 631) mà không ảnh
+                # hưởng gì vì ta không nạp nó.
+                if j_tong is not None and _qua_loc(base, spec.get("loc")):
+                    tong_o = _so(row[j_tong] if j_tong < len(row) else None,
+                                 float(nc_ngay.get("he_so", 1.0))) or 0.0
+                    tong_ngay = sum(x["amount"] for x in outs)
+                    if abs(tong_o - tong_ngay) > 1e-6:
+                        lech_tong.append((so_dong, tong_o, tong_ngay))
             elif spec.get("ban_ghi") == "moi_cot_thang":
                 # Ô rỗng/0 bị bỏ: bản kế hoạch để trống các tháng chưa đăng ký (A230/A250 trống
                 # hết T1-T6). Giữ lại là đẻ ra "kế hoạch = 0" giả, và %HT sẽ chia cho 0.
@@ -3611,6 +3633,15 @@ def _extract_vung(spec, path):
                 return [], [*warn, f"BỎ QUA — LỆCH CỘT: cột {c.get('header')!r} phải là chữ nhưng "
                                    f"{so}/{co} ô là SỐ — vùng dữ liệu bị chèn/xoá cột mà dòng tiêu "
                                    f"đề không đổi theo, đọc tiếp là mọi cột lệch nhau (kiem_tra_lech_cot)"]
+        if lech_tong:
+            return [], [*warn, f"BỎ QUA — LỆCH TỔNG: {len(lech_tong)} dòng có Σ cột ngày khác cột "
+                               f"{ktt.get('header') or ktt.get('cot')!r} (vd dòng {lech_tong[0][0]}: ô tổng {lech_tong[0][1]:g} vs Σ ngày "
+                               f"{lech_tong[0][2]:g}) — bố cục cột ngày đã đổi (kiem_tra_tong_dong)"]
+        if spec.get("khong_map_bo_ca_file") and (khong_map or khong_map_giu):
+            ds_ = {**khong_map, **khong_map_giu}
+            return [], [*warn, "BỎ QUA — có dòng mang số KHÔNG MAP ĐƯỢC (khong_map_bo_ca_file): "
+                               + ", ".join(f"{k} ({v} dòng)" for k, v in
+                                           sorted(ds_.items(), key=lambda x: -x[1])[:10])]
         if bo_loc:
             warn.append(f"bỏ {bo_loc} {_W_BO_LOC}")
         if bo_an:
