@@ -4681,6 +4681,33 @@ def _derive_congno(file_path: str, sheet: str, canonical_kind: str, period: str,
                                       f"≠ kỳ {period} (sheet chép từ kỳ khác) -> không nạp "
                                       f"{_ADV_CUA[canonical_kind][0]}"}
 
+    # SỔ ĐỨNG YÊN KHAI KỲ BẰNG Ô NGÀY (10/10/2026, khối HO): sheet 'PTHU'/'PTRA' là mẫu SUMIFS theo
+    # khoảng ngày ở dòng 2 — từ T01/2026 vẫn ghi 01/04/2025–30/04/2025 nên mọi tháng ra cùng số dư tĩnh
+    # cũ (240,28 tỷ phải thu trong khi CĐKT cùng file ghi 0,49). Nhánh "Đến ngày" bằng CHỮ ở trên không
+    # bắt được vì kỳ nằm trong ô NGÀY. Kỳ lệch -> đơn vị bật `don_vi.cong_no_dung_lai_tu_nhat_ky` thì
+    # DỰNG LẠI theo đối tượng (số dư sheet đúng kỳ gần nhất + phát sinh sheet DATA, khớp CĐPS từng
+    # tháng — xem congno_dung_lai_nhat_ky.py). CHỈ đơn vị bật cờ mới kiểm ô ngày: sổ của đơn vị khác
+    # có thể mang ô ngày vì lý do khác (ngày lập, ngày in) — kiểm đại trà là từ chối oan sổ đúng.
+    import congno_dung_lai_nhat_ky as _cdl
+    _kd = _cdl.ky_dau_sheet(rows)
+    if _kd and f"{_kd[0]}-{_kd[1]:02d}" != period and _co_cong_no_dung_lai(cong_ty, file_path):
+        _dl = _cdl.dung_lai(file_path, canonical_kind, period)
+        if _dl.get("error"):
+            return {"ok": False, "error": f"sổ đứng yên (kỳ {_kd[1]:02d}/{_kd[0]}), dựng lại hỏng: "
+                                          f"{_dl['error']}"}
+        _recs = []
+        for _r in _dl["records"]:
+            _x = {"Kỳ": period, "Đơn vị": cong_ty, spec["ten_col"]: _r["ten"],
+                  "Dư cuối kỳ (tỷ)": _r["cuoi"], "Dư đầu kỳ (tỷ)": _r["dau"],
+                  spec["inc_col"]: _r["tang"], spec["dec_col"]: _r["giam"]}
+            if _r["ma"]:
+                _x["Mã đối tượng"] = _r["ma"]
+            _recs.append(_x)
+        _kq = _ghi_congno_records(file_path, canonical_kind, period, cong_ty, spec, _recs,
+                                  _dl["adv_recs"], False)
+        _kq.update({"dung_lai_tu": _dl["goc"], "chua_phan_bo": _dl["chua_phan_bo"]})
+        return _kq
+
     # SỔ TỔNG HỢP GỘP NHIỀU TK (vd HTX 'THCN PHẢI THU' = TK 131+138; 'THCN PHẢI TRẢ' = 331+338): có
     # CỘT 'TÀI KHOẢN' đánh dấu TK từng dòng. Phải LỌC đúng TK gốc (131 phải thu / 331 phải trả), loại
     # 138/338/133/336… (phải thu/phải trả KHÁC — báo cáo tách riêng). Dò cột theo GIÁ TRỊ (dòng dữ liệu
@@ -4787,7 +4814,15 @@ def _derive_congno(file_path: str, sheet: str, canonical_kind: str, period: str,
                                  "dau": (None if meta.get("partial") else (_oo or 0.0))})
     if not records:
         return {"ok": False, "error": "không bóc được dòng công nợ nào"}
+    return _ghi_congno_records(file_path, canonical_kind, period, cong_ty, spec, records, adv_recs,
+                               bool(meta.get("partial")))
 
+
+def _ghi_congno_records(file_path, canonical_kind, period, cong_ty, spec, records, adv_recs, partial):
+    """Đường GHI chung của sổ công nợ: template 05/06 -> PTHU/PTRA, dư ngược chiều -> *_ADV. Dùng cho
+    sổ đọc từ sheet thật (`_derive_congno`) và sổ DỰNG LẠI từ nhật ký (`congno_dung_lai_nhat_ky`)."""
+    from servers import template_filler as tf
+    from servers.common import be_bridge as bb
     out = os.path.join(tf.FILLED_DIR, f"{canonical_kind}_{period}_{cong_ty or 'NA'}_{spec['target']}.xlsx")
     tf.fill(spec["target"], records, out)
     imp = tf.import_filled(out, cong_ty=cong_ty, khoi=_khoi_of(file_path), source_file=_source_id(file_path))
@@ -4804,7 +4839,7 @@ def _derive_congno(file_path: str, sheet: str, canonical_kind: str, period: str,
         _db.commit()
     return {"ok": bool(imp.get("rows_imported")), "rows": imp.get("rows_imported"),
             "target": spec["target"], "report_type": spec["target"],
-            "partial_dau_ky": bool(meta.get("partial")), "out": out, "nguoc_chieu": adv}
+            "partial_dau_ky": partial, "out": out, "nguoc_chieu": adv}
 
 
 # Dư NGƯỢC chiều của sổ công nợ (bug.xlsx KSNB 30/09/2026). `_derive_congno` lưu PTHU/PTRA là số dư
@@ -4832,6 +4867,19 @@ def _phai_thu_rong(cong_ty, file_path, canonical_kind):
         g = _load_guide(_contract.resolve_company(cong_ty, fname, prefer_file_name=True), fname) or {}
         return bool(((g.get("content") or {}).get("don_vi") or {}).get("phai_thu_so_du_rong"))
     except Exception:  # noqa: BLE001 — không đọc được guide thì giữ quy tắc chung
+        return False
+
+
+def _co_cong_no_dung_lai(cong_ty, file_path):
+    """Guide đơn vị khai `don_vi.cong_no_dung_lai_tu_nhat_ky: true` -> sổ công nợ ĐỨNG YÊN (ô ngày
+    khai kỳ khác) được dựng lại từ nhật ký 'DATA' thay vì bị từ chối. Khối HO bật 10/10/2026."""
+    try:
+        from servers.common import contract as _contract
+        from servers.common.extraction import load_guide as _load_guide
+        fname = os.path.basename(file_path)
+        g = _load_guide(_contract.resolve_company(cong_ty, fname, prefer_file_name=True), fname) or {}
+        return bool(((g.get("content") or {}).get("don_vi") or {}).get("cong_no_dung_lai_tu_nhat_ky"))
+    except Exception:  # noqa: BLE001 — không đọc được guide thì giữ hành vi từ chối
         return False
 
 
