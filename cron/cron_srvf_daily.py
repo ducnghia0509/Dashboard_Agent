@@ -265,6 +265,9 @@ NGUON = [
         # (3 spec `vhkd_kehoach_giaoxe_kenh_*`). Nhóm thứ hai (tháng + kênh) giữ mỗi kênh một lát
         # riêng, không chung lát '30' với bản T9.
         "slot": r"_(\d+)_NGAY(?:_(T\d+_(?:B2B|B2C|GF)))?",
+        # Chỉ kéo + nạp khi có file MỚI (kỳ mới) hoặc file ĐÃ SỬA — không xin lại cả thư mục mỗi
+        # ngày (user chốt 10/10/2026). Sai bố cục thì spec bỏ CẢ FILE, không ghi dòng nào.
+        "chi_nap_khi_doi": True,
         # `ca_nam` BẮT BUỘC, cùng lý do như `ANTAXI/baocaoqtvhthang`: tên file KHÔNG có một chữ số
         # kỳ nào (`CHI_TIET_TIEN_DO_TUNG_SHOWROOM_TUNG_DONG_XE_13_NGAY.xlsx`) nên metadata trả
         # `month=null` và `thang_tu_ten_file` cũng chịu -> phép lọc `thang != month` loại file

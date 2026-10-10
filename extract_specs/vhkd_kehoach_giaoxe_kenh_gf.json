@@ -5,7 +5,8 @@
     "Ô B9/C9 ghi 'THÁNG' / 8 là nhãn chép từ mẫu cũ — kỳ lấy từ ô ngày dòng 9.",
     "Showroom ghi 'Showroom OCP' -> alias 'ocp' = OCP_SR trong `_cc_showroom`.",
     "Bản 28/09/2026: dòng STT 10 (Showroom Long Biên) TRỐNG tên sản phẩm, đơn giá 658.785.584 = giá VF8 -> giữ dòng (đúng 1 xe ngày 30/10 của Long Biên), dim1 rỗng. Báo KT điền tên.",
-    "Đối chiếu 10/10/2026: Σ Số lượng = Σ ngày = 54 xe; doanh thu 27,25167 tỷ = dòng 'Cộng'. Sheet1 ghi 'Chỉ tiêu T10' 59 xe (kèm ĐL cấp 2 = 5) — không nạp, không có ngày."
+    "Đối chiếu 10/10/2026: Σ Số lượng = Σ ngày = 54 xe; doanh thu 27,25167 tỷ = dòng 'Cộng'. Sheet1 ghi 'Chỉ tiêu T10' 59 xe (kèm ĐL cấp 2 = 5) — không nạp, không có ngày.",
+    "TẤT CẢ HOẶC KHÔNG (user chốt 10/10/2026): sai bố cục thì KHÔNG ghi nhận dòng nào — `kiem_tra_o` (ô tiêu đề), `kiem_tra_tong_dong` (Σ cột ngày từng dòng = cột tổng), `khong_map_bo_ca_file` (showroom/dòng xe lạ). Không đạt -> BỎ CẢ FILE, số đã nạp trước đó của file giữ nguyên."
   ],
   "report_type": "VHKD_TH_GIAOXE_NGAY",
   "row_index_base": 8590000,
@@ -40,6 +41,14 @@
     {
       "o": "B10",
       "bang": "Kênh bán hàng"
+    },
+    {
+      "o": "H9",
+      "bang": "Tổng tháng"
+    },
+    {
+      "o": "H10",
+      "bang": "Số lượng"
     }
   ],
   "header": {
@@ -71,5 +80,9 @@
     "unit_amount2": "ty",
     "nguon": "kehoach_giaoxe_kenh",
     "kenh": "GF"
-  }
+  },
+  "kiem_tra_tong_dong": {
+    "cot": "H"
+  },
+  "khong_map_bo_ca_file": true
 }
