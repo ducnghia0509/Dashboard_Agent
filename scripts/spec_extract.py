@@ -2682,7 +2682,14 @@ def loc_file_moi_nhat(spec, files):
             if m:
                 ngay = "|".join(x or "" for x in (m.groups() or (m.group(0),)))
                 tu_ky_pat = True
-        if not ngay:
+        if not ngay and che_do == "mot_file":
+            # `mot_file` KHÔNG CẦN KỲ: cả thư mục chỉ giữ một bản, nên tên file không suy ra được kỳ
+            # thì vẫn phải vào vòng so — xếp bằng mtime (cron chỉ kéo bản có modifiedAt mới nhất).
+            # Bắt 10/10/2026: BC cập nhật vận hành xe tải đổi tên 'B.5.HT.M2026.08…' sang
+            # 'B.5.HT.D2026.10…', cả hai tên đều không suy được kỳ nên rơi vào nhánh "giữ nguyên"
+            # bên dưới -> nạp CẢ HAI, nhật ký giao hàng + hợp đồng bán CỘNG ĐÔI (written=117+117).
+            ngay = ""
+        elif not ngay:
             giu[f] = (f, "")      # không suy được kỳ -> giữ nguyên, đừng im lặng loại
             continue
         # `tu_ky_pat`: khoá đã LÀ định danh kỳ rồi (vd "2026|8"), cắt [:7] là băm nát nó.

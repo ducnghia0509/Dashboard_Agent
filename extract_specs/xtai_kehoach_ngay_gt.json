@@ -1,0 +1,65 @@
+{
+  "id": "xtai_kehoach_ngay_gt",
+  "_mo_ta": "KẾ HOẠCH DOANH THU khối KD Xe tải THEO NGÀY — phần A GIÁ TRỊ của các sheet 'KHT<tháng>ngay' (KHT9ngay, KHT10ngay…) trong 5.HT.OO.M.<yyyymm>.Kehoachthang.xlsx -> XTAI_KH_NGAY. Mapping '2. Mapping 09.10 - AnhKSNB' dòng 6 (Tổng, E3->AH3) và dòng 30 (theo dòng xe, E5->AH10) cột K. Cùng mã dim1/dim2 với XTAI_KH (TONG / A200 / T101_1 / T101_2 / T101_3_SANNY / T101_3_SHACMAN / T101_3_FAW / T101_3_DONGFENG / T101_4 / T102 / T103).",
+  "_bay": [
+    "BẢNG PHÂN CẤP như sheet KHDT: dòng Tổng (Khối KD Xe tải) = A200 + T101_4 + T102 + T103, A200 lại = Σ 6 dòng xe. Cộng cả bảng là nhân đôi — lọc `dim2` ('Tổng' / 'Nhóm' / 'Chi tiết') trước khi cộng.",
+    "KỲ LẤY TỪ Ô 'Tháng 9' ở cột D (dòng header), NĂM từ tên file: tên file KHÔNG lăn tháng ('202608' mà chứa cả KHT9ngay), mỗi sheet tự khai tháng của nó. Sheet tháng mới (KHT10ngay…) tự vào nhờ `moi_sheet_regex`, không phải sửa spec.",
+    "Cột ngày E..AI (ngày 1..31), mốc ngày là số trần ở CHÍNH dòng header (`dong_tuong_doi: 0`). Ô '-   ' (dòng chưa đăng ký) và ô 0 bị bỏ.",
+    "Bản 05/10/2026 mới có sheet KHT9ngay (chưa có KHT10ngay) -> kế hoạch ngày T10 TRỐNG cho tới khi kế toán thêm sheet; builder không chia đều kế hoạch tháng để lấp (mapping chỉ dặn chia đều cho chỉ tiêu năng suất).",
+    "Đo 10/10/2026 sheet KHT9ngay: dòng Tổng 11.233.333.333 đ/ngày × 30 = 337 tỷ = ô D3 'Tháng 9' = KHDT tháng 9 (XTAI_KH TONG 2026-09 = 337,0 tỷ)."
+  ],
+  "report_type": "XTAI_KH_NGAY",
+  "giu_ngay_tuong_lai": true,
+  "row_index_base": 8220000,
+  "khoi": "Khối KD Xe tải",
+  "nguon": {
+    "folder": "KEHOACH/baocaokehoachthang",
+    "file_glob": "5.HT.*.Kehoachthang.xlsx",
+    "sheet": {
+      "moi_sheet_regex": "^kht\\d{1,2}ngay$",
+      "mo_ta": "KHT<tháng>ngay"
+    },
+    "chi_file_khop_glob": true
+  },
+  "ky_thang_tu_o": {
+    "cot": "D",
+    "toi_da": 10
+  },
+  "header": {
+    "tim_o": "Khối"
+  },
+  "dong_bat_dau_tim": {
+    "cot": "B",
+    "regex": "^\\s*GIÁ TRỊ\\s*$"
+  },
+  "dong_ket_thuc_tim": {
+    "cot": "B",
+    "regex": "^\\s*SẢN LƯỢNG\\s*$"
+  },
+  "chieu_co_dinh": {
+    "dim3": "GIÁ TRỊ"
+  },
+  "cot": {
+    "dim1": {
+      "header": "Khối",
+      "chuan_hoa": "kh_khoi_dong"
+    }
+  },
+  "ban_ghi": "moi_cot_ngay",
+  "cot_ngay": {
+    "dong_tuong_doi": 0,
+    "tu": "E",
+    "den": "AI",
+    "he_so": 1e-09
+  },
+  "loc": [
+    {
+      "cot": "dim2",
+      "dieu_kien": "khac_rong"
+    }
+  ],
+  "payload_them": {
+    "unit": "ty",
+    "loai": "kehoach_ngay"
+  }
+}

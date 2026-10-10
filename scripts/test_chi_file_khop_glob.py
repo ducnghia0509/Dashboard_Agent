@@ -31,7 +31,8 @@ def _ids(ten_file):
 def main():
     sr = _ids("1.SR.OO.M.202608.Kehoachthang.xlsx")
     ht = _ids("5.HT.OO.M.202608.Kehoachthang.xlsx")
-    xtai = {"xtai_kehoach_gt", "xtai_kehoach_sl", "xtai_kehoach_ct_gt", "xtai_kehoach_ct_sl"}
+    xtai = {"xtai_kehoach_gt", "xtai_kehoach_sl", "xtai_kehoach_ct_gt", "xtai_kehoach_ct_sl",
+            "xtai_kehoach_ngay_gt", "xtai_kehoach_ngay_sl"}
     _kiem("spec Xe tải KHÔNG chạy trên file SR", not (sr & xtai))
     _kiem("spec Xe tải VẪN chạy trên file HT", xtai <= ht)
     _kiem("spec không khai cờ vẫn chọn theo thư mục (vhkd_kehoach_gt có ở file SR)",

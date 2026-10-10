@@ -1,0 +1,80 @@
+{
+  "id": "htxt_lead_ngay",
+  "_mo_ta": "PHÁT TRIỂN THỊ TRƯỜNG & KHÁCH HÀNG xe điện SANY THEO NGÀY — 31 cột ngày H..AL (mốc ngày = số 1..31 ở dòng 5) của sheet 'Báo cáo kinh doanh theo ngày ' trong B.5.HT.M<năm>.<tháng>.BC CAPNHATKINHDOANHXETAIDIENSANY -> HTXT_LEAD_NGAY. Mapping '2. Mapping 09.10 - AnhKSNB' dòng 36-40 cột K. Cùng mã dim1 với HTXT_LEAD (tiep_can/thu_tai/hot/warm/cold/khong_lien_lac/khong_dien_tt/ky_hd); amount = số KH phát sinh TRONG NGÀY.",
+  "_bay": [
+    "REPORT_TYPE RIÊNG, KHÔNG gộp vào HTXT_LEAD: số tháng (cột E) và số ngày cùng nằm trong một file — chung report_type thì tab Tháng cộng cả hai là ĐẾM ĐÔI, và `_ghi` (xoá theo report_type + source_file) của spec chạy sau xoá sạch phần của spec chạy trước.",
+    "THÁNG/NĂM LẤY TỪ TÊN FILE ('M2026.09.' -> 2026-09): dòng mốc chỉ ghi số ngày trần 1..31, dòng 6 ghi thứ ('T3', 'CN'). Cột 30/31 ở tháng ngắn bị engine bỏ (ngày không tồn tại).",
+    "dim1 dò bằng hook `htxt_lead_ma` trên chuỗi ghép '<Chỉ tiêu> | <Mô tả> | <cột E>' — cột E (tổng tháng) là ô LUÔN có số nên được chọn làm cột chính để engine chịu ghép; amount thì lấy từ cột ngày. Dòng 'Tỷ lệ chuyển đổi' (E15) không có số ngày nên tự rơi.",
+    "Ô ngày rỗng/0 bị bỏ (quy ước `moi_cot_ngay`) — ngày không có KH mới là KHÔNG có dòng, không phải dòng 0.",
+    "Đối chiếu 10/10/2026: T9 tiếp cận Σ H7..AL7 phải = E7 (87) — chạy dry-run so `ky` trước khi bật cron."
+  ],
+  "report_type": "HTXT_LEAD_NGAY",
+  "row_index_base": 9125000,
+  "khoi": "Khối KD Xe tải",
+  "nguon": {
+    "folder": "HUNGTHINH/baocaocapnhatkinhdoanhxetai",
+    "file_glob": "*DIENSANY.xlsx",
+    "sheet": {
+      "ten": "Báo cáo kinh doanh theo ngày"
+    }
+  },
+  "moi_ky_lay_file_moi_nhat": true,
+  "ky_tu_ten_file": {
+    "regex_nam": "M(\\d{4})\\.\\d{1,2}\\.",
+    "regex_thang": "M\\d{4}\\.(\\d{1,2})\\."
+  },
+  "ky_thang_tu_ten_file": {
+    "regex": "M(?P<nam>\\d{4})\\.(?P<thang>\\d{1,2})\\."
+  },
+  "kiem_tra_o": [
+    {
+      "o": "B4",
+      "bang": "Chỉ tiêu"
+    },
+    {
+      "o": "D4",
+      "bang": "Mô tả"
+    },
+    {
+      "o": "E4",
+      "bang": "Cập nhật kinh doanh"
+    },
+    {
+      "o": "H4",
+      "bang": "theo từng ngày"
+    }
+  ],
+  "header": {
+    "dong": 4
+  },
+  "dong_bat_dau": 7,
+  "cot": {
+    "dim1": {
+      "cot": "E",
+      "ghep_header": [
+        "Chỉ tiêu",
+        "Mô tả"
+      ],
+      "chuan_hoa": "htxt_lead_ma"
+    }
+  },
+  "ban_ghi": "moi_cot_ngay",
+  "cot_ngay": {
+    "dong": 5,
+    "tu": "H",
+    "den": "AL"
+  },
+  "chieu_co_dinh": {
+    "cong_ty": "HT"
+  },
+  "loc": [
+    {
+      "cot": "dim1",
+      "dieu_kien": "khac_rong"
+    }
+  ],
+  "payload_them": {
+    "unit": "kh",
+    "dong_xe": "SANY"
+  }
+}
