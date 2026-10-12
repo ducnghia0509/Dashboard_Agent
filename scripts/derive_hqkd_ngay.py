@@ -332,12 +332,15 @@ _UNITS = {
     # phí. File tháng vẫn THẮNG ở ngày nó có; file ngày chỉ lấp ngày file tháng trống.
     "DUAN": {"layout": "duan", "cong_ty": "TC", "khoi": "Khối KD Dự án",
              "sodu_ho_file_rieng": True, "ngay_sodu_tu_ten_file": True,
-             # `file_ngay_tu` (chốt user 24/09/2026): TỪ 17/09/2026 P&L CHỈ lấy file ngày — file
-             # tháng có điền lại ngày đó cũng BỎ. Không chốt mốc thì "file tháng thắng" sẽ nhảy số
+             # `file_ngay_tu`: TỪ 01/09/2026 P&L CHỈ lấy file ngày `D.<YYYYMMDD>.Baocaotaichinhrieng`
+             # — workbook tháng `D.<YYYYM>.BaocaoHQKD` (mỗi sheet một ngày) BỎ hẳn từ kỳ 2026-09
+             # (chốt user 12/10/2026; mốc cũ 17/09 chốt 24/09). Hệ quả biết trước: file ngày đầu
+             # tiên là 15/09 và là LUỸ KẾ 01→15 -> 01..14 trống, ngày 15 mang cả nửa tháng
+             # (`chan_luy_ke` không chặn vì chưa có ngày nào trước nó). Kỳ ≤ 2026-08 không đổi. Không chốt mốc thì "file tháng thắng" sẽ nhảy số
              # sang cơ sở chi phí khác (giá vốn 16/09: 380,38 tháng vs 427,74 ngày) bất cứ lúc nào
              # kế toán lỡ điền sheet 17..31 của file tháng.
              "pl_ho_file_rieng": {"sheet": "HQKD", "kieu": "duan_ngay", "ky_tu_ten_file": True,
-                                  "chan_luy_ke": True, "file_ngay_tu": "2026-09-17"},
+                                  "chan_luy_ke": True, "file_ngay_tu": "2026-09-01"},
              "sheet_sodu": {"pthu": "131", "ptra": "331", "cdkt": "CĐKT", "cdps": "CDSPS"}},
     # Cùng ca với Global AI (21/09/2026) — xem chú thích ở đó. Khác một điểm ĐÃ ĐO: CĐKT của HO
     # lệch ĐỀU 24 đồng giữa mã 270 và 440 ở CẢ BỐN ngày 15-18/09, trong khi 300 + 400 khớp 440
@@ -2448,7 +2451,19 @@ def _anks_b02_facts(wb, sheet):
     return facts
 
 
-def _la_neo_ky(path, period):
+def _chi_file_ngay(unit, period):
+    """Kỳ này P&L + số dư CHỈ đến từ file ngày `D.<YYYYMMDD>` (mốc `file_ngay_tu`, hiện chỉ Dự án)?
+
+    Khi đúng: mọi file KHÔNG mang ngày trong thư mục (workbook `D.<YYYYM>.BaocaoHQKD`, bản sao BCTC
+    tháng `M.<YYYYMM>.Baocaotaichinhrieng` kế toán đặt nhầm vào BAOCAOHQKDNGAY) KHÔNG quét thư mục
+    nữa, file ngày mới nhất làm neo và ghi dưới khoá kỳ. Lý do (12/10/2026): Dự án T9 có HAI file
+    không mang ngày cùng thư mục, mỗi file tự quét lại các file ngày dưới `source_file` của RIÊNG nó
+    -> 15→30/09 cộng đôi cả P&L lẫn số dư (27,29 tỷ HQKD_D thay vì 13,65)."""
+    moc = (unit.get("pl_ho_file_rieng") or {}).get("file_ngay_tu")
+    return bool(moc) and period >= moc[:7]
+
+
+def _la_neo_ky(path, period, bo_qua_file_thang=False):
     """File ảnh chụp này có phải NEO của kỳ không — tức kỳ KHÔNG có file tháng, và nó là file ngày
     MỚI NHẤT của kỳ trong thư mục. Chỉ hỏi cho đơn vị khai `pl_ho_file_rieng`.
 
@@ -2471,6 +2486,8 @@ def _la_neo_ky(path, period):
             continue
         n = _snap_day_of(ten)
         if not n:
+            if bo_qua_file_thang:             # `_chi_file_ngay`: file không mang ngày không làm chủ
+                continue
             return False                      # có file tháng cùng kỳ -> nó là chủ P&L
         ngay_file.append((n, ten))
     return bool(ngay_file) and max(ngay_file)[1] == os.path.basename(path)
@@ -3905,10 +3922,14 @@ def derive(path, write=False):
     # thư mục như lượt nạp file tháng vẫn làm, ghi dưới khoá kỳ. Xem `_la_neo_ky`. Bỏ `per_day`
     # của chính workbook: file ngày không có khuôn P&L của layout gốc (An KS sheet đầu là "331"),
     # mọi số của nó đã đi vào qua hai lượt quét bên dưới.
+    chi_file_ngay = _chi_file_ngay(unit, period)
     neo_ky = bool(unit.get("pl_ho_file_rieng") and not (snap_mode or bcqt_mode)
-                  and _snap_day_of(os.path.basename(path)) and _la_neo_ky(path, period))
+                  and _snap_day_of(os.path.basename(path))
+                  and _la_neo_ky(path, period, bo_qua_file_thang=chi_file_ngay))
     if neo_ky:
         per_day = []
+    # File không mang ngày ở kỳ `_chi_file_ngay`: không quét thư mục (hai cụm số dư/P&L bên dưới).
+    quet_thu_muc = neo_ky or not (_snap_day_of(os.path.basename(path)) or chi_file_ngay)
 
     # SỐ DƯ THEO NGÀY CHO ĐƠN VỊ KHÔNG Ở CHẾ ĐỘ SNAPSHOT (3 khối Xanh, 18/09/2026) — P&L và số dư
     # nằm ở HAI HỌ FILE tách rời nên phải quét thư mục thêm một lượt, xem `_sodu_quet_thu_muc`.
@@ -3929,7 +3950,7 @@ def derive(path, write=False):
     # 01/09 cắt sạch chúng ngay sau đó — tức an toàn nhờ một con số không liên quan.
     sodu_diag = {}
     if (unit.get("sodu_ho_file_rieng") and not (snap_mode or bcqt_mode)
-            and (neo_ky or not _snap_day_of(os.path.basename(path)))):
+            and quet_thu_muc):
         gop_sd, bo_qua_sd, luy_ke_sd = _sodu_quet_thu_muc(path, period, unit)
         if gop_sd:
             theo_ngay = {n: list(f) for n, f in per_day}
@@ -3967,7 +3988,7 @@ def derive(path, write=False):
     # `DELETE ... WHERE source_file=%s` dọn được trọn vẹn. Xem `_pl_quet_thu_muc`.
     pl_diag = {}
     if (unit.get("pl_ho_file_rieng") and not (snap_mode or bcqt_mode)
-            and (neo_ky or not _snap_day_of(os.path.basename(path)))):
+            and quet_thu_muc):
         # MỐC CHUYỂN NGUỒN P&L (`file_ngay_tu`): từ mốc, bỏ P&L của file tháng để file ngày là chủ
         # DUY NHẤT; số dư của file tháng (nếu có) giữ nguyên — mốc chỉ nói về dòng chảy.
         moc_ngay = unit["pl_ho_file_rieng"].get("file_ngay_tu")
@@ -4051,7 +4072,14 @@ def derive(path, write=False):
                 theo_ngay.setdefault(ngay_bctc, []).extend(f_bctc)
                 per_day = sorted((n, f) for n, f in theo_ngay.items() if f)
 
-    if not per_day and not bo_cutover and not bo_tuong_lai:
+    # `_chi_file_ngay`: file không mang ngày nhường TOÀN BỘ số ngày của kỳ cho file ngày (neo kỳ).
+    # Không return sớm — vẫn phải đi xuống `DELETE ... WHERE source_file=%s` để dọn dòng nó đã ghi
+    # ở các lượt trước (workbook 01→16/09, bản sao BCTC 15→30/09 của Dự án).
+    nhuong_file_ngay = chi_file_ngay and not _snap_day_of(os.path.basename(path))
+    if nhuong_file_ngay:
+        per_day = []
+
+    if not per_day and not bo_cutover and not bo_tuong_lai and not nhuong_file_ngay:
         # ĐƠN VỊ DÙNG CHÍNH FILE NÀY LÀM NGUỒN SỐ DƯ -> KHÔNG PHẢI LỖI (18/09/2026).
         #
         # Các đơn vị có hai họ file trong cùng thư mục (3 khối Xanh, An Khách sạn): P&L ở
@@ -4189,6 +4217,8 @@ def derive(path, write=False):
                                   "nap_boi": "chính file này"}} if _chi_so_du else {}),
            **snap_diag, **sodu_diag, **pl_diag,
            **({"neo_ky": period_source_key(folder, period)} if neo_ky else {}),
+           **({"nhuong_file_ngay": "kỳ chỉ lấy file ngày D.<YYYYMMDD> (file_ngay_tu)"}
+              if nhuong_file_ngay else {}),
            "tong_theo_ngay": {
                # `x[:5]` chứ không giải nén cứng 5 phần tử: fact của layout "srvf" có thêm
                # dim2 (kênh bán) ở vị trí thứ 6.
@@ -4238,12 +4268,15 @@ def derive(path, write=False):
         # HAI file thật chứ không phải một file bị phân loại nhầm — thu hẹp về `_D` ở ĐÚNG ca này
         # nên KHÔNG mở lại lỗi 06/08 (ca đó chỉ có một file vật lý, nhánh trên vẫn xoá trần).
         if _ban_sinh_doi(path):
-            _rt_ngay = tuple(REPORT_TYPES)
+            # + 2 report_type riêng của layout "duan" (không nằm trong REPORT_TYPES): thiếu thì bản
+            # sao BCTC tháng Dự án để sót cơ cấu giá vốn/doanh thu ngày đã vét (12/10/2026).
+            _rt_ngay = tuple(REPORT_TYPES) + (RT_DUAN_GV, RT_DUAN_DTMIX)
             cur.execute("DELETE FROM raw_rows WHERE source_file=%s AND report_type = ANY(%s)",
                         (source_file, list(_rt_ngay)))
         else:
             cur.execute("DELETE FROM raw_rows WHERE source_file=%s", (source_file,))
-        if unit.get("pl_ho_file_rieng") and not _snap_day_of(os.path.basename(path)):
+        if (unit.get("pl_ho_file_rieng") and not _snap_day_of(os.path.basename(path))
+                and not chi_file_ngay):
             # FILE THÁNG VỀ MUỘN SAU KHI FILE NGÀY ĐÃ NEO KỲ -> dọn khoá kỳ, file tháng làm chủ.
             # Không dọn thì cùng ngày có hai bộ P&L/số dư dưới hai khoá = cộng đôi. Xem `_la_neo_ky`.
             cur.execute("DELETE FROM raw_rows WHERE source_file=%s",
