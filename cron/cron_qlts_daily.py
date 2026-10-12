@@ -102,12 +102,11 @@ NGUON = [
      "ten": "Tồn kho trạm sạc tháng (tsac2)", "chi_lay": r"Baocaotonkhotramsac"},
     # Bản NGÀY (12/10/2026, tab Ngày tsac2): `B.3.TS.M.<yyyymmdd>.Baocaotonkhotramsac.xlsx`, mỗi
     # file là NXT của đúng một ngày -> `ANH_CHUP_KY` giữ đủ chuỗi ngày như file ngày vhkd5/xdv5.
+    # Lên prod 12/10/2026 (đã gỡ `chi_env: "test"`).
     # Cùng thư mục có sổ NXT kho xe tải (job HTXT tự kéo) -> `chi_lay` chỉ kéo file trạm sạc.
     {"company": "TONKHOTAPDOAN", "rt": "tonkhotapdoanngay", "che_do": core.ANH_CHUP_KY,
      "ten": "Tồn kho trạm sạc theo ngày (tsac2)", "chi_lay": r"Baocaotonkhotramsac",
-     "ngay_regex": r"\.M\.(20\d{2})(\d{2})(\d{2})\.",
-     # `chi_env`: tab Ngày mới chạy ở TEST — BỎ khoá này khi đưa tsac2 tab Ngày lên prod.
-     "chi_env": "test"},
+     "ngay_regex": r"\.M\.(20\d{2})(\d{2})(\d{2})\."},
 
     # ── duan0 "Tổng quan KPI dự án" (06/10/2026): kế hoạch doanh thu sản xuất + nghiệm thu tháng
     # (spec duan_kehoach_sx/_nt). Khai ở job này vì đây là job đã quản nguồn khối Dự án (duan3).
