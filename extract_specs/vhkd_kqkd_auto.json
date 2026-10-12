@@ -21,6 +21,8 @@
     "`VHKD_XHD_D` (spec `vhkd_xuathoadon_ngay`) đọc CÙNG thư mục này. Từ 03/09/2026 nó TRÙNG VAI với spec này — giữ lại vì report_type khác nên không cộng đôi, nhưng ai chạm vào khu này nên gộp về một mối."
   ],
   "report_type": "KDVH",
+  "chi_nap_tu_ngay": "2026-09-01",
+  "_chi_nap_tu_ngay": "12/10/2026 user chốt: KDVH tháng 8 lấy TRỌN từ file kế toán `SRVF/baocaokqkd/...7.4.23.Xuathoadon_{B2B,B2C,GF}_T8` (sản lượng = Σ cột 'Số lượng': B2B 246, B2C 556, GF 12) — ranh giới chuyển nguồn dời từ 25/08 sang 01/09. Các file tự động 25–31/08 không được nạp lại, nạp là cộng đôi với file kế toán.",
   "row_index_base": 8400000,
   "khoi": "Khối KD Vinfast - Showroom",
   "nguon": {
