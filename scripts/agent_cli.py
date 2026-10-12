@@ -4759,7 +4759,6 @@ def _derive_congno(file_path: str, sheet: str, canonical_kind: str, period: str,
         return round((p or 0) - (n or 0), 9)
 
     records, adv_recs = [], []
-    dau_ky = _phai_thu_dau_ky(cong_ty, file_path, canonical_kind)
     for ri in range(mp["data_start_row"], len(rows)):
         r = rows[ri]
         if tk_col is not None and _tk_target:   # lọc đúng TK gốc, loại TK khác (138/338/…)
@@ -4797,9 +4796,6 @@ def _derive_congno(file_path: str, sheet: str, canonical_kind: str, period: str,
             rec[spec["inc_col"]] = num(r, inc_i)
         if dec_i is not None:
             rec[spec["dec_col"]] = num(r, dec_i)
-        if dau_ky:   # `_phai_thu_dau_ky`: số dư = ròng ĐẦU kỳ, phát sinh 0
-            rec["Dư đầu kỳ (tỷ)"] = rec["Dư cuối kỳ (tỷ)"] = net(r, spec["open"], spec["open_opp"])
-            rec[spec["inc_col"]] = rec[spec["dec_col"]] = 0.0
         # Dòng KHÔNG có ô số nào là chữ ký cuối sheet ('KẾ TOÁN TRƯỞNG', 'GIÁM ĐỐC', 'BBB'), không
         # phải đối tượng. Mẫu tự dựng của Dự án còn đệm ~1.000 dòng công thức trống ra tên '0', mã
         # '0', số 0 — nạp vào là 1.000 "đối tượng" rác trong top/biểu đồ theo đối tượng.
@@ -4813,8 +4809,6 @@ def _derive_congno(file_path: str, sheet: str, canonical_kind: str, period: str,
             # Dư NGƯỢC chiều của đối tượng (TK131 dư Có / TK331 dư Nợ) — đầu + cuối kỳ, đọc từ ĐÚNG
             # dòng vừa lấy (cùng bộ lọc TK, cùng loại dòng tổng) -> ghi PTHU_ADV/PTRA_ADV ở dưới.
             _ob, _oo = num(r, role_idx.get(spec["bal_opp"])), num(r, role_idx.get(spec["open_opp"]))
-            if dau_ky:
-                _ob = _oo
             if abs(_ob or 0) >= 1e-9 or abs(_oo or 0) >= 1e-9:
                 adv_recs.append({"ten": name, "ma": rec.get("Mã đối tượng"), "cuoi": _ob or 0.0,
                                  "dau": (None if meta.get("partial") else (_oo or 0.0))})
@@ -4872,22 +4866,6 @@ def _phai_thu_rong(cong_ty, file_path, canonical_kind):
         fname = os.path.basename(file_path)
         g = _load_guide(_contract.resolve_company(cong_ty, fname, prefer_file_name=True), fname) or {}
         return bool(((g.get("content") or {}).get("don_vi") or {}).get("phai_thu_so_du_rong"))
-    except Exception:  # noqa: BLE001 — không đọc được guide thì giữ quy tắc chung
-        return False
-
-
-def _phai_thu_dau_ky(cong_ty, file_path, canonical_kind):
-    """Guide đơn vị khai `don_vi.phai_thu_so_du_dau_ky: true` -> số dư sổ 131 = Nợ ĐẦU KỲ − Có ĐẦU
-    KỲ (cột E − F mẫu tự dựng), không phải cuối kỳ. Khối Dự án chốt 12/10/2026 (mapping dòng 30):
-    T09 = 12,72 tỷ thay vì 28,44. Áp cả dư Có (PTHU_ADV); phát sinh ép 0 cho đẳng thức cân."""
-    if canonical_kind != "TK131":
-        return False
-    try:
-        from servers.common import contract as _contract
-        from servers.common.extraction import load_guide as _load_guide
-        fname = os.path.basename(file_path)
-        g = _load_guide(_contract.resolve_company(cong_ty, fname, prefer_file_name=True), fname) or {}
-        return bool(((g.get("content") or {}).get("don_vi") or {}).get("phai_thu_so_du_dau_ky"))
     except Exception:  # noqa: BLE001 — không đọc được guide thì giữ quy tắc chung
         return False
 

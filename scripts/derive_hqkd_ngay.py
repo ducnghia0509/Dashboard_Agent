@@ -341,10 +341,11 @@ _UNITS = {
              # kế toán lỡ điền sheet 17..31 của file tháng.
              "pl_ho_file_rieng": {"sheet": "HQKD", "kieu": "duan_ngay", "ky_tu_ten_file": True,
                                   "chan_luy_ke": True, "file_ngay_tu": "2026-09-01"},
-             # `pthu_so_du_dau_ky` (chốt user 12/10/2026, mapping dòng 30 "Số dư nợ phải thu KH"):
-             # phải thu = Nợ đầu kỳ − Có đầu kỳ sổ 131 (cột E − F), không phải cuối kỳ I − J. Cùng
-             # quy tắc với đường THÁNG (`don_vi.phai_thu_so_du_dau_ky` trong knowledge/TC_DUAN.yaml).
-             "pthu_so_du_dau_ky": True,
+             # `pthu_du_no_gop` (chốt user 12/10/2026, mapping dòng 30 "Số dư nợ phải thu KH"):
+             # sheet "131" số dư cuối kỳ = cột I "CUỐI KỲ – PHẢI THU", đầu kỳ = cột E — KHÔNG trừ cột
+             # J/F (người mua trả trước, thẻ riêng). Thay quy tắc ròng I − J (09/10) và E − F (sáng
+             # 12/10). Đường THÁNG ra cùng số qua quy tắc chung (PTHU ròng + PTHU_ADV `bu_rong`).
+             "pthu_du_no_gop": True,
              "sheet_sodu": {"pthu": "131", "ptra": "331", "cdkt": "CĐKT", "cdps": "CDSPS"}},
     # Cùng ca với Global AI (21/09/2026) — xem chú thích ở đó. Khác một điểm ĐÃ ĐO: CĐKT của HO
     # lệch ĐỀU 24 đồng giữa mã 270 và 440 ở CẢ BỐN ngày 15-18/09, trong khi 300 + 400 khớp 440
@@ -1469,12 +1470,13 @@ def _snap_tsnv_facts(rows, mau=None):
     return facts
 
 
-def _snap_congno_facts(rows, rt, chieu, dau_ky=False):
+def _snap_congno_facts(rows, rt, chieu, du_no_gop=False):
     """rows sheet sổ tổng hợp công nợ -> [(None, rt, dim1, dim3, số dư tỷ, dim2, payload)].
 
-    `dau_ky` (đơn vị khai `pthu_so_du_dau_ky`, chốt user Dự án 12/10/2026): số dư = Nợ đầu kỳ − Có
-    đầu kỳ, KHÔNG phải cuối kỳ; phát sinh ép 0 để đẳng thức ĐK + tăng − giảm = CK của màn Công nợ
-    vẫn cân (phía đọc grain ngày suy ĐK = CK − tăng + giảm)."""
+    `du_no_gop` (đơn vị khai `pthu_du_no_gop`, chốt user Dự án 12/10/2026): số dư cuối kỳ = CHỈ cột
+    chiều chính cuối kỳ (Dự án: cột I "CUỐI KỲ – PHẢI THU"), đầu kỳ = cột chiều chính đầu kỳ (cột E),
+    KHÔNG trừ chiều ngược (cột J/F — người mua trả trước, thẻ riêng). Giảm = ĐK + tăng − CK để đẳng
+    thức của màn Công nợ vẫn cân (phía đọc grain ngày suy ĐK = CK − tăng + giảm)."""
     top, col = _snap_2tang(rows)
     if top is None:
         return []
@@ -1497,8 +1499,9 @@ def _snap_congno_facts(rows, rt, chieu, dau_ky=False):
         dau = g(f"dk_{pos}") - g(f"dk_{neg}")
         tang, giam = g(f"ps_{pos}"), g(f"ps_{neg}")
         cuoi = g(f"ck_{pos}") - g(f"ck_{neg}")
-        if dau_ky:
-            cuoi, tang, giam = dau, 0, 0
+        if du_no_gop:
+            dau, cuoi = g(f"dk_{pos}"), g(f"ck_{pos}")
+            giam = dau + tang - cuoi
         if not (dau or tang or giam or cuoi):
             continue
         ma = str(r[ma_j]).strip() if ma_j < len(r) and r[ma_j] not in (None, "") else ""
@@ -1745,7 +1748,7 @@ def _khop_sheet_sodu(wb, ten_sheet):
     return out
 
 
-def _snap_sodu_facts(wb, ten_sheet, mau_cdkt=None, chi_so_du=False, pthu_dau_ky=False):
+def _snap_sodu_facts(wb, ten_sheet, mau_cdkt=None, chi_so_du=False, pthu_du_no_gop=False):
     """workbook -> [fact] CẢ CỤM SỐ DƯ (công nợ phải thu/trả, CĐKT, TS-NV, bảng cân đối phát sinh).
 
     Một chỗ duy nhất biết sheet nào nuôi report_type nào — trước đây danh sách này nằm rải trong
@@ -1761,7 +1764,8 @@ def _snap_sodu_facts(wb, ten_sheet, mau_cdkt=None, chi_so_du=False, pthu_dau_ky=
     for khoa, rt, chieu in (("pthu", "PTHU_D", "no"), ("ptra", "PTRA_D", "co")):
         sn = ten_sheet.get(khoa)
         if sn in co:
-            out += _snap_congno_facts(rows(sn), rt, chieu, dau_ky=(pthu_dau_ky and rt == "PTHU_D"))
+            out += _snap_congno_facts(rows(sn), rt, chieu,
+                                      du_no_gop=(pthu_du_no_gop and rt == "PTHU_D"))
     # Không có sổ công nợ chi tiết -> lấy TỔNG theo TK 131/331 từ CĐPS. Thẻ tổng của màn Công nợ
     # vẫn đúng, chỉ thiếu bảng Top 10 — trung thực hơn là để trắng cả màn.
     congno_tong = not (ten_sheet.get("pthu") or ten_sheet.get("ptra"))
@@ -2222,7 +2226,7 @@ def _sodu_trong_chinh_file(path, period, unit):
                           f"cộng đôi với file đúng tên"}}
         facts = _snap_sodu_facts(wb, ten_sheet, _MAU_CDKT.get(unit.get("mau_cdkt", "b01dn")),
                                  chi_so_du=(vi_sao == "luy_ke"),
-                                 pthu_dau_ky=bool(unit.get("pthu_so_du_dau_ky")))
+                                 pthu_du_no_gop=bool(unit.get("pthu_du_no_gop")))
         sn_cdkt = _ten_sheet_that(wb, ten_sheet.get("cdkt"))
         if ((unit.get("tonkho_ngay") or {}).get("kieu") == "cdkt_140"
                 and sn_cdkt in (wb.sheetnames or ())):
@@ -2305,7 +2309,7 @@ def _sodu_quet_thu_muc(path, period, unit):
                 continue
             facts = _snap_sodu_facts(wb, ten_sheet, _MAU_CDKT.get(unit.get("mau_cdkt", "b01dn")),
                                      chi_so_du=(vi_sao == "luy_ke"),
-                                     pthu_dau_ky=bool(unit.get("pthu_so_du_dau_ky")))
+                                     pthu_du_no_gop=bool(unit.get("pthu_du_no_gop")))
             if vi_sao == "luy_ke":
                 luy_ke.append(ngay)
             if not facts:
