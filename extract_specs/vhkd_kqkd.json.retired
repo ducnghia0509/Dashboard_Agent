@@ -1,5 +1,5 @@
 {
-  "_NGHI_HUU": "NGHỈ TỪ 03/09/2026 — thay bằng `vhkd_kqkd_auto` (nguồn KD73 tự động, TEST_SR/bangkehoadonbanxe). Ranh giới chuyển nguồn: đến hết 24/08/2026 là dòng của spec này (đóng băng trong DB), từ 25/08 là nguồn tự động. PHẢI đổi đuôi .retired chứ không chỉ gỡ khỏi cron: engine glob `*.json` nên còn đuôi .json là còn bị quét, và chạy lại nó sẽ dựng lại các ngày 25-27/08 -> cộng đôi với nguồn tự động.",
+  "_NGHI_HUU": "[12/10/2026: tháng 8 nay lấy TRỌN từ spec này (file 7.4.23, cả 25–31/08); nguồn tự động chỉ từ 01/09 — xem `chi_nap_tu_ngay` của vhkd_kqkd_auto] NGHỈ TỪ 03/09/2026 — thay bằng `vhkd_kqkd_auto` (nguồn KD73 tự động, TEST_SR/bangkehoadonbanxe). Ranh giới chuyển nguồn: đến hết 24/08/2026 là dòng của spec này (đóng băng trong DB), từ 25/08 là nguồn tự động. PHẢI đổi đuôi .retired chứ không chỉ gỡ khỏi cron: engine glob `*.json` nên còn đuôi .json là còn bị quét, và chạy lại nó sẽ dựng lại các ngày 25-27/08 -> cộng đôi với nguồn tự động.",
   "id": "vhkd_kqkd",
   "_mo_ta": "Bán xe / xuất hóa đơn khối Vinfast - Showroom (DASHBOARD 1 chỉ tiêu 7.2, 8, 10-12). Nguồn Nextcloud: 1.VINFAST_SR/QUANTRINOIBO_VHKD/BaocaoKQKD.",
   "_bay": [
