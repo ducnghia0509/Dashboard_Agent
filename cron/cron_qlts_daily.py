@@ -26,7 +26,7 @@ Vẫn khai hai thư mục đó ở đây vì hai lẽ: (1) ngày kế toán phá
 nhớ sửa code; (2) mỗi lượt chạy sẽ để lại đúng một dòng "không có file nào" trong log — im lặng
 mới là thứ đã để chuyện này kéo dài. KHÔNG được đọc dòng đó thành "job hỏng".
 
-CHẾ ĐỘ `thang` CHO CẢ 9 THƯ MỤC
+CHẾ ĐỘ `thang` CHO CẢ 9 THƯ MỤC (trừ file NGÀY trạm sạc — `anh_chup_ky`, xem NGUON)
 -------------------------------
 Mọi nguồn QLTS đều là MỘT file cho MỘT kỳ, kỳ sau ra file mới (`...M.2026.8.` /
 `...D.2026.8.` / `...Q.2026.7.`), nên kéo lại là đè chính nó — đúng định nghĩa `THANG`.
@@ -100,6 +100,14 @@ NGUON = [
     # tháng Showroom/XDV dạng `.Xls` (nạp tay, xem vhkd5/xdv5) -> `chi_lay` CHỈ kéo file trạm sạc.
     {"company": "TONKHOTAPDOAN", "rt": "tonkhotapdoanthang", "che_do": core.THANG,
      "ten": "Tồn kho trạm sạc tháng (tsac2)", "chi_lay": r"Baocaotonkhotramsac"},
+    # Bản NGÀY (12/10/2026, tab Ngày tsac2): `B.3.TS.M.<yyyymmdd>.Baocaotonkhotramsac.xlsx`, mỗi
+    # file là NXT của đúng một ngày -> `ANH_CHUP_KY` giữ đủ chuỗi ngày như file ngày vhkd5/xdv5.
+    # Cùng thư mục có sổ NXT kho xe tải (job HTXT tự kéo) -> `chi_lay` chỉ kéo file trạm sạc.
+    {"company": "TONKHOTAPDOAN", "rt": "tonkhotapdoanngay", "che_do": core.ANH_CHUP_KY,
+     "ten": "Tồn kho trạm sạc theo ngày (tsac2)", "chi_lay": r"Baocaotonkhotramsac",
+     "ngay_regex": r"\.M\.(20\d{2})(\d{2})(\d{2})\.",
+     # `chi_env`: tab Ngày mới chạy ở TEST — BỎ khoá này khi đưa tsac2 tab Ngày lên prod.
+     "chi_env": "test"},
 
     # ── duan0 "Tổng quan KPI dự án" (06/10/2026): kế hoạch doanh thu sản xuất + nghiệm thu tháng
     # (spec duan_kehoach_sx/_nt). Khai ở job này vì đây là job đã quản nguồn khối Dự án (duan3).

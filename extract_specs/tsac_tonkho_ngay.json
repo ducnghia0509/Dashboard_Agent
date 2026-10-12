@@ -1,0 +1,143 @@
+{
+  "id": "tsac_tonkho_ngay",
+  "_mo_ta": "NXT kho TRẠM SẠC theo NGÀY — sheet đầu ('Xuất nhập tồn') của TONKHOTAPDOAN/tonkhotapdoanngay/B.3.TS.M.<yyyymmdd>.Baocaotonkhotramsac.xlsx -> TSAC_TON, tab NGÀY màn tsac2 'Quản lý kho trạm sạc'. Mỗi file là NXT của ĐÚNG MỘT NGÀY (C1 = E1 = ngày trong tên file). Mỗi mã hàng một dòng; payload cùng khoá với `xdv_tonkho_phutung` (không có cột điều chuyển) để builder gộp bằng `vhkd_pin.nxt_ngay`: tồn đầu/cuối lấy MỐC, nhập/xuất CỘNG. Tiền theo TỶ.",
+  "_bay": [
+    "TÊN FILE NGÀY là '.M.' + 8 chữ số ('B.3.TS.M.20261010.') — file THÁNG ở thư mục tonkhotapdoanthang là '.M.' + 6 chữ số. Regex ngày đòi đủ 8 chữ số.",
+    "Cùng thư mục có sổ NXT kho xe tải ('B.5.HT.D.<yyyymm>.Baocaotonkhoxetai.xlsx', spec htxt_tonkho_ngay) — `file_glob` chỉ nhận '*.Baocaotonkhotramsac.xlsx'.",
+    "Dòng 12 'TỔNG' (A12:D12 gộp ô) không có mã -> chặn bằng `loc` khac_rong trên mã. Dòng 2 trống, header ở dòng 3.",
+    "File ngày KHÔNG có pháp nhân/khối/cost center/nhóm như file tháng — khối gán cứng như spec tháng.",
+    "Mã TBS88220025 'Trụ sạc DC Chargecore 60kW Link & SAS' có SL 0 nhưng giá trị 192.540.741 đ ở MỌI file từ 01/09 tới 10/10; file THÁNG 09 không có dòng này -> tồn cuối 30/09 bản ngày 1.226.438.239 vs bản tháng 1.033.897.498. Đang chờ kế toán trả lời — nạp NGUYÊN VĂN, đừng tự bỏ dòng."
+  ],
+  "_kiem_chung": [
+    "40 file 01/09 -> 10/10/2026: ngày trong C1/E1 khớp tên file; tồn cuối ngày trước = tồn đầu ngày sau ở mọi mã. Phát sinh tháng 09: xuất 07/09 TBS88220027 1 / 288.118.519 · 08/09 TBS88220013 1 / 8.291.698 · 09/09 TBS88220010 1 / 0. 10/10: 90 cái / 1.226.438.239 đ = dòng TỔNG."
+  ],
+  "report_type": "TSAC_TON",
+  "row_index_base": 9220000,
+  "khoi": "Khối KD Trạm sạc Vgreen",
+  "chieu_co_dinh": {
+    "cong_ty": "TC",
+    "khoi": "Khối KD Trạm sạc Vgreen"
+  },
+  "nguon": {
+    "folder": "TONKHOTAPDOAN/tonkhotapdoanngay",
+    "file_glob": "*.Baocaotonkhotramsac.xlsx",
+    "sheet": {
+      "so": 0
+    }
+  },
+  "kiem_tra_o": [
+    {
+      "o": "A1",
+      "bang": "Thời gian bắt đầu"
+    },
+    {
+      "o": "B3",
+      "bang": "Mã sản phẩm"
+    },
+    {
+      "o": "E3",
+      "bang": "Đầu kỳ"
+    },
+    {
+      "o": "F3",
+      "bang": "Giá trị đầu kỳ"
+    },
+    {
+      "o": "G3",
+      "bang": "Nhập trong kỳ"
+    },
+    {
+      "o": "I3",
+      "bang": "Xuất trong kỳ"
+    },
+    {
+      "o": "K3",
+      "bang": "Cuối kỳ"
+    },
+    {
+      "o": "L3",
+      "bang": "Giá trị cuối kỳ"
+    }
+  ],
+  "header": {
+    "dong": 3
+  },
+  "dong_bat_dau": 4,
+  "ngay_tu_ten_file": {
+    "regex": "\\.M\\.(\\d{4})(\\d{2})(\\d{2})\\.",
+    "thu_tu": "ymd"
+  },
+  "moi_ky_lay_file_moi_nhat": "ngay",
+  "cot": {
+    "dim1": {
+      "header": "Mã sản phẩm"
+    },
+    "dim3": {
+      "header": "Tên sản phẩm"
+    },
+    "amount": {
+      "header": "Cuối kỳ",
+      "kieu": "so_co_rong"
+    },
+    "amount2": {
+      "header": "Giá trị cuối kỳ",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09
+    },
+    "payload.ma_vat_tu": {
+      "header": "Mã sản phẩm"
+    },
+    "payload.dvt": {
+      "header": "Đơn vị",
+      "bat_buoc": false
+    },
+    "payload.ton_dau": {
+      "header": "Đầu kỳ",
+      "kieu": "so_co_rong"
+    },
+    "payload.du_dau": {
+      "header": "Giá trị đầu kỳ",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09
+    },
+    "payload.sl_nhap": {
+      "header": "Nhập trong kỳ",
+      "kieu": "so_co_rong"
+    },
+    "payload.tien_nhap": {
+      "header": "Giá trị nhập trong kỳ",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09
+    },
+    "payload.sl_xuat": {
+      "header": "Xuất trong kỳ",
+      "kieu": "so_co_rong"
+    },
+    "payload.tien_xuat": {
+      "header": "Giá trị xuất trong kỳ",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09
+    },
+    "payload.ton_cuoi": {
+      "header": "Cuối kỳ",
+      "kieu": "so_co_rong"
+    },
+    "payload.du_cuoi": {
+      "header": "Giá trị cuối kỳ",
+      "kieu": "so_co_rong",
+      "he_so": 1e-09
+    }
+  },
+  "ban_ghi": "moi_dong",
+  "loc": [
+    {
+      "cot": "payload.ma_vat_tu",
+      "dieu_kien": "khac_rong"
+    }
+  ],
+  "payload_them": {
+    "unit": "cai",
+    "unit_amount2": "ty",
+    "unit_tien": "ty"
+  }
+}
