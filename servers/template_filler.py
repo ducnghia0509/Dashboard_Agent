@@ -381,8 +381,13 @@ def import_filled(path: str, cong_ty: str = None, khoi: str = None, source_file:
         tph = ",".join(["?"] * len(file_types))
         rc = db.execute(
             f"SELECT DISTINCT source_file FROM raw_rows WHERE dataset_id=? AND cong_ty=? "
-            f"AND report_type IN ({tph}) AND source_file IS NOT NULL AND source_file<>?",
-            [target, cong_ty, *file_types, source_file]).fetchall()
+            f"AND report_type IN ({tph}) AND source_file IS NOT NULL AND source_file<>? "
+            f"AND (payload IS NULL OR payload NOT LIKE ?)",
+            [target, cong_ty, *file_types, source_file,
+             '%"du_phong_ngay_cuoi_thang": true%']).fetchall()
+        # Bỏ qua dòng DỰ PHÒNG (12/10/2026): nguồn '<KHỐI>::baocaohqkdngay::<kỳ>::du_phong_thang' có
+        # chữ 'baocaohqkd' nên bị coi là "bản export cùng sổ" -> chặn luôn BCTC tháng thật (Trạm sạc
+        # T9 mất CĐKT/thuế/phải trả), và bước gỡ dự phòng bên dưới không bao giờ tới lượt chạy.
         # CHỈ CHẶN khi nguồn kia CÙNG GỐC THẬT (cùng tiền tố '<công_ty_thư_mục>::') — đó mới là 2
         # bản export cùng 1 sổ của CÙNG 1 nguồn (BaocaoHQKD vs Baocaotaichinhrieng). Nguồn KHÁC THẬT
         # (khác thư mục nhận, vd 3 HTX cùng nộp 'B.6.XVP...') tuy chia sẻ mã pháp nhân (XVP) nhưng là
