@@ -1313,6 +1313,22 @@ def _tcode_facts_byco(byco, profit_pnlt=("Lợi nhuận trước thuế",), pnlt
 _SNAP_NGAY_SHEETS = ("BCKQKD", "BCĐKT", "BC LCTT")
 
 
+# BẢN KẾ TOÁN SỬA TAY THAY BẢN XUẤT TỰ ĐỘNG CÙNG NGÀY: {tên bản bị thay: tên bản thay}.
+# Ca 13/10/2026 (An KS 30/09): máy xuất VPS41 ghi lại tên chuẩn lúc 20:02 11/10 bằng số GỐC (khớp
+# đầu kỳ file 01/10), còn KT sửa tay lúc 16:22 thêm bút toán cuối tháng (giá vốn, CPBH, QLDN) và
+# lưu thành `..xlsx`. Cả hai cùng ngày 30/09, vòng quét xếp theo tên nên bản gốc đứng SAU và đè bản
+# sửa; "file mới nhất thắng" cũng chọn sai vì bản gốc mới hơn. Không suy được luật chung -> khai
+# đích danh. Chỉ bỏ bản bị thay khi bản thay CÓ MẶT trong thư mục.
+_BAN_SUA_TAY = {
+    "B.10.AAG.TCKT.D.20260930.Baocaotaichinhrieng.xlsx": "B.10.AAG.TCKT.D.20260930.Baocaotaichinhrieng..xlsx",
+}
+
+
+def _bi_ban_sua_thay(thu_muc, ten):
+    thay = _BAN_SUA_TAY.get(ten)
+    return bool(thay) and os.path.exists(os.path.join(thu_muc, thay))
+
+
 def _snap_day_of(file_name):
     """'B.3.TC.TCKT.D.20260909.Baocaotaichinhrieng.xlsx' -> '2026-09-09'. None nếu tên thiếu ngày.
 
@@ -2284,7 +2300,7 @@ def _sodu_quet_thu_muc(path, period, unit):
     ngay_cac_file = {_snap_day_of(t) for t in os.listdir(thu_muc)
                      if t.lower().endswith(".xlsx") and _period_of(t, True) == period and _snap_day_of(t)}
     for ten in sorted(os.listdir(thu_muc)):
-        if not ten.lower().endswith(".xlsx") or ten.startswith("~$"):
+        if not ten.lower().endswith(".xlsx") or ten.startswith("~$") or _bi_ban_sua_thay(thu_muc, ten):
             continue
         # CHỈ HỌ ẢNH CHỤP (8 số sau `.D.`). File P&L cùng kỳ (6 số) cũng lọt `_period_of` nhưng
         # nó không có sheet số dư nào -> mở ra chỉ để đóng lại, và tệ hơn là đẻ một dòng "bị loại"
@@ -2496,7 +2512,7 @@ def _la_neo_ky(path, period, bo_qua_file_thang=False):
     thu_muc = os.path.dirname(os.path.abspath(path))
     ngay_file = []
     for ten in os.listdir(thu_muc):
-        if not ten.lower().endswith(".xlsx") or ten.startswith("~$"):
+        if not ten.lower().endswith(".xlsx") or ten.startswith("~$") or _bi_ban_sua_thay(thu_muc, ten):
             continue
         if _period_of(ten, True) != period:
             continue
@@ -2543,7 +2559,7 @@ def _pl_quet_thu_muc(path, period, unit, da_co, thang_theo_ngay=None):  # noqa: 
     ngay_cac_file = {_snap_day_of(t) for t in os.listdir(thu_muc)
                      if t.lower().endswith(".xlsx") and _period_of(t, True) == period and _snap_day_of(t)}
     for ten in sorted(os.listdir(thu_muc)):
-        if not ten.lower().endswith(".xlsx") or ten.startswith("~$"):
+        if not ten.lower().endswith(".xlsx") or ten.startswith("~$") or _bi_ban_sua_thay(thu_muc, ten):
             continue
         if _period_of(ten, True) != period or not _snap_day_of(ten):
             continue
@@ -2626,7 +2642,7 @@ def _snap_doc_ky(path, period, snap_sheet, cong_tu_con=False):
     thu_muc = os.path.dirname(os.path.abspath(path))
     cum, bo_qua, lech_ten, cha_lech = {}, [], [], []
     for fn in sorted(os.listdir(thu_muc)):
-        if not fn.lower().endswith((".xlsx", ".xlsm")) or fn.startswith("~$"):
+        if not fn.lower().endswith((".xlsx", ".xlsm")) or fn.startswith("~$") or _bi_ban_sua_thay(thu_muc, fn):
             continue
         if _period_of(fn, True) != period or not _snap_day_of(fn):
             continue
