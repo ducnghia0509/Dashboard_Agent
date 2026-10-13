@@ -5137,6 +5137,23 @@ def cmd_autofill(args):
     và /source/reprocess, cron_thuchi_daily.py, cron_hqkdngay_daily.py, chạy tay) đều đi qua cho
     MỖI file, nên chặn đúng phạm vi race mà không phải rải sửa nhiều nơi."""
     from servers.common.filelock import IngestInProgress, ingest_lock
+    # Excel 97-2003 THẬT (OLE, vd BCTC tháng SRVF `.Xls` từ T08/2026): openpyxl -> BadZipFile, cả
+    # đường tất định chết, chỉ spec JSON (tự chuyển) kịp ghi -> 13/10/2026 nút "Phân tích AI" chỉ lên
+    # DTHU_NHOM cho SRVF T09. Chuyển sang .xlsx CẠNH file gốc rồi nạp bản đó — source_file
+    # "<FOLDER>::<tên>.xlsx" trùng quy ước các tháng trước.
+    try:
+        with open(args.file, "rb") as fh:
+            _ole = fh.read(8) == b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1"
+    except OSError:
+        _ole = False
+    if _ole:
+        from spec_extract import _chuyen_xls_cu
+        moi = _chuyen_xls_cu(args.file)
+        if not moi:
+            _out({"ok": False, "file": os.path.basename(args.file),
+                  "error": "không chuyển được .xls (Excel 97-2003) sang .xlsx"})
+            return
+        args.file = moi
     sid = _source_id(args.file)
     try:
         with ingest_lock(sid):
