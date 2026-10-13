@@ -248,9 +248,18 @@ _UNITS = {
     # 0 đồng cả 3 ngày 16-18/09), khai kỳ ở dòng 7 bằng nhãn + ô ngày (xem `_ky_theo_nhan_o_ngay`).
     # CHỈ khai `cdkt`: `TC_CDPS` dùng tiêu đề riêng ("MÃ TK | NO | CO | TÊN TÀI KHOẢN | Số dư"),
     # không phải mẫu S06-DN mà `_snap_cdps_facts` dò — khai vào chỉ đẻ dòng "bị loại".
+    # `pl_ho_file_rieng` (13/10/2026): P&L NGÀY từ kỳ 2026-09 — mất dải "D1".."D31" thì tab Ngày
+    # trống P&L cả tháng. Mỗi file `.D.<YYYYMMDD>.` khai kỳ ở sheet KQKD bằng nhãn + ô ngày
+    # (01→15/09 luỹ kế, 16/17/18 từng ngày); số lấy ở "HQKD HỢP NHẤT GA" (mã T, cột "D15" đứng
+    # yên ở mọi bản nhưng là số CỦA KỲ file khai) qua `_tcode_facts` -> cùng nhóm chỉ tiêu như các
+    # tháng có sheet ngày. Chỉ nhận file khai ĐÚNG MỘT ngày (user chốt "có ngày nào lên ngày đó");
+    # bản luỹ kế bỏ. `tu_ky`: các kỳ trước vẫn có sheet ngày ghi dưới khoá file ngày — để lượt
+    # nạp file tháng của kỳ cũ quét thư mục là cộng đôi.
     "GLOBALAI": {"layout": "tcode", "cong_ty": "GA", "khoi": "Khối KD Công nghệ",
                  "pnlt_skip": ("T101",),
-                 "sodu_trong_chinh_file": True, "sheet_sodu": {"cdkt": "CĐKT"}},
+                 "sodu_trong_chinh_file": True, "sheet_sodu": {"cdkt": "CĐKT"},
+                 "pl_ho_file_rieng": {"sheet": "HQKD HỢP NHẤT GA", "sheet_ky": "KQKD", "kieu": "tcode",
+                                      "ky_nhan_o_ngay": True, "tu_ky": "2026-09"}},
     # CỐ Ý KHÔNG KHAI `bo_tu_ngay` CHO TRẠM SẠC (cân nhắc rồi bỏ, 06/09/2026) — dù từ bản
     # `.D.20260829.` file đã đổi layout (bỏ 31 sheet "D1".."D31", còn một sheet "BCHQKD" một cột
     # luỹ kế) y như Showroom/XDV lúc cutover. Khác một điểm quyết định: hai đơn vị kia có SPEC
@@ -2579,6 +2588,8 @@ def _pl_quet_thu_muc(path, period, unit, da_co, thang_theo_ngay=None):  # noqa: 
                 ky = (_snap_day_of(ten), _snap_day_of(ten))
             if not ky and cau_hinh.get("ky_o_ngay"):
                 ky = _ky_pl_o_ngay(dau, ten)
+            if not ky and cau_hinh.get("ky_nhan_o_ngay"):
+                ky = _ky_theo_nhan_o_ngay(dau)
             if not ky:
                 bo_qua.append({"file": ten, "vi_sao": f"sheet '{sheet_ky}' không có dòng "
                                                       f"'Từ ngày .. Đến ngày ..'"})
@@ -2613,6 +2624,10 @@ def _pl_quet_thu_muc(path, period, unit, da_co, thang_theo_ngay=None):  # noqa: 
                 facts = _anks_b02_facts(wb, sheet_pl)
             elif cau_hinh.get("kieu") == "duan_ngay":
                 facts = _duan_ngay_facts([list(r) for r in wb[sheet_pl].iter_rows(values_only=True)])
+            elif cau_hinh.get("kieu") == "tcode":
+                facts = _tcode_facts([list(r) for r in wb[sheet_pl].iter_rows(values_only=True)],
+                                     unit.get("profit_pnlt", ("Lợi nhuận trước thuế",)),
+                                     unit.get("pnlt_skip", ()))
             else:
                 facts = _kqkd_facts([list(r) for r in wb[sheet_pl].iter_rows(values_only=True)])
             if not facts:
@@ -3955,6 +3970,9 @@ def derive(path, write=False):
     # của chính workbook: file ngày không có khuôn P&L của layout gốc (An KS sheet đầu là "331"),
     # mọi số của nó đã đi vào qua hai lượt quét bên dưới.
     chi_file_ngay = _chi_file_ngay(unit, period)
+    # `tu_ky`: đơn vị chỉ bật P&L họ file ngày từ một kỳ (GA từ 2026-09) — kỳ trước coi như không khai.
+    if unit.get("pl_ho_file_rieng") and period < unit["pl_ho_file_rieng"].get("tu_ky", ""):
+        unit = {k: v for k, v in unit.items() if k != "pl_ho_file_rieng"}
     neo_ky = bool(unit.get("pl_ho_file_rieng") and not (snap_mode or bcqt_mode)
                   and _snap_day_of(os.path.basename(path))
                   and _la_neo_ky(path, period, bo_qua_file_thang=chi_file_ngay))
