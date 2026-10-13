@@ -123,7 +123,14 @@ def _grouped_rows(rows, header_scan=8, ng="end"):
             first = [j for j in cands if str(sub[j] or "").strip().startswith("01")]
             return (first or cands)[0]
         end = [j for j in cands if "31" in str(sub[j] or "") or "30" in str(sub[j] or "")]
-        return (end or cands)[-1]
+        if end:
+            return end[-1]
+        # Không có sub-header ngày cuối (nhóm 1 cột, vd 'Giá trị sổ sách') -> ưu tiên ĐÚNG cột mang
+        # nhãn nhóm. Trạm sạc T9/2026: kế toán ghi số tính tay ở cột S/T/V cạnh 2 dòng máy tính,
+        # forward_fill lan nhãn sang đó -> `[-1]` chọn cột tính tay, mọi trạm sạc đọc GTSS=0 và bị
+        # tính nhầm là hết khấu hao (2,895 tỷ thay vì 0).
+        own = [j for j in cands if j < len(rows[grp_i]) and rows[grp_i][j] not in (None, "")]
+        return (own or cands)[-1]
     ng_i = _pick("tai san", ng)
     gtsl_i = _pick("gia tri so sach") or _pick("gia tri")
     if ng_i is None or gtsl_i is None:
