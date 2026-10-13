@@ -259,7 +259,7 @@ _UNITS = {
                  "pnlt_skip": ("T101",),
                  "sodu_trong_chinh_file": True, "sheet_sodu": {"cdkt": "CĐKT"},
                  "pl_ho_file_rieng": {"sheet": "HQKD HỢP NHẤT GA", "sheet_ky": "KQKD", "kieu": "tcode",
-                                      "ky_nhan_o_ngay": True, "tu_ky": "2026-09"}},
+                                      "ky_nhan_o_ngay": True, "ngay_theo_ten": True, "tu_ky": "2026-09"}},
     # CỐ Ý KHÔNG KHAI `bo_tu_ngay` CHO TRẠM SẠC (cân nhắc rồi bỏ, 06/09/2026) — dù từ bản
     # `.D.20260829.` file đã đổi layout (bỏ 31 sheet "D1".."D31", còn một sheet "BCHQKD" một cột
     # luỹ kế) y như Showroom/XDV lúc cutover. Khác một điểm quyết định: hai đơn vị kia có SPEC
@@ -2590,6 +2590,20 @@ def _pl_quet_thu_muc(path, period, unit, da_co, thang_theo_ngay=None):  # noqa: 
                 ky = _ky_pl_o_ngay(dau, ten)
             if not ky and cau_hinh.get("ky_nhan_o_ngay"):
                 ky = _ky_theo_nhan_o_ngay(dau)
+            if cau_hinh.get("ngay_theo_ten"):
+                # GA (13/10/2026, user chốt): NGÀY = TÊN FILE. Bản luỹ kế đến đúng ngày tên file
+                # (15/09 khai 01→15) coi là số CỦA ngày đó; luỹ kế kết thúc ở ngày KHÁC (01/09 là bản
+                # chép của 15/09) thì bỏ — nhận nó là cộng đôi 272,7tr. Dòng kỳ 1 ngày lệch tên (30/09
+                # còn khai 18/09) là tiêu đề chép sót -> theo tên.
+                n_ten = _snap_day_of(ten)
+                if ky and ky[0] != ky[1] and ky[1] != n_ten:
+                    bo_qua.append({"file": ten, "vi_sao": f"luỹ kế {ky[0]}→{ky[1]} không kết thúc ở ngày "
+                                                          f"tên file {n_ten} — bỏ (tránh cộng đôi)"})
+                    continue
+                if ky and ky != (n_ten, n_ten):
+                    bo_qua.append({"file": ten, "vi_sao": f"khai {ky[0]}→{ky[1]} — lấy số làm ngày "
+                                                          f"{n_ten} theo tên file"})
+                ky = (n_ten, n_ten)
             if not ky:
                 bo_qua.append({"file": ten, "vi_sao": f"sheet '{sheet_ky}' không có dòng "
                                                       f"'Từ ngày .. Đến ngày ..'"})
