@@ -363,8 +363,13 @@ _UNITS = {
     # KHÔNG khai `cdkt` là sheet `TC_CĐKT`: đó là bản kỳ 8 THÁNG 2025, nhãn "Số cuối năm", một
     # sheet tham chiếu cũ nằm lẫn trong file. Khai nhầm là nạp số của năm ngoái dưới ngày hôm nay.
     # `tonkho_ngay` (26/09/2026): TỒN KHO theo ngày dựng Y HỆT bản THÁNG của khối — xem `_hh_ngay_cdkt140`.
+    # `pl_ho_file_rieng` (13/10/2026, cùng ca GA): từ kỳ 2026-09 file ngày bỏ dải "D1".."D31",
+    # P&L nằm ở sheet "HO_KQKD" (cột "D15"/"D30", không khai Từ–Đến) -> ngày = TÊN FILE (user chốt).
+    # Thư mục không có file tháng nên file ngày mới nhất làm neo kỳ (`_la_neo_ky`).
     "HO": {"layout": "ho_kqkd", "cong_ty": "TC", "khoi": "Khối hỗ trợ tập đoàn",
            "sodu_trong_chinh_file": True, "sheet_sodu": {"cdkt": "CĐKT"},
+           "pl_ho_file_rieng": {"sheet": "HO_KQKD", "kieu": "layout", "ky_tu_ten_file": True,
+                                "tu_ky": "2026-09"},
            "tonkho_ngay": {"kieu": "cdkt_140"}},
     # XE TẢI HƯNG THỊNH (spec user 2026-08-06) — layout "ht", xem `_ht_facts`.
     # P&L vốn đã chạy tốt (18 ngày kỳ 09). `sodu_matran_trong_file` (21/09/2026) chỉ thêm cụm SỐ
@@ -2638,6 +2643,8 @@ def _pl_quet_thu_muc(path, period, unit, da_co, thang_theo_ngay=None):  # noqa: 
                 facts = _anks_b02_facts(wb, sheet_pl)
             elif cau_hinh.get("kieu") == "duan_ngay":
                 facts = _duan_ngay_facts([list(r) for r in wb[sheet_pl].iter_rows(values_only=True)])
+            elif cau_hinh.get("kieu") == "layout":
+                facts = _FACTS_FN[unit["layout"]]([list(r) for r in wb[sheet_pl].iter_rows(values_only=True)])
             elif cau_hinh.get("kieu") == "tcode":
                 facts = _tcode_facts([list(r) for r in wb[sheet_pl].iter_rows(values_only=True)],
                                      unit.get("profit_pnlt", ("Lợi nhuận trước thuế",)),
@@ -3666,6 +3673,10 @@ def _ho_facts(rows):
     ma_j = next((j for j, c in enumerate(hdr) if _nd(c) == "ma so"), ten_j - 1)
     dt_511, co_511 = 0.0, False
     theo_ma = {}
+    # CÓ DÒNG MÃ 511* (dù trống) -> sheet còn cột mã, doanh thu thuần = Σ 511 (trống = 0). Chỉ khi mất
+    # hẳn cột mã mới lùi về "Tổng Doanh thu". Ca 30/09/2026 HO: 511* trống, "Tổng Doanh thu" 64,49tr
+    # chính là DTTC 19,74 + TN khác 44,75 -> lùi về ô tổng là đếm đôi (bản tháng DT thuần = 0).
+    co_ma_511 = False
     if ma_j >= 0:
         for r in rows[hdr_i + 1:]:
             if not r or ma_j >= len(r) or r[ma_j] in (None, ""):
@@ -3674,6 +3685,8 @@ def _ho_facts(rows):
             if code.endswith(".0"):
                 code = code[:-2]
             v = _num(r[val_j]) if val_j < len(r) else None
+            if code.startswith("511"):
+                co_ma_511 = True
             if code.startswith("511") and v is not None:
                 dt_511 += v
                 co_511 = True
@@ -3682,7 +3695,7 @@ def _ho_facts(rows):
 
     facts = []
     # Không dòng 511* nào có số -> rơi về dòng "Tổng Doanh thu" (sheet đổi layout, mất cột mã).
-    dt = dt_511 if co_511 else val("dt")
+    dt = dt_511 if (co_511 or co_ma_511) else val("dt")
     if dt:
         facts.append((None, RT_HQKD, MA_DT, MA_DT, dt))
         facts.append((None, RT_DTHU, "Doanh thu thuần", "Doanh thu thuần", dt))
@@ -3698,10 +3711,19 @@ def _ho_facts(rows):
         v = sum(theo_ma.get(m) or 0.0 for m in ma)
         if v:
             facts.append((None, RT_PNLT, dim1, dim1, v))
+    # Ô tổng TRỐNG (KT xoá công thức — bản 30/09/2026) -> tính lại đúng công thức gốc của file:
+    # "Tổng chi phí" = SUM các dòng giữa hai neo, "Tổng lợi nhuận" = Tổng Doanh thu − Tổng chi phí.
     tong_cp = val("tong_cp")
+    if tong_cp is None:
+        cac_cp = [_num(rows[i][val_j]) for i in range(anchor_i["tong_cp"] + 1, anchor_i["lntt"])
+                  if rows[i] and val_j < len(rows[i])]
+        if any(v is not None for v in cac_cp):
+            tong_cp = round(sum(v or 0.0 for v in cac_cp), 2)
     if tong_cp:
         facts.append((None, RT_HQKD, MA_CP, MA_CP, tong_cp))
     lntt = val("lntt")
+    if lntt is None and val("dt") is not None:
+        lntt = val("dt") - (tong_cp or 0.0)
     if lntt:
         facts.append((None, RT_HQKD, MA_LNTT, MA_LNTT, lntt))
         facts.append((None, RT_PNLT, "Lợi nhuận sau thuế", "Lợi nhuận sau thuế", lntt))
