@@ -47,8 +47,8 @@
   },
   "dong_bat_dau": 10,
   "ky_tu_ten_file": {
-    "regex_nam": "\\.M(\\d{4})\\d{2}\\.",
-    "regex_thang": "\\.M\\d{4}(\\d{2})\\."
+    "regex_nam": "\\.M\\.?(\\d{4})\\d{2}\\.",
+    "regex_thang": "\\.M\\.?\\d{4}(\\d{2})\\."
   },
   "moi_ky_lay_file_moi_nhat": true,
   "cot": {
