@@ -121,7 +121,9 @@ def _rebuild(sheets=None, why=""):
     except Exception:
         _log("LỖI khi dựng brief:\n" + traceback.format_exc())
         return False
+    nho = r.get("nho") or {}
     _log(f"xong sau {time.time() - t0:.1f}s · sheet={len(r['sheets'])} "
+         f"· nguồn đọc lại={nho.get('doc', 0)} dùng lại={nho.get('trung', 0)} "
          f"· thiếu nguồn={len(r['notes'])} · lỗi={len(r['errors'])}"
          + (f" · {r['stale']}" if r["stale"] else ""))
     for n in r["notes"]:

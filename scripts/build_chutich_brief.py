@@ -17,12 +17,14 @@ Chạy:
     .venv/bin/python scripts/build_chutich_brief.py --only L5_CONGNO L10_NGHIVAN
 """
 import argparse
+import copy
 import json
 import os
 import shutil
 import statistics
 import sys
 import tempfile
+import time
 import traceback
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
@@ -142,6 +144,59 @@ def _ty(v, nd=3):
     return round(v, nd) if isinstance(v, (int, float)) else v
 
 
+# ---- Nhớ kết quả đọc nguồn theo vân tay thư mục ------------------------------------
+#
+# LÝ DO (13/10/2026): watcher dựng lại 25 lần/ngày, mỗi lần ~5 phút CPU — tổng ~2 giờ CPU/ngày
+# trên CHÍNH máy chạy API prod (1 worker), làm API chậm theo. Dựng 3 sheet (287s) tốn ngang dựng
+# đủ 10 sheet (291s): gần hết thời gian là đọc lại nguồn, không phải dựng sheet. Riêng deriver HQKD
+# ngày của XANHVINHPHUC mất 187s vì nó quét MỌI file ảnh chụp trong thư mục (58 file), HO 74s, GA 26s
+# — và lần dựng định kỳ mỗi giờ đọc lại y hệt dù không file nào đổi.
+#
+# Khoá vân tay = (tên, cỡ, mtime) của MỌI file trong thư mục ĐƠN VỊ (`received_reports/<FOLDER>/`),
+# không chỉ file đang đọc: deriver quét cả thư mục (bản ảnh chụp các ngày khác, file hợp nhất HT),
+# nên một file khác cùng đơn vị về cũng phải làm mất cache. Vân tay lấy TRƯỚC khi đọc: file về giữa
+# lúc đọc thì lần sau lệch vân tay và đọc lại, thay vì nhớ nhầm kết quả cũ dưới vân tay mới.
+#
+# `_NHO_TOI_DA_GIAY` là lưới an toàn cho thứ vân tay không thấy (bảng `cost_center_map` trong DB mà
+# deriver HQKD tra — vốn đã bị chính deriver nhớ suốt đời tiến trình). Chỉ sống trong tiến trình
+# watcher; chạy CLI một lần thì không có gì để nhớ, hành vi y như cũ.
+_NHO_TOI_DA_GIAY = 6 * 3600
+_nho = {}
+_thong_ke_nho = {"trung": 0, "doc": 0}
+
+
+def _van_tay_don_vi(path):
+    rel = os.path.relpath(os.path.abspath(path), CS.RECEIVED_DIR).split(os.sep)
+    goc = (os.path.join(CS.RECEIVED_DIR, rel[0]) if len(rel) > 1 and rel[0] != ".."
+           else os.path.dirname(os.path.abspath(path)))
+    out = []
+    for thu_muc, _con, ten_file in os.walk(goc):
+        for ten in ten_file:
+            try:
+                st = os.stat(os.path.join(thu_muc, ten))
+            except OSError:
+                continue
+            out.append((os.path.relpath(os.path.join(thu_muc, ten), goc), st.st_size, st.st_mtime_ns))
+    return tuple(sorted(out))
+
+
+def _doc_co_nho(loai, path, fn, *args):
+    """fn(*args) — trả bản đã nhớ nếu thư mục đơn vị của `path` không đổi gì kể từ lần đọc trước.
+
+    Trả BẢN SAO: bộ dựng sheet có thể sửa tại chỗ dict nhận được, không được làm bẩn bản nhớ.
+    Lỗi thì không nhớ — lần sau đọc lại, để lỗi tạm thời (file đang truyền dở) tự hết."""
+    khoa = (loai, os.path.abspath(path), repr(args))
+    van_tay = _van_tay_don_vi(path)
+    cu = _nho.get(khoa)
+    if cu and cu[0] == van_tay and time.monotonic() - cu[1] < _NHO_TOI_DA_GIAY:
+        _thong_ke_nho["trung"] += 1
+        return copy.deepcopy(cu[2])
+    kq = fn(*args)
+    _thong_ke_nho["doc"] += 1
+    _nho[khoa] = (van_tay, time.monotonic(), copy.deepcopy(kq))
+    return kq
+
+
 # ---- Thu thập dữ liệu thô ---------------------------------------------------------
 
 def _collect_hqkd_ngay(errors, skipped):
@@ -154,7 +209,8 @@ def _collect_hqkd_ngay(errors, skipped):
     out = {}
     for folder, e in CS.latest_per_folder("baocaohqkdngay").items():
         try:
-            res, _ = CS.capture(m.derive, e["path"], write=False)
+            res, _ = _doc_co_nho("hqkd", e["path"],
+                                 lambda p: CS.capture(m.derive, p, write=False), e["path"])
             if res.get("ok") and res.get("tong_theo_ngay"):
                 out[folder] = {"period": res.get("period"), "file": e["file"],
                                "days": res["tong_theo_ngay"]}
@@ -202,7 +258,9 @@ def _collect_aging(errors):
     out = {}
     for folder, e in CS.latest_per_folder("baocaotuoino").items():
         try:
-            res, _ = CS.capture(m.derive, e["path"], e["period"], write=False)
+            res, _ = _doc_co_nho("aging", e["path"],
+                                 lambda p, k: CS.capture(m.derive, p, k, write=False),
+                                 e["path"], e["period"])
             if res.get("agg_ty") or res.get("tong_ty") is not None:
                 out[folder] = {"period": res.get("period") or e["period"], "file": e["file"],
                                "agg": _norm_aging(res), "mode": res.get("mode"),
@@ -247,7 +305,7 @@ def _collect_sodu_tien(errors, notes):
     doc = []
     for e in cands[:4]:
         try:
-            _res, tpl = CS.capture(m.extract, e["path"], e["period"])
+            _res, tpl = _doc_co_nho("sodu", e["path"], CS.capture, m.extract, e["path"], e["period"])
             recs = tpl.get("03B_SODU_TIEN", [])
         except Exception as ex:
             errors.append(f"sodu_tien/{e['period']}: {type(ex).__name__}: {ex}")
@@ -358,7 +416,7 @@ def _collect_congno_detail(aging, errors):
     out = {}
     for folder, info in aging.items():
         try:
-            det = _read_congno_detail(info["path"])
+            det = _doc_co_nho("detail", info["path"], _read_congno_detail, info["path"])
             if det:
                 out[folder] = det
         except Exception as ex:
@@ -881,6 +939,7 @@ def build(only=None, out_path=OUT_PATH, verbose=True):
     for t in targets:
         needs |= SHEET_NEEDS.get(t, set())
 
+    nho_truoc = dict(_thong_ke_nho)
     errors, extra_notes = [], []
     ctx = {"hqkd": {}, "aging": {}, "detail": {}, "sodu": [], "sodu_meta": {}, "skipped": []}
     if "hqkd" in needs:
@@ -915,8 +974,9 @@ def build(only=None, out_path=OUT_PATH, verbose=True):
             print(f"[brief] {stale}")
         for e in errors:
             print(f"[brief][LỖI] {e}")
+    nho = {k: _thong_ke_nho[k] - nho_truoc[k] for k in _thong_ke_nho}
     return {"sheets": sorted(sheets), "errors": errors, "notes": notes,
-            "built_at": built_at, "stale": stale}
+            "built_at": built_at, "stale": stale, "nho": nho}
 
 
 def main():
