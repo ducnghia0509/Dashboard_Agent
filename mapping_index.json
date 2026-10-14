@@ -1,0 +1,29 @@
+{
+  "_mo_ta": "Chỉ mục TÀI LIỆU MAPPING <-> MÀN DASHBOARD cho bot so khớp mapping. Do người làm khai tay (tài liệu mapping không có mã liên kết sang màn). Thêm tài liệu mới = thêm một khối dưới `tai_lieu`; không cần sửa code.",
+  "thu_muc_tai_lieu": "/home/itadmin/AI_Dashboard_QT/Tài liệu",
+  "tai_lieu": {
+    "QTTC": {"ten": "Mapping Dashboard Quản trị tài chính (tập đoàn, 50 chỉ tiêu)",
+             "file": "Mapping_Dashboard_QTTC.xlsx",
+             "sheet": ["1. Mapping theo giao diện", "2. Mapping 50 chỉ tiêu"],
+             "man": ["revenue", "expense", "profit", "cashflow", "finance", "debt", "inventory", "asset", "investment", "thue", "pnl", "ledger"]},
+    "VHKD": {"ten": "Mapping QTVH Kinh doanh xe (Showroom)", "file": "Mapping_Dashboard_VHKD.xlsx",
+             "sheet": ["2. Mapping chỉ tiêu"], "man": ["vhkd0", "vhkd1", "vhkd2", "vhkd3", "vhkd4", "vhkd5"]},
+    "XDV": {"ten": "Mapping QTVH Xưởng dịch vụ", "file": "2.XDV_Mapping_Dashboard.xlsx",
+            "sheet": ["2. Mapping chỉ tiêu", "QTVH_Cách lấy XDV"], "man": ["xdv0", "xdv1", "xdv2", "xdv3", "xdv4", "xdv5"]},
+    "DUAN": {"ten": "Mapping Dự án", "file": "4.DU_AN.Mapping_Dashboard.xlsx",
+             "sheet": ["2. Mapping 4.9", "2. Mapping chỉ tiêu"], "man": ["duan0", "duan1", "duan2", "duan3"]},
+    "HTXT": {"ten": "Mapping Xe tải Hưng Thịnh", "file": "5.HTxetai_Mapping_Dashboard.xlsx",
+             "sheet": ["2. Mapping 17.9", "2. Mapping chỉ tiêu"], "man": ["htxt0", "htxt1"]},
+    "ANTAXI": {"ten": "Mapping QTVH An Taxi", "file": "6.Antaxi.Mapping_Dashboard_new.xlsx",
+               "sheet": ["Mapping Antaxi 25.08", "Chỉ tiêu VHKD Antaxi"], "man": ["at1", "at2", "at3", "at4", "at5"]},
+    "XANHVP": {"ten": "Mapping QTVH Xanh Taxi/Xanh VP", "file": "7.XANHVP_Mapping_Dashboard_new.xlsx",
+               "sheet": ["Mapping chỉ tiêu_XanhVP 26.08", "Chỉ tiêu VHKD XanhVP"], "man": ["xt0", "xt1", "xt2", "xt3", "xt4", "xt5"]},
+    "QLTS": {"ten": "Mapping Quản lý tài sản", "file": "9.HT_QLTS_Mapping_Dashboard.xlsx",
+             "sheet": ["2. Mapping chỉ tiêu"], "man": ["ts1", "ts2", "ts3", "ts4", "ts5"]}
+  },
+  "chi_co_tai_lieu_md": {
+    "tsac0": "RASOAT_MAPPING_TRAMSAC_DAILY.md · TRAMSAC_TCKT_LEN_DASHBOARD.md · SUALOI_MAPPING_TRAMSAC.md",
+    "tsac1": "RASOAT_MAPPING_TRAMSAC_DAILY.md",
+    "tsac2": "RASOAT_MAPPING_TRAMSAC_DAILY.md"
+  }
+}
