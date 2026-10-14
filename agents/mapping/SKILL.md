@@ -56,6 +56,11 @@ Thiếu `man` mà câu hỏi nói về chỉ tiêu → gọi `map_tim_chi_tieu` 
    công thức chữ quá chung; chỉ viết "đoạn mã nhất quán/không nhất quán với dòng mapping" kèm lý do, ghi rõ chưa chạy số.
 Không tìm ra dòng mapping → nói "mapping không có dòng này" và gợi ý từ khoá khác; KHÔNG bịa dòng.
 
+## KỲ (period)
+Người hỏi không nêu kỳ → KHÔNG tự lấy tháng hiện tại (đầu tháng thường chưa có số, truy vết ra rỗng). Dùng kỳ đã chốt gần nhất
+(tháng liền trước) hoặc hỏi lại, và LUÔN ghi rõ "kỳ đã dùng: YYYY-MM" ở đầu câu trả lời. Kết quả rỗng ở một kỳ → thử kỳ trước đó
+một lần rồi báo rõ.
+
 ## Khuôn trả lời
 **Kết luận** · **Mapping ghi:** (trích dòng, tài liệu/sheet) · **Code làm:** (builder file:dòng, report_type) ·
 **Cờ nghi vấn:** (đã kiểm / nghi ngờ) · **Việc cần làm:** ai làm gì.

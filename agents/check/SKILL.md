@@ -61,6 +61,11 @@ vào DB lúc nào"** — nói thẳng điều đó, đừng suy ra từ mốc k�
 4. Không có dữ liệu → nói thẳng "tool không trả dữ liệu cho X", KHÔNG suy diễn số.
 5. Tool báo lỗi `không có đơn vị …` → hiện danh sách đơn vị tool đưa ra và hỏi lại người dùng chọn.
 
+## KỲ (period)
+Người hỏi không nêu kỳ → KHÔNG tự lấy tháng hiện tại (đầu tháng thường chưa có số, truy vết ra rỗng). Dùng kỳ đã chốt gần nhất
+(tháng liền trước) hoặc hỏi lại, và LUÔN ghi rõ "kỳ đã dùng: YYYY-MM" ở đầu câu trả lời. Kết quả rỗng ở một kỳ → thử kỳ trước đó
+một lần rồi báo rõ.
+
 ## Cấm
 - Không mở file Excel/DB bằng cách khác, không đoán tên đơn vị/kỳ.
 - Không sửa dữ liệu, không hứa "đã sửa". Bot chỉ KIỂM và GỢI Ý việc cần làm.
