@@ -12,6 +12,8 @@ BA PHÉP KIỂM (khớp ba câu người dùng hay hỏi):
   1. `thang_vs_ngay`   BC tháng có bằng Σ BC ngày không — từng chỉ tiêu, chỉ ra dòng lệch.
   2. `chi_tiet_vs_tong` số hiển thị (PTHU_D…) có bằng Σ dòng chi tiết nguồn không — chỉ ra dòng bị bỏ
                        (vd XDV 12/10: 45,3678 vs 45,3832, chênh đúng 1 dòng R/O không tên khách).
+  4. `file_ve_luc`      MỘT file nguồn: sinh ra ở máy nguồn lúc nào, về 252 lần đầu/lần cuối lúc nào, đã vào DB
+                       những gì, cron nhắc tới nó ở đâu.
   3. `nguon_thieu_cham` file ngày/tháng của một đơn vị: file nào đã về, ngày nào CHƯA có file, ngày nào
                        có file mà DB chưa có số, cron lượt cuối nói gì.
 Đơn vị tiền: các cột `amount` trong raw_rows của khối P&L/công nợ đã là TỶ ĐỒNG.
@@ -264,6 +266,63 @@ def nguon_thieu_cham(don_vi: str, period: str, env: str = "prod", thu_muc: str =
                           else "")),
             "luu_y": "File ngày N của một số đơn vị (An Taxi…) chỉ chứa P&L tới N−1; ngày cuối tháng "
                      "có thể nằm ở file đầu tháng sau."}
+
+
+# ───────────────────────────── 4. MỘT FILE KÉO LÚC NÀO ─────────────────────────────
+def _doc_json(p):
+    try:
+        with open(p, encoding="utf-8") as fh:
+            return json.load(fh)
+    except (OSError, ValueError):
+        return {}
+
+
+def file_ve_luc(ten_file: str, env: str = "prod") -> dict:
+    """Lịch sử của MỘT file nguồn theo TÊN: sinh ở máy nguồn · về 252 · vào DB · cron.
+
+    Mốc thời gian (đều là GIỜ VIỆT NAM, đọc từ sidecar `.json` cạnh file):
+      `tao_o_may_nguon` / `sua_o_may_nguon` = office_created_at / modified_at — lúc kế toán/Cyber xuất file;
+      `ve_252_lan_dau`  = created_at — lần đầu receiver nhận;  `ve_252_lan_cuoi` = saved_at — lần kéo gần nhất
+      (file giữ nguyên tên bị GHI ĐÈ mỗi lần kéo nên saved_at là lần ghi đè cuối, không phải lần đầu).
+    KHÔNG có mốc "đã nạp vào DB lúc nào": raw_rows không lưu giờ nạp — chỉ nêu được số dòng/ngày đã có.
+    """
+    ten = os.path.basename(str(ten_file or "").strip())
+    if not re.fullmatch(r"[\w .()\-]+\.(xlsx|xlsm|xlsb|xls)", ten, flags=re.IGNORECASE):
+        raise ValueError("ten_file phải là tên file Excel (không kèm đường dẫn)")
+    thay = []
+    for p in glob.glob(os.path.join(RECEIVED_DIR, "*", "*", "*")):
+        if os.path.basename(p).lower() == ten.lower():
+            sc = _doc_json(os.path.splitext(p)[0] + ".json")
+            thay.append({
+                "thu_muc": os.path.relpath(os.path.dirname(p), RECEIVED_DIR),
+                "tao_o_may_nguon": sc.get("office_created_at"), "sua_o_may_nguon": sc.get("modified_at"),
+                "ve_252_lan_dau": sc.get("created_at"), "ve_252_lan_cuoi": sc.get("saved_at"),
+                "nguoi_tao": sc.get("created_by"), "nguoi_sua_cuoi": sc.get("last_modified_by"),
+                "duong_dan_o_may_nguon": sc.get("original_source_path"),
+                "dung_luong_byte": os.path.getsize(p)})
+    if not thay:
+        raise ValueError(f"không thấy file '{ten}' trong received_reports (kiểm tên file, hoặc file chưa từng về)")
+    db = _ro(env, "SELECT report_type, COUNT(*) AS so_dong, MIN(ngay) AS tu_ngay, MAX(ngay) AS den_ngay, "
+                  "MAX(source_file) AS khoa_nguon FROM raw_rows WHERE source_file LIKE %s "
+                  "GROUP BY report_type ORDER BY 1", ("%::" + ten,))
+    nhat_ky = []
+    for log in sorted(glob.glob(os.path.join(LOGS_DIR, "cron_*.log"))):
+        if "dryrun" in log:
+            continue
+        try:
+            with open(log, encoding="utf-8", errors="replace") as fh:
+                for dong in fh.readlines()[-60000:]:
+                    if ten in dong:
+                        nhat_ky.append({"log": os.path.basename(log), "dong": dong.strip()[:240]})
+        except OSError:
+            continue
+    return {"ten_file": ten, "env": env, "gio": "giờ Việt Nam", "ban_ghi": thay,
+            "trong_db": [{"report_type": r["report_type"], "so_dong": r["so_dong"],
+                          "tu_ngay": r["tu_ngay"], "den_ngay": r["den_ngay"], "khoa_nguon": r["khoa_nguon"]}
+                         for r in db],
+            "cron_nhac_toi_file": nhat_ky[-5:],
+            "luu_y": "Không có mốc 'nạp vào DB lúc nào' (raw_rows không lưu giờ nạp). Nếu cần chứng minh thứ tự "
+                     "kéo→nạp, so `ve_252_lan_cuoi` với dòng cron `autofill` cùng file."}
 
 
 def to_json(obj) -> str:
