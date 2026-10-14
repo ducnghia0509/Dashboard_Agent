@@ -47,6 +47,14 @@ chk("đối chiếu trả cờ nghi vấn là list", all(isinstance(x["co_nghi_v
 chk("đối chiếu nêu builder + file:dòng", r["logic"]["builder"] and ":" in r["logic"]["file"])
 chk("file Excel trích từ mô tả nguồn", mc._RE_FILE.findall("A:\\x\\1.SR.OO.M.202608.Kehoach.xlsx Sheet: CT") ==
     ["1.SR.OO.M.202608.Kehoach.xlsx"])
+tv = mc.truy_vet("vhkd0", "tỷ lệ hoàn thành doanh thu", env="test", period="2026-09")
+chk("truy vết: có trích nguyên văn mapping", tv["1_mapping_ghi"] and tv["1_mapping_ghi"][0]["nguyen_van"].get("chi_tieu"))
+chk("truy vết: bắt được mã CT33 trong code", "CT33" in tv["2_code_dashboard"]["ma_chi_tieu_trong_code"])
+chk("truy vết: có đoạn mã kèm file:dòng", tv["2_code_dashboard"]["doan_ma"] and ":" in tv["2_code_dashboard"]["doan_ma"][0]["dong"])
+chk("truy vết: CT33 không bị coi là report_type", "CT33" not in tv["3_file_nguon_that"]["file_trong_db"])
+chk("truy vết: luôn nêu việc CHƯA kiểm", len(tv["CHUA_KIEM"]) == 2)
+chk("truy vết: chỉ tiêu lạ -> cờ KHONG_CO_DONG_MAPPING", any("KHONG_CO_DONG_MAPPING" in x for x in
+    mc.truy_vet("vhkd0", "zzzz không tồn tại", env="test")["co_nghi_van"]))
 print(f"{ok} PASS, {len(loi)} FAIL")
 for t in loi:
     print("  FAIL:", t)

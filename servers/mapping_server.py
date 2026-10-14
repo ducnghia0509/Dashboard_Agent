@@ -38,5 +38,13 @@ def map_doi_chieu(man: str, tu_khoa: str, env: str = "prod", period: str = None)
     return mc.doi_chieu(man, tu_khoa, env, period)
 
 
+@mcp.tool()
+def map_truy_vet(man: str, tu_khoa: str, env: str = "prod", period: str = None) -> dict:
+    """TRUY VẾT MỘT CHỈ TIÊU đầu-cuối: (1) dòng mapping trích nguyên văn (tài liệu/sheet/dòng), (2) đoạn mã dashboard
+    nhắc chỉ tiêu + mã CTxx, (3) tên file nguồn THẬT đang nuôi dữ liệu trong DB, kèm cờ nghi vấn và danh sách việc
+    CHƯA kiểm. Dùng cho câu 'chỉ số X lấy theo mapping nào, từ file nào, dashboard có lên đúng mapping không'."""
+    return mc.truy_vet(man, tu_khoa, env, period)
+
+
 if __name__ == "__main__":
     mcp.run()
