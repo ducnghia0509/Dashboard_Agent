@@ -57,7 +57,8 @@ except Exception as e:  # noqa: BLE001
     chk("kết nối phải CHỈ ĐỌC", "read-only" in str(e).lower())
 r = sc.thang_vs_ngay("ANTAXI", "2026-09", "test")
 chk("thang_vs_ngay có chi tiết", r["so_chi_tieu"] > 0 and r["don_vi_tien"] == "tỷ đồng")
-chk("thang_vs_ngay bắt LNST lệch", any(x["chi_tieu"] == "1112" and x["ket_luan"] == "LỆCH" for x in r["chi_tiet"]))
+# 14/10: An Taxi T9 nạp lại -> LNST hết lệch; còn LNTT "THIẾU Ở THÁNG". Test chỉ khoá: tool PHẢI bắt được chỉ tiêu không khớp.
+chk("thang_vs_ngay bắt chỉ tiêu không khớp", any(x["ket_luan"] in ("LỆCH", "THIẾU Ở THÁNG") for x in r["chi_tiet"]) and r["so_lech"] >= 1)
 try:
     sc.thang_vs_ngay("ANTAXI", "2026-9", "test")
     chk("period sai định dạng bị chặn", False)
@@ -79,6 +80,8 @@ for xau in ("../etc/passwd", "a;b.xlsx", "x.txt", ""):
         chk(f"file_ve_luc chặn tên lạ {xau!r}", False)
     except ValueError:
         chk(f"file_ve_luc chặn tên lạ {xau!r}", True)
+r = sc.file_ve_luc("B.7.AAG.TCKT.D.20260930.Baocaotaichinhrieng.xlsx", "prod")
+chk("file_ve_luc: file ngày An Taxi có dòng theo ngày dù trong_db rỗng", r["trong_db"] == [] and len(r["trong_db_theo_ngay_cua_file"]) > 0)
 print(f"{ok} PASS, {len(loi)} FAIL")
 for t in loi:
     print("  FAIL:", t)

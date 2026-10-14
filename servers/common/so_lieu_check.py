@@ -305,6 +305,16 @@ def file_ve_luc(ten_file: str, env: str = "prod") -> dict:
     db = _ro(env, "SELECT report_type, COUNT(*) AS so_dong, MIN(ngay) AS tu_ngay, MAX(ngay) AS den_ngay, "
                   "MAX(source_file) AS khoa_nguon FROM raw_rows WHERE source_file LIKE %s "
                   "GROUP BY report_type ORDER BY 1", ("%::" + ten,))
+    # Số suy ra từ file NGÀY (deriver) ghi source_file = '<ĐƠN VỊ>::<thư mục>::YYYY-MM', KHÔNG mang tên file → tra theo
+    # (đơn vị, thư mục, ngày trong tên file). Không có nhánh này thì file đã nạp đủ vẫn hiện "chưa có trong DB".
+    theo_ngay = []
+    m_ngay = re.search(r"\.D\.(\d{4})(\d{2})(\d{2})\.", ten)
+    if not db and m_ngay and thay:
+        dv, _, tm = thay[0]["thu_muc"].partition("/")
+        ngay = f"{m_ngay.group(1)}-{m_ngay.group(2)}-{m_ngay.group(3)}"
+        theo_ngay = _ro(env, "SELECT report_type, COUNT(*) AS so_dong, MAX(source_file) AS khoa_nguon FROM raw_rows "
+                             "WHERE ngay=%s AND source_file LIKE %s GROUP BY report_type ORDER BY 1",
+                        (ngay, f"{dv.upper()}::{tm.lower()}::%"))
     nhat_ky = []
     for log in sorted(glob.glob(os.path.join(LOGS_DIR, "cron_*.log"))):
         if "dryrun" in log:
@@ -320,8 +330,12 @@ def file_ve_luc(ten_file: str, env: str = "prod") -> dict:
             "trong_db": [{"report_type": r["report_type"], "so_dong": r["so_dong"],
                           "tu_ngay": r["tu_ngay"], "den_ngay": r["den_ngay"], "khoa_nguon": r["khoa_nguon"]}
                          for r in db],
+            "trong_db_theo_ngay_cua_file": [{"report_type": r["report_type"], "so_dong": r["so_dong"],
+                                            "khoa_nguon": r["khoa_nguon"]} for r in theo_ngay],
             "cron_nhac_toi_file": nhat_ky[-5:],
-            "luu_y": "Không có mốc 'nạp vào DB lúc nào' (raw_rows không lưu giờ nạp). Nếu cần chứng minh thứ tự "
+            "luu_y": "`trong_db` rỗng KHÔNG có nghĩa chưa nạp: số suy ra từ file ngày nằm ở `trong_db_theo_ngay_cua_file` (khoá nguồn "
+                     "theo đơn vị+thư mục+tháng, không mang tên file; KHÔNG chứng minh được dòng nào do đúng file này). "
+                     "Không có mốc 'nạp vào DB lúc nào' (raw_rows không lưu giờ nạp). Nếu cần chứng minh thứ tự "
                      "kéo→nạp, so `ve_252_lan_cuoi` với dòng cron `autofill` cùng file."}
 
 
