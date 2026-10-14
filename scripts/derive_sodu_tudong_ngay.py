@@ -192,6 +192,9 @@ def _facts_cdps(rows):
 
 
 # ── Công nợ CHI TIẾT theo đối tượng ─────────────────────────────────────────────────────────────
+KHONG_TEN_DOI_TUONG = "Chưa xác định đối tượng"
+
+
 def _facts_congno(rows, rt, chieu, ten_key, ma_key):
     """Gom dòng chi tiết theo ĐỐI TƯỢNG -> facts PTHU_D/PTRA_D.
 
@@ -200,9 +203,10 @@ def _facts_congno(rows, rt, chieu, ten_key, ma_key):
     """
     gom = {}
     for r in rows:
-        ten = (r["pl"].get(ten_key) or "").strip()
-        if not ten:
-            continue
+        # Dòng KHÔNG CÓ TÊN đối tượng (vd XDV 12/10: TK 13131, R/O `01.S20251231.001`, 15,4 triệu) KHÔNG được
+        # bỏ — trước đây `continue` ở đây làm tổng PTHU_D hụt so với tổng file mà không báo gì. Gom vào MỘT
+        # dòng riêng để tổng khớp file, và kế toán vẫn thấy đó là khoản cần bổ sung tên khách (14/10/2026).
+        ten = (r["pl"].get(ten_key) or "").strip() or KHONG_TEN_DOI_TUONG
         a = gom.setdefault(ten, {"dau": 0.0, "tang": 0.0, "giam": 0.0, "cuoi": 0.0,
                                  "ma": (r["pl"].get(ma_key) or "").strip()})
         dn, dc = _so(r["pl"].get("no_dau_ky")), _so(r["pl"].get("co_dau_ky"))
