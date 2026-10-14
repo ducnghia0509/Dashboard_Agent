@@ -301,3 +301,106 @@ def doi_chieu(man, tu_khoa, env="prod", period=None):
                       "report_type_doc": sorted(rts_builder), "dong_ma_chua_tu_khoa": dong_ma[:20]},
             "can_nguoi_hoac_llm_doc": "So công thức bằng chữ (cong_thuc) với thân hàm builder: dùng map_logic_man để "
                                       "lấy mã nguồn. Kết luận về công thức chỉ là NGHI NGỜ, không phải bằng chứng."}
+
+
+# ───────────────────── 5. TRUY VẾT MỘT CHỈ TIÊU ─────────────────────
+_RE_MA = re.compile(r"\b(CT\d{2})\b")
+
+
+def _file_that_trong_db(env, report_types, period=None, moi_rt=6):
+    """{report_type: [{file, so_dong}]} — tên file nguồn THẬT đang nuôi report_type đó (bỏ tiền tố 'ĐƠN VỊ::')."""
+    if not report_types:
+        return {}
+    from urllib.parse import unquote, urlparse
+    dsn = os.environ.get("DATABASE_URL") or ""
+    mk = unquote(urlparse(dsn).password or "") if dsn else ""
+    with psycopg.connect(host="localhost", port=_PORT[env], dbname="tc_dashboard", user="tc",
+                         password=mk or "tc_$production", autocommit=True, row_factory=dict_row,
+                         prepare_threshold=None, options="-c default_transaction_read_only=on "
+                                                         "-c statement_timeout=30000") as c:
+        sql = ("SELECT report_type, source_file, COUNT(*) AS n FROM raw_rows WHERE report_type = ANY(%s)"
+               + (" AND period_month=%s" if period else "") + " GROUP BY 1,2 ORDER BY 1, 3 DESC")
+        rows = c.execute(sql, (sorted(report_types), period) if period else (sorted(report_types),)).fetchall()
+    ra = {}
+    for r in rows:
+        lst = ra.setdefault(r["report_type"], [])
+        if len(lst) < moi_rt:
+            lst.append({"file": (r["source_file"] or "").split("::", 1)[-1], "so_dong": r["n"]})
+    return ra
+
+
+def truy_vet(man, tu_khoa, env="prod", period=None, ngu_canh=3):
+    """Truy vết MỘT chỉ tiêu từ đầu đến cuối: dòng mapping (trích nguyên văn) → đoạn mã dashboard nhắc chỉ tiêu →
+    mã chỉ tiêu/dữ liệu code dùng → file nguồn thật trong DB. Trả cả danh sách việc CHƯA kiểm được."""
+    m = _man_hop_le(man)
+    tk = tim_chi_tieu(tu_khoa, man=man, toi_da=3)
+    # 1. mapping: trích nguyên văn
+    trich = []
+    cum = {_kd(tu_khoa)}
+    for r in tk["ket_qua"]:
+        trich.append({"tai_lieu": r["tai_lieu"], "file_mapping": r["file"], "sheet": r["sheet"], "dong": r["dong"],
+                      "nguyen_van": {k: r.get(k) for k in ("nhom", "nhom_chi_tieu", "chi_tieu", "ma", "cong_thuc",
+                                                           "nguon", "chieu", "ghi_chu") if r.get(k)}})
+        for k in ("chi_tieu", "nhom_chi_tieu"):
+            if r.get(k) and len(_kd(r[k])) >= 6:
+                cum.add(_kd(r[k]))
+    # 2. mã nguồn: cả module chứa builder
+    duong = os.path.join(API_DIR, m.get("file") or "")
+    try:
+        with open(duong, encoding="utf-8") as fh:
+            dong = fh.read().splitlines()
+    except OSError:
+        dong = []
+    trung, ma_tim = [], []
+    for i, ln in enumerate(dong):
+        k = _kd(ln)
+        if any(c in k for c in cum):
+            trung.append(i)
+            ma_tim += _RE_MA.findall(ln)
+    ma_tim = list(dict.fromkeys(ma_tim))[:4]
+    for i, ln in enumerate(dong):                      # mở rộng: dòng nhắc đúng mã chỉ tiêu (CT33…)
+        if len(trung) >= 12:
+            break
+        if i not in trung and any(re.search(rf"\b{re.escape(x)}\b", ln) for x in ma_tim):
+            trung.append(i)
+    doan, da = [], set()
+    for i in sorted(trung)[:12]:
+        a, b = max(0, i - ngu_canh), min(len(dong), i + ngu_canh + 1)
+        if all(j in da for j in range(a, b)):
+            continue
+        da.update(range(a, b))
+        doan.append({"dong": f"{m.get('file')}:{i + 1}",
+                     "ma": "\n".join(f"{j + 1}: {dong[j][:170]}" for j in range(a, b))})
+    van_ban = "\n".join(d["ma"] for d in doan)
+    # 3. file nguồn thật
+    rt_that = [rt for rt in m["report_types"] if not re.fullmatch(r"CT\d{2}", rt)]   # CT33.. là mã chỉ tiêu, không phải report_type
+    rt_nhac = sorted(rt for rt in rt_that if re.search(rf"[\"'`]{re.escape(rt)}[\"'`]", van_ban))
+    rt_dung = rt_nhac + [rt for rt in rt_that if rt not in rt_nhac]
+    ftd = _file_that_trong_db(env, rt_dung, period, moi_rt=3)
+    # 4. cờ & những gì CHƯA kiểm
+    co = []
+    ten_map = sorted({t for x in trich for t in _RE_FILE.findall(x["nguyen_van"].get("nguon") or "")})
+    if not trich:
+        co.append("KHONG_CO_DONG_MAPPING: không tìm thấy chỉ tiêu này trong tài liệu mapping của màn")
+    elif not ten_map:
+        co.append("MAPPING_KHONG_NEU_TEN_FILE: dòng mapping không nói file nguồn — không thể xác nhận dashboard lấy đúng file mapping chỉ")
+    if not doan:
+        co.append("CODE_KHONG_NHAC_CHI_TIEU: không dòng mã nào trong module nhắc tên chỉ tiêu/mã — thử từ khoá khác")
+    for t in ten_map:
+        if not any(t.lower() in (f["file"] or "").lower() or fnmatch.fnmatch(f["file"].lower(), "*" + t.lower().split(".")[-2] + "*")
+                   for lst in ftd.values() for f in lst):
+            co.append(f"FILE_MAPPING_KHONG_THAY_TRONG_DB: mapping nêu '{t}' nhưng DB {env} không có source_file nào tương ứng "
+                      f"ở các report_type của chỉ tiêu")
+    if rt_nhac and any(rt not in ftd for rt in rt_nhac):
+        co.append(f"NGUON_CHUA_CO_DU_LIEU: {sorted(set(rt_nhac) - set(ftd))} được nhắc trong mã nhưng không có dòng nào"
+                  + (f" kỳ {period}" if period else ""))
+    return {"man": man, "tu_khoa": tu_khoa, "env": env, "period": period,
+            "1_mapping_ghi": trich, "so_dong_mapping_khop": tk["so_khop"],
+            "2_code_dashboard": {"builder": m.get("builder"), "file": f"{m.get('file')}:{m.get('dong_bat_dau')}",
+                                 "ma_chi_tieu_trong_code": ma_tim, "doan_ma": doan},
+            "3_file_nguon_that": {"rt_duoc_nhac_trong_doan_ma": rt_nhac,
+                                  "rt_builder_con_lai": [rt for rt in rt_that if rt not in rt_nhac],
+                                  "file_trong_db": ftd},
+            "co_nghi_van": co,
+            "CHUA_KIEM": ["công thức mapping (chữ) có cùng nghĩa với công thức trong đoạn mã hay không — chỉ đọc, chưa chạy số",
+                          "con số đang hiển thị trên dashboard có bằng số tính tay từ file hay không (bot không gọi API hiển thị)"]}

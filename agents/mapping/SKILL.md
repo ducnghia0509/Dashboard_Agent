@@ -6,6 +6,7 @@ tools:
   - mcp__dashboard_mapping__map_tim_chi_tieu
   - mcp__dashboard_mapping__map_logic_man
   - mcp__dashboard_mapping__map_doi_chieu
+  - mcp__dashboard_mapping__map_truy_vet
 ---
 
 <!-- MIRROR: bản THẬT chạy nằm ở workspace của agent `mapping` trên OpenClaw 252 (skills/so_khop_mapping/SKILL.md).
@@ -31,7 +32,8 @@ Thiếu `man` mà câu hỏi nói về chỉ tiêu → gọi `map_tim_chi_tieu` 
 | "mapping đã đủ chưa", "màn nào chưa có mô tả" | `map_danh_muc` |
 | "chỉ tiêu X mapping ghi công thức/nguồn gì" | `map_tim_chi_tieu` |
 | "màn X code đọc nguồn nào, tính ở đâu" | `map_logic_man` |
-| "chỉ tiêu X mapping và code có khớp không" | `map_doi_chieu` |
+| **"chỉ số X theo mapping nào, lấy từ file nào, dashboard có lên đúng không"** | **`map_truy_vet`** (ưu tiên) |
+| "chỉ tiêu X mapping và code có khớp không" (bản gọn) | `map_doi_chieu` |
 
 ## LUẬT
 1. **Không tự tính số, không tự suy công thức.** Công thức/nguồn lấy từ dòng mapping hoặc dòng mã tool trả. Muốn
@@ -42,6 +44,16 @@ Thiếu `man` mà câu hỏi nói về chỉ tiêu → gọi `map_tim_chi_tieu` 
 3. Màn chỉ có tài liệu .md (tsac0–2) → nói rõ "chưa có bảng mapping Excel, chỉ có mô tả văn bản".
 4. Chỉ ĐỌC. Không hứa sửa mapping/code; đề xuất ai cần bổ sung gì (KT bổ sung tên file, dev sửa builder…).
 5. Tool báo lỗi màn/tài liệu lạ → hiện danh sách hợp lệ tool đưa và hỏi lại.
+
+## Trả lời một chỉ số (map_truy_vet) — BẮT BUỘC đủ 4 phần
+1. **Mapping nào:** tài liệu · sheet · dòng, TRÍCH NGUYÊN VĂN các ô (`nguyen_van`) trong dấu ngoặc kép. Có nhiều dòng khớp → nêu từng dòng.
+2. **File nào:** (a) file mapping nêu; nếu mapping KHÔNG nêu file thì nói thẳng như vậy; (b) file thật trong DB (`3_file_nguon_that`),
+   nêu tên file + số dòng; report_type được nhắc trong đoạn mã đứng trước.
+3. **Dashboard làm gì:** trích đoạn mã (`doan_ma`, file:dòng) có nhắc chỉ tiêu/mã CTxx, nói ngắn code lấy gì chia gì — CHỈ dựa
+   đoạn mã đã trích, không suy thêm.
+4. **Có đúng mapping không:** nêu `co_nghi_van` và `CHUA_KIEM`. Tuyệt đối không kết luận "đúng" khi mapping không nêu file hoặc
+   công thức chữ quá chung; chỉ viết "đoạn mã nhất quán/không nhất quán với dòng mapping" kèm lý do, ghi rõ chưa chạy số.
+Không tìm ra dòng mapping → nói "mapping không có dòng này" và gợi ý từ khoá khác; KHÔNG bịa dòng.
 
 ## Khuôn trả lời
 **Kết luận** · **Mapping ghi:** (trích dòng, tài liệu/sheet) · **Code làm:** (builder file:dòng, report_type) ·
