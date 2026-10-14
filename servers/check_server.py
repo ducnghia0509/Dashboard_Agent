@@ -43,5 +43,13 @@ def check_nguon_thieu_cham(don_vi: str, period: str, env: str = "prod", thu_muc:
     return sc.nguon_thieu_cham(don_vi, period, env, thu_muc)
 
 
+@mcp.tool()
+def check_file_ve_luc(ten_file: str, env: str = "prod") -> dict:
+    """Một file nguồn (theo TÊN, vd B.2.TC.OO.D.20261012.CDPSCongnotheoRO.xlsx): sinh ở máy nguồn lúc nào,
+    về 252 lần đầu/lần cuối lúc nào (giờ VN), đã vào DB những report_type/ngày nào, cron nhắc tới ở đâu.
+    Dùng trả lời 'file này kéo từ thời điểm nào'."""
+    return sc.file_ve_luc(ten_file, env)
+
+
 if __name__ == "__main__":
     mcp.run()

@@ -69,6 +69,16 @@ chk("XDV 12/10: LỆCH và giải thích bằng dòng không tên", r["ket_luan"
     and r["giai_thich"] == "Chênh bằng đúng tổng các dòng không có tên đối tượng.")
 r = sc.nguon_thieu_cham("HO", "2026-10", "test")
 chk("HO T10: chưa có file ngày nào", r["so_file_ngay_ve"] == 0 and r["ngay_CHUA_co_file"])
+r = sc.file_ve_luc("B.2.TC.OO.D.20261012.CDPSCongnotheoRO.xlsx", "test")
+b = r["ban_ghi"][0]
+chk("file_ve_luc: đủ 3 mốc thời gian", b["tao_o_may_nguon"] and b["ve_252_lan_dau"] and b["ve_252_lan_cuoi"])
+chk("file_ve_luc: có dòng trong DB", any(x["report_type"] == "XDV_CN_RO_D" and x["so_dong"] > 0 for x in r["trong_db"]))
+for xau in ("../etc/passwd", "a;b.xlsx", "x.txt", ""):
+    try:
+        sc.file_ve_luc(xau)
+        chk(f"file_ve_luc chặn tên lạ {xau!r}", False)
+    except ValueError:
+        chk(f"file_ve_luc chặn tên lạ {xau!r}", True)
 print(f"{ok} PASS, {len(loi)} FAIL")
 for t in loi:
     print("  FAIL:", t)
