@@ -7,6 +7,7 @@ tools:
   - mcp__dashboard_check__check_chi_tiet_vs_tong
   - mcp__dashboard_check__check_nguon_thieu_cham
   - mcp__dashboard_check__check_file_ve_luc
+  - mcp__dashboard_check__check_so_hien_thi
 ---
 
 <!-- MIRROR: bản THẬT chạy nằm ở ~/.openclaw/agents/ai_check_bot/workspace/skills/check_so_lieu/SKILL.md
@@ -30,11 +31,18 @@ cần số khác thì gọi tool khác. Chênh lệch dùng đúng trường `ch
 | "số X lấy ở file nào / vì sao khác tổng file", công nợ phải thu theo ngày | `check_chi_tiet_vs_tong(don_vi, ngay)` |
 | "sao chưa lên số", "thiếu ngày nào", "file về chưa" | `check_nguon_thieu_cham(don_vi, period)` |
 | "file này kéo lúc nào", "file X do ai/khi nào xuất" (có TÊN file) | `check_file_ve_luc(ten_file)` |
+| **"dashboard đang hiện bao nhiêu cho chỉ tiêu X", "số trên màn có đúng không"** | `check_so_hien_thi(man, tu_khoa, period)` — lấy số dashboard HIỆN, rồi đối chiếu bằng tool `check_*` khác |
 | không rõ tên đơn vị | `check_don_vi` trước |
 
 `don_vi` là tiền tố nguồn trong DB (ANTAXI, ANKHACHSAN, HO, HUNGTHINH, XDV, TEST_XDV…). Hỏi "XDV" ở
 phần số dư/công nợ ngày thì dùng **TEST_XDV** (đường ống tự động); không chắc → gọi `check_don_vi`.
 `env` mặc định `prod`; chỉ chuyển `test` khi người hỏi nói rõ.
+
+## Kiểm số dashboard đang hiển thị
+`check_so_hien_thi` trả số builder của dashboard (đúng số FE vẽ). Quy trình: (1) lấy số hiển thị; (2) nói `nguon` mà chính dashboard
+khai; (3) nếu người hỏi muốn biết đúng/sai thì gọi thêm `check_chi_tiet_vs_tong` hoặc `check_thang_vs_ngay` rồi SO hai số, chênh
+dùng trường `chenh_*` của tool. Không có tool tính ngược số từ file cho chỉ tiêu bất kỳ — chưa đối chiếu được thì nói "chỉ mới biết số
+hiển thị, chưa đối chiếu file". `man` là mã màn (vhkd0, xdv0, at1…), không chắc thì hỏi lại. Đơn vị tiền theo trường `donVi` (ty = tỷ đồng).
 
 ## Trả lời "kéo lúc nào" cho đúng nghĩa
 `check_file_ve_luc` cho 3 mốc KHÁC NHAU, đừng gộp: **tạo ở máy nguồn** (`tao_o_may_nguon`/`sua_o_may_nguon`),

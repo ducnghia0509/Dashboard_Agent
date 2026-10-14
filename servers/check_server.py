@@ -9,6 +9,7 @@ bot không tự tính số, chỉ gọi tool rồi diễn giải kết quả có
 """
 from mcp.server.fastmcp import FastMCP
 
+from .common import man_hien_thi as mh
 from .common import so_lieu_check as sc
 
 mcp = FastMCP("dashboard_check")
@@ -49,6 +50,16 @@ def check_file_ve_luc(ten_file: str, env: str = "prod") -> dict:
     về 252 lần đầu/lần cuối lúc nào (giờ VN), đã vào DB những report_type/ngày nào, cron nhắc tới ở đâu.
     Dùng trả lời 'file này kéo từ thời điểm nào'."""
     return sc.file_ve_luc(ten_file, env)
+
+
+@mcp.tool()
+def check_so_hien_thi(man: str, tu_khoa: str, period: str = None, env: str = "prod", grain: str = "month",
+                      tu_ngay: str = None, den_ngay: str = None, cong_ty: str = None, khoi: str = None) -> dict:
+    """SỐ DASHBOARD ĐANG HIỂN THỊ của một chỉ tiêu: gọi đúng builder của màn `man` (vd vhkd0, xdv0, at1) rồi tìm mục
+    khớp `tu_khoa` (mã CT33, hoặc một phần tên chỉ tiêu). Trả giá trị hiển thị (thực hiện/kế hoạch/%…) và 'nguon' do
+    dashboard tự khai. `period` YYYY-MM; chế độ ngày: grain='day' + tu_ngay/den_ngay (YYYY-MM-DD). Dùng khi hỏi
+    'dashboard đang hiện bao nhiêu / số này có khớp file không' — rồi đối chiếu bằng tool check_* khác."""
+    return mh.so_hien_thi(man, tu_khoa, period, env, grain, tu_ngay, den_ngay, cong_ty, khoi)
 
 
 if __name__ == "__main__":
