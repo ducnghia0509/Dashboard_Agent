@@ -21,7 +21,7 @@ import glob
 import json
 import os
 import re
-from urllib.parse import urlparse
+from urllib.parse import unquote, urlparse
 
 import psycopg
 from psycopg.rows import dict_row
@@ -55,7 +55,10 @@ def _ket_noi(env: str):
     if env not in _PORT:
         raise ValueError("env phải là 'prod' hoặc 'test'")
     dsn = os.environ.get("DATABASE_URL") or ""
-    mat_khau = urlparse(dsn).password if dsn else None
+    # Mật khẩu trong DSN là URL-ENCODED (`tc_%24production`): phải giải mã, không thì gửi nguyên chuỗi
+    # `%24` lên Postgres và bị "password authentication failed" — lỗi chỉ lộ khi chạy dưới service có
+    # nạp .env (serve_http), còn chạy tay khi chưa đặt DATABASE_URL thì dùng mặc định nên không thấy.
+    mat_khau = unquote(urlparse(dsn).password or "") if dsn else ""
     mat_khau = mat_khau or "tc_$production"
     return psycopg.connect(
         host="localhost", port=_PORT[env], dbname="tc_dashboard", user="tc", password=mat_khau,

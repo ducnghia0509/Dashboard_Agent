@@ -22,6 +22,19 @@ def chk(ten, cond):
 chk("lech: ngưỡng tuyệt đối, không tương đối", sc._lech(45.383161, 45.367768)[2] is False)
 chk("lech: khớp trong ngưỡng", sc._lech(1.0, 1.0001)[2] is True)
 chk("lech: None không khớp", sc._lech(None, 1.0)[2] is False)
+# Mật khẩu URL-encoded trong DATABASE_URL (đúng như .env prod) phải đăng nhập được.
+_cu = os.environ.get("DATABASE_URL")
+os.environ["DATABASE_URL"] = "postgresql://tc:tc_%24production@localhost:5435/tc_dashboard"
+try:
+    with sc._ket_noi("test") as c:
+        chk("DSN mật khẩu URL-encoded đăng nhập được", c.execute("SELECT 1 AS x").fetchone()["x"] == 1)
+except Exception as e:  # noqa: BLE001
+    chk(f"DSN mật khẩu URL-encoded đăng nhập được ({e})", False)
+finally:
+    if _cu is None:
+        os.environ.pop("DATABASE_URL", None)
+    else:
+        os.environ["DATABASE_URL"] = _cu
 for xau in ("XDV;drop table raw_rows", "", None, "../etc"):
     try:
         sc._chuan_don_vi("test", xau)
