@@ -52,6 +52,12 @@ chk("truy vết: có trích nguyên văn mapping", tv["1_mapping_ghi"] and tv["1
 chk("truy vết: bắt được mã CT33 trong code", "CT33" in tv["2_code_dashboard"]["ma_chi_tieu_trong_code"])
 chk("truy vết: có đoạn mã kèm file:dòng", tv["2_code_dashboard"]["doan_ma"] and ":" in tv["2_code_dashboard"]["doan_ma"][0]["dong"])
 chk("truy vết: CT33 không bị coi là report_type", "CT33" not in tv["3_file_nguon_that"]["file_trong_db"])
+chk("truy vết: có số dashboard đang hiện (CT33)", tv["4_so_dashboard_dang_hien"].get("so_muc_khop", 0) >= 1)
+from servers.common import man_hien_thi as mh  # noqa: E402
+chk("số hiển thị: CT33 có thucHien & nguon", any("thucHien" in x["gia_tri"] and x["gia_tri"].get("nguon")
+    for x in mh.so_hien_thi("vhkd0", "CT33", "2026-09", "test")["so_hien_thi"]))
+chk("số hiển thị: kỳ lạ bị chặn", raises(mh.so_hien_thi, "vhkd0", "CT33", "1999-01", "test"))
+chk("số hiển thị: màn lạ lỗi rõ", raises(mh.so_hien_thi, "khong_co_man", "CT33", "2026-09", "test"))
 chk("truy vết: luôn nêu việc CHƯA kiểm", len(tv["CHUA_KIEM"]) == 2)
 chk("truy vết: chỉ tiêu lạ -> cờ KHONG_CO_DONG_MAPPING", any("KHONG_CO_DONG_MAPPING" in x for x in
     mc.truy_vet("vhkd0", "zzzz không tồn tại", env="test")["co_nghi_van"]))

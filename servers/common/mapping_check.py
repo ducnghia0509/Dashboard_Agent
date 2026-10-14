@@ -394,6 +394,13 @@ def truy_vet(man, tu_khoa, env="prod", period=None, ngu_canh=3):
     if rt_nhac and any(rt not in ftd for rt in rt_nhac):
         co.append(f"NGUON_CHUA_CO_DU_LIEU: {sorted(set(rt_nhac) - set(ftd))} được nhắc trong mã nhưng không có dòng nào"
                   + (f" kỳ {period}" if period else ""))
+    hien = None
+    try:
+        from . import man_hien_thi as _mh
+        hien = _mh.so_hien_thi(man, ma_tim[0] if ma_tim else tu_khoa, period, env)
+        hien = {"so_muc_khop": hien["so_muc_khop"], "so_hien_thi": hien["so_hien_thi"][:4]}
+    except (ValueError, RuntimeError, OSError, subprocess.SubprocessError) as e:
+        hien = {"loi": f"không lấy được số hiển thị: {e}"}
     return {"man": man, "tu_khoa": tu_khoa, "env": env, "period": period,
             "1_mapping_ghi": trich, "so_dong_mapping_khop": tk["so_khop"],
             "2_code_dashboard": {"builder": m.get("builder"), "file": f"{m.get('file')}:{m.get('dong_bat_dau')}",
@@ -401,6 +408,7 @@ def truy_vet(man, tu_khoa, env="prod", period=None, ngu_canh=3):
             "3_file_nguon_that": {"rt_duoc_nhac_trong_doan_ma": rt_nhac,
                                   "rt_builder_con_lai": [rt for rt in rt_that if rt not in rt_nhac],
                                   "file_trong_db": ftd},
+            "4_so_dashboard_dang_hien": hien,
             "co_nghi_van": co,
             "CHUA_KIEM": ["công thức mapping (chữ) có cùng nghĩa với công thức trong đoạn mã hay không — chỉ đọc, chưa chạy số",
-                          "con số đang hiển thị trên dashboard có bằng số tính tay từ file hay không (bot không gọi API hiển thị)"]}
+                          "số đang hiển thị (mục 4) có bằng số tính tay từ file nguồn hay không — dùng bot Kiểm số liệu để đối chiếu"]}

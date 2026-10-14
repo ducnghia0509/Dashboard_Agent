@@ -11,7 +11,7 @@ Phần code (tool tất định) đã nằm ở 252. Còn 4 bước hạ tầng,
    `workspace/skills/check_so_lieu/SKILL.md` và `workspace/{IDENTITY,SOUL,AGENTS}.md`; `gateway restart`.
    Nhớ: định tuyến cần cả header `x-openclaw-agent-id` lẫn session key `agent:ai_check_bot:<...>`.
 4. **Gắn bot vào kênh chat trên 252:** thêm `ai_assistants` + `chat_actors` (`code = ai_check_bot`) như
-   Bot AI IT (script idempotent, mặc định dry-run), rồi gắn vào MỘT kênh (một kênh một bot).
+   Bot AI IT (script idempotent, mặc định dry-run), rồi gắn vào một KÊNH RIÊNG tạo mới (API chỉ cho 1 bot/kênh — đừng dùng kênh đã có bot khác).
 
 Nghiệm thu: hỏi 3 câu mẫu — (a) "so sánh BC tháng 9 và tổng BC ngày của An Taxi",
 (b) "phải thu XDV ngày 12/10 lấy ở file nào, vì sao khác tổng file", (c) "HO sao chưa có số T10" —
