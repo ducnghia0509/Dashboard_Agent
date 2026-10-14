@@ -3735,7 +3735,10 @@ def _ho_facts(rows):
             continue
         ten = str(r[ten_j]).strip() if r[ten_j] not in (None, "") else None
         v = _num(r[val_j]) if val_j < len(r) else None
-        if ten and v:
+        # LOẠI dòng "Phân bổ HO về các khối" (âm, bút toán đối ứng) — Y HỆT bản THÁNG
+        # (agent_cli._ho_chiphi_recs). Giữ nó thì Σ CHIPHI_D của HO = 0 đúng ngày cuối tháng
+        # (31/08, 30/09) và màn Chi phí chế độ Ngày trắng trơn "Chưa có dữ liệu".
+        if ten and v and not _nd(ten).startswith("phan bo ho"):
             facts.append((None, RT_CHIPHI, ten, ten, v))
     return facts
 
