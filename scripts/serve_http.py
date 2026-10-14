@@ -6,6 +6,7 @@ stdio qua mcp_config.json.
     python scripts/serve_http.py ingest 8810
     python scripts/serve_http.py qa 8811
     python scripts/serve_http.py check 8812
+    python scripts/serve_http.py pull 8813
 """
 import os
 import sys
@@ -21,7 +22,7 @@ load_dotenv(os.path.join(_ROOT, ".env"))
 
 def main():
     if len(sys.argv) < 3:
-        print("usage: serve_http.py <ingest|qa|check> <port>", file=sys.stderr)
+        print("usage: serve_http.py <ingest|qa|check|pull> <port>", file=sys.stderr)
         sys.exit(2)
     which, port = sys.argv[1], int(sys.argv[2])
     if which == "ingest":
@@ -30,6 +31,8 @@ def main():
         from servers.qa_server import mcp
     elif which == "check":
         from servers.check_server import mcp
+    elif which == "pull":
+        from servers.pull_server import mcp
     else:
         print(f"unknown server '{which}'", file=sys.stderr)
         sys.exit(2)

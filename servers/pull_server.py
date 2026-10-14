@@ -1,0 +1,45 @@
+# -*- coding: utf-8 -*-
+"""MCP server `dashboard_pull` — bot KÉO FILE + NẠP (14/10/2026). Xem servers/common/keo_nap.py.
+
+Chạy:  python scripts/serve_http.py pull 8813
+Có tool GHI vào DB; PROD chỉ nạp được khi NGƯỜI DÙNG gõ `XAC NHAN <mã>` (API ghi xác nhận, LLM không tự tạo được).
+"""
+from mcp.server.fastmcp import FastMCP
+
+from .common import keo_nap as kn
+
+mcp = FastMCP("dashboard_pull")
+
+
+@mcp.tool()
+def pull_lap_ke_hoach(don_vi: str, thu_muc: str, ten_file: list[str] = None, ngay_tu: str = None,
+                      ngay_den: str = None, period: str = None) -> dict:
+    """BƯỚC 1. Lập kế hoạch kéo+nạp. `don_vi` = ANTAXI/ANKHACHSAN/XDV/TEST_XDV/…, `thu_muc` = loại nguồn
+    (vd baocaohqkdngay). Chọn file bằng `ten_file` (danh sách tên) HOẶC `ngay_tu`/`ngay_den` (YYYY-MM-DD,
+    ngày trong tên file) HOẶC `period` (YYYY-MM). Chỉ nhận file có trong danh sách nguồn, tối đa 40 file.
+    Trả plan_id và ma_xac_nhan (mã dành cho NGƯỜI DÙNG gõ khi muốn lên PROD)."""
+    return kn.lap_ke_hoach(don_vi, thu_muc, ten_file, ngay_tu, ngay_den, period)
+
+
+@mcp.tool()
+def pull_keo_ve(plan_id: str) -> dict:
+    """BƯỚC 2. Kéo các file của kế hoạch từ máy kế toán về 252 (chờ tối đa 300 giây)."""
+    return kn.keo_ve(plan_id)
+
+
+@mcp.tool()
+def pull_nap(plan_id: str, env: str = "test") -> dict:
+    """BƯỚC 3/4. Nạp file vào DB và trả bảng so số TRƯỚC/SAU. env='test' làm ngay. env='prod' chỉ chạy khi
+    kế hoạch đã nạp TEST thành công VÀ người dùng đã gõ 'XAC NHAN <ma_xac_nhan>' (nếu chưa, tool trả
+    can_xac_nhan=true kèm hướng dẫn — KHÔNG được tự bịa xác nhận)."""
+    return kn.nap(plan_id, env)
+
+
+@mcp.tool()
+def pull_trang_thai(plan_id: str) -> dict:
+    """Trạng thái một kế hoạch: đã kéo/nạp test/nạp prod chưa."""
+    return kn.trang_thai(plan_id)
+
+
+if __name__ == "__main__":
+    mcp.run()
