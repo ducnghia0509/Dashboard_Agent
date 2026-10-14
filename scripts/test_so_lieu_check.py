@@ -1,0 +1,62 @@
+# -*- coding: utf-8 -*-
+"""Test tất định cho bộ kiểm số liệu (không cần LLM). Chạy: .venv/bin/python scripts/test_so_lieu_check.py
+Đọc DB TEST (5435) read-only; các ca khoá theo hành vi đã chứng minh 14/10/2026."""
+import os
+import sys
+
+sys.path.insert(0, os.path.normpath(os.path.join(os.path.dirname(__file__), "..")))
+from servers.common import so_lieu_check as sc  # noqa: E402
+
+ok = 0
+loi = []
+
+
+def chk(ten, cond):
+    global ok
+    if cond:
+        ok += 1
+    else:
+        loi.append(ten)
+
+
+chk("lech: ngưỡng tuyệt đối, không tương đối", sc._lech(45.383161, 45.367768)[2] is False)
+chk("lech: khớp trong ngưỡng", sc._lech(1.0, 1.0001)[2] is True)
+chk("lech: None không khớp", sc._lech(None, 1.0)[2] is False)
+for xau in ("XDV;drop table raw_rows", "", None, "../etc"):
+    try:
+        sc._chuan_don_vi("test", xau)
+        chk(f"đơn vị lạ bị chặn: {xau!r}", False)
+    except ValueError:
+        chk(f"đơn vị lạ bị chặn: {xau!r}", True)
+for env in ("staging", "", None):
+    try:
+        sc._ket_noi(env)
+        chk(f"env lạ bị chặn: {env!r}", False)
+    except ValueError:
+        chk(f"env lạ bị chặn: {env!r}", True)
+# DB chỉ đọc: ghi phải bị Postgres từ chối.
+try:
+    with sc._ket_noi("test") as c:
+        c.execute("CREATE TEMP TABLE _x(a int)")
+        c.execute("INSERT INTO hidden_files(source_file) VALUES ('x')")
+    chk("kết nối phải CHỈ ĐỌC", False)
+except Exception as e:  # noqa: BLE001
+    chk("kết nối phải CHỈ ĐỌC", "read-only" in str(e).lower())
+r = sc.thang_vs_ngay("ANTAXI", "2026-09", "test")
+chk("thang_vs_ngay có chi tiết", r["so_chi_tieu"] > 0 and r["don_vi_tien"] == "tỷ đồng")
+chk("thang_vs_ngay bắt LNST lệch", any(x["chi_tieu"] == "1112" and x["ket_luan"] == "LỆCH" for x in r["chi_tiet"]))
+try:
+    sc.thang_vs_ngay("ANTAXI", "2026-9", "test")
+    chk("period sai định dạng bị chặn", False)
+except ValueError:
+    chk("period sai định dạng bị chặn", True)
+r = sc.chi_tiet_vs_tong("TEST_XDV", "2026-10-12", env="test")
+chk("XDV 12/10: LỆCH và giải thích bằng dòng không tên", r["ket_luan"] == "LỆCH"
+    and r["dong_khong_ten_doi_tuong"]["so_dong"] == 1
+    and r["giai_thich"] == "Chênh bằng đúng tổng các dòng không có tên đối tượng.")
+r = sc.nguon_thieu_cham("HO", "2026-10", "test")
+chk("HO T10: chưa có file ngày nào", r["so_file_ngay_ve"] == 0 and r["ngay_CHUA_co_file"])
+print(f"{ok} PASS, {len(loi)} FAIL")
+for t in loi:
+    print("  FAIL:", t)
+sys.exit(1 if loi else 0)
