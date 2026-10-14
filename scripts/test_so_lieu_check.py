@@ -64,9 +64,9 @@ try:
 except ValueError:
     chk("period sai định dạng bị chặn", True)
 r = sc.chi_tiet_vs_tong("TEST_XDV", "2026-10-12", env="test")
-chk("XDV 12/10: LỆCH và giải thích bằng dòng không tên", r["ket_luan"] == "LỆCH"
-    and r["dong_khong_ten_doi_tuong"]["so_dong"] == 1
-    and r["giai_thich"] == "Chênh bằng đúng tổng các dòng không có tên đối tượng.")
+# Sau khi vá `_facts_congno` (14/10/2026) dòng không tên được gom vào "Chưa xác định đối tượng" -> KHỚP.
+chk("XDV 12/10: tổng hiển thị = tổng file (dòng không tên đã gom)", r["ket_luan"] == "KHỚP"
+    and r["dong_khong_ten_doi_tuong"]["so_dong"] == 1)
 r = sc.nguon_thieu_cham("HO", "2026-10", "test")
 chk("HO T10: chưa có file ngày nào", r["so_file_ngay_ve"] == 0 and r["ngay_CHUA_co_file"])
 r = sc.file_ve_luc("B.2.TC.OO.D.20261012.CDPSCongnotheoRO.xlsx", "test")
