@@ -2116,6 +2116,30 @@ def _ngay_nxt(rows):
     return None, None
 
 
+def _dao_ngay_thang(iso):
+    """'2026-12-10' -> '2026-10-12'; None nếu đảo ra ngày không tồn tại (tháng > 12 ở vế ngày)."""
+    try:
+        y, a_, b_ = iso.split("-")
+        return datetime.date(int(y), int(b_), int(a_)).isoformat()
+    except (AttributeError, ValueError):
+        return None
+
+
+def _nxt_go_dao_ngay_thang(tu, den, ngay):
+    """Gỡ lỗi Excel hiểu "12/10/2026" theo kiểu Mỹ và lưu thành 2026-12-10 ở đầu sổ NXT.
+
+    `_ngay_nxt` chỉ chữa được "TỪ ngày" khi nó lệch tháng với "ĐẾN ngày"; ở các file T10 CẢ HAI ô
+    đều bị đảo (1/10 -> 2026-01-10 ... 12/10 -> 2026-12-10, chỉ ngày ≤ 12 mới bị) nên `den` luôn
+    trượt khỏi ngày CĐKT và cả cụm HH_D Xe tải T10 bị bỏ ("sổ NXT chốt 2026-12-10, CĐKT chốt
+    2026-10-12 — lệch"). Chỉ chấp nhận bản ĐẢO khi nó KHỚP đúng ngày CĐKT `ngay` — không đoán mò: ô
+    ngày không khớp CĐKT cả hai chiều vẫn bị bỏ như cũ.
+    """
+    if den and den != ngay and _dao_ngay_thang(den) == ngay:
+        tu_dao = _dao_ngay_thang(tu) if tu else None
+        return (tu_dao if tu_dao and tu_dao <= ngay else tu), ngay
+    return tu, den
+
+
 def _hh_ngay_tu_nxt(path, unit, ngay):
     """File hợp nhất ngày của Xe tải -> ([fact HH_D] từng mặt hàng, chẩn đoán).
 
@@ -2138,6 +2162,7 @@ def _hh_ngay_tu_nxt(path, unit, ngay):
         if wb is not None:
             wb.close()
     tu, den = _ngay_nxt(dau_so)
+    tu, den = _nxt_go_dao_ngay_thang(tu, den, ngay)
     if den != ngay:
         return [], {"bo_qua": f"sổ NXT chốt {den}, CĐKT chốt {ngay} — lệch, không ghép"}
     from agent_cli import _tonkho_nxt_records          # import muộn: agent_cli import ngược module này
