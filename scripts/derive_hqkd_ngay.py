@@ -2086,60 +2086,6 @@ def _hh_ngay_cdkt140(rows, mau):
              _hh_payload(dau, 0.0, 0.0))]
 
 
-def _ngay_nxt(rows):
-    """(từ ngày, đến ngày) ghi ở đầu sổ NXT: '... ngày | 22/9/2026 | đến ngày | 24/09/2026 ...'."""
-    def doc(c):
-        if isinstance(c, datetime.datetime):
-            return c.date().isoformat()
-        m = re.fullmatch(r"\s*(\d{1,2})/(\d{1,2})/(\d{4})\s*", str(c or ""))
-        if m:
-            try:
-                return datetime.date(int(m[3]), int(m[2]), int(m[1])).isoformat()
-            except ValueError:
-                return None
-        return None
-    for r in rows[:12]:
-        for j, c in enumerate(r):
-            if "den ngay" in _nd(c):
-                tu = next((doc(x) for x in reversed(r[:j]) if doc(x)), None)
-                den = next((doc(x) for x in r[j + 1:] if doc(x)), None)
-                # Excel hiểu "1/9/2026" theo kiểu Mỹ và lưu thành 09/01 (file 18/09 của Xe tải;
-                # bản tháng 8 cũng có "2026-01-08" cho 1/8). Rơi ngoài tháng của `den` mà đảo
-                # ngày-tháng thì vào đúng tháng -> đảo lại.
-                if tu and den and tu[:7] != den[:7]:
-                    y, a_, b_ = tu.split("-")
-                    dao = f"{y}-{b_}-{a_}"
-                    if dao[:7] == den[:7] and dao <= den:
-                        tu = dao
-                if den:
-                    return tu, den
-    return None, None
-
-
-def _dao_ngay_thang(iso):
-    """'2026-12-10' -> '2026-10-12'; None nếu đảo ra ngày không tồn tại (tháng > 12 ở vế ngày)."""
-    try:
-        y, a_, b_ = iso.split("-")
-        return datetime.date(int(y), int(b_), int(a_)).isoformat()
-    except (AttributeError, ValueError):
-        return None
-
-
-def _nxt_go_dao_ngay_thang(tu, den, ngay):
-    """Gỡ lỗi Excel hiểu "12/10/2026" theo kiểu Mỹ và lưu thành 2026-12-10 ở đầu sổ NXT.
-
-    `_ngay_nxt` chỉ chữa được "TỪ ngày" khi nó lệch tháng với "ĐẾN ngày"; ở các file T10 CẢ HAI ô
-    đều bị đảo (1/10 -> 2026-01-10 ... 12/10 -> 2026-12-10, chỉ ngày ≤ 12 mới bị) nên `den` luôn
-    trượt khỏi ngày CĐKT và cả cụm HH_D Xe tải T10 bị bỏ ("sổ NXT chốt 2026-12-10, CĐKT chốt
-    2026-10-12 — lệch"). Chỉ chấp nhận bản ĐẢO khi nó KHỚP đúng ngày CĐKT `ngay` — không đoán mò: ô
-    ngày không khớp CĐKT cả hai chiều vẫn bị bỏ như cũ.
-    """
-    if den and den != ngay and _dao_ngay_thang(den) == ngay:
-        tu_dao = _dao_ngay_thang(tu) if tu else None
-        return (tu_dao if tu_dao and tu_dao <= ngay else tu), ngay
-    return tu, den
-
-
 def _hh_ngay_tu_nxt(path, unit, ngay):
     """File hợp nhất ngày của Xe tải -> ([fact HH_D] từng mặt hàng, chẩn đoán).
 
@@ -2155,16 +2101,14 @@ def _hh_ngay_tu_nxt(path, unit, ngay):
         wb = openpyxl.load_workbook(path, data_only=True, read_only=True)
         if sn not in (wb.sheetnames or ()):
             return [], {"bo_qua": f"không có sheet '{sn}'"}
-        dau_so = [list(r) for r in wb[sn].iter_rows(min_row=1, max_row=12, values_only=True)]
     except Exception as e:
         return [], {"bo_qua": f"không đọc được ({type(e).__name__})"}
     finally:
         if wb is not None:
             wb.close()
-    tu, den = _ngay_nxt(dau_so)
-    tu, den = _nxt_go_dao_ngay_thang(tu, den, ngay)
-    if den != ngay:
-        return [], {"bo_qua": f"sổ NXT chốt {den}, CĐKT chốt {ngay} — lệch, không ghép"}
+    # NGÀY = NGÀY TRONG TÊN FILE (user chốt 14/10/2026), không đọc ô "từ ngày/đến ngày" của sổ NXT:
+    # Excel lưu "12/10/2026" thành 2026-12-10 (kiểu Mỹ) với mọi ngày <= 12 nên ô đó không tin được, và
+    # mọi bản vá "đoán xem ô nào bị đảo" đều là đoán. `ngay` ở đây đã là ngày CĐKT chọn theo tên file.
     from agent_cli import _tonkho_nxt_records          # import muộn: agent_cli import ngược module này
     recs, dau_partial, err = _tonkho_nxt_records(path, sn, ngay[:7], unit["cong_ty"], scale=1.0)
     if err:
@@ -2176,8 +2120,8 @@ def _hh_ngay_tu_nxt(path, unit, ngay):
         facts.append((None, "HH_D", ten, ten, rc.get("Dư cuối kỳ (tỷ)") or 0.0, None,
                       _hh_payload(0.0 if dau_partial else ty("Dư đầu kỳ (tỷ)"),
                                   ty("Nhập trong kỳ (tỷ)"), ty("Xuất trong kỳ (tỷ)"),
-                                  rc.get("TK (151-156)"), tu_ngay=tu)))
-    return facts, {"ngay": ngay, "tu_ngay": tu, "so_dong": len(facts),
+                                  rc.get("TK (151-156)"))))
+    return facts, {"ngay": ngay, "so_dong": len(facts),
                    "ton_cuoi_ty": round(sum(f[4] for f in facts) * 1e-9, 9)}
 
 
