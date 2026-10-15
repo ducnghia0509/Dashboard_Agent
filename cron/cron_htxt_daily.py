@@ -122,6 +122,22 @@ def xoa_ban_bi_thay(env_url, spec_id, bo):
     return n
 
 
+def canh_bao_file_an(stdout):
+    """-> các dòng cảnh báo FILE BỊ ẨN trong JSON kết quả của `spec_extract.py` (xem
+    `spec_extract.file_dang_an`).
+
+    Ca thật 11-15/10/2026: `B.5.HT.M2026.08.BC cap nhat van hanh.xlsx` nằm trong `hidden_files`
+    (script dọn cộng đôi 10/10 ẩn theo tên, máy gửi phát hành lại đúng tên cũ) -> log mỗi sáng
+    `htxt_giao written=124`, `htxt_hopdong written=82` như thành công trong khi htxt0 trống trơn.
+    Dòng trả về chứa "CẢNH BÁO" -> panel "Chạy tự động" bắt được (`_CANH_BAO_MARK`)."""
+    try:
+        kq = json.loads(stdout)
+    except (TypeError, ValueError):
+        return []
+    return [c for r in kq if isinstance(r, dict) and r.get("file_dang_an")
+            for c in (r.get("canh_bao") or []) if "hidden_files" in str(c)]
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--env", choices=("test", "prod"), default="test")
@@ -156,6 +172,8 @@ def main():
             if n_xoa:
                 log(f"  XOÁ {n_xoa} dòng của bản bị thay thế: {', '.join(bo)}")
         log(f"TRÍCH XUẤT [{a.env}] {sp}: rc={r.returncode} written={'+'.join(ghi) or 0}")
+        for cb in canh_bao_file_an(r.stdout):
+            log(f"  {cb}")
         if r.returncode:
             rc_all = r.returncode
             print(r.stderr[-1500:], file=sys.stderr)
