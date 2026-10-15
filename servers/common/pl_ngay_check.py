@@ -3,7 +3,7 @@
 
 Câu hỏi thật làm bot bí: "Tổng chi phí An KS 30/09 đang hiện 12.950.064 đ, chỉ nguồn lấy số". Dashboard chỉ lưu dòng gộp
 (CHIPHI_D 'Chi phí chung' = CPBH + QLDN) nên muốn tách QLDN phải mở chính file. Ngày đó lại có HAI bản (bản KT sửa tay
-`..xlsx` và bản tên chuẩn xuất lại sau) — `derive_hqkd_ngay._BAN_SUA_TAY` quyết định bản nào lên dashboard. Tool trả đủ:
+`..xlsx` và bản tên chuẩn xuất lại sau) — bản lưu muộn nhất ở máy nguồn lên dashboard (luật của derive_hqkd_ngay). Tool trả đủ:
 dòng DB + từng bản file (ai sửa, lúc nào, đang được dùng hay không) + các dòng KQKD theo MÃ SỐ + ô khác nhau giữa các bản.
 Chỉ đọc."""
 import glob
@@ -23,13 +23,11 @@ _BI_DANH_DV = {"ANKS": "ANKHACHSAN", "ANKHACHSAN": "ANKHACHSAN", "KHACHSAN": "AN
                "TRAMSAC": "TRAMSAC", "HUNGTHINH": "HUNGTHINH", "XETAI": "HUNGTHINH", "DUAN": "DUAN"}
 
 
-def _ban_sua_tay():
-    try:
-        sys.path.insert(0, os.path.join(sc._AGENT_ROOT, "scripts"))
-        from derive_hqkd_ngay import _BAN_SUA_TAY  # noqa: E402
-        return dict(_BAN_SUA_TAY)
-    except Exception:  # noqa: BLE001
-        return {}
+def _derive():
+    """Dùng ĐÚNG luật chọn bản của deriver (bản lưu muộn nhất ở máy nguồn thắng) — không tự đặt luật thứ hai."""
+    sys.path.insert(0, os.path.join(sc._AGENT_ROOT, "scripts"))
+    import derive_hqkd_ngay as d  # noqa: E402
+    return d
 
 
 def _doc_kqkd(p):
@@ -69,16 +67,17 @@ def pl_ngay_nguon(don_vi: str, ngay: str, env: str = "prod", thu_muc: str = "bao
                      "ORDER BY 1, 2", (don_vi + "::%", ngay))
     ymd = ngay.replace("-", "")
     files = sorted(glob.glob(os.path.join(sc.RECEIVED_DIR, don_vi, thu_muc, f"*.D.{ymd}*.xls*")))
-    sua = _ban_sua_tay()
-    bi_thay = {k for k, v in sua.items() if os.path.exists(os.path.join(sc.RECEIVED_DIR, don_vi, thu_muc, v))}
+    d = _derive()
+    tm = os.path.join(sc.RECEIVED_DIR, don_vi, thu_muc)
     ban = []
     for p in files:
         ten = os.path.basename(p)
         meta, dong, loi = _doc_kqkd(p)
-        ban.append({"file": ten, **meta, "ve_252_luc": sc.datetime.datetime.fromtimestamp(os.path.getmtime(p)).isoformat(" ", "seconds"),
-                    "dashboard_dang_dung": ten not in bi_thay,
-                    "ly_do": (f"bị thay bởi bản sửa tay {sua[ten]} (_BAN_SUA_TAY)" if ten in bi_thay
-                              else "bản sửa tay được ghim" if ten in sua.values() else None),
+        bo = d._bi_ban_sua_thay(tm, ten)
+        ban.append({"file": ten, **meta, "luu_o_may_nguon_utc": d._luu_luc(p),
+                    "ve_252_luc": sc.datetime.datetime.fromtimestamp(os.path.getmtime(p)).isoformat(" ", "seconds"),
+                    "dashboard_dang_dung": not bo,
+                    "ly_do": "có bản cùng báo cáo cùng ngày lưu MUỘN HƠN ở máy nguồn -> bản này bị bỏ" if bo else None,
                     "kqkd": dong, "loi": loi})
     khac = []
     if len(ban) > 1:
@@ -95,8 +94,8 @@ def pl_ngay_nguon(don_vi: str, ngay: str, env: str = "prod", thu_muc: str = "bao
            "cac_ban_file": ban, "o_khac_nhau_giua_cac_ban": khac,
            "giai_thich": ("DB lưu số đã quy TỶ ĐỒNG; 'so_tien_dong' đã nhân lại ra đồng. CHIPHI_D 'Chi phí chung' = mã 25 (CPBH) "
                           "+ mã 26 (QLDN) cột 'Kỳ này' của sheet KQKD — dashboard KHÔNG lưu riêng QLDN, muốn tách thì đọc "
-                          "kqkd['26'] của bản dashboard_dang_dung=true. Nhiều bản cùng ngày: chỉ bản dashboard_dang_dung lên số; "
-                          "bản khác có số khác = kế toán đã sửa lại, cần người phụ trách quyết định đổi sang bản nào.")}
+                          "kqkd['26'] của bản dashboard_dang_dung=true. Nhiều bản cùng ngày: bản LƯU MUỘN NHẤT ở máy nguồn "
+                          "lên số (dashboard_dang_dung=true), các bản cũ bị bỏ — luật chung, không ghim bản nào.")}
     if not files:
         out["canh_bao"] = f"không thấy file .D.{ymd} trong {don_vi}/{thu_muc}"
     return out
