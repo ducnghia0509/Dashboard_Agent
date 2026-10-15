@@ -1327,20 +1327,39 @@ def _tcode_facts_byco(byco, profit_pnlt=("Lợi nhuận trước thuế",), pnlt
 _SNAP_NGAY_SHEETS = ("BCKQKD", "BCĐKT", "BC LCTT")
 
 
-# BẢN KẾ TOÁN SỬA TAY THAY BẢN XUẤT TỰ ĐỘNG CÙNG NGÀY: {tên bản bị thay: tên bản thay}.
-# Ca 13/10/2026 (An KS 30/09): máy xuất VPS41 ghi lại tên chuẩn lúc 20:02 11/10 bằng số GỐC (khớp
-# đầu kỳ file 01/10), còn KT sửa tay lúc 16:22 thêm bút toán cuối tháng (giá vốn, CPBH, QLDN) và
-# lưu thành `..xlsx`. Cả hai cùng ngày 30/09, vòng quét xếp theo tên nên bản gốc đứng SAU và đè bản
-# sửa; "file mới nhất thắng" cũng chọn sai vì bản gốc mới hơn. Không suy được luật chung -> khai
-# đích danh. Chỉ bỏ bản bị thay khi bản thay CÓ MẶT trong thư mục.
-_BAN_SUA_TAY = {
-    "B.10.AAG.TCKT.D.20260930.Baocaotaichinhrieng.xlsx": "B.10.AAG.TCKT.D.20260930.Baocaotaichinhrieng..xlsx",
-}
+# NHIỀU BẢN CÙNG MỘT BÁO CÁO CÙNG NGÀY -> BẢN LƯU GẦN NHẤT Ở MÁY NGUỒN THẮNG (15/10/2026, user chốt:
+# "kéo file mới nhất về, xoá số file cũ, lên số file mới"). Thay cho bảng ghim đích danh `_BAN_SUA_TAY`
+# (13/10, An KS 30/09 ghim bản `..xlsx`) — bảng đó giữ số CŨ khi kế toán xuất lại bản tên chuẩn ngày
+# 15/10 (QLDN 11.721.214 -> 11.221.214) và dashboard đứng yên.
+# "Cùng báo cáo" = tên trùng nhau sau khi bỏ `..`/` - Copy`/`(1)`; khác tên báo cáo (Baocaotaichinhrieng vs
+# Baocaohieuquakinhdoanh cùng ngày) là hai báo cáo, không đụng nhau.
+# "Mới nhất" đọc `docProps/core.xml` (giờ LƯU ở máy nguồn), KHÔNG dùng mtime trên 252: mỗi lần kéo lại là
+# ghi đè mtime, nên mtime chỉ nói "kéo lúc nào". Không đọc được thì mới lùi về mtime.
+def _khoa_ban(ten):
+    t = re.sub(r"\s*-\s*copy|\s*\(\d+\)", "", ten, flags=re.I)
+    return re.sub(r"\.{2,}", ".", t).lower()
+
+
+def _luu_luc(path):
+    import zipfile
+    try:
+        with zipfile.ZipFile(path) as z:
+            m = re.search(rb"<dcterms:modified[^>]*>([^<]+)<", z.read("docProps/core.xml"))
+        if m:
+            return m.group(1).decode()
+    except Exception:  # noqa: BLE001
+        pass
+    return datetime.datetime.utcfromtimestamp(os.path.getmtime(path)).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def _bi_ban_sua_thay(thu_muc, ten):
-    thay = _BAN_SUA_TAY.get(ten)
-    return bool(thay) and os.path.exists(os.path.join(thu_muc, thay))
+    """True = file này có BẢN KHÁC cùng báo cáo cùng thư mục được lưu MUỘN HƠN -> bỏ, để bản mới nhất lên số."""
+    k = _khoa_ban(ten)
+    cung = [t for t in os.listdir(thu_muc) if t != ten and not t.startswith("~$") and _khoa_ban(t) == k]
+    if not cung:
+        return False
+    cua_minh = _luu_luc(os.path.join(thu_muc, ten))
+    return any(_luu_luc(os.path.join(thu_muc, t)) > cua_minh for t in cung)
 
 
 def _snap_day_of(file_name):
