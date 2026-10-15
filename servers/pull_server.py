@@ -12,13 +12,24 @@ mcp = FastMCP("dashboard_pull")
 
 
 @mcp.tool()
+def pull_liet_ke_ky(don_vi: str, thu_muc: str) -> dict:
+    """BƯỚC 0 (chỉ đọc danh sách nguồn, không kéo/nạp gì). Liệt kê các kỳ YYYY-MM của một nguồn
+    `don_vi`/`thu_muc` và tên file từng kỳ, kèm file không suy được kỳ (sẽ bị bỏ). Dùng khi người dùng nói
+    "tất cả các tháng / cả thư mục": lấy mọi tên file ở đây rồi gọi pull_lap_ke_hoach(ten_file=[...]),
+    tối đa 40 file một kế hoạch (`so_ke_hoach_can` cho biết cần mấy kế hoạch)."""
+    return kn.liet_ke_ky(don_vi, thu_muc)
+
+
+@mcp.tool()
 def pull_lap_ke_hoach(don_vi: str, thu_muc: str, ten_file: list[str] = None, ngay_tu: str = None,
-                      ngay_den: str = None, period: str = None) -> dict:
+                      ngay_den: str = None, period: str = None, da_co_anh_duyet: bool = False) -> dict:
     """BƯỚC 1. Lập kế hoạch kéo+nạp. `don_vi` = ANTAXI/ANKHACHSAN/XDV/TEST_XDV/…, `thu_muc` = loại nguồn
     (vd baocaohqkdngay). Chọn file bằng `ten_file` (danh sách tên) HOẶC `ngay_tu`/`ngay_den` (YYYY-MM-DD,
     ngày trong tên file) HOẶC `period` (YYYY-MM). Chỉ nhận file có trong danh sách nguồn, tối đa 40 file.
+    Kỳ thuộc NĂM CŨ bị từ chối (quy định KSNB) trừ khi `da_co_anh_duyet=True` — CHỈ đặt khi tin nhắn của người
+    dùng có kèm ẢNH email duyệt của Trưởng phòng KSNB; việc dùng cờ được ghi nhật ký.
     Trả plan_id và ma_xac_nhan (mã dành cho NGƯỜI DÙNG gõ khi muốn lên PROD)."""
-    return kn.lap_ke_hoach(don_vi, thu_muc, ten_file, ngay_tu, ngay_den, period)
+    return kn.lap_ke_hoach(don_vi, thu_muc, ten_file, ngay_tu, ngay_den, period, da_co_anh_duyet)
 
 
 @mcp.tool()

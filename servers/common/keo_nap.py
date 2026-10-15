@@ -5,7 +5,7 @@ rồi mới PROD.
 
 THIẾT KẾ AN TOÀN (user chốt 14/10/2026: giống bot kiểm số liệu, riêng lên PROD cần xác nhận của người nhắn):
   1. KẾ HOẠCH TRƯỚC: `lap_ke_hoach` chỉ nhận tên file CÓ trong `available_metadata.json` (không đường dẫn tự do),
-     tối đa MAX_FILES file/lượt, kỳ suy từ tên file. Mọi bước sau chỉ chạy theo `plan_id`.
+     tối đa MAX_FILES file/lượt, kỳ suy từ tên file (lùi về year/month metadata). Mọi bước sau chỉ chạy theo `plan_id`.
   2. TEST TRƯỚC, PROD SAU: `nap(env="prod")` bị từ chối nếu kế hoạch chưa nạp TEST thành công, hoặc file đã đổi
      (sha1) kể từ lần nạp TEST.
   3. XÁC NHẬN CỦA NGƯỜI NHẮN KHÔNG DO LLM TỰ TẠO: API (`bot_service`) ghi file `xacnhan/<MÃ>.json` khi và chỉ khi
@@ -71,14 +71,29 @@ def _doc_meta():
 
 
 def _ky_cua_file(e):
-    """'YYYY-MM' từ tên file/metadata, None nếu không suy được (file đó bị bỏ, không đoán)."""
+    """'YYYY-MM' từ tên file/metadata, None nếu không suy được (file đó bị bỏ, không đoán).
+
+    Thứ tự: (1) tên `.D.YYYYMMDD`/`.M.YYYYMM` — LUÔN ưu tiên (metadata của SRVF có 56 file lệch tên, vd bản
+    phát hành lại giữ tháng cũ); (2) lùi về `year`/`month` của metadata do máy kế toán quét — cách
+    `cron_thuchi_daily.pick_targets` vẫn dùng. Thiếu (2) thì 15/15 file THUCHI/baocaothuchi
+    ('01_TC01_BÁO CÁO TIỀN TẬP ĐOÀN_THÁNG 01 NĂM 2026.xlsx') và 50/50 baocaonganhang ra None -> bot từ chối
+    kéo (15/10/2026). Chặn vắt năm như cron: tên có số 20xx mà không chứa `year` thì không tin metadata."""
     m = _RE_NGAY.search(e["fileName"])
     if m and 1 <= int(m[2]) <= 12:
         return f"{m[1]}-{m[2]}"
     m = re.search(r"\.M\.(20\d{2})[._]?(\d{1,2})(?!\d)", e["fileName"])
     if m and 1 <= int(m[2]) <= 12:
         return f"{m[1]}-{int(m[2]):02d}"
-    return None
+    try:
+        nam, thang = int(e.get("year")), int(e.get("month"))
+    except (TypeError, ValueError):
+        return None
+    if not (2000 <= nam <= 2099 and 1 <= thang <= 12):
+        return None
+    nam_ten = {int(t) for t in re.findall(r"(?<!\d)(20\d{2})(?!\d)", e["fileName"])}
+    if nam_ten and nam not in nam_ten:
+        return None
+    return f"{nam}-{thang:02d}"
 
 
 def _duong_dan(f):
@@ -168,9 +183,19 @@ def _so_sanh(truoc, sau):
 
 
 # ───────────────────────── 1. KẾ HOẠCH ─────────────────────────
-def lap_ke_hoach(don_vi, thu_muc, ten_file=None, ngay_tu=None, ngay_den=None, period=None):
+def _ky_nam_cu(ky):
+    """Kỳ 'YYYY-MM' thuộc năm TRƯỚC năm hiện tại."""
+    return int(ky[:4]) < _bay_gio().year
+
+
+def lap_ke_hoach(don_vi, thu_muc, ten_file=None, ngay_tu=None, ngay_den=None, period=None, da_co_anh_duyet=False):
     """Chọn file theo: danh sách `ten_file` · hoặc khoảng `ngay_tu..ngay_den` (YYYY-MM-DD, ngày trong TÊN file) ·
-    hoặc `period` (YYYY-MM). Chỉ file có trong danh sách nguồn; tối đa MAX_FILES."""
+    hoặc `period` (YYYY-MM). Chỉ file có trong danh sách nguồn; tối đa MAX_FILES.
+
+    KỲ NĂM CŨ (luật Trưởng phòng KSNB Mai Thị Điệp 15/10/2026: "YC IT kéo lại số các NĂM CŨ phải đính kèm ảnh
+    email chị duyệt"): kế hoạch có kỳ năm < năm hiện tại bị TỪ CHỐI trừ khi `da_co_anh_duyet=True` — bot chỉ được
+    đặt cờ này khi tin nhắn của người dùng có tệp ảnh đính kèm. Cờ do LLM đặt (chưa có cổng API như XAC NHAN),
+    nên mỗi lần dùng đều ghi audit `anh_duyet_nam_cu` kèm danh sách kỳ để hậu kiểm."""
     if not (ten_file or ngay_tu or ngay_den or period):
         raise ValueError("phải nêu ten_file, hoặc ngay_tu/ngay_den, hoặc period — không kéo 'tất cả'")
     _pn, meta = _doc_meta()
@@ -200,11 +225,17 @@ def lap_ke_hoach(don_vi, thu_muc, ten_file=None, ngay_tu=None, ngay_den=None, pe
                     continue
         ky = _ky_cua_file(e)
         if not ky:
-            bo.append({"file": e["fileName"], "ly_do": "không suy được kỳ từ tên file"})
+            bo.append({"file": e["fileName"], "ly_do": "không suy được kỳ từ tên file/metadata"})
             continue
         chon.append({"company": e["company"], "report_type": e["report_type"], "fileName": e["fileName"],
                      "period": ky})
     thieu = sorted(ten_set - {f["fileName"].lower() for f in chon})
+    ky_cu = sorted({f["period"] for f in chon if _ky_nam_cu(f["period"])})
+    if ky_cu and not da_co_anh_duyet:
+        _audit("tu_choi_nam_cu", don_vi=don_vi, thu_muc=thu_muc, ky=ky_cu)
+        raise ValueError(f"có {len(ky_cu)} kỳ thuộc NĂM CŨ ({', '.join(ky_cu)}): theo quy định KSNB, kéo lại số năm cũ "
+                         "phải gửi kèm ẢNH EMAIL DUYỆT của Trưởng phòng KSNB (chị Mai Thị Điệp) trong tin nhắn. "
+                         "Chưa có ảnh thì chỉ lập kế hoạch cho các kỳ năm nay.")
     if len(chon) > MAX_FILES:
         raise ValueError(f"khớp {len(chon)} file, vượt trần {MAX_FILES}/lượt — thu hẹp khoảng ngày")
     if not chon:
@@ -213,13 +244,43 @@ def lap_ke_hoach(don_vi, thu_muc, ten_file=None, ngay_tu=None, ngay_den=None, pe
     ma = "".join(secrets.choice("ABCDEFGHJKLMNPQRSTUVWXYZ23456789") for _ in range(6))
     p = {"plan_id": pid, "ma_xac_nhan": ma, "tao_luc": _bay_gio().isoformat(timespec="seconds"),
          "don_vi": chon[0]["company"], "thu_muc": chon[0]["report_type"], "files": sorted(chon, key=lambda f: f["fileName"]),
-         "trang_thai": {"keo": None, "test": None, "prod": None}}
+         "trang_thai": {"keo": None, "test": None, "prod": None}, "anh_duyet_nam_cu": ky_cu or None}
     _luu_plan(p)
-    _audit("lap_ke_hoach", plan=pid, don_vi=p["don_vi"], thu_muc=p["thu_muc"], so_file=len(chon))
+    _audit("lap_ke_hoach", plan=pid, don_vi=p["don_vi"], thu_muc=p["thu_muc"], so_file=len(chon),
+           **({"anh_duyet_nam_cu": True, "ky_nam_cu": ky_cu} if ky_cu else {}))
     return {"plan_id": pid, "ma_xac_nhan": ma, "don_vi": p["don_vi"], "thu_muc": p["thu_muc"],
             "so_file": len(chon), "ky": sorted({f["period"] for f in chon}),
             "file": [f["fileName"] for f in chon], "khong_thay_trong_nguon": thieu, "bo_qua": bo,
             "buoc_tiep": "pull_keo_ve -> pull_nap(env='test') -> người dùng gõ 'XAC NHAN <ma_xac_nhan>' -> pull_nap(env='prod')"}
+
+
+# ───────────────────────── 0. LIỆT KÊ KỲ (chỉ đọc) ─────────────────────────
+def liet_ke_ky(don_vi, thu_muc):
+    """CHỈ ĐỌC available_metadata.json (không kéo, không ghi kế hoạch/nhật ký): các kỳ của một nguồn, để bot tự
+    trả lời "tất cả các tháng / cả thư mục" rồi lập kế hoạch bằng `ten_file` — luật không kéo 'tất cả' của
+    `lap_ke_hoach` và trần MAX_FILES giữ nguyên. Trả kỳ sắp tăng dần + file không suy được kỳ (sẽ bị bỏ)."""
+    _pn, meta = _doc_meta()
+    cd = [e for e in meta if e.get("fileName") and str(e.get("company") or "").upper() == str(don_vi or "").upper()
+          and str(e.get("report_type") or "").lower() == str(thu_muc or "").lower()]
+    if not cd:
+        co = sorted({(e.get("company"), e.get("report_type")) for e in meta if e.get("company")})
+        raise ValueError(f"không có nguồn {don_vi}/{thu_muc} trong danh sách nguồn (có: {co[:40]})")
+    theo_ky, khong_ky = {}, []
+    for e in cd:
+        ky = _ky_cua_file(e)
+        if ky:
+            theo_ky.setdefault(ky, []).append(e["fileName"])
+        else:
+            khong_ky.append(e["fileName"])
+    ds = [{"ky": k, "so_file": len(v), "file": sorted(v), "nam_cu": _ky_nam_cu(k)} for k, v in sorted(theo_ky.items())]
+    tong = sum(x["so_file"] for x in ds)
+    nay = sum(x["so_file"] for x in ds if not x["nam_cu"])
+    return {"don_vi": cd[0]["company"], "thu_muc": cd[0]["report_type"], "so_ky": len(ds), "so_file": tong,
+            "ky": ds, "khong_suy_duoc_ky": sorted(khong_ky), "tran_file_moi_ke_hoach": MAX_FILES,
+            "so_ke_hoach_can": -(-tong // MAX_FILES) if tong else 0,
+            "ky_nam_cu_cho_duyet": [x["ky"] for x in ds if x["nam_cu"]], "so_file_nam_nay": nay,
+            "luu_y_nam_cu": "kỳ năm cũ chỉ kéo được khi người dùng gửi kèm ảnh email duyệt của KSNB (chị Mai Thị "
+                            "Điệp) — chưa có ảnh thì chỉ đề xuất kéo các kỳ năm nay"}
 
 
 # ───────────────────────── 2. KÉO VỀ ─────────────────────────
