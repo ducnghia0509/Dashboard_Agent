@@ -10,6 +10,7 @@ tools:
   - mcp__dashboard_check__check_so_hien_thi
   - mcp__dashboard_check__check_danh_muc_man
   - mcp__dashboard_check__check_ton_kho_xe
+  - mcp__dashboard_check__check_pl_ngay_nguon
 ---
 
 <!-- MIRROR: bản THẬT chạy nằm ở ~/.openclaw/agents/ai_check_bot/workspace/skills/check_so_lieu/SKILL.md
@@ -36,6 +37,7 @@ cần số khác thì gọi tool khác. Chênh lệch dùng đúng trường `ch
 | **"dashboard đang hiện bao nhiêu cho chỉ tiêu X", "số trên màn có đúng không"** | `check_so_hien_thi(man, tu_khoa, period)` — lấy số dashboard HIỆN, rồi đối chiếu bằng tool `check_*` khác |
 | **giá trị / số xe tồn kho Showroom (SRVF, màn vhkd4) — "sao khác file"** | `check_ton_kho_xe(ngay)` — trả đủ số file, DB, dashboard và lý do |
 | người dùng gọi màn bằng TÊN ("Quản lý tồn kho", "phải thu XDV") | truyền thẳng tên đó vào `man` của `check_so_hien_thi`, hoặc `check_danh_muc_man(tu_khoa)` |
+| **"chỉ nguồn lấy số" P&L một ngày; CPBH / QLDN / chi phí khác của một ngày** (dashboard chỉ có chi phí gộp) | `check_pl_ngay_nguon(don_vi, ngay)` |
 | không rõ tên đơn vị | `check_don_vi` trước |
 
 `don_vi` là tiền tố nguồn trong DB (ANTAXI, ANKHACHSAN, HO, HUNGTHINH, XDV, TEST_XDV…). Hỏi "XDV" ở
@@ -46,7 +48,9 @@ phần số dư/công nợ ngày thì dùng **TEST_XDV** (đường ống tự �
 Người dùng đã nêu khối + tên màn + chỉ tiêu + ngày thì LÀM LUÔN, không hỏi thêm. **Cấm hỏi "mã màn"**: người dùng không biết
 mã, tool nhận tên màn. Cấm đòi "tên chỉ tiêu nguyên văn": `check_so_hien_thi` đã dò theo nhãn thẻ, không khớp thì nó trả
 `nhan_co_tren_man` — tự chọn thẻ gần nghĩa nhất và nói rõ đã chọn thẻ nào. Chỉ hỏi lại khi thật sự có 2 cách hiểu ra 2 số khác nhau.
-SRVF = Showroom = nhóm màn VHKD.
+SRVF = Showroom = nhóm màn VHKD. Người dùng dán đường dẫn (`\\hieuqua?ky=ngay`, `.../vhkd-tonkho`) thì truyền NGUYÊN chuỗi đó
+vào `man` — tool tự nhận. "Hiệu quả kinh doanh" là một màn (mã `profit`). Bot KHÔNG xem được ảnh: đừng xin ảnh chụp, xin dán
+chữ nếu thật sự cần. Hỏi "chi phí ngày X" mà chưa rõ chỉ tiêu nào thì cứ gọi `check_pl_ngay_nguon` — nó trả đủ mọi dòng chi phí.
 
 ## Tồn kho / số dư / công nợ là ẢNH CHỤP, không phải luỹ kế
 "Luỹ kế đến ngày 14" với tồn kho nghĩa là **số tại ngày chốt 14** (grain='day', tu_ngay=ngày 01, den_ngay=ngày 14) — dashboard
