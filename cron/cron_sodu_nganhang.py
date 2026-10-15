@@ -14,6 +14,7 @@ Chạy: .venv/bin/python cron/cron_sodu_nganhang.py [--env test|prod] [--pull]
 """
 import argparse
 import os
+import re
 import subprocess
 import sys
 from datetime import datetime, timedelta, timezone
@@ -37,6 +38,7 @@ def main():
     ap.add_argument("--env", choices=("test", "prod"), default="test")
     ap.add_argument("--pull", action="store_true", help="kéo file nguồn về trước khi trích xuất")
     a = ap.parse_args()
+    pull_nguon.mo_luot("sodu_nganhang", a.env, log)   # mốc panel, xem pull_nguon.mo_luot
     if pull_nguon.bi_tat("sodu_nganhang", a.env, log):
         sys.exit(0)
 
@@ -73,6 +75,11 @@ def main():
     print(r.stdout)
     if r.stderr:
         print("STDERR:", r.stderr, file=sys.stderr)
+    if r.returncode:
+        log(f"DỪNG: trích xuất lỗi rc={r.returncode}")
+    else:
+        m = re.search(r"ĐÃ GHI:[^\n]*", r.stdout or "")
+        log("XONG — " + (m.group(0).strip() if m else "trích xuất rc=0"))
     sys.exit(r.returncode)
 
 

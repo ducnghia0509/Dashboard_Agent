@@ -143,6 +143,7 @@ def main():
     ap.add_argument("--env", choices=("test", "prod"), default="test")
     ap.add_argument("--pull", action="store_true", help="kéo file nguồn về trước khi trích xuất")
     a = ap.parse_args()
+    pull_nguon.mo_luot("htxt_daily", a.env, log)   # mốc panel, xem pull_nguon.mo_luot
     if pull_nguon.bi_tat("htxt_daily", a.env, log):
         sys.exit(0)
 
@@ -159,7 +160,7 @@ def main():
         log(f"  -> xin {kq['xin']}, về {kq['ve']}, thiếu {len(kq['thieu'])}")
 
     env = {**os.environ, "DATABASE_URL": DB[a.env]}
-    rc_all = 0
+    rc_all, tong_ghi, loi = 0, 0, []
     for sp in SPECS:
         r = subprocess.run([os.path.join(ROOT, ".venv", "bin", "python"),
                             os.path.join(ROOT, "scripts", "spec_extract.py"), sp, "--write"],
@@ -172,11 +173,17 @@ def main():
             if n_xoa:
                 log(f"  XOÁ {n_xoa} dòng của bản bị thay thế: {', '.join(bo)}")
         log(f"TRÍCH XUẤT [{a.env}] {sp}: rc={r.returncode} written={'+'.join(ghi) or 0}")
+        tong_ghi += sum(int(x) for x in ghi)
         for cb in canh_bao_file_an(r.stdout):
             log(f"  {cb}")
         if r.returncode:
             rc_all = r.returncode
+            loi.append(sp)
             print(r.stderr[-1500:], file=sys.stderr)
+    if rc_all:
+        log(f"DỪNG: {len(loi)}/{len(SPECS)} spec trích xuất lỗi ({', '.join(loi)}) — rc={rc_all}")
+    else:
+        log(f"XONG — {len(SPECS)}/{len(SPECS)} spec, ghi {tong_ghi} dòng")
     sys.exit(rc_all)
 
 
