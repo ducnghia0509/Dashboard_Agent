@@ -11,6 +11,10 @@ THIẾT KẾ AN TOÀN (user chốt 14/10/2026: giống bot kiểm số liệu, r
   3. XÁC NHẬN CỦA NGƯỜI NHẮN KHÔNG DO LLM TỰ TẠO: API (`bot_service`) ghi file `xacnhan/<MÃ>.json` khi và chỉ khi
      tin của NGƯỜI DÙNG chứa `XAC NHAN <MÃ>`. Tool đọc file đó — LLM không có đường nào ghi vào thư mục này.
      Mã là của riêng từng kế hoạch, dùng một lần, hết hạn sau XN_TTL_PHUT, và phải đến SAU khi kế hoạch được lập.
+     Đợt 1 an toàn (15/10/2026, hợp đồng `wt/hopdong_dot1_an_toan_bot_20261015.md` mục 4): API ghi thêm
+     `ma_cua/<MÃ>.json` (chủ mã = người gửi tin kích hoạt lượt bot đầu tiên nhắc mã) → xác nhận PROD và ảnh duyệt
+     năm cũ chỉ hợp lệ khi `user_id` trùng chủ mã (người khác trong kênh gõ hộ cũng không qua). Mã bị đánh dấu
+     `da_dung` NGAY TRƯỚC khi nạp PROD — nạp hỏng giữa chừng cũng không dùng lại được.
   4. Khoá chạy một lượt một lúc (flock) + khoá từng file của `filelock` bên trong `agent_cli` chống nạp chồng cron.
   5. Nhật ký mọi thao tác ghi: `audit.jsonl`.
 Không tool nào nhận SQL hay lệnh tự do.
@@ -36,6 +40,8 @@ RECEIVED_DIR = os.environ.get("RECEIVED_DIR") or os.path.join(ROOT, "Connect_VPS
 STATE_DIR = os.environ.get("PULL_BOT_DIR") or os.path.join(AGENT_DIR, "memory", "pull_bot")
 PLAN_DIR = os.path.join(STATE_DIR, "plans")
 XN_DIR = os.environ.get("PULL_XAC_NHAN_DIR") or os.path.join(STATE_DIR, "xacnhan")
+MA_CUA_DIR = os.environ.get("PULL_MA_CUA_DIR") or os.path.join(STATE_DIR, "ma_cua")          # API ghi, tool chỉ đọc
+ANH_DUYET_DIR = os.environ.get("PULL_ANH_DUYET_DIR") or os.path.join(STATE_DIR, "anh_duyet")  # API ghi, tool chỉ đọc
 AUDIT = os.path.join(STATE_DIR, "audit.jsonl")
 LOCK = os.path.join(STATE_DIR, "run.lock")
 
@@ -57,8 +63,33 @@ def _mk():
         os.makedirs(d, exist_ok=True)
 
 
-def _audit(hanh_dong, **kv):
+def _doc_json(path):
+    """dict trong file JSON, None nếu thiếu/hỏng/không phải dict (file do API ghi — không tin cấu trúc)."""
+    try:
+        with open(path, encoding="utf-8") as fh:
+            x = json.load(fh)
+    except (OSError, ValueError):
+        return None
+    return x if isinstance(x, dict) else None
+
+
+def _ma_hop_le(ma):
+    return bool(re.fullmatch(r"[A-Z0-9]{6}", str(ma or "")))
+
+
+def _chu_ma(ma):
+    """`ma_cua/<MÃ>.json` do API ghi: ai là chủ mã (người đã nhắn khi bot lần đầu đưa mã). None nếu chưa có."""
+    if not _ma_hop_le(ma):
+        return None
+    x = _doc_json(os.path.join(MA_CUA_DIR, ma + ".json"))
+    return x if x and x.get("user_id") is not None else None
+
+
+def _audit(hanh_dong, ma=None, **kv):
+    """Một dòng audit.jsonl. Có `ma` → thêm `user_id` của chủ mã (None khi API chưa ghi ma_cua)."""
     _mk()
+    if ma is not None:
+        kv["user_id"] = (_chu_ma(ma) or {}).get("user_id")
     with open(AUDIT, "a", encoding="utf-8") as fh:
         fh.write(json.dumps({"luc": _bay_gio().isoformat(timespec="seconds"), "hanh_dong": hanh_dong, **kv},
                             ensure_ascii=False) + "\n")
@@ -193,9 +224,10 @@ def lap_ke_hoach(don_vi, thu_muc, ten_file=None, ngay_tu=None, ngay_den=None, pe
     hoặc `period` (YYYY-MM). Chỉ file có trong danh sách nguồn; tối đa MAX_FILES.
 
     KỲ NĂM CŨ (luật Trưởng phòng KSNB Mai Thị Điệp 15/10/2026: "YC IT kéo lại số các NĂM CŨ phải đính kèm ảnh
-    email chị duyệt"): kế hoạch có kỳ năm < năm hiện tại bị TỪ CHỐI trừ khi `da_co_anh_duyet=True` — bot chỉ được
-    đặt cờ này khi tin nhắn của người dùng có tệp ảnh đính kèm. Cờ do LLM đặt (chưa có cổng API như XAC NHAN),
-    nên mỗi lần dùng đều ghi audit `anh_duyet_nam_cu` kèm danh sách kỳ để hậu kiểm."""
+    email chị duyệt"): vẫn LẬP được kế hoạch, nhưng plan ghi `can_anh_duyet=[kỳ…]` và `nap` (cả TEST lẫn PROD)
+    chỉ chạy khi có `anh_duyet/<MÃ>.json` do API ghi (tin `DUYET <MÃ>` kèm ảnh, đúng chủ mã). Cờ cũ
+    `da_co_anh_duyet` do LLM tự đặt (bản 15/10 sáng) — LLM nói dối được — nay nhận nhưng BỎ QUA, ghi audit
+    `bo_qua_co_llm` để hậu kiểm."""
     if not (ten_file or ngay_tu or ngay_den or period):
         raise ValueError("phải nêu ten_file, hoặc ngay_tu/ngay_den, hoặc period — không kéo 'tất cả'")
     _pn, meta = _doc_meta()
@@ -231,11 +263,6 @@ def lap_ke_hoach(don_vi, thu_muc, ten_file=None, ngay_tu=None, ngay_den=None, pe
                      "period": ky})
     thieu = sorted(ten_set - {f["fileName"].lower() for f in chon})
     ky_cu = sorted({f["period"] for f in chon if _ky_nam_cu(f["period"])})
-    if ky_cu and not da_co_anh_duyet:
-        _audit("tu_choi_nam_cu", don_vi=don_vi, thu_muc=thu_muc, ky=ky_cu)
-        raise ValueError(f"có {len(ky_cu)} kỳ thuộc NĂM CŨ ({', '.join(ky_cu)}): theo quy định KSNB, kéo lại số năm cũ "
-                         "phải gửi kèm ẢNH EMAIL DUYỆT của Trưởng phòng KSNB (chị Mai Thị Điệp) trong tin nhắn. "
-                         "Chưa có ảnh thì chỉ lập kế hoạch cho các kỳ năm nay.")
     if len(chon) > MAX_FILES:
         raise ValueError(f"khớp {len(chon)} file, vượt trần {MAX_FILES}/lượt — thu hẹp khoảng ngày")
     if not chon:
@@ -244,14 +271,23 @@ def lap_ke_hoach(don_vi, thu_muc, ten_file=None, ngay_tu=None, ngay_den=None, pe
     ma = "".join(secrets.choice("ABCDEFGHJKLMNPQRSTUVWXYZ23456789") for _ in range(6))
     p = {"plan_id": pid, "ma_xac_nhan": ma, "tao_luc": _bay_gio().isoformat(timespec="seconds"),
          "don_vi": chon[0]["company"], "thu_muc": chon[0]["report_type"], "files": sorted(chon, key=lambda f: f["fileName"]),
-         "trang_thai": {"keo": None, "test": None, "prod": None}, "anh_duyet_nam_cu": ky_cu or None}
+         "trang_thai": {"keo": None, "test": None, "prod": None}, "can_anh_duyet": ky_cu or None}
     _luu_plan(p)
-    _audit("lap_ke_hoach", plan=pid, don_vi=p["don_vi"], thu_muc=p["thu_muc"], so_file=len(chon),
-           **({"anh_duyet_nam_cu": True, "ky_nam_cu": ky_cu} if ky_cu else {}))
-    return {"plan_id": pid, "ma_xac_nhan": ma, "don_vi": p["don_vi"], "thu_muc": p["thu_muc"],
-            "so_file": len(chon), "ky": sorted({f["period"] for f in chon}),
-            "file": [f["fileName"] for f in chon], "khong_thay_trong_nguon": thieu, "bo_qua": bo,
-            "buoc_tiep": "pull_keo_ve -> pull_nap(env='test') -> người dùng gõ 'XAC NHAN <ma_xac_nhan>' -> pull_nap(env='prod')"}
+    if da_co_anh_duyet:
+        _audit("bo_qua_co_llm", ma=ma, plan=pid, co="da_co_anh_duyet", gia_tri=bool(da_co_anh_duyet))
+    _audit("lap_ke_hoach", ma=ma, plan=pid, don_vi=p["don_vi"], thu_muc=p["thu_muc"], so_file=len(chon),
+           **({"can_anh_duyet": ky_cu} if ky_cu else {}))
+    kq = {"plan_id": pid, "ma_xac_nhan": ma, "don_vi": p["don_vi"], "thu_muc": p["thu_muc"],
+          "so_file": len(chon), "ky": sorted({f["period"] for f in chon}),
+          "file": [f["fileName"] for f in chon], "khong_thay_trong_nguon": thieu, "bo_qua": bo,
+          "buoc_tiep": "pull_keo_ve -> pull_nap(env='test') -> người dùng gõ 'XAC NHAN <ma_xac_nhan>' -> pull_nap(env='prod')"}
+    if ky_cu:
+        kq["can_anh_duyet"] = ky_cu
+        kq["huong_dan_cho_nguoi_dung"] = (f"Kỳ năm cũ ({', '.join(ky_cu)}) cần ảnh email duyệt của KSNB: gửi tin "
+                                          f"`DUYET {ma}` kèm ảnh")
+        kq["buoc_tiep"] = (f"người dùng gửi 'DUYET {ma}' kèm ảnh email duyệt KSNB -> pull_keo_ve -> "
+                           "pull_nap(env='test') -> người dùng gõ 'XAC NHAN <ma_xac_nhan>' -> pull_nap(env='prod')")
+    return kq
 
 
 # ───────────────────────── 0. LIỆT KÊ KỲ (chỉ đọc) ─────────────────────────
@@ -279,8 +315,8 @@ def liet_ke_ky(don_vi, thu_muc):
             "ky": ds, "khong_suy_duoc_ky": sorted(khong_ky), "tran_file_moi_ke_hoach": MAX_FILES,
             "so_ke_hoach_can": -(-tong // MAX_FILES) if tong else 0,
             "ky_nam_cu_cho_duyet": [x["ky"] for x in ds if x["nam_cu"]], "so_file_nam_nay": nay,
-            "luu_y_nam_cu": "kỳ năm cũ chỉ kéo được khi người dùng gửi kèm ảnh email duyệt của KSNB (chị Mai Thị "
-                            "Điệp) — chưa có ảnh thì chỉ đề xuất kéo các kỳ năm nay"}
+            "luu_y_nam_cu": "kỳ năm cũ chỉ NẠP được khi chính người yêu cầu gửi tin `DUYET <mã kế hoạch>` kèm ảnh "
+                            "email duyệt của KSNB (chị Mai Thị Điệp)"}
 
 
 # ───────────────────────── 2. KÉO VỀ ─────────────────────────
@@ -295,24 +331,42 @@ def keo_ve(plan_id, timeout=300):
     p["trang_thai"]["keo"] = {"luc": _bay_gio().isoformat(timespec="seconds"), "xin": kq["xin"], "ve": kq["ve"],
                               "thieu": kq["thieu"]}
     _luu_plan(p)
-    _audit("keo_ve", plan=plan_id, **{k: kq[k] if k != "thieu" else len(kq[k]) for k in ("xin", "ve", "thieu")})
+    _audit("keo_ve", ma=p["ma_xac_nhan"], plan=plan_id, **{k: kq[k] if k != "thieu" else len(kq[k]) for k in ("xin", "ve", "thieu")})
     return {"plan_id": plan_id, "da_xin": kq["xin"], "da_ve": kq["ve"], "khong_ve_dung_han": kq["thieu"],
             "file_co_tren_dia": len(ton_tai),
             "luu_y": "file 'không về đúng hạn' vẫn dùng bản cũ trên đĩa nếu có; chưa từng có bản nào thì không nạp được"}
 
 
 # ───────────────────────── 3. NẠP ─────────────────────────
-def _xac_nhan_hop_le(p):
-    """Đọc xác nhận do API ghi. Trả (ok, lý do)."""
-    f = os.path.join(XN_DIR, p["ma_xac_nhan"] + ".json")
+def _luc(x):
     try:
-        with open(f, encoding="utf-8") as fh:
-            x = json.load(fh)
-    except (OSError, ValueError):
-        return False, f"chưa có xác nhận. Người dùng phải tự gõ: XAC NHAN {p['ma_xac_nhan']}"
+        return datetime.datetime.fromisoformat(str(x.get("luc")))
+    except (TypeError, ValueError):
+        return None
+
+
+def _xac_nhan_hop_le(p):
+    """Đọc xác nhận do API ghi. Trả (ok, lý do).
+
+    Phòng thủ 2 lớp (đợt 1, 15/10/2026): API đã chỉ ghi khi người gõ là chủ mã, tool vẫn so lại
+    `xacnhan.user_id == ma_cua.user_id` — file xác nhận kiểu cũ (không user_id) bị từ chối. Đã dùng thì cờ nằm ở
+    CẢ file xác nhận lẫn plan (`ma_da_dung_luc`): API có ghi đè file xác nhận khi người dùng gõ lại thì mã vẫn chết."""
+    ma = p["ma_xac_nhan"]
+    if p.get("ma_da_dung_luc"):
+        return False, "mã xác nhận đã dùng một lần — lập kế hoạch mới"
+    x = _doc_json(os.path.join(XN_DIR, ma + ".json"))
+    if x is None:
+        return False, f"chưa có xác nhận. Người dùng phải tự gõ: XAC NHAN {ma}"
     if x.get("da_dung"):
         return False, "mã xác nhận đã dùng một lần — lập kế hoạch mới"
-    luc = datetime.datetime.fromisoformat(x["luc"])
+    chu = _chu_ma(ma)
+    if chu is None:
+        return False, "mã chưa được hệ thống cấp cho người nào (thiếu ma_cua) — lập kế hoạch mới"
+    if x.get("user_id") is None or x.get("user_id") != chu["user_id"]:
+        return False, "xác nhận không phải của người đã yêu cầu kế hoạch này — chỉ người yêu cầu mới xác nhận được"
+    luc = _luc(x)
+    if luc is None:
+        return False, "file xác nhận hỏng (thiếu thời điểm)"
     if luc < datetime.datetime.fromisoformat(p["tao_luc"]):
         return False, "xác nhận có trước khi lập kế hoạch"
     if _bay_gio() - luc > datetime.timedelta(minutes=XN_TTL_PHUT):
@@ -320,10 +374,59 @@ def _xac_nhan_hop_le(p):
     return True, ""
 
 
+def _anh_duyet_hop_le(p):
+    """Kế hoạch có kỳ năm cũ (`can_anh_duyet`): cần `anh_duyet/<MÃ>.json` do API ghi khi chủ mã gửi `DUYET <MÃ>` kèm
+    ảnh. Hợp lệ khi: cùng `ma`, `user_id` == chủ mã, có ≥1 tệp ảnh, `luc` sau `tao_luc` của plan. Trả (ok, lý do)."""
+    ma = p["ma_xac_nhan"]
+    x = _doc_json(os.path.join(ANH_DUYET_DIR, ma + ".json"))
+    if x is None:
+        return False, "chưa có ảnh email duyệt của KSNB cho kỳ năm cũ"
+    chu = _chu_ma(ma)
+    if x.get("ma") != ma:
+        return False, "file ảnh duyệt không khớp mã kế hoạch"
+    if chu is None or x.get("user_id") is None or x.get("user_id") != chu["user_id"]:
+        return False, "ảnh duyệt không phải do người đã yêu cầu kế hoạch này gửi — chỉ người yêu cầu mới gửi được"
+    tep = x.get("tep")
+    if not isinstance(tep, list) or not any(isinstance(t, dict) and str(t.get("mime") or "").startswith("image/")
+                                            for t in tep):
+        return False, "tin DUYET không kèm tệp ảnh"
+    luc = _luc(x)
+    if luc is None or luc < datetime.datetime.fromisoformat(p["tao_luc"]):
+        return False, "ảnh duyệt có trước khi lập kế hoạch — gửi lại cho kế hoạch này"
+    return True, ""
+
+
+def _danh_dau_da_dung(p):
+    """Đánh dấu mã đã dùng TRƯỚC khi nạp PROD (trước 15/10 đánh dấu SAU → autofill ném lỗi/timeout giữa chừng thì
+    mã còn sống, gọi lại được). Ghi plan trước (tool sở hữu), rồi file xác nhận (atomic). Ghi plan hỏng → ném lỗi,
+    không nạp."""
+    p["ma_da_dung_luc"] = _bay_gio().isoformat(timespec="seconds")
+    _luu_plan(p)
+    f = os.path.join(XN_DIR, p["ma_xac_nhan"] + ".json")
+    x = _doc_json(f) or {}
+    x["da_dung"] = True
+    try:
+        with open(f + ".tmp", "w", encoding="utf-8") as fh:
+            json.dump(x, fh, ensure_ascii=False)
+        os.replace(f + ".tmp", f)
+    except OSError:
+        pass                                            # cờ trong plan đã đủ chặn dùng lại
+
+
 def nap(plan_id, env="test", timeout_moi_file=900):
     if env not in _PORT:
         raise ValueError("env phải là 'test' hoặc 'prod'")
     p = _doc_plan(plan_id)
+    # plan do code trước 15/10 chiều lập (cờ LLM) mang khoá `anh_duyet_nam_cu` — vẫn phải qua cổng ảnh duyệt
+    ky_cu = p.get("can_anh_duyet") or p.get("anh_duyet_nam_cu")
+    if ky_cu:
+        ok, ly_do = _anh_duyet_hop_le(p)
+        if not ok:
+            _audit("tu_choi_nam_cu", ma=p["ma_xac_nhan"], plan=plan_id, env=env, ky=ky_cu, ly_do=ly_do)
+            return {"plan_id": plan_id, "env": env, "da_nap": False, "can_anh_duyet": ky_cu,
+                    "ly_do": ly_do,
+                    "huong_dan_cho_nguoi_dung": (f"Kỳ năm cũ cần ảnh email duyệt của KSNB: chính người yêu cầu gửi tin "
+                                                 f"`DUYET {p['ma_xac_nhan']}` kèm ảnh")}
     hash_hien = {}
     thieu = []
     for f in p["files"]:
@@ -347,6 +450,14 @@ def nap(plan_id, env="test", timeout_moi_file=900):
     periods = {f["period"] for f in p["files"]}
     ket_qua, loi = [], []
     with _KhoaChay():
+        if env == "prod":                               # dùng một lần — đánh dấu TRƯỚC khi đụng DB
+            p = _doc_plan(plan_id)                      # đọc lại trong khoá: lượt song song vừa dùng mã thì thấy ngay
+            ok, ly_do = _xac_nhan_hop_le(p)
+            if not ok:
+                return {"plan_id": plan_id, "env": "prod", "da_nap": False, "can_xac_nhan": True, "ly_do": ly_do,
+                        "huong_dan_cho_nguoi_dung": f"Gõ đúng: XAC NHAN {p['ma_xac_nhan']}"}
+            _danh_dau_da_dung(p)
+            _audit("bat_dau_nap_prod", ma=p["ma_xac_nhan"], plan=plan_id)
         truoc = _anh_chup(env, p["don_vi"], periods)
         envp = {**os.environ, "DATABASE_URL":
                 f"postgresql://tc:tc_%24production@localhost:{_PORT[env]}/tc_dashboard"}
@@ -373,17 +484,7 @@ def nap(plan_id, env="test", timeout_moi_file=900):
                             "hash": hash_hien, "so_file": len(ket_qua), "so_loi": len(loi),
                             "so_nhom_doi": diff["so_nhom_doi"]}
     _luu_plan(p)
-    if env == "prod":                                   # dùng một lần
-        f = os.path.join(XN_DIR, p["ma_xac_nhan"] + ".json")
-        try:
-            with open(f, encoding="utf-8") as fh:
-                x = json.load(fh)
-            x["da_dung"] = True
-            with open(f, "w", encoding="utf-8") as fh:
-                json.dump(x, fh)
-        except (OSError, ValueError):
-            pass
-    _audit("nap", plan=plan_id, env=env, so_file=len(ket_qua), so_loi=len(loi), so_nhom_doi=diff["so_nhom_doi"])
+    _audit("nap", ma=p["ma_xac_nhan"], plan=plan_id, env=env, so_file=len(ket_qua), so_loi=len(loi), so_nhom_doi=diff["so_nhom_doi"])
     return {"plan_id": plan_id, "env": env, "da_nap": True, "so_file": len(ket_qua), "so_file_loi": len(loi),
             "ket_qua_tung_file": ket_qua, "so_sanh_truoc_sau": diff,
             "buoc_tiep": (f"Nếu số liệu ổn: người dùng gõ 'XAC NHAN {p['ma_xac_nhan']}' rồi gọi pull_nap(env='prod')"
