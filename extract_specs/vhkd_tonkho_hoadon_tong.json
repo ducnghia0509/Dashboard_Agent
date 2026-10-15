@@ -1,0 +1,44 @@
+{
+  "id": "vhkd_tonkho_hoadon_tong",
+  "_mo_ta": "DÒNG 'TỔNG CỘNG' của file KD23 'Báo cáo nhập xuất tồn xe (chi tiết theo số khung)' — MỘT dòng/ngày: Tồn cuối (cột K) + Dư cuối (cột O). User chốt 15/10/2026: thẻ 'Giá trị tồn kho' màn vhkd4 hiển thị ĐÚNG ô Tổng cộng, tức CỘNG CẢ dư âm của các chân đã xuất (Tồn cuối = 0). Spec anh em `vhkd_tonkho_hoadon` (VHKD_TONHD) chỉ nạp xe đang tồn nên không tái dựng được con số này — và nạp thêm ~23 nghìn dòng Tồn cuối = 0 mỗi ngày là quá nặng, nên chỉ lấy đúng ô tổng.",
+  "_kiem_chung": [
+    "14/10/2026: r9 K = 1.605 = Σ K mọi dòng chi tiết; r9 O = 532.549.275.929 = Σ O mọi dòng (807,31 tỷ xe đang tồn − 274,76 tỷ chân đã xuất).",
+    "13/10: K 1.509 · O 469,03 tỷ. 30/09: K 1.159 · O 408,35 tỷ."
+  ],
+  "_bay": [
+    "Dòng tổng KHÔNG CÓ NHÃN (cột A/C trống) và nằm NGAY DƯỚI header (r9) -> khoá bằng dong_bat_dau = dong_ket_thuc = 9 + lọc Số khung RỖNG; kiem_tra_o neo header để kế toán chèn dòng là hỏng to.",
+    "KHÔNG có chiều kênh/Showroom: lọc theo SR hay kênh thì builder lùi về Σ xe đang tồn (VHKD_TONHD) và nói rõ cơ sở."
+  ],
+  "report_type": "VHKD_TONHD_TONG",
+  "row_index_base": 9230000,
+  "khoi": "Khối KD Vinfast - Showroom",
+  "nguon": {
+    "folder": "TEST_SR/baocaonhapxuatxetheosokhung",
+    "file_glob": "*_Baocaonhapxuatxetheosokhung.xlsx",
+    "sheet": {"so": 0}
+  },
+  "kiem_tra_o": [
+    {"o": "A8", "bang": "Đơn vị"},
+    {"o": "C8", "bang": "Số khung"},
+    {"o": "K8", "bang": "Tồn cuối"},
+    {"o": "O8", "bang": "Dư cuối"}
+  ],
+  "header": {"dong": 8},
+  "dong_bat_dau": 9,
+  "dong_ket_thuc": 9,
+  "ngay_tu_ten_file": {"regex": "\\.D\\.(\\d{4})(\\d{2})(\\d{2})_", "thu_tu": "ymd"},
+  "moi_ky_lay_file_moi_nhat": "ngay",
+  "cot": {
+    "amount": {"header": "Tồn cuối", "kieu": "so_co_rong"},
+    "amount2": {"header": "Dư cuối", "kieu": "so_co_rong", "he_so": 1e-9},
+    "payload.so_khung": {"header": "Số khung", "bat_buoc": false},
+    "payload.ton_cuoi": {"header": "Tồn cuối", "kieu": "so_co_rong"},
+    "payload.du_cuoi": {"header": "Dư cuối", "kieu": "so_co_rong"}
+  },
+  "ban_ghi": "moi_dong",
+  "loc": [
+    {"cot": "payload.so_khung", "dieu_kien": "rong"},
+    {"cot": "payload.ton_cuoi", "dieu_kien": "khac_rong"}
+  ],
+  "payload_them": {"unit": "xe", "unit_amount2": "ty", "dong": "Tổng cộng"}
+}
