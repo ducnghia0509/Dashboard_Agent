@@ -39,6 +39,7 @@ def main():
     ap.add_argument("--env", choices=("test", "prod"), default="test")
     ap.add_argument("--pull", action="store_true", help="kéo file nguồn về trước khi nạp")
     a = ap.parse_args()
+    pull_nguon.mo_luot("kehoach_doanhthu", a.env, log)   # mốc panel, xem pull_nguon.mo_luot
     if pull_nguon.bi_tat("kehoach_doanhthu", a.env, log):
         sys.exit(0)
     nam = datetime.now(VN).year
@@ -54,7 +55,7 @@ def main():
     ung_vien = [p for p in glob.glob(os.path.join(THU_MUC, f"0.KH.GR.Y.{nam}.*.xlsx"))
                 if not os.path.basename(p).startswith("~$")]
     if not ung_vien:
-        log(f"KHÔNG có file kế hoạch năm {nam} trong {THU_MUC}")
+        log(f"DỪNG: KHÔNG có file kế hoạch năm {nam} trong {THU_MUC}")
         sys.exit(1)
     file = max(ung_vien, key=os.path.getmtime)
 
@@ -74,10 +75,12 @@ def main():
     if thang in ky:
         log(f"  kế hoạch {thang}: {ky[thang].get('tong_ty')} tỷ / {ky[thang].get('so_khoi')} khối")
     if r.returncode != 0 or not js.get("ok"):
+        log(f"DỪNG: derive_kehoach_doanhthu rc={r.returncode} ok={js.get('ok')}")
         print(r.stdout[-2000:])
         if r.stderr:
             print("STDERR:", r.stderr[-2000:], file=sys.stderr)
         sys.exit(r.returncode or 1)
+    log(f"XONG — nạp kế hoạch {os.path.basename(file)}: {js.get('written')} dòng, {len(ky)} kỳ")
 
 
 if __name__ == "__main__":

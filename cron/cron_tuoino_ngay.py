@@ -57,6 +57,7 @@ def main():
     ap.add_argument("--pull", action="store_true", help="kéo file nguồn về trước khi nạp")
     ap.add_argument("--ngay", type=int, default=CUA_SO_NGAY, help="cửa sổ số ngày gần nhất")
     a = ap.parse_args()
+    pull_nguon.mo_luot("tuoino_ngay", a.env, log)   # mốc panel, xem pull_nguon.mo_luot
     if pull_nguon.bi_tat("tuoino_ngay", a.env, log):
         sys.exit(0)
 
@@ -99,6 +100,11 @@ def main():
             n_loi += 1
             log(f"  LỖI {ten}: {o.get('error')}")
     log(f"NẠP [{a.env}] {len(files)} file: {n_ok} ok · {n_bo} bỏ qua · {n_loi} lỗi")
+    # Còn file lỗi thì exit 1 như cũ -> KHÔNG in XONG, panel đỏ kèm lý do.
+    if n_loi:
+        log(f"DỪNG: {n_loi}/{len(files)} file tuổi nợ ngày nạp lỗi — xem các dòng LỖI/CHƯA CÓ phía trên")
+    else:
+        log(f"XONG — nạp {n_ok}/{len(files)} file tuổi nợ ngày, {n_bo} bỏ qua")
     sys.exit(1 if n_loi else 0)
 
 

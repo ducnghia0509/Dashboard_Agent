@@ -141,15 +141,31 @@ def keo(chon, log=print, refresh: bool = False, timeout: int = ARRIVE_TIMEOUT) -
     return {"xin": len(targets), "ve": ve, "thieu": sorted(con_lai)}
 
 
+def mo_luot(job_id: str, env: str, log=print) -> None:
+    """Dòng MỞ LƯỢT cho panel "Chạy tự động" (15/10/2026) — gọi ĐẦU TIÊN trong main(), trước `bi_tat`.
+
+    Hợp đồng với `source_bridge._job_last_run` (tc-admin-api): một lượt = khối từ dòng chứa >=20 dấu
+    '=' cuối cùng tới hết log; lượt XANH khi trong khối có dòng chứa chữ 'XONG', VÀNG khi có thêm
+    dòng 'CẢNH BÁO'/'KHÔNG VỀ'/'DỪNG:', ĐỎ khi không có 'XONG'. 6 cron dùng module này (đăng ký panel
+    09/10) chưa từng in hai mốc đó -> panel tô đỏ MỌI lượt kể cả lượt chạy đúng (rà soát 10/10: "6 lỗi
+    panel là GIẢ"). Quy ước giống `cron_qtvh_core`/`cron_thuchi_daily`: dòng '=' * 70 rồi dòng nhãn.
+    Đường lỗi (exception, exit≠0) KHÔNG được in 'XONG' — in 'DỪNG: <lý do>' để panel đỏ có lý do."""
+    log("=" * 70)
+    log(f"{job_id} — MOI TRUONG: {env}")
+
+
 def bi_tat(job_id: str, env: str, log=print) -> bool:
     """True = job đang bị TẮT ở panel "Chạy tự động" -> bỏ qua lượt này (09/10/2026).
 
     Panel chỉ ghi/xoá file cờ, KHÔNG sửa crontab, nên script phải tự đọc cờ — thiếu bước này thì nút
     "Tắt" chỉ là nút giả: panel báo đã tắt mà cron vẫn kéo + ghi DB. `job_id` PHẢI khớp `id` khai
-    trong `_AUTO_JOBS` của API (cùng gốc tên log `cron_<id>[_prod].log`)."""
+    trong `_AUTO_JOBS` của API (cùng gốc tên log `cron_<id>[_prod].log`).
+
+    Câu log phải chứa NGUYÊN VĂN 'BO QUA: dang TAT' — panel dò đúng chuỗi đó để hiện trạng thái
+    "bị tắt" (như `cron_qtvh_core`); câu cũ 'ĐANG TẮT ở panel…' không khớp nên lượt tắt bị tô đỏ."""
     co = os.path.join(LOGS_DIR, f"cron_{job_id}{'_prod' if env == 'prod' else ''}.disabled")
     if os.path.exists(co):
-        log(f"ĐANG TẮT ở panel Chạy tự động ({co}) — bỏ qua lượt này")
+        log(f"BO QUA: dang TAT o panel Chạy tự động ({co}) — bỏ qua lượt này")
         return True
     return False
 

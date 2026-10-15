@@ -91,6 +91,7 @@ def main():
     ap.add_argument("--env", choices=("test", "prod"), default="test")
     ap.add_argument("--pull", action="store_true", help="kéo file nguồn về trước khi trích xuất")
     a = ap.parse_args()
+    pull_nguon.mo_luot("duan_quantri", a.env, log)   # mốc panel, xem pull_nguon.mo_luot
     if pull_nguon.bi_tat("duan_quantri", a.env, log):
         sys.exit(0)
 
@@ -99,7 +100,8 @@ def main():
     meta = pull_nguon.read_metadata() or []
     chon = chon_file(meta)
     if not chon:
-        log("Danh sách máy gửi không có file nào của 5 thư mục Dự án — dừng, KHÔNG xoá gì.")
+        log("CẢNH BÁO: danh sách máy gửi không có file nào của các thư mục Dự án — KHÔNG nạp, KHÔNG xoá gì.")
+        log("XONG — không có file để nạp")
         sys.exit(0)
     for k, f in sorted(chon.items()):
         log(f"  chọn: {k[0]} / {f}")
@@ -133,6 +135,7 @@ def main():
                         "--file", *duong_dan], env=env, capture_output=True, text=True)
     if r.returncode:
         log(f"TRÍCH XUẤT [{a.env}] derive_duan_quantri: rc={r.returncode} — KHÔNG xoá bản cũ")
+        log(f"DỪNG: derive_duan_quantri lỗi rc={r.returncode}")
         print(r.stderr[-1500:], file=sys.stderr)
         sys.exit(r.returncode)
     try:
@@ -145,6 +148,7 @@ def main():
     if n_xoa:
         log(f"  XOÁ {n_xoa} dòng của bản bị thay thế: {', '.join(sorted(bo))}")
     log(f"TRÍCH XUẤT [{a.env}] derive_duan_quantri: rc=0, {len(duong_dan)} file")
+    log(f"XONG — nạp {len(duong_dan)} file Dự án" + (f", xoá {n_xoa} dòng bản bị thay" if n_xoa else ""))
 
 
 if __name__ == "__main__":

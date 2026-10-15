@@ -3684,8 +3684,45 @@ def _source_id(path):
     return f"{parts[-3]}::{os.path.basename(path)}" if len(parts) >= 3 else os.path.basename(path)
 
 
-def _ghi(spec, path, recs):
+def _source_file_ghi(spec, path):
+    """`source_file` mà `_ghi` sẽ ghi cho (spec, file) — kể cả hậu tố `source_file_hau_to`."""
     source_file = _source_id(path)
+    if spec.get("source_file_hau_to"):
+        source_file = f"{source_file}#{spec['source_file_hau_to']}"
+    return source_file
+
+
+_W_FILE_AN = "FILE ĐANG BỊ ẨN (hidden_files)"
+
+
+def file_dang_an(source_files):
+    """-> set các `source_file` (trong danh sách đưa vào) đang nằm trong bảng `hidden_files`.
+
+    VÌ SAO (15/10/2026): dashboard lọc `source_file NOT IN (SELECT source_file FROM hidden_files)`
+    ở MỌI truy vấn (tc-admin-api `app/metrics/repository.py`), còn `_ghi` thì không biết gì về bảng
+    đó. Ca thật: script dọn cộng đôi 10/10 ẩn THEO TÊN `HUNGTHINH::B.5.HT.M2026.08.BC cap nhat van
+    hanh.xlsx`; 11/10 máy gửi phát hành lại đúng tên cũ -> cron `cron_htxt_daily` mỗi sáng ghi
+    HTXT_GIAO 124 + HTXT_HD 82 dòng, log `written=124/82` như thành công, nhưng màn htxt0 TRỐNG SL
+    xe bán + toàn bộ tiến trình hợp đồng từ 11/10. LỖI CÂM — nay báo động.
+
+    CHỈ ĐỌC, không bao giờ tự bỏ ẩn: ẩn có thể là chủ ý (file nhầm kỳ, bản thử nghiệm odoo_fs…),
+    người đọc cảnh báo quyết. Không đọc được bảng (không có DB_URL, bảng chưa có) -> trả rỗng,
+    tuyệt đối không chặn đường nạp.
+    """
+    ds = [x for x in dict.fromkeys(source_files or []) if x]
+    if not ds or not DB_URL:
+        return set()
+    try:
+        with psycopg.connect(DB_URL) as conn:
+            cur = conn.execute("SELECT source_file FROM hidden_files WHERE source_file = ANY(%s)",
+                               (ds,))
+            return {r[0] for r in cur.fetchall()}
+    except Exception:                                                  # noqa: BLE001
+        return set()
+
+
+def _ghi(spec, path, recs):
+    source_file = _source_file_ghi(spec, path)
     # ── `source_file_hau_to` (09/09/2026): TÁCH PHẠM VI XOÁ khi HAI SPEC cùng report_type đọc
     # CÙNG một file ────────────────────────────────────────────────────────────────────────────
     # `_ghi` xoá theo (report_type, source_file) rồi nạp lại. Hai spec cùng report_type trên cùng
@@ -3696,8 +3733,7 @@ def _ghi(spec, path, recs):
     # "written=80" / "written=78" đúng như nó ghi).
     # Khai hậu tố -> source_file thành "<FOLDER>::<file>#<hậu tố>", hai spec có phạm vi xoá riêng.
     # Đặt hậu tố theo TÊN SHEET để bảng "Nguồn" đọc ra được đang xem lát nào của file.
-    if spec.get("source_file_hau_to"):
-        source_file = f"{source_file}#{spec['source_file_hau_to']}"
+    # (Hậu tố đã gắn trong `_source_file_ghi`.)
     conn = psycopg.connect(DB_URL)
     try:
         cur = conn.cursor()
@@ -3963,6 +3999,18 @@ def run(spec, path, write=False):
     # lọc -> giữ nguyên dữ liệu cũ: spec hỏng thì im lặng còn hơn xoá trắng dữ liệu đang đúng.
     if write and (recs or any(_W_BO_LOC in w for w in warn)):
         out.update(_ghi(spec, path, recs))
+    # BÁO ĐỘNG FILE BỊ ẨN (xem `file_dang_an`): ghi xong mà dashboard không thấy dòng nào. Kiểm cả
+    # dry-run (số dòng SẼ bị che) để lần thử tay cũng lộ ra. Dòng cảnh báo đi theo `canh_bao` ->
+    # autofill/cron in `canh bao: ...` -> panel "Chạy tự động" vàng thay vì xanh câm.
+    so_dong = out.get("written") if write else out.get("dong")
+    if so_dong:
+        sf = _source_file_ghi(spec, path)
+        if sf in file_dang_an([sf]):
+            out["file_dang_an"] = sf
+            out.setdefault("canh_bao", []).append(
+                f"CẢNH BÁO {_W_FILE_AN}: [{spec.get('report_type')}] '{sf}' — {so_dong} dòng "
+                f"{'vừa ghi' if write else 'sẽ ghi'} bị dashboard CHE HẾT. Xem lại bảng hidden_files "
+                f"(file phát hành lại dưới tên đã ẩn?).")
     return out
 
 
