@@ -82,6 +82,16 @@ for xau in ("../etc/passwd", "a;b.xlsx", "x.txt", ""):
         chk(f"file_ve_luc chặn tên lạ {xau!r}", True)
 r = sc.file_ve_luc("B.7.AAG.TCKT.D.20260930.Baocaotaichinhrieng.xlsx", "prod")
 chk("file_ve_luc: file ngày An Taxi có dòng theo ngày dù trong_db rỗng", r["trong_db"] == [] and len(r["trong_db_theo_ngay_cua_file"]) > 0)
+# 15/10/2026 — bot bí câu "khối SRVF, màn Quản lý tồn kho, Giá trị tồn kho".
+from servers.common import man_fe as mf  # noqa: E402
+chk("tim_man: tên màn + khối SRVF -> vhkd4", (mf.tim_man("quản lý tồn kho khối srvf") or [{}])[0].get("man") == "vhkd4")
+chk("tim_man: phải thu XDV -> xdv3", (mf.tim_man("phải thu xdv") or [{}])[0].get("man") == "xdv3")
+chk("tim_man: mã màn đúng nguyên", (mf.tim_man("vhkd4") or [{}])[0].get("man") == "vhkd4")
+chk("nhãn FE: 'Giá trị tồn kho' -> tonHoaDonGiaTri",
+    {"nhan": "Giá trị tồn kho", "truong": "tonHoaDonGiaTri"} in mf.nhan_tren_man("vhkd4"))
+chk("danh mục màn có khối thật (không phải mã quyền)",
+    all(not (m["khoi"] or "").startswith("dashboard.") for m in mf.danh_muc_man()))
+
 print(f"{ok} PASS, {len(loi)} FAIL")
 for t in loi:
     print("  FAIL:", t)

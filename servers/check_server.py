@@ -11,6 +11,8 @@ from mcp.server.fastmcp import FastMCP
 
 from .common import man_hien_thi as mh
 from .common import so_lieu_check as sc
+from .common import man_fe as mf
+from .common import ton_kho_xe_check as tk
 
 mcp = FastMCP("dashboard_check")
 
@@ -55,11 +57,28 @@ def check_file_ve_luc(ten_file: str, env: str = "prod") -> dict:
 @mcp.tool()
 def check_so_hien_thi(man: str, tu_khoa: str, period: str = None, env: str = "prod", grain: str = "month",
                       tu_ngay: str = None, den_ngay: str = None, cong_ty: str = None, khoi: str = None) -> dict:
-    """SỐ DASHBOARD ĐANG HIỂN THỊ của một chỉ tiêu: gọi đúng builder của màn `man` (vd vhkd0, xdv0, at1) rồi tìm mục
-    khớp `tu_khoa` (mã CT33, hoặc một phần tên chỉ tiêu). Trả giá trị hiển thị (thực hiện/kế hoạch/%…) và 'nguon' do
+    """SỐ DASHBOARD ĐANG HIỂN THỊ của một chỉ tiêu: gọi đúng builder của màn rồi tìm mục khớp `tu_khoa` (nhãn thẻ như
+    'Giá trị tồn kho', mã CT33, hoặc một phần tên chỉ tiêu). `man` nhận MÃ (vhkd4) HOẶC TÊN người dùng nói ('Quản lý tồn
+    kho SRVF', 'phải thu XDV') — KHÔNG hỏi lại người dùng mã màn. Kết quả `khop_theo_nhan_the` khớp đúng chữ trên thẻ; không
+    khớp gì thì `nhan_co_tren_man` liệt kê mọi thẻ kèm giá trị để tự chọn. `ngu_canh_cua_so` cho ngày chốt/nguồn. Trả giá trị hiển thị (thực hiện/kế hoạch/%…) và 'nguon' do
     dashboard tự khai. `period` YYYY-MM; chế độ ngày: grain='day' + tu_ngay/den_ngay (YYYY-MM-DD). Dùng khi hỏi
     'dashboard đang hiện bao nhiêu / số này có khớp file không' — rồi đối chiếu bằng tool check_* khác."""
     return mh.so_hien_thi(man, tu_khoa, period, env, grain, tu_ngay, den_ngay, cong_ty, khoi)
+
+
+@mcp.tool()
+def check_danh_muc_man(tu_khoa: str = None) -> dict:
+    """DANH MỤC MÀN dashboard (mã màn · tên màn · nhóm · khối), đọc từ FE prod. Có `tu_khoa` (vd 'quản lý tồn kho srvf',
+    'phải thu xdv') thì trả các màn khớp nhất. Dùng khi người dùng gọi màn bằng tên — đừng bắt họ đọc mã màn."""
+    return {"man": mf.tim_man(tu_khoa) if tu_khoa else mf.danh_muc_man()}
+
+
+@mcp.tool()
+def check_ton_kho_xe(ngay: str, env: str = "prod") -> dict:
+    """ĐỐI CHIẾU 'Giá trị tồn kho'/'Tồn kho hóa đơn' màn vhkd4 (Showroom/SRVF) với file nguồn KD23 của ngày `ngay`
+    (YYYY-MM-DD): dòng Tổng cộng của file · xe đang tồn trong file · chân đã xuất mang dư âm · DB · số dashboard,
+    kèm chênh lệch và giải thích. Dùng cho mọi câu 'giá trị/số xe tồn kho SR có đúng không, sao khác file'."""
+    return tk.ton_kho_xe(ngay, env)
 
 
 if __name__ == "__main__":
