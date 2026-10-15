@@ -2,7 +2,7 @@
 """Đối chiếu "Giá trị tồn kho" màn vhkd4 (Showroom) với file nguồn KD23 (15/10/2026).
 
 Câu hỏi thật đã làm bot bí: "dashboard 751 tỷ, file cũng là luỹ kế mà mới 400 tỷ". Hai con số đều đúng,
-khác ĐỊNH NGHĨA: dòng "Tổng cộng" của file KD23 cộng cột "Dư cuối" của MỌI chân luân chuyển từ 01/01, kể
+khác ĐỊNH NGHĨA (15/10 user chốt thẻ dashboard = ô Tổng cộng): dòng "Tổng cộng" của file KD23 cộng cột "Dư cuối" của MỌI chân luân chuyển từ 01/01, kể
 cả chân đã xuất (Tồn cuối = 0) mang dư ÂM (giá nhập ≠ giá xuất trên cùng số khung), còn dashboard chỉ cộng
 xe ĐANG TỒN (Tồn cuối ≠ 0). Tool tách đúng các phần đó ra từ chính file, đặt cạnh số DB và số dashboard.
 Chỉ đọc."""
@@ -75,7 +75,8 @@ def ton_kho_xe(ngay: str, env: str = "prod") -> dict:
     try:
         from . import man_hien_thi as mh
         d = (mh.lay_man("vhkd4", ngay_file[:7], env, "day", ngay_file[:8] + "01", ngay_file) or {}).get("vhkd4") or {}
-        dash = {"xe": d.get("tonHoaDonXe"), "gia_tri_ty": d.get("tonHoaDonGiaTri"), "ngay_chot": d.get("ngayChotTheoKenh")}
+        dash = {"xe": d.get("tonHoaDonXe"), "gia_tri_ty": d.get("tonHoaDonGiaTri"), "co_so_gia_tri": d.get("giaTriCoSo"),
+                "ngay_chot": d.get("ngayChotTheoKenh")}
     except Exception as e:  # noqa: BLE001
         dash = {"loi": str(e)[:200]}
     out = {
@@ -93,10 +94,11 @@ def ton_kho_xe(ngay: str, env: str = "prod") -> dict:
         "chenh_dashboard_vs_dong_tong_cong_ty": (round(dash["gia_tri_ty"] - tong["du_cuoi_ty"], 4)
                                                  if tong and isinstance(dash.get("gia_tri_ty"), (int, float)) else None),
         "giai_thich": (
-            "Giá trị tồn kho trên dashboard = Σ 'Dư cuối' của XE ĐANG TỒN (Tồn cuối ≠ 0) tại NGÀY CHỐT — là ẢNH CHỤP, "
-            "không cộng dồn các ngày. Dòng 'Tổng cộng' của file cộng cả chân ĐÃ XUẤT (Tồn cuối = 0) vốn mang dư ÂM, "
-            "nên Tổng cộng = xe đang tồn + chân đã xuất (số âm) và luôn thấp hơn dashboard. Người dùng so với dòng "
-            "Tổng cộng là so hai định nghĩa khác nhau. Khớp đúng là: dashboard ≈ file_xe_dang_ton."),
+            "Từ 15/10/2026 (user chốt) thẻ 'Giá trị tồn kho' màn vhkd4 = Ô 'TỔNG CỘNG' CỦA FILE (cột O dòng tổng, cộng cả "
+            "dư ÂM của chân đã xuất Tồn cuối = 0) khi KHÔNG lọc SR/kênh; dashboard trả `giaTriCoSo`='tong_cong_file'. Đang "
+            "lọc SR/kênh thì ô tổng không chia được -> thẻ lùi về Σ xe đang tồn (`giaTriCoSo`='xe_dang_ton'). Số XE "
+            "(thẻ 'Tồn kho hóa đơn') = Σ cột K = ô Tổng cộng cột K. Các bảng theo kênh/kho vẫn là Σ xe đang tồn nên "
+            "cộng các hàng KHÔNG ra con số thẻ — chênh = chân đã xuất. Tất cả là ẢNH CHỤP tại ngày chốt, không luỹ kế."),
     }
     if ngay_file != ngay:
         out["canh_bao"] = f"không có file ngày {ngay}, đang dùng file gần nhất {ngay_file}"
