@@ -1,0 +1,11 @@
+[Unit]
+Description=MCP dashboard_timloi (bot tim loi + nghiem thu, CHI DOC)
+After=network.target docker.service
+[Service]
+User=itadmin
+WorkingDirectory=/home/itadmin/AI_Dashboard_QT/Dashboard_Agent
+Environment=MCP_BIND_HOST=172.17.0.1
+ExecStart=/home/itadmin/AI_Dashboard_QT/Dashboard_Agent/.venv/bin/python scripts/serve_http.py timloi 8816
+Restart=on-failure
+[Install]
+WantedBy=multi-user.target

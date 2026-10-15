@@ -6,6 +6,7 @@ stdio qua mcp_config.json.
     python scripts/serve_http.py ingest 8810
     python scripts/serve_http.py qa 8811
     python scripts/serve_http.py check 8812
+    python scripts/serve_http.py timloi 8816   (bot tìm lỗi/nghiệm thu, chỉ đọc)
     python scripts/serve_http.py pull 8813
     python scripts/serve_http.py mapping 8814
 """
@@ -32,6 +33,8 @@ def main():
         from servers.qa_server import mcp
     elif which == "check":
         from servers.check_server import mcp
+    elif which == "timloi":
+        from servers.timloi_server import mcp
     elif which == "pull":
         from servers.pull_server import mcp
     elif which == "mapping":
