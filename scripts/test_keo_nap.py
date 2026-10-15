@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """Test OFFLINE cho bot kéo file (không đụng DB/nguồn thật). Chạy: .venv/bin/python scripts/test_keo_nap.py
-Trọng tâm: cổng PROD — chỉ qua được khi (1) đã nạp TEST ok, (2) file không đổi, (3) có xác nhận do API ghi."""
+Trọng tâm: cổng PROD — chỉ qua được khi (1) đã nạp TEST ok, (2) file không đổi, (3) có xác nhận do API ghi,
+(4) người xác nhận = chủ mã (`ma_cua`). Kỳ năm cũ: cả TEST/PROD cần `anh_duyet/<MÃ>.json` đúng chủ mã (đợt 1 15/10)."""
 import datetime
 import json
 import os
@@ -95,24 +96,92 @@ kn._bay_gio = _bg
 META += [{**TC, "fileName": f"01_TC01_BÁO CÁO TIỀN TẬP ĐOÀN_THÁNG {mo} NĂM 2025.xlsx", "year": 2025, "month": mo}
          for mo in (11, 12)]
 TEN_CU = "01_TC01_BÁO CÁO TIỀN TẬP ĐOÀN_THÁNG 12 NĂM 2025.xlsx"
-r = raises(kn.lap_ke_hoach, "THUCHI", "baocaothuchi", period="2025-12")
-chk("kỳ năm cũ không có ảnh duyệt -> TỪ CHỐI, nêu KSNB", r is not None and "NĂM CŨ" in r and "KSNB" in r)
+
+
+def ghi(_thu_muc, _ten, **x):
+    os.makedirs(_thu_muc, exist_ok=True)
+    json.dump(x, open(os.path.join(_thu_muc, _ten + ".json"), "w", encoding="utf-8"))
+
+
+def ghi_ma_cua(ma, uid=123):
+    ghi(kn.MA_CUA_DIR, ma, ma=ma, user_id=uid, user_name="u", channel_id=206, session="agent:x",
+        message_id_kich_hoat=1, luc=datetime.datetime.now().isoformat(timespec="seconds"))
+
+
+def ghi_anh(ma, uid=123, luc=None, tep=None):
+    ghi(kn.ANH_DUYET_DIR, ma, ma=ma, user_id=uid, message_id=2,
+        tep=[{"id": 88, "ten": "duyet.png", "mime": "image/png"}] if tep is None else tep,
+        luc=(luc or datetime.datetime.now() + datetime.timedelta(seconds=1)).isoformat(timespec="seconds"))
+
+
+def tao_file(p):
+    for f in p["files"]:
+        d = os.path.join(os.environ["RECEIVED_DIR"], f["company"], f["report_type"])
+        os.makedirs(d, exist_ok=True)
+        open(os.path.join(d, f["fileName"]), "wb").write(b"v1")
+
+
+kn._anh_chup = lambda env, company, periods: {("PNLT_D", "2026-09-01"): (1, 1.0)}
+good = types.SimpleNamespace(stdout='{"ok": true}\n', stderr="", returncode=0)
+bad = types.SimpleNamespace(stdout='{"ok": false, "error": "x"}\n', stderr="", returncode=0)
+so_lan_chay = []
+
+
+def run_good(*a, **k):
+    so_lan_chay.append(1)
+    return good
+
+
+kn.subprocess.run = run_good
+
+r = kn.lap_ke_hoach("THUCHI", "baocaothuchi", period="2025-12")
+chk("kỳ năm cũ -> VẪN lập được, plan ghi can_anh_duyet + hướng dẫn DUYET <MÃ>",
+    r["can_anh_duyet"] == ["2025-12"] and f"DUYET {r['ma_xac_nhan']}" in r["huong_dan_cho_nguoi_dung"]
+    and kn._doc_plan(r["plan_id"])["can_anh_duyet"] == ["2025-12"])
+pc, mc = r["plan_id"], r["ma_xac_nhan"]
+tao_file(kn._doc_plan(pc))
+so_lan_chay.clear()
+r = kn.nap(pc, "test")
+chk("năm cũ KHÔNG ảnh -> nạp TEST bị từ chối, autofill không chạy",
+    r["da_nap"] is False and r["can_anh_duyet"] == ["2025-12"] and not so_lan_chay)
+ghi_ma_cua(mc, 123)
+ghi_anh(mc, uid=999)
+r = kn.nap(pc, "test")
+chk("anh_duyet SAI người (khác chủ mã) -> từ chối", r["da_nap"] is False and "người đã yêu cầu" in r["ly_do"]
+    and not so_lan_chay)
+ghi_anh(mc, uid=123, tep=[{"id": 1, "ten": "a.pdf", "mime": "application/pdf"}])
+chk("anh_duyet không có tệp ảnh -> từ chối", kn.nap(pc, "test")["da_nap"] is False)
+ghi_anh(mc, uid=123, luc=datetime.datetime.now() - datetime.timedelta(days=1))
+chk("anh_duyet gửi trước khi lập kế hoạch -> từ chối", "trước khi lập" in kn.nap(pc, "test")["ly_do"])
+ghi(kn.ANH_DUYET_DIR, mc, ma="ZZZZZZ", user_id=123, tep=[{"mime": "image/png"}],
+    luc=(datetime.datetime.now() + datetime.timedelta(seconds=1)).isoformat())
+chk("anh_duyet lệch mã -> từ chối", kn.nap(pc, "test")["da_nap"] is False)
+ghi_anh(mc, uid=123)
+r = kn.nap(pc, "test")
+chk("anh_duyet ĐÚNG chủ mã -> nạp TEST qua", r["da_nap"] is True and len(so_lan_chay) == 1)
+os.remove(os.path.join(kn.MA_CUA_DIR, mc + ".json"))
+chk("anh_duyet có nhưng thiếu ma_cua -> từ chối", kn.nap(pc, "test")["da_nap"] is False)
+r = kn.lap_ke_hoach("THUCHI", "baocaothuchi", ten_file=[TEN_CU], da_co_anh_duyet=True)
+_au = [json.loads(x) for x in open(kn.AUDIT, encoding="utf-8")]
+chk("cờ da_co_anh_duyet của LLM bị BỎ QUA (plan vẫn can_anh_duyet) + audit bo_qua_co_llm",
+    kn._doc_plan(r["plan_id"])["can_anh_duyet"] == ["2025-12"]
+    and any(x["hanh_dong"] == "bo_qua_co_llm" and x.get("plan") == r["plan_id"] for x in _au))
+tao_file(kn._doc_plan(r["plan_id"]))
+chk("cờ LLM không mở được nạp", kn.nap(r["plan_id"], "test")["da_nap"] is False)
+chk("audit có tu_choi_nam_cu + user_id chủ mã khi có ma_cua",
+    any(x["hanh_dong"] == "tu_choi_nam_cu" for x in _au)
+    and any(x.get("plan") == pc and x.get("user_id") == 123 for x in _au))
+pl = kn._doc_plan(r["plan_id"])
+pl["anh_duyet_nam_cu"], pl["can_anh_duyet"] = pl.pop("can_anh_duyet"), None       # plan do code cũ lập
+kn._luu_plan(pl)
+chk("plan cũ (khoá anh_duyet_nam_cu) vẫn bị chặn khi chưa có ảnh", kn.nap(r["plan_id"], "test")["da_nap"] is False)
 lk = kn.liet_ke_ky("THUCHI", "baocaothuchi")
-tat_ca = [f for k in lk["ky"] for f in k["file"]]
-r = raises(kn.lap_ke_hoach, "THUCHI", "baocaothuchi", ten_file=tat_ca)
-chk("'tất cả' trộn năm cũ+năm nay, không ảnh -> từ chối cả kế hoạch", r is not None and "2025-11, 2025-12" in r)
 chk("liet_ke_ky tách kỳ năm cũ chờ duyệt", lk["ky_nam_cu_cho_duyet"] == ["2025-11", "2025-12"]
     and lk["so_file_nam_nay"] == 2)
 nam_nay = [f for k in lk["ky"] if not k["nam_cu"] for f in k["file"]]
 r = kn.lap_ke_hoach("THUCHI", "baocaothuchi", ten_file=nam_nay)
-chk("chỉ phần năm nay -> lập được, không cần ảnh", r["ky"] == ["2026-01", "2026-02"])
-r = kn.lap_ke_hoach("THUCHI", "baocaothuchi", ten_file=[TEN_CU], da_co_anh_duyet=True)
-chk("có ảnh duyệt -> lập được kỳ năm cũ", r["ky"] == ["2025-12"])
-chk("kế hoạch ghi kỳ năm cũ đã có ảnh duyệt", kn._doc_plan(r["plan_id"])["anh_duyet_nam_cu"] == ["2025-12"])
-_au = [json.loads(x) for x in open(kn.AUDIT, encoding="utf-8")]
-chk("audit ghi anh_duyet_nam_cu + lần từ chối",
-    any(x.get("plan") == r["plan_id"] and x.get("anh_duyet_nam_cu") is True and x.get("ky_nam_cu") == ["2025-12"]
-        for x in _au) and any(x["hanh_dong"] == "tu_choi_nam_cu" for x in _au))
+chk("chỉ phần năm nay -> không cần ảnh", r["ky"] == ["2026-01", "2026-02"] and "can_anh_duyet" not in r
+    and not kn._doc_plan(r["plan_id"])["can_anh_duyet"])
 
 _meta_that = "/home/itadmin/AI_Dashboard_QT/Connect_VPS/available_metadata.json"
 if os.path.exists(_meta_that):                     # metadata THẬT (chỉ đọc) — 252 có, máy khác bỏ qua
@@ -137,10 +206,6 @@ for f in p["file"]:
     open(os.path.join(d, f), "wb").write(b"v1")
 chk("PROD khi chưa nạp TEST bị chặn", "nạp TEST" in (raises(kn.nap, pid, "prod") or ""))
 
-kn._anh_chup = lambda env, company, periods: {("PNLT_D", "2026-09-01"): (1, 1.0)}
-good = types.SimpleNamespace(stdout='{"ok": true}\n', stderr="", returncode=0)
-bad = types.SimpleNamespace(stdout='{"ok": false, "error": "x"}\n', stderr="", returncode=0)
-kn.subprocess.run = lambda *a, **k: good
 r = kn.nap(pid, "test")
 chk("nạp TEST ok", r["da_nap"] and r["so_file_loi"] == 0)
 
@@ -148,11 +213,13 @@ r = kn.nap(pid, "prod")
 chk("PROD chưa có xác nhận -> chưa nạp, kèm hướng dẫn", r["da_nap"] is False and ma in r["huong_dan_cho_nguoi_dung"])
 
 
-def ghi_xn(luc, **extra):
+def ghi_xn(luc, uid=123, ma_=None, **extra):
     os.makedirs(kn.XN_DIR, exist_ok=True)
-    json.dump({"luc": luc.isoformat(), **extra}, open(os.path.join(kn.XN_DIR, ma + ".json"), "w"))
+    json.dump({"ma": ma_ or ma, "luc": luc.isoformat(), "user_id": uid, **extra},
+              open(os.path.join(kn.XN_DIR, (ma_ or ma) + ".json"), "w"))
 
 
+ghi_ma_cua(ma, 123)
 now = datetime.datetime.now()
 ghi_xn(now - datetime.timedelta(days=1))
 chk("xác nhận có trước kế hoạch bị từ chối", "trước khi lập" in kn.nap(pid, "prod")["ly_do"])
@@ -170,10 +237,53 @@ open(d0, "wb").write(b"v2")                                   # file đổi sau 
 chk("file đổi sau TEST -> PROD bị chặn", "đã đổi" in (raises(kn.nap, pid, "prod") or ""))
 open(d0, "wb").write(b"v1")                                   # trả lại như cũ
 
+ghi_xn(datetime.datetime.now() + datetime.timedelta(seconds=2), uid=999)
+so_lan_chay.clear()
 r = kn.nap(pid, "prod")
-chk("đủ 3 điều kiện -> PROD chạy", r["da_nap"] is True and r["env"] == "prod")
+chk("xacnhan SAI người (khác chủ mã) -> PROD từ chối, autofill không chạy",
+    r["da_nap"] is False and "người đã yêu cầu" in r["ly_do"] and not so_lan_chay)
+ghi_xn(datetime.datetime.now() + datetime.timedelta(seconds=2), uid=None)
+chk("xacnhan kiểu cũ không user_id -> PROD từ chối", kn.nap(pid, "prod")["da_nap"] is False)
+ghi_xn(datetime.datetime.now() + datetime.timedelta(seconds=2))
+os.rename(os.path.join(kn.MA_CUA_DIR, ma + ".json"), os.path.join(tmp, "mc.bak"))
+chk("xacnhan đúng nhưng thiếu ma_cua -> PROD từ chối", kn.nap(pid, "prod")["da_nap"] is False)
+os.rename(os.path.join(tmp, "mc.bak"), os.path.join(kn.MA_CUA_DIR, ma + ".json"))
+r = kn.nap(pid, "prod")
+chk("đủ điều kiện -> PROD chạy", r["da_nap"] is True and r["env"] == "prod")
 r = kn.nap(pid, "prod")
 chk("mã xác nhận dùng MỘT lần", r["da_nap"] is False and "đã dùng" in r["ly_do"])
+ghi_xn(datetime.datetime.now() + datetime.timedelta(seconds=2))         # API ghi đè file xác nhận (mất da_dung)
+chk("API ghi đè xacnhan sau khi dùng -> vẫn chết (cờ trong plan)", kn.nap(pid, "prod")["da_nap"] is False)
+
+# ── da_dung đặt TRƯỚC khi autofill chạy: autofill ném lỗi giữa chừng rồi gọi lại phải bị từ chối ──
+p3 = kn.lap_ke_hoach("ANTAXI", "baocaohqkdngay", ngay_tu="2026-09-03", ngay_den="2026-09-03")
+pid3, ma3 = p3["plan_id"], p3["ma_xac_nhan"]
+tao_file(kn._doc_plan(pid3))
+kn.nap(pid3, "test")
+ghi_ma_cua(ma3, 123)
+ghi_xn(datetime.datetime.now() + datetime.timedelta(seconds=2), ma_=ma3)
+thay_luc_chay = {}
+
+
+def run_no(*a, **k):
+    thay_luc_chay["xn"] = json.load(open(os.path.join(kn.XN_DIR, ma3 + ".json"))).get("da_dung")
+    thay_luc_chay["plan"] = bool(kn._doc_plan(pid3).get("ma_da_dung_luc"))
+    raise OSError("autofill chết giữa chừng")
+
+
+kn.subprocess.run = run_no
+try:
+    kn.nap(pid3, "prod")
+    chk("autofill ném lỗi -> lỗi nổi lên", False)
+except OSError:
+    pass
+chk("lúc autofill chạy, mã ĐÃ mang da_dung (file xacnhan + plan)",
+    thay_luc_chay.get("xn") is True and thay_luc_chay.get("plan") is True)
+kn.subprocess.run = run_good
+so_lan_chay.clear()
+r = kn.nap(pid3, "prod")
+chk("gọi lại sau nạp hỏng -> từ chối, không nạp lần 2", r["da_nap"] is False and "đã dùng" in r["ly_do"]
+    and not so_lan_chay)
 chk("kế hoạch hết hạn bị từ chối", raises(kn._doc_plan, "deadbeef") is not None)
 chk("plan_id lạ bị từ chối", raises(kn._plan_path, "../../x") is not None)
 chk("nhật ký ghi đủ", sum(1 for _ in open(kn.AUDIT)) >= 4)

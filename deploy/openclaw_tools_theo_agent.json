@@ -1,0 +1,37 @@
+{
+  "_mo_ta": "Giới hạn tool theo agent cho 3 bot check / keo_file / mapping (đợt 1 an toàn bot, 15/10/2026). Trước đây 3 agent không có khối `tools` riêng nên hưởng nguyên profile toàn cục `coding`: exec, write, edit, web_fetch… và MỌI MCP server (cả `dashboard_ingest__import_execute` ghi DB). Áp bằng scripts/ap_tool_theo_agent.py — script bỏ mọi khoá bắt đầu bằng '_' rồi THAY TRỌN `agents.entries.<id>.tools` của 3 agent bằng nội dung dưới.",
+  "_cu_phap": "OpenClaw 2026.7.2: `openclaw config schema` -> agents.entries.<id>.tools có profile/allow/alsoAllow/deny/fs.workspaceOnly (additionalProperties=false). Thứ tự lọc: profile -> tools.allow/deny toàn cục -> agents.entries.<id>.tools.allow/deny; mỗi tầng chỉ THU HẸP, deny thắng; allow hỗ trợ wildcard '*', không phân biệt hoa thường; KHÔNG được đặt allow cùng alsoAllow một scope. Tên tool MCP = '<tên server>__<tool>' (mẫu: agents.entries.qa.tools.deny = 'dashboard_qa__pipeline_state').",
+  "_vi_sao_co_read": "SKILL.md KHÔNG được chèn nguyên văn vào prompt: OpenClaw chỉ chèn <available_skills> (tên+mô tả+location) và dặn model 'read exact <location> with read' (dist/system-prompt-params). AGENTS.md của cả 3 agent đều bảo 'Luôn đọc skills/<...>/SKILL.md'. Bỏ `read` = bot chạy mà không có LUẬT SẮT. Giữ `read` nhưng khoá trong workspace bằng fs.workspaceOnly=true (không đọc được ~/.openclaw/openclaw.json).",
+  "_nguon_danh_sach_check_cua_keo_file": "frontmatter `tools:` của agents/keo_file/SKILL.md (5 tool check). agents/mapping/SKILL.md không liệt kê tool check nào -> mapping chỉ có dashboard_mapping__*.",
+  "agents": {
+    "entries": {
+      "check": {
+        "tools": {
+          "profile": "coding",
+          "allow": ["read", "dashboard_check__*"],
+          "deny": ["group:runtime", "write", "edit", "apply_patch"],
+          "fs": {"workspaceOnly": true}
+        }
+      },
+      "mapping": {
+        "tools": {
+          "profile": "coding",
+          "allow": ["read", "dashboard_mapping__*"],
+          "deny": ["group:runtime", "write", "edit", "apply_patch"],
+          "fs": {"workspaceOnly": true}
+        }
+      },
+      "keo_file": {
+        "tools": {
+          "profile": "coding",
+          "allow": ["read", "dashboard_pull__*",
+                    "dashboard_check__check_don_vi", "dashboard_check__check_thang_vs_ngay",
+                    "dashboard_check__check_chi_tiet_vs_tong", "dashboard_check__check_nguon_thieu_cham",
+                    "dashboard_check__check_file_ve_luc"],
+          "deny": ["group:runtime", "write", "edit", "apply_patch"],
+          "fs": {"workspaceOnly": true}
+        }
+      }
+    }
+  }
+}
