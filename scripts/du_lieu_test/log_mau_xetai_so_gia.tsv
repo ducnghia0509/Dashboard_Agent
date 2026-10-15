@@ -1,0 +1,29 @@
+Tên User	STT	Cost Center	Dashboard mẹ	Chỉ tiêu con	Chỉ tiêu 	Kỳ, tháng	Số báo cáo	Số dashboard	Chênh lệch (I-J)	Mô tả lỗi	Phân tích nghiệp vụ xác nhận loại	IT fix lỗi	Trạng thái	Ghi chú 
+quyen.dt.005745	1		Kinh doanh xe tải - Bảng điểm KPI	A · Bảng điểm KPI quản trị tổng thể vận hành	Doanh thu XHĐ thực tế	T8/2026	 12,345,678,901 	 20,000,000,000 	 7,654,321,099 	"Trong báo cáo cập nhật vận hành tính doanh thu trước VAT hàng hóa đã giao trong tháng.
+Số trên dashboard lấy theo dữ liệu doanh thu xuất hóa đơn của kế toán, vận hành không xem được nên cần check lại vì số hiện tại đang lệch nhau nhiều."	Đang kéo số kế toán theo mô tả mapping, đã kiểm tra đây là số đúng 20.111.222.333đ			
+quyen.dt.005745			Kinh doanh xe tải - Bảng điểm KPI	A · Bảng điểm KPI quản trị tổng thể vận hành	Số lượng xe bán 	T8/2026	 7 	 -   	 (7)	Dashboard chưa lên dữ liệu. File Mapping dòng 10	Code/ Logic			
+quyen.dt.005745			Kinh doanh xe tải - Bảng điểm KPI	A · Bảng điểm KPI quản trị tổng thể vận hành	Số lượng xe bán 	Ngày 06/08/2026	 3 	 -   	 (3)	Dashboard chưa lên dữ liệu. File Mapping dòng 10	Code/ Logic			
+quyen.dt.005745			Kinh doanh xe tải - Bảng điểm KPI	A · Bảng điểm KPI quản trị tổng thể vận hành	Cơ cấu doanh thu	T8/2026				"Dashboard chưa lên dữ liệu doanh thu kế hoạch/doanh thu thực tế/tỷ lệ hoàn thành theo từng dòng xe theo tháng và ngày
+=> Bổ sung Biểu đồ thể hiện cơ cấu doanh thu (Mapping từ dòng 22-29)"	Code/ Logic			
+quyen.dt.005745			Kinh doanh xe tải - Bảng điểm KPI	C · Theo dõi tiến trình thực hiện hợp đồng	Số lượng đã ký hợp đồng trong kỳ	T8/2026	 14 	 -   	 (14)	"Dashboard chưa lên dữ liệu tháng và ngày
+Số liệu cần lấy theo mô tả tại dòng 41 file Mapping"	Code/ Logic			
+quyen.dt.005745			Kinh doanh xe tải - Bảng điểm KPI	C · Theo dõi tiến trình thực hiện hợp đồng	Giá trị đã ký hợp đồng trong kỳ	T8/2026	 30,000,000,000 	 -   	 (30,000,000,000)	"Dashboard chưa lên dữ liệu tháng và ngày
+Số liệu cần lấy theo mô tả tại dòng 42 file Mapping"	Code/ Logic			
+quyen.dt.005745			Kinh doanh xe tải - Bảng điểm KPI	C · Theo dõi tiến trình thực hiện hợp đồng	Số lượng đã giao	T8/2026				"Dashboard chưa lên dữ liệu tháng và ngày
+Số liệu cần lấy theo mô tả tại dòng 43 file Mapping"	Code/ Logic			
+quyen.dt.005745			Kinh doanh xe tải - Bảng điểm KPI	C · Theo dõi tiến trình thực hiện hợp đồng	Giá trị đã giao	T8/2026				"Dashboard chưa lên dữ liệu tháng và ngày
+Số liệu cần lấy theo mô tả tại dòng 44 file Mapping"	Code/ Logic			
+quyen.dt.005745			Kinh doanh xe tải - Bảng điểm KPI	C · Theo dõi tiến trình thực hiện hợp đồng	Tỷ lệ hoàn thành hợp đồng	T8/2026				"Dashboard chưa lên dữ liệu tháng và ngày
+Số liệu cần lấy theo mô tả tại dòng 48 file Mapping"	Code/ Logic			
+Uyen.lt			Cung ứng - vận hành xe tải	B · Theo dõi tiến trình nhập hàng theo loại hàng	Số lượng hàng đã nhập kho	T8/2026	 68 	 -   	 (68)	"Dashboard chưa lên dữ liệu tháng và ngày
+Số liệu cần lấy theo mô tả tại dòng 58 file Mapping. 
+
+Cần thể hiện trên dashboard chi tiết từng dòng xe theo kỳ báo cáo"	"Code/ Logic
+
+Chỉ lên số liệu, chi tiết dòng xe anh y/c bộ phận bổ sung mã mới lên được Nghĩa ạ hoặc Tên A/c để ntn thì mình ghi nhận như vậy chứ không lấy mã dòng xe nữa Nghĩa"			
+Uyen.lt			Cung ứng - vận hành xe tải	B · Theo dõi tiến trình nhập hàng theo loại hàng	Giá trị hàng đã nhập kho	T8/2026	 2,500,000 	 -   	 (2,500,000)	"Dashboard chưa lên dữ liệu tháng và ngày
+Số liệu cần lấy theo mô tả tại dòng 59 file Mapping. "				
+Uyen.lt			Cung ứng - vận hành xe tải	B · Theo dõi tiến trình nhập hàng theo loại hàng	Số lượng hàng đã nhập kho	T7/2026	 20 	 48 	 28 	"Theo mô tả ở dòng 58 mapping, kết quả ra 20 xe, dashboard thể hiện 48 xe, cần check lại xem đang lấy dữ liệu như thế nào
+Check thử các tháng khác số liệu cũng lên chưa đúng"	Giống lỗi 12 bên trên, sau khi fix Nghĩa kéo lại số liệu giúp anh, rồi anh kiểm tra lại, check theo file của bộ phận số liệu là 20 xe			
+Uyen.lt			Cung ứng - vận hành xe tải	B · Theo dõi tiến trình nhập hàng theo loại hàng	Giá trị hàng đã nhập kho	T7/2026	 1.5 triệu USD 	 1.25 triệu USD 		"Theo mô tả ở dòng 59 mapping, kết quả ra 1.5 triệu USD, dashboard thể hiện 1.25 triệu USD, cần check lại xem đang lấy dữ liệu như thế nào
+Check thử các tháng khác số liệu cũng lên chưa đúng"	Giống lỗi 13 bên trên, sau khi fix Nghĩa kéo lại số liệu giúp anh, rồi anh kiểm tra lại,  check theo file của bộ phận số liệu là 1.55 triệu USD			

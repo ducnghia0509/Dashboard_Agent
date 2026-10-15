@@ -1,0 +1,19 @@
+# /etc/systemd/system/dashboard-mcp-phieu.service — MCP dashboard_phieu (kho phiếu lỗi, Agent tổng quan_ly)
+# Khuôn: dashboard-mcp-check.service. Cần trong Dashboard_Agent/.env: PHIEU_API_URL (mặc định
+# http://127.0.0.1:8011), PHIEU_INTERNAL_TOKEN (trùng .env tc-admin-api). Chạy user itadmin (nhóm docker) vì việc
+# nền gọi `docker exec openclaw-openclaw-gateway-1 openclaw agent ...`.
+# KillMode=mixed + TimeoutStopSec: dừng service cắt ngang việc nền đang chạy -> lần khởi động sau đánh dấu
+# `gian_doan` (memory/phieu/viec/*.json), phiếu giữ trạng thái cũ, Agent tổng giao lại.
+[Unit]
+Description=MCP dashboard_phieu (kho phieu loi - Agent tong)
+After=network.target docker.service
+[Service]
+User=itadmin
+WorkingDirectory=/home/itadmin/AI_Dashboard_QT/Dashboard_Agent
+Environment=MCP_BIND_HOST=172.17.0.1
+ExecStart=/home/itadmin/AI_Dashboard_QT/Dashboard_Agent/.venv/bin/python scripts/serve_http.py phieu 8815
+Restart=on-failure
+KillMode=mixed
+TimeoutStopSec=20
+[Install]
+WantedBy=multi-user.target

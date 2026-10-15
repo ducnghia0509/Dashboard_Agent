@@ -1,0 +1,661 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "tc-dashboard/phieu_loi/v1",
+  "title": "Phiếu lỗi dashboard TC",
+  "description": "Một dòng log lỗi = một phiếu. Mỗi vai chỉ ghi vào khối của mình; mọi lần đổi trạng thái thêm một dòng vào lich_su. Số tiền lưu bằng ĐỒNG (hoặc đơn vị gốc ghi ở don_vi), không làm tròn.",
+  "type": "object",
+  "required": [
+    "id",
+    "phien_ban",
+    "trang_thai",
+    "nguon_log",
+    "lich_su"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "so": {
+      "type": "object",
+      "required": [
+        "gia_tri",
+        "don_vi"
+      ],
+      "properties": {
+        "gia_tri": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "don_vi": {
+          "enum": [
+            "dong",
+            "usd",
+            "xe",
+            "cai",
+            "pct",
+            "khac"
+          ]
+        },
+        "ghi_chu": {
+          "type": "string"
+        }
+      }
+    },
+    "bang_chung": {
+      "type": "object",
+      "required": [
+        "loai",
+        "mo_ta"
+      ],
+      "properties": {
+        "loai": {
+          "enum": [
+            "file_nguon",
+            "sql",
+            "builder",
+            "code",
+            "fe_bundle",
+            "log",
+            "anh_duyet",
+            "khac"
+          ]
+        },
+        "mo_ta": {
+          "type": "string"
+        },
+        "duong_dan": {
+          "type": "string",
+          "description": "file:dòng, ô Excel, hoặc đường dẫn script"
+        },
+        "lenh": {
+          "type": "string",
+          "description": "lệnh/SQL đã chạy để ai cũng chạy lại được"
+        },
+        "ket_qua": {
+          "type": "string"
+        }
+      }
+    },
+    "pham_vi": {
+      "type": "object",
+      "description": "Phạm vi được phép đụng tới. Bot sửa lỗi KHÔNG được vượt ra ngoài.",
+      "required": [
+        "khoi",
+        "man",
+        "ky"
+      ],
+      "properties": {
+        "khoi": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "['*'] = mọi khối, phải ghi rõ khi duyệt"
+        },
+        "man": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "ky": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "YYYY-MM, YYYY-MM-DD hoặc '*'"
+        },
+        "chi_tieu": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^PL-\\d{8}-\\d{3}$",
+      "description": "PL-YYYYMMDD-NNN"
+    },
+    "phien_ban": {
+      "const": 1
+    },
+    "trang_thai": {
+      "enum": [
+        "MOI",
+        "TRUNG",
+        "DANG_CHAN_DOAN",
+        "CHO_CHOT_NGHIEP_VU",
+        "DA_DUYET",
+        "DANG_SUA",
+        "CHO_MERGE",
+        "CHO_PHAT_HANH",
+        "CHO_NGHIEM_THU",
+        "DONG",
+        "MO_LAI",
+        "KHONG_PHAI_LOI",
+        "HOLD",
+        "HUY"
+      ]
+    },
+    "nguon_log": {
+      "type": "object",
+      "required": [
+        "nguoi_bao",
+        "man",
+        "chi_tieu",
+        "ky"
+      ],
+      "properties": {
+        "nguoi_bao": {
+          "type": "string"
+        },
+        "file_log": {
+          "type": "string"
+        },
+        "dong_excel": {
+          "type": "integer"
+        },
+        "dashboard_me": {
+          "type": "string"
+        },
+        "man": {
+          "type": "string",
+          "description": "mã màn (vd htxt0) — vai tiếp nhận tra nav.ts"
+        },
+        "khoi": {
+          "type": "string"
+        },
+        "chi_tieu": {
+          "type": "string"
+        },
+        "ky": {
+          "type": "string"
+        },
+        "so_bao_cao": {
+          "$ref": "#/$defs/so"
+        },
+        "so_dashboard": {
+          "$ref": "#/$defs/so"
+        },
+        "dong_mapping": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "sheet!dòng"
+        },
+        "mo_ta": {
+          "type": "string"
+        },
+        "phan_tich_nghiep_vu": {
+          "type": "string"
+        },
+        "trung_voi": {
+          "type": "string",
+          "description": "id phiếu gốc nếu là dòng trùng"
+        }
+      }
+    },
+    "chan_doan": {
+      "type": "object",
+      "required": [
+        "so_dung",
+        "so_prod",
+        "loai",
+        "do_tin",
+        "nguyen_nhan",
+        "bang_chung"
+      ],
+      "properties": {
+        "mapping_nguyen_van": {
+          "type": "string"
+        },
+        "so_dung": {
+          "$ref": "#/$defs/so"
+        },
+        "cach_tinh": {
+          "type": "string"
+        },
+        "khop_so_user": {
+          "type": "boolean"
+        },
+        "so_prod": {
+          "$ref": "#/$defs/so"
+        },
+        "so_test": {
+          "$ref": "#/$defs/so"
+        },
+        "key_json": {
+          "type": "string"
+        },
+        "chuoi": {
+          "type": "object",
+          "properties": {
+            "file": {
+              "type": "string"
+            },
+            "raw_rows": {
+              "type": "string"
+            },
+            "builder": {
+              "type": "string"
+            },
+            "fe": {
+              "type": "string"
+            }
+          }
+        },
+        "tang_lech": {
+          "enum": [
+            "file",
+            "spec",
+            "nap",
+            "builder",
+            "fe",
+            "khong"
+          ]
+        },
+        "loai": {
+          "enum": [
+            "DUNG",
+            "FILE",
+            "MAPPING",
+            "SPEC",
+            "NAP",
+            "BUILDER",
+            "FE"
+          ]
+        },
+        "lech_co_chu_dich": {
+          "type": "string",
+          "description": "dẫn nguồn quyết định cũ nếu có"
+        },
+        "do_tin": {
+          "enum": [
+            "cao",
+            "vua",
+            "thap"
+          ]
+        },
+        "nguyen_nhan": {
+          "type": "string"
+        },
+        "de_xuat_sua": {
+          "type": "string"
+        },
+        "pham_vi_anh_huong": {
+          "$ref": "#/$defs/pham_vi",
+          "description": "lỗi CÒN Ở ĐÂU khác (không phải phạm vi được sửa)"
+        },
+        "so_phai_ra_sau_sua": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "ky": {
+                "type": "string"
+              },
+              "key_json": {
+                "type": "string"
+              },
+              "gia_tri": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        "cau_hoi_nghiep_vu": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "ma",
+              "cau_hoi"
+            ],
+            "properties": {
+              "ma": {
+                "type": "string"
+              },
+              "cau_hoi": {
+                "type": "string"
+              },
+              "lua_chon": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "mac_dinh_de_xuat": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "bang_chung": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/bang_chung"
+          }
+        },
+        "nguoi_kiem_doc_lap": {
+          "type": "string",
+          "description": "giám sát đã tự đo lại số then chốt chưa, bằng lệnh gì"
+        }
+      }
+    },
+    "quyet_dinh": {
+      "type": "object",
+      "required": [
+        "pham_vi_duoc_duyet",
+        "nguoi_duyet"
+      ],
+      "properties": {
+        "tra_loi": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "ma": {
+                "type": "string"
+              },
+              "chon": {
+                "type": "string"
+              },
+              "la_mac_dinh": {
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        "pham_vi_duoc_duyet": {
+          "$ref": "#/$defs/pham_vi"
+        },
+        "nguoi_duyet": {
+          "type": "string"
+        },
+        "kenh_duyet": {
+          "enum": [
+            "chat",
+            "email",
+            "truc_tiep"
+          ]
+        },
+        "bang_chung_duyet": {
+          "$ref": "#/$defs/bang_chung"
+        },
+        "can_anh_email_ksnb": {
+          "type": "boolean",
+          "description": "true nếu đụng kỳ năm cũ (luật KSNB 15/10/2026)"
+        },
+        "ngay": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "sua": {
+      "type": "object",
+      "properties": {
+        "thay_doi": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "repo",
+              "nhanh",
+              "commit"
+            ],
+            "properties": {
+              "repo": {
+                "type": "string"
+              },
+              "nhanh": {
+                "type": "string"
+              },
+              "commit": {
+                "type": "string"
+              },
+              "file": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "script_du_lieu": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "duong_dan": {
+                "type": "string"
+              },
+              "db": {
+                "enum": [
+                  "test",
+                  "prod",
+                  "ca_hai"
+                ]
+              },
+              "hoan_tac": {
+                "type": "string"
+              },
+              "da_chay": {
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        "test": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "lenh": {
+                "type": "string"
+              },
+              "ket_qua": {
+                "type": "string"
+              },
+              "hong_san_tren_main": {
+                "type": "integer"
+              }
+            }
+          }
+        },
+        "so_sau_sua_test": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "ky": {
+                "type": "string"
+              },
+              "key_json": {
+                "type": "string"
+              },
+              "truoc": {
+                "type": "number"
+              },
+              "sau": {
+                "type": "number"
+              },
+              "khop": {
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        "vuot_pham_vi": {
+          "type": "boolean",
+          "description": "PHẢI false; true = dừng, quay về CHO_CHOT_NGHIEP_VU"
+        },
+        "phat_hien_them": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "phat_hanh": {
+      "type": "object",
+      "properties": {
+        "pr": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "repo": {
+                "type": "string"
+              },
+              "so": {
+                "type": "integer"
+              },
+              "merged": {
+                "type": "boolean"
+              },
+              "merge_commit": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "pull_prod": {
+          "type": "boolean"
+        },
+        "build_fe": {
+          "type": "boolean"
+        },
+        "restart_api": {
+          "type": "string",
+          "description": "thời điểm restart (phải SAU merge)"
+        },
+        "deploy_fe": {
+          "type": "string"
+        },
+        "nap_du_lieu": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "ke_hoach": {
+                "type": "string"
+              },
+              "env": {
+                "enum": [
+                  "test",
+                  "prod"
+                ]
+              },
+              "ma_xac_nhan": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "nghiem_thu": {
+      "type": "object",
+      "required": [
+        "ket_qua"
+      ],
+      "properties": {
+        "so_prod_sau": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "ky": {
+                "type": "string"
+              },
+              "key_json": {
+                "type": "string"
+              },
+              "gia_tri": {
+                "type": "number"
+              },
+              "khop_so_dung": {
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        "do_qua": {
+          "enum": [
+            "api_dang_chay",
+            "builder_tren_dia",
+            "man_hinh"
+          ]
+        },
+        "ket_qua": {
+          "enum": [
+            "DAT",
+            "KHONG_DAT",
+            "DAT_MOT_PHAN"
+          ]
+        },
+        "noi_dung_tra_loi_user": {
+          "type": "string",
+          "description": "câu dán vào cột 'IT fix lỗi'"
+        },
+        "ngay": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "lich_su": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "luc",
+          "vai",
+          "tu",
+          "den"
+        ],
+        "properties": {
+          "luc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "vai": {
+            "enum": [
+              "tiep_nhan",
+              "tim_loi",
+              "giam_sat",
+              "duyet_nghiep_vu",
+              "sua_loi",
+              "phat_hanh",
+              "nghiem_thu",
+              "keo_file",
+              "kiem_so",
+              "quan_ly",
+              "nguoi",
+              "check",
+              "mapping"
+            ]
+          },
+          "tu": {
+            "type": "string"
+          },
+          "den": {
+            "type": "string"
+          },
+          "ghi_chu": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

@@ -12,8 +12,9 @@ Chạy:
   .venv/bin/python scripts/ap_tool_theo_agent.py            # CHẠY THỬ: in diff (đã che bí mật) + dry-run OpenClaw
   .venv/bin/python scripts/ap_tool_theo_agent.py --ap       # sao lưu có dấu thời gian -> ghi -> validate lại
 
-Các bước khi --ap: (1) đọc cấu hình hiện tại; (2) dừng nếu thiếu agent nào trong 3 agent; (3) THAY TRỌN
-`agents.entries.<id>.tools` của 3 agent; (4) `openclaw config patch --dry-run` (schema chính chủ) phải ok;
+Các bước khi --ap: (1) đọc cấu hình hiện tại; (2) agent chưa có trong openclaw.json: nằm trong `_tao_neu_thieu.ids`
+của file patch thì DỰNG mục mới theo khuôn mục `_tao_neu_thieu.khuon` (đợt 2 Agent tổng, 15/10/2026 — quan_ly/
+tim_loi/nghiem_thu), không nằm thì DỪNG như cũ; (3) THAY TRỌN `agents.entries.<id>.tools` của mọi agent trong file; (4) `openclaw config patch --dry-run` (schema chính chủ) phải ok;
 (5) sao lưu `openclaw.json.bak-tool-theo-agent-<YYYYmmdd-HHMMSS>` (cp -p trong container); (6) ghi atomic (tmp +
 mv); (7) `openclaw config validate`, hỏng thì TỰ chép bản sao lưu về. KHÔNG restart gateway — nhưng gateway có
 theo dõi file cấu hình, thay đổi có thể có hiệu lực ngay ở lượt chat kế tiếp.
@@ -38,6 +39,8 @@ CFG = "/home/node/.openclaw/openclaw.json"
 _KHOA_NHAY_CAM = re.compile(r"token|key|secret|pass|auth|cookie|credential", re.I)
 _CHUOI_BI_MAT = re.compile(r"[A-Za-z0-9_\-+/=]{24,}")
 _KHOA_TEN_TOOL = {"allow", "deny", "alsoAllow"}
+_RE_ID_AGENT = re.compile(r"[a-z][a-z0-9_]{1,40}")
+_GOC_AGENT = "/home/node/.openclaw/agents"
 
 
 def _dx(args, input_=None, check=True):
@@ -73,6 +76,30 @@ def _patch():
     return p
 
 
+def _tao_neu_thieu():
+    """`_tao_neu_thieu` của file patch: {"khuon": <id agent mẫu>, "ids": [...]} — rỗng nếu không khai."""
+    with open(PATCH_FILE, encoding="utf-8") as fh:
+        t = json.load(fh).get("_tao_neu_thieu") or {}
+    ids = [i for i in t.get("ids") or [] if _RE_ID_AGENT.fullmatch(str(i))]
+    return t.get("khuon"), ids
+
+
+def _muc_moi(cu, khuon, i):
+    """Mục agent mới theo khuôn mục `khuon` hiện có: giữ model/các khoá khác, đổi tên + đường dẫn riêng, bỏ tools
+    (tools đặt sau từ file patch). Đường dẫn chuẩn /home/node/.openclaw/agents/<id>/{workspace,agent}."""
+    mau = cu.get("agents", {}).get("entries", {}).get(khuon)
+    if not isinstance(mau, dict):
+        sys.exit(f"DỪNG: không có agent khuôn '{khuon}' để dựng agent mới '{i}'")
+    m = {k: copy.deepcopy(v) for k, v in mau.items() if k != "tools"}
+    m["name"] = i
+    m["identity"] = {**(m.get("identity") or {}), "name": i}
+    if "workspace" in mau:
+        m["workspace"] = f"{_GOC_AGENT}/{i}/workspace"
+    if "agentDir" in mau:
+        m["agentDir"] = f"{_GOC_AGENT}/{i}/agent"
+    return m
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--ap", action="store_true", help="ghi thật (mặc định chỉ chạy thử)")
@@ -82,11 +109,17 @@ def main():
     ids = sorted(patch["agents"]["entries"])
     cu = json.loads(_dx(["cat", CFG]).stdout)
     thieu = [i for i in ids if i not in cu.get("agents", {}).get("entries", {})]
-    if thieu:
-        sys.exit(f"DỪNG: openclaw.json không có agent {thieu} — kiểm lại tên agent trước khi áp")
+    khuon, duoc_tao = _tao_neu_thieu()
+    khong_tao = [i for i in thieu if i not in duoc_tao]
+    if khong_tao:
+        sys.exit(f"DỪNG: openclaw.json không có agent {khong_tao} — kiểm lại tên agent trước khi áp")
     moi = copy.deepcopy(cu)
+    for i in thieu:
+        moi["agents"]["entries"][i] = _muc_moi(cu, khuon, i)
+        print(f"  lưu ý: agent '{i}' CHƯA có -> dựng mục mới theo khuôn '{khuon}' "
+              f"(workspace {moi['agents']['entries'][i].get('workspace')}) — workspace phải có SKILL trước khi dùng")
     for i in ids:
-        cu_tools = cu["agents"]["entries"][i].get("tools")
+        cu_tools = moi["agents"]["entries"][i].get("tools")
         if cu_tools:
             print(f"  lưu ý: agent '{i}' đang có tools={json.dumps(_che(cu_tools), ensure_ascii=False)} -> bị THAY")
         moi["agents"]["entries"][i]["tools"] = copy.deepcopy(patch["agents"]["entries"][i]["tools"])
@@ -100,8 +133,12 @@ def main():
     if not diff:
         return
 
-    rp = [x for i in ids for x in ("--replace-path", f"agents.entries.{i}.tools")]
-    r = _dx(["openclaw", "config", "patch", "--stdin", "--dry-run", "--json", *rp], json.dumps(patch), check=False)
+    # Agent mới: dry-run phải thấy CẢ mục (không chỉ tools) -> patch riêng cho dry-run, thay trọn agents.entries.<id>.
+    patch_thu = copy.deepcopy(patch)
+    for i in thieu:
+        patch_thu["agents"]["entries"][i] = moi["agents"]["entries"][i]
+    rp = [x for i in ids for x in ("--replace-path", f"agents.entries.{i}" if i in thieu else f"agents.entries.{i}.tools")]
+    r = _dx(["openclaw", "config", "patch", "--stdin", "--dry-run", "--json", *rp], json.dumps(patch_thu), check=False)
     try:
         kq = json.loads(r.stdout[r.stdout.index("{"):])
     except ValueError:
