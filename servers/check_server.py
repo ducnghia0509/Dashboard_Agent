@@ -13,6 +13,7 @@ from .common import man_hien_thi as mh
 from .common import so_lieu_check as sc
 from .common import man_fe as mf
 from .common import ton_kho_xe_check as tk
+from .common import pl_ngay_check as pl
 
 mcp = FastMCP("dashboard_check")
 
@@ -79,6 +80,15 @@ def check_ton_kho_xe(ngay: str, env: str = "prod") -> dict:
     (YYYY-MM-DD): dòng Tổng cộng của file · xe đang tồn trong file · chân đã xuất mang dư âm · DB · số dashboard,
     kèm chênh lệch và giải thích. Dùng cho mọi câu 'giá trị/số xe tồn kho SR có đúng không, sao khác file'."""
     return tk.ton_kho_xe(ngay, env)
+
+
+@mcp.tool()
+def check_pl_ngay_nguon(don_vi: str, ngay: str, env: str = "prod") -> dict:
+    """NGUỒN SỐ P&L CỦA MỘT NGÀY (doanh thu, giá vốn, CPBH, QLDN, chi phí khác, LNTT…) — 'chỉ nguồn lấy số', 'chi phí QLDN
+    ngày X bao nhiêu'. Trả: dòng DB (đồng), MỌI bản file của ngày đó (ai sửa, lúc nào, bản nào dashboard đang dùng),
+    dòng sheet KQKD theo mã số (25=CPBH, 26=QLDN, 32=chi phí khác…) và ô khác nhau giữa các bản. Dashboard chỉ lưu
+    chi phí gộp; QLDN/CPBH riêng phải lấy ở đây. `don_vi` nhận cả 'AnKS', 'An Taxi'."""
+    return pl.pl_ngay_nguon(don_vi, ngay, env)
 
 
 if __name__ == "__main__":

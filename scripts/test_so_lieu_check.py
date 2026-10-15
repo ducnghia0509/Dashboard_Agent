@@ -92,6 +92,16 @@ chk("nhãn FE: 'Giá trị tồn kho' -> tonHoaDonGiaTri",
 chk("danh mục màn có khối thật (không phải mã quyền)",
     all(not (m["khoi"] or "").startswith("dashboard.") for m in mf.danh_muc_man()))
 
+# 15/10/2026 — bot bí câu "chi phí QLDN An KS 30/09, màn Hiệu quả kinh doanh, \\hieuqua?ky=ngay".
+chk("tim_man: nhóm màn có path 'Hiệu quả kinh doanh' -> profit", (mf.tim_man("Màn hình Hiệu quả kinh doanh") or [{}])[0].get("man") == "profit")
+chk("tim_man: URL dán vào -> theo path", (mf.tim_man("\\hieuqua?ky=ngay") or [{}])[0].get("man") == "profit")
+from servers.common import pl_ngay_check as pl  # noqa: E402
+_r = pl.pl_ngay_nguon("AnKS", "2026-09-30", "test")
+chk("pl_ngay: bí danh AnKS -> ANKHACHSAN", _r["don_vi"] == "ANKHACHSAN")
+chk("pl_ngay: thấy >= 2 bản file 30/09 và đúng 1 bản đang dùng",
+    len(_r["cac_ban_file"]) >= 2 and sum(b["dashboard_dang_dung"] for b in _r["cac_ban_file"]) == 1)
+chk("pl_ngay: đọc được mã 26 QLDN", all((b["kqkd"] or {}).get("26") for b in _r["cac_ban_file"]))
+
 print(f"{ok} PASS, {len(loi)} FAIL")
 for t in loi:
     print("  FAIL:", t)

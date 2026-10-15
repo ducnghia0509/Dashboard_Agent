@@ -44,8 +44,8 @@ def _nav(mtime):
         if kind == "section":
             nhom = nhan
             continue
-        if kind == "group" or not path:
-            continue
+        if not path:
+            continue                                  # nhóm có path (vd 'Hiệu quả kinh doanh' -> profit) VẪN là một màn
         man = api.get(path) or id_
         ra.append({"man": man, "ten_man": nhan, "nhom": nhom, "khoi": khoi.get(path), "duong_dan": path})
     return ra
@@ -59,8 +59,13 @@ def danh_muc_man():
 def tim_man(cau):
     """Tên/mã màn người dùng nói ("vhkd4", "Quản lý tồn kho SRVF", "tồn kho showroom") -> danh sách màn khớp,
     tốt nhất trước. Rỗng = không đoán được."""
-    q = _kd(cau)
     ds = danh_muc_man()
+    # Người dùng dán URL/đường dẫn: "\\hieuqua?ky=ngay", ".../vhkd-tonkho" -> khớp thẳng theo path.
+    for seg in reversed(re.split(r"[\\/]+", re.sub(r"[?#].*$", "", str(cau or "").strip()))):
+        hit = [m for m in ds if seg and m["duong_dan"] == seg.lower()]
+        if hit:
+            return hit
+    q = _kd(cau)
     exact = [m for m in ds if _kd(m["man"]) == q]
     if exact:
         return exact
