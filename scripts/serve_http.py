@@ -8,6 +8,7 @@ stdio qua mcp_config.json.
     python scripts/serve_http.py check 8812
     python scripts/serve_http.py pull 8813
     python scripts/serve_http.py mapping 8814
+    python scripts/serve_http.py phieu 8815     (kho phiếu lỗi — Agent tổng quan_ly)
 """
 import os
 import sys
@@ -23,7 +24,7 @@ load_dotenv(os.path.join(_ROOT, ".env"))
 
 def main():
     if len(sys.argv) < 3:
-        print("usage: serve_http.py <ingest|qa|check|pull|mapping> <port>", file=sys.stderr)
+        print("usage: serve_http.py <ingest|qa|check|pull|mapping|phieu> <port>", file=sys.stderr)
         sys.exit(2)
     which, port = sys.argv[1], int(sys.argv[2])
     if which == "ingest":
@@ -36,6 +37,8 @@ def main():
         from servers.pull_server import mcp
     elif which == "mapping":
         from servers.mapping_server import mcp
+    elif which == "phieu":
+        from servers.phieu_server import mcp
     else:
         print(f"unknown server '{which}'", file=sys.stderr)
         sys.exit(2)

@@ -3,6 +3,8 @@
   "_cu_phap": "OpenClaw 2026.7.2: `openclaw config schema` -> agents.entries.<id>.tools có profile/allow/alsoAllow/deny/fs.workspaceOnly (additionalProperties=false). Thứ tự lọc: profile -> tools.allow/deny toàn cục -> agents.entries.<id>.tools.allow/deny; mỗi tầng chỉ THU HẸP, deny thắng; allow hỗ trợ wildcard '*', không phân biệt hoa thường; KHÔNG được đặt allow cùng alsoAllow một scope. Tên tool MCP = '<tên server>__<tool>' (mẫu: agents.entries.qa.tools.deny = 'dashboard_qa__pipeline_state').",
   "_vi_sao_co_read": "SKILL.md KHÔNG được chèn nguyên văn vào prompt: OpenClaw chỉ chèn <available_skills> (tên+mô tả+location) và dặn model 'read exact <location> with read' (dist/system-prompt-params). AGENTS.md của cả 3 agent đều bảo 'Luôn đọc skills/<...>/SKILL.md'. Bỏ `read` = bot chạy mà không có LUẬT SẮT. Giữ `read` nhưng khoá trong workspace bằng fs.workspaceOnly=true (không đọc được ~/.openclaw/openclaw.json).",
   "_nguon_danh_sach_check_cua_keo_file": "frontmatter `tools:` của agents/keo_file/SKILL.md (5 tool check). agents/mapping/SKILL.md không liệt kê tool check nào -> mapping chỉ có dashboard_mapping__*.",
+  "_agent_tong_dot2": "15/10/2026 (hợp đồng wt/hopdong_dot2_agent_tong_20261015.md mục D): thêm 3 agent quan_ly (Agent tổng — CHỈ dashboard_phieu__*, không tự đo số), tim_loi (chỉ đọc: timloi + mapping + check), nghiem_thu (chỉ 2 tool đo số PROD). Bot con được gọi qua `docker exec … openclaw agent --agent <id>` từ MCP dashboard_phieu, không qua kênh chat.",
+  "_tao_neu_thieu": {"khuon": "check", "ids": ["quan_ly", "tim_loi", "nghiem_thu"], "_mo_ta": "Agent trong danh sách này mà openclaw.json CHƯA có thì ap_tool_theo_agent.py dựng mục mới theo khuôn mục `khuon` (name/identity = id, workspace/agentDir = /home/node/.openclaw/agents/<id>/{workspace,agent}, model như khuôn). Cách chính vẫn là `openclaw agents add` (xem deploy/agent_tong_HUONGDAN.md); đường này để chạy thử chứng minh hợp lệ và làm dự phòng."},
   "agents": {
     "entries": {
       "check": {
@@ -17,6 +19,30 @@
         "tools": {
           "profile": "coding",
           "allow": ["read", "dashboard_mapping__*"],
+          "deny": ["group:runtime", "write", "edit", "apply_patch"],
+          "fs": {"workspaceOnly": true}
+        }
+      },
+      "quan_ly": {
+        "tools": {
+          "profile": "coding",
+          "allow": ["read", "dashboard_phieu__*"],
+          "deny": ["group:runtime", "write", "edit", "apply_patch"],
+          "fs": {"workspaceOnly": true}
+        }
+      },
+      "tim_loi": {
+        "tools": {
+          "profile": "coding",
+          "allow": ["read", "dashboard_timloi__*", "dashboard_mapping__*", "dashboard_check__*"],
+          "deny": ["group:runtime", "write", "edit", "apply_patch"],
+          "fs": {"workspaceOnly": true}
+        }
+      },
+      "nghiem_thu": {
+        "tools": {
+          "profile": "coding",
+          "allow": ["read", "dashboard_timloi__tl_so_dashboard", "dashboard_check__check_so_hien_thi"],
           "deny": ["group:runtime", "write", "edit", "apply_patch"],
           "fs": {"workspaceOnly": true}
         }
