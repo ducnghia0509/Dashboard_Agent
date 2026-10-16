@@ -179,6 +179,9 @@ _UNITS = {
     #             thiếu dòng -> TS-NV/BS/TSCĐ chưa có nguồn.
     # CẢ BA đều KHÔNG có sổ tổng hợp công nợ trong file ngày -> không có `pthu`/`ptra`; công nợ
     # chi tiết theo đối tượng của 3 khối này nằm ở nguồn khác (`baocaotuoino/`), việc khác.
+    # CẬP NHẬT 16/10/2026: công nợ TỔNG của XVP (TK 131/331 ở `CĐSPS`) nay vào PTHU_D/PTRA_D qua khoá
+    # `cdps1` — trước đó thẻ "Phải thu khách hàng" khối Taxi Xanh chỉ có hai HTX (637,8 triệu) và
+    # thiếu 39,83 tỷ của chính XVP. KHÔNG khai `cdps` (hai tầng) cho XVP: Thuế/Hàng hoá vẫn chưa có nguồn.
     "XANHVINHPHUC": {"layout": "kqkd", "cong_ty": "XVP", "khoi": "Khối KD Vận tải Taxi Xanh",
                      # `CĐKT` không khai "Từ ngày … Đến ngày …", chỉ một ô ngày — xem
                      # `_sodu_ngay_cua_wb` nhánh 2 và hai chốt chặn của nó.
@@ -192,7 +195,9 @@ _UNITS = {
                      # -> `tru_luy_ke` suy ngày 15 = luỹ kế − Σ 01..14 của file tháng.
                      "pl_ho_file_rieng": {"sheet": "HQKD", "sheet_ky": "KQKD",
                                           "ky_o_ngay": True, "tru_luy_ke": True},
-                     "sheet_sodu": {"cdkt": "CĐKT"}},
+                     # `cdps1` (16/10/2026): CĐSPS một tầng chỉ để lấy CÔNG NỢ TK 131/331 -> PTHU_D/
+                     # PTRA_D. Không khai `cdps` (hai tầng) vì sheet này không có dạng đó.
+                     "sheet_sodu": {"cdkt": "CĐKT", "cdps1": "CĐSPS"}},
     # HAI HTX dùng mẫu CĐKT **B01-HTX** (TT 71/2024) chứ không phải B01-DN: cột giá trị ghi "Kỳ
     # này", tổng tài sản là mã 200 (không phải 270), TSCĐ là 150/151/152 (không phải 221/222/223)
     # — xem `_MAU_CDKT`. Khai `mau_cdkt` rồi thì `cdkt` dùng được, không phải viết hàm bóc mới.
@@ -375,6 +380,10 @@ _UNITS = {
     # P&L vốn đã chạy tốt (18 ngày kỳ 09). `sodu_matran_trong_file` (21/09/2026) chỉ thêm cụm SỐ
     # DƯ theo ngày, đọc từ file hợp nhất `...baocaotaichinhhopnhatxetai.xlsx` lẫn trong cùng thư
     # mục. Sheet đó là MA TRẬN cột-theo-kỳ chứ không phải ảnh chụp -> `_matran_sang_cdkt`.
+    # CÔNG NỢ TỔNG (16/10/2026): `cdps_hn` -> TK 131/331 của `cđps hợp nhất`, cột "sau hợp nhất", chỉ
+    # chiều chính (131 dư Nợ, 331 dư Có) — xem `_congno_tong_fact`. Chưa có bảng Top khách hàng: sổ chi
+    # tiết `cộng nợ phải thu`/`công nợ phải trả` cùng file có header kỳ CŨ hơn tên file (ghi 12/10 trong
+    # file 14/10), chưa dám nhận ngày.
     # Cụm số dư THÁNG của khối này đã có sẵn từ lâu (agent_cli đọc thư mục
     # `baocaotaichinhhopnhatxetai/`, 33 file) — bản ngày PHẢI khớp quy ước đó: lấy cột HỢP NHẤT,
     # `cong_ty = HT`. Đối chứng: `BS` mã 270 kỳ 2026-08 trong DB = 511,6425 tỷ = đúng ô hợp nhất.
@@ -384,7 +393,8 @@ _UNITS = {
     "HUNGTHINH": {"layout": "ht", "cong_ty": "HT", "khoi": "Khối KD Xe tải",
                   "pl_bctc_tu": "2026-09-01",
                   "sodu_matran_trong_file": True,
-                  "sheet_sodu": {"cdkt": "BCĐKT hợp nhất "},
+                  # `cdps_hn`: công nợ TK 131/331 tổng từ CĐPS hợp nhất, cột "sau hợp nhất".
+                  "sheet_sodu": {"cdkt": "BCĐKT hợp nhất ", "cdps_hn": "cđps hợp nhất"},
                   # TỒN KHO theo ngày từ sổ NXT của file hợp nhất ngày — xem `_hh_ngay_tu_nxt`.
                   "tonkho_ngay": {"kieu": "nxt", "sheet": "nxt tk 156"}},
     # XƯỞNG DỊCH VỤ VINFAST (spec user 2026-08-06) — layout "xdv", xem `_xdv_facts`.
@@ -1753,6 +1763,129 @@ def _snap_cdps_facts(rows, congno_tong=False):
     return facts
 
 
+def _congno_tong_fact(tk, dk_no, dk_co, ps_no, ps_co, ck_no, ck_co, gop=True):
+    """Sáu số (đồng) của MỘT dòng TK 131/331 -> fact PTHU_D/PTRA_D mức TỔNG, hoặc None khi toàn 0.
+
+    `gop=True` (XVP, Hưng Thịnh): số dư CHỈ CHIỀU CHÍNH — 131 lấy dư Nợ, 331 lấy dư Có — đúng ô mà kế
+    toán nhìn ở CĐKT (mã 131 / 311) và đúng quy ước `pthu_du_no_gop` của khối Dự án: dư đối bên
+    (người mua trả tiền trước, trả trước NCC) là thẻ riêng, KHÔNG được trừ vào thẻ phải thu/phải
+    trả. Giảm = ĐK + tăng − CK để đẳng thức của màn Công nợ vẫn cân (phía đọc suy ĐK = CK − tăng + giảm).
+    Đo 16/10/2026: Hưng Thịnh 18/09 dư Nợ 131 = 0 còn dư Có = 4,43 tỷ — bản ròng ra phải thu ÂM
+    4,43 tỷ; XVP tháng 10 PTHU (odoo_fs) = dư Nợ gộp 39,821 tỷ nên bản ngày cũng phải là dư Nợ.
+
+    `gop=False` là bản RÒNG (Nợ − Có), giữ cho ai cần quy ước của 2 HTX Xanh."""
+    rt, chieu, dim1 = _CONGNO_TK[tk]
+    pos, neg = ((dk_no, ps_no, ck_no), (dk_co, ps_co, ck_co)) if chieu == "no" \
+        else ((dk_co, ps_co, ck_co), (dk_no, ps_no, ck_no))
+    if gop:
+        dau, tang, cuoi = pos
+        giam = dau + tang - cuoi
+    else:
+        dau, cuoi = pos[0] - neg[0], pos[2] - neg[2]
+        tang, giam = pos[1], neg[1]
+    if not (dau or tang or giam or cuoi):
+        return None
+    pl = {"du_dau": round(dau * 1e-9, 9), "ps_tang": round(tang * 1e-9, 9),
+          "ps_giam": round(giam * 1e-9, 9), "unit": "ty", "grain": "day"}
+    return (None, rt, dim1, dim1, cuoi, None, json.dumps(pl, ensure_ascii=False))
+
+
+def _snap_cdps1tang_congno(rows):
+    """Sheet `CĐSPS` của Xanh Vĩnh Phúc (header MỘT tầng) -> [fact] PTHU_D / PTRA_D từ TK 131 / 331.
+
+    Header: `Tk | Ten Tk | Du no dau | Du co dau | Ps no | Ps co | Du no cuoi | Du co cuoi`. Khác mẫu S06-DN
+    hai tầng của `_snap_2tang`, nên XVP trước đây không khai được `cdps` và màn Công nợ (chế độ
+    Ngày) thiếu hẳn XVP: PTHU_D của khối Taxi Xanh chỉ có hai HTX (đo 16/10/2026: 637.838.190 đ,
+    trong khi TK 131 của XVP 39,83 tỷ nằm ngay trong file). Chỉ lấy CÔNG NỢ, không lấy Thuế/Hàng hoá:
+    hai cụm đó chưa có người đối chiếu với bản tháng của XVP.
+
+    KHỚP BẰNG ĐÚNG mã TK cấp 1 ('131', '331'), không theo tiền tố — sheet liệt kê cả 1311/1318…
+    và cộng cha lẫn con là gấp đôi. Mỗi TK chỉ nhận dòng ĐẦU TIÊN."""
+    can = ("tk", "du no dau", "du co dau", "ps no", "ps co", "du no cuoi", "du co cuoi")
+    hdr = next((i for i, r in enumerate(rows[:20]) if set(can) <= {_nd(c) for c in r}), None)
+    if hdr is None:
+        return []
+    col = {_nd(c): j for j, c in enumerate(rows[hdr]) if _nd(c) in can}
+    facts, da_co = [], set()
+    for r in rows[hdr + 1:]:
+        v = r[col["tk"]] if col["tk"] < len(r) else None
+        tk = str(int(v)) if isinstance(v, float) and v == int(v) else str(v or "").strip()
+        if tk not in _CONGNO_TK or tk in da_co:
+            continue
+        da_co.add(tk)
+        g = lambda k, _r=r: (_r[col[k]] if col[k] < len(_r)                           # noqa: E731
+                             and isinstance(_r[col[k]], (int, float)) else 0)
+        f = _congno_tong_fact(tk, g("du no dau"), g("du co dau"), g("ps no"), g("ps co"),
+                              g("du no cuoi"), g("du co cuoi"))
+        if f:
+            facts.append(f)
+    return facts
+
+
+def _cdps1_lech_ngay(wb, ten_sheet, ngay):
+    """Sheet `cdps1` có phải ảnh chụp của `ngay` không -> None (khớp) | lý do (lệch / không chốt được).
+
+    Sheet này không khai "Từ ngày … Đến ngày …", chỉ một ô ngày; `_sodu_ngay_cua_wb` lấy ngày từ
+    CĐKT, nên phải đối chiếu riêng để một sheet công nợ chưa cập nhật trong file mới không gán số
+    ngày cũ cho ngày mới."""
+    sn = (ten_sheet or {}).get("cdps1")
+    if not sn or sn not in (wb.sheetnames or ()):
+        return None
+    ngay_o = {c.date().isoformat() if isinstance(c, datetime.datetime) else c.isoformat()
+              for r in wb[sn].iter_rows(max_row=12, values_only=True) for c in (r or ())
+              if isinstance(c, (datetime.datetime, datetime.date))}
+    if len(ngay_o) != 1:
+        return f"'{sn}' có {len(ngay_o)} ô ngày trong 12 dòng đầu, không chốt được kỳ"
+    n = next(iter(ngay_o))
+    return None if n == ngay else f"'{sn}' ghi {n} nhưng ảnh chụp là {ngay}"
+
+
+def _snap_cdps_hop_nhat_congno(rows, ngay):
+    """Sheet `cđps hợp nhất` của Hưng Thịnh -> ([fact PTHU_D/PTRA_D], lý do bỏ | None).
+
+    Bảng ĐẦU (hợp nhất; hai bảng chưa hợp nhất nằm bên phải, nằm ngoài cột 0). Cột dò theo NHÃN:
+    `Số dư đầu kỳ hợp nhất` / `Số phát sinh trong kỳ hợp nhất` / `Số dư cuối kỳ sau hợp nhất`, mỗi
+    nhãn đứng ở ô ĐẦU của cặp (Nợ, Có). Hai cặp "loại trừ" chen giữa KHÔNG dùng: cột cuối kỳ đã là
+    số SAU loại trừ (đo 14/10/2026: TK 131 đầu kỳ ròng −8,45 tỷ + PS 30,08 = cuối kỳ 21,63 tỷ).
+
+    Kỳ của sheet phải kết thúc ĐÚNG `ngay` (từ ô "Từ ngày … Đến ngày …"). `tu < den` là bản luỹ kế
+    (file 18/09 khai 01/09→18/09): giữ số dư, bỏ phát sinh/đầu kỳ như `_bo_phat_sinh`. Số dư là đại
+    lượng thời điểm nên vẫn đúng; phát sinh thì phủ cả khoảng."""
+    ky = _bcqt_ky(rows)
+    if not ky:
+        return [], "không thấy dòng 'Từ ngày … Đến ngày …' trong sheet CĐPS hợp nhất"
+    if ky[1] != ngay or ky[0] > ky[1]:
+        return [], f"CĐPS hợp nhất khai {ky[0]}..{ky[1]} nhưng ảnh chụp là {ngay}"
+    hdr = next((i for i, r in enumerate(rows[:20])
+                if any("so du dau ky hop nhat" in _nd(c) for c in r)), None)
+    if hdr is None or hdr + 1 >= len(rows):
+        return [], "không thấy header 'Số dư đầu kỳ hợp nhất' trong CĐPS hợp nhất"
+
+    def cap(nhan):
+        j = next((j for j, c in enumerate(rows[hdr]) if nhan in _nd(c)), None)
+        sub = rows[hdr + 1]
+        if j is None or j + 1 >= len(sub) or not (_nd(sub[j]).startswith("no")
+                                                   and _nd(sub[j + 1]).startswith("co")):
+            return None
+        return j, j + 1
+
+    dk, ps, ck = (cap("so du dau ky hop nhat"), cap("so phat sinh trong ky hop nhat"),
+                  cap("so du cuoi ky sau hop nhat"))
+    if not (dk and ps and ck):
+        return [], "header CĐPS hợp nhất thiếu cặp Nợ/Có của đầu kỳ, phát sinh hoặc cuối kỳ"
+    facts, da_co = [], set()
+    for r in rows[hdr + 2:]:
+        tk = str(r[0]).strip() if r and r[0] not in (None, "") else ""
+        if tk not in _CONGNO_TK or tk in da_co:
+            continue
+        da_co.add(tk)
+        g = lambda j, _r=r: (_r[j] if j < len(_r) and isinstance(_r[j], (int, float)) else 0)  # noqa: E731
+        f = _congno_tong_fact(tk, g(dk[0]), g(dk[1]), g(ps[0]), g(ps[1]), g(ck[0]), g(ck[1]))
+        if f:
+            facts.append(f)
+    return (_bo_phat_sinh(facts) if ky[0] != ky[1] else facts), None
+
+
 def _ten_sheet_that(wb, ten):
     """Tên khai trong cấu hình -> tên sheet THẬT trong workbook, khớp không phân biệt hoa/thường.
 
@@ -1827,6 +1960,10 @@ def _snap_sodu_facts(wb, ten_sheet, mau_cdkt=None, chi_so_du=False, pthu_du_no_g
         sn = ten_sheet.get(khoa)
         if sn in co:
             out += boc(rows(sn))
+    # CĐPS MỘT TẦNG (Xanh Vĩnh Phúc) — chỉ công nợ TK 131/331, xem `_snap_cdps1tang_congno`.
+    sn = ten_sheet.get("cdps1")
+    if sn in co:
+        out += _snap_cdps1tang_congno(rows(sn))
     return _bo_phat_sinh(out) if chi_so_du else out
 
 
@@ -2188,11 +2325,36 @@ def _sodu_matran_trong_file(path, period, unit):
     facts = _snap_cdkt_facts(ra, mau) + _snap_tsnv_facts(ra, mau)
     if not facts:
         return [], {"so_du_matran": {"bo_qua": f"cột {ngay} không bóc được dòng nào"}}
+    cn_diag = {}
+    sn_cn = (unit.get("sheet_sodu") or {}).get("cdps_hn")
+    if sn_cn:
+        # Công nợ TỔNG từ CĐPS hợp nhất (cùng file, cùng cột hợp nhất với CĐKT ở trên). Lỗi riêng của
+        # sheet này chỉ bỏ phần công nợ, không kéo theo mất CĐKT/TS-NV của ngày.
+        wb2 = None
+        try:
+            wb2 = openpyxl.load_workbook(path, data_only=True, read_only=True)
+            sn_cn = _ten_sheet_that(wb2, sn_cn)
+            if sn_cn not in (wb2.sheetnames or ()):
+                cn_diag = {"bo_qua": f"không có sheet '{sn_cn}'"}
+            else:
+                cn, vi_sao = _snap_cdps_hop_nhat_congno(
+                    [list(r) for r in wb2[sn_cn].iter_rows(values_only=True)], ngay)
+                if vi_sao:
+                    cn_diag = {"bo_qua": vi_sao}
+                else:
+                    facts += cn
+                    cn_diag = {"so_dong": len(cn)}
+        except Exception as e:
+            cn_diag = {"bo_qua": f"không đọc được ({type(e).__name__})"}
+        finally:
+            if wb2 is not None:
+                wb2.close()
     hh_diag = {}
     if (unit.get("tonkho_ngay") or {}).get("kieu") == "nxt":
         hh, hh_diag = _hh_ngay_tu_nxt(path, unit, ngay)
         facts += hh
     return [(ngay, facts)], {"so_du_matran": {"ngay": ngay, "so_dong": len(facts),
+                                              **({"cong_no": cn_diag} if cn_diag else {}),
                                               **({"ton_kho": hh_diag} if hh_diag else {})}}
 
 
@@ -2328,6 +2490,12 @@ def _sodu_quet_thu_muc(path, period, unit):
             facts = _snap_sodu_facts(wb, ten_sheet, _MAU_CDKT.get(unit.get("mau_cdkt", "b01dn")),
                                      chi_so_du=(vi_sao == "luy_ke"),
                                      pthu_du_no_gop=bool(unit.get("pthu_du_no_gop")))
+            lech_cn = _cdps1_lech_ngay(wb, ten_sheet, ngay)
+            if lech_cn:
+                # Chỉ bỏ phần CÔNG NỢ của file này, giữ CĐKT/TS-NV: một sheet công nợ không theo kịp
+                # không được kéo theo mất cả ảnh chụp số dư của ngày.
+                facts = [f for f in facts if f[1] not in ("PTHU_D", "PTRA_D")]
+                bo_qua.append({"file": ten, "vi_sao": f"công nợ bị bỏ: {lech_cn}"})
             if vi_sao == "luy_ke":
                 luy_ke.append(ngay)
             if not facts:
