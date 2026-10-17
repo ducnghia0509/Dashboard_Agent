@@ -33,7 +33,7 @@
   "_bay": [
     "NGUỒN CHỈ LÀ XE ĐIỆN SANY — file ghi rõ 'TẢI ĐIỆN SANY', không tách theo dòng xe khác. Thiết kế vẽ bảng 'theo dòng xe' nhưng chỉ có MỘT dòng có số; đừng chia đều sang dòng khác.",
     "MAPPING GHI Ô CỨNG (C9 tiếp cận, C11 thử tải, E3 ký HĐ, C16 tỷ lệ) trên sheet 'Số KH tiếp cận, thử tải, tỷ lệ' và 'KH kí HĐ và tỷ lệ chuyển đổi'. Cùng số nằm ở sheet 'Báo cáo tổng hợp' (F7 87 · F15 3 · F16 0,0345) và được đọc theo NHÃN (hook htxt_lead_ma), không theo toạ độ. Đã đo T9/2026: tiếp cận 87 = Hot 0 + Warm 13 + Cold 55 + không LL 7 + không điền 12; ký HĐ 3; chuyển đổi 3/87 = 3,45% ✓.",
-    "THỬ TẢI = tham gia thử tải + tham quan đánh giá: mapping dòng 36 gộp một ô C11 (=1) — file thật ghi hai dòng (0 + 1). Builder cộng hai mã.",
+    "THỬ TẢI = tham gia thử tải + tham quan đánh giá: mapping dòng 36 gộp một ô C11 (=1) — file thật ghi hai dòng (0 + 1). Builder cộng hai mã (tới 17/10/2026; mapping 17.10 tách E8 thử tải / E9 tham quan thành hai số riêng, builder thôi cộng).",
     "BỐ CỤC T10 KHÁC T9 (header dòng 4, kèm 31 cột ngày) -> spec htxt_lead_t10; kiem_tra_o chặn nên file nào không đúng bố cục thì bị bỏ, không đọc nhầm."
   ],
   "kiem_tra_o": [

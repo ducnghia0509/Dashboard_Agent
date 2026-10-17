@@ -1548,7 +1548,10 @@ def _htxt_lead_ma(v):
     t = re.sub(r"\s+", " ", t)
     for khoa, ma in ((r"(?:^|\| )- hot", "hot"), (r"(?:^|\| )- warm", "warm"), (r"(?:^|\| )- cold", "cold"),
                      (r"khong lien lac", "khong_lien_lac"), (r"khong dien trang thai", "khong_dien_tt"),
-                     (r"(?:^|\| )- khach hang tham quan", "tham_quan"),
+                     # Bố cục cũ: hàng con "- Khách hàng tham quan…"; bố cục 'Báo cáo kinh doanh
+                     # theo ngày' (T9/T10): hàng riêng "Số khách hàng tham quan đánh giá sản phẩm"
+                     # (mapping 17.10 ô E9) — trước 17/10/2026 rơi mất vì chỉ khớp dạng có gạch.
+                     (r"khach hang tham quan", "tham_quan"),
                      (r"(?:^|\| )- khach hang tham gia thu tai", "thu_tai"),
                      (r"ty le chuyen", "ty_le_chuyen_doi"),
                      (r"k[yi] hop dong", "ky_hd"),
