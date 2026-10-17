@@ -1901,15 +1901,13 @@ def _snap_cdps_hop_nhat_congno(rows, ngay):
     ky = _bcqt_ky(rows)
     if not ky:
         return [], "không thấy dòng 'Từ ngày … Đến ngày …' trong sheet CĐPS hợp nhất"
-    # TIÊU ĐỀ QUÊN LĂN NGÀY (17/10/2026): file Xe tải 15/10 ghi CĐPS "Từ 14/10 Đến 14/10" trong khi
-    # ruột là ngày 15 (đầu kỳ 131/331 = cuối kỳ 14/10) và CĐKT cùng file khai đúng 15/10 -> trước
-    # đây mất trắng phải thu/phải trả ngày 15. Nhận khi tiêu đề là ĐÚNG MỘT NGÀY và LÙI ĐÚNG MỘT
-    # NGÀY so với ảnh chụp; lệch kiểu khác vẫn loại.
-    if (ky[0] == ky[1] and ky[1] != ngay and (datetime.date.fromisoformat(ngay)
-                                               - datetime.date.fromisoformat(ky[1])).days == 1):
-        print(f"[sodu] CĐPS hợp nhất khai {ky[1]} (quên lăn ngày), nhận theo ảnh chụp {ngay}",
+    # NGÀY THEO TÊN FILE (user chốt 17/10/2026, "dùng theo tên file đi"): kế toán Xe tải hay quên
+    # lăn tiêu đề — file 15/10 ghi CĐPS "Từ 14/10 Đến 14/10" trong khi ruột là ngày 15 (đầu kỳ
+    # 131/331 = cuối kỳ 14/10). Tiêu đề chỉ còn dùng để biết bản luỹ kế (`tu < den`) mà bỏ phát sinh.
+    if ky[1] != ngay and ky[0] <= ky[1]:
+        print(f"[sodu] CĐPS hợp nhất khai {ky[0]}..{ky[1]}, lấy ngày theo tên file {ngay}",
               file=sys.stderr)
-        ky = (ngay, ngay)
+        ky = (ngay if ky[0] == ky[1] else min(ky[0], ngay), ngay)
     if ky[1] != ngay or ky[0] > ky[1]:
         return [], f"CĐPS hợp nhất khai {ky[0]}..{ky[1]} nhưng ảnh chụp là {ngay}"
     hdr = next((i for i, r in enumerate(rows[:20])
