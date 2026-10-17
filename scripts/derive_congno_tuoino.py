@@ -610,7 +610,7 @@ def _has_num(row, spec):
     return any(j < len(row) and _num(row[j]) is not None for j in idxs)
 
 
-def _agg_hanno_tong(rows, cols=None):
+def _agg_hanno_tong(rows, cols=None, report_date=None):
     """mode 'hanno_tong' (HƯNG THỊNH / DỰ ÁN, spec user 2026-08-06) và 'hanno_tong_xdv' (XƯỞNG DỊCH
     VỤ VINFAST — truyền `cols` từ `_find_cols_xdv`) — ĐỌC THẲNG DÒNG TỔNG thay vì cộng từng khách
     hàng như `_agg_hanno`.
@@ -663,6 +663,48 @@ def _agg_hanno_tong(rows, cols=None):
         if abs(sum(sua.values()) - agg["qua_han"]) <= 1:
             agg.update(sua)
             lech = True
+
+    # DÒNG TỔNG KHÔNG TỰ CÂN -> PHÂN LOẠI LẠI THEO "NGÀY ĐẾN HẠN" (17/10/2026, user: "file chi tiết
+    # tuổi nợ và tuổi nợ DB đang sai" Hưng Thịnh 15/10). File 15/10: Đình Minh tổng nợ 25,394 tỷ
+    # nhưng "trong hạn" chỉ 23,954 (khoản 1,44 tỷ phát sinh 15/10 chưa kéo công thức) -> trong hạn +
+    # đến hạn + quá hạn = 58,98 ≠ tổng 60,42. Tổng nợ vẫn lấy của file (khớp CĐKT 131); chỉ phần
+    # chia hạn dựng lại từ ngày đến hạn từng dòng so với ngày báo cáo: sau -> trong hạn, đúng ngày
+    # -> đến hạn, trước -> quá hạn theo số ngày trễ. File tự cân thì không đụng.
+    phan = agg["trong_han"] + agg["den_han"] + agg["qua_han"]
+    dai_sum = sum(agg[k] for k in dai)
+    han_i = next((j for j, c in enumerate(rows[hdr_i] or ()) if _nd(c).startswith("ngay den han")),
+                 None)
+    if (report_date is not None and han_i is not None and cols["qua_han"] is not None
+            and (abs(phan - agg["tong"]) > 1 or abs(dai_sum - agg["qua_han"]) > 1)):
+        moi = {k: 0.0 for k in _HANNO_KEYS if k != "tong"}
+        du = 0.0
+        for r in rows[cols["data_start"]:]:
+            if not r or not _has_num(r, cols["tong"]):
+                continue
+            v, h = _cell(r, cols["tong"]), r[han_i] if han_i < len(r) else None
+            if not v:
+                continue
+            if isinstance(h, str):
+                try:
+                    h = dt.datetime.strptime(h.strip(), "%d/%m/%Y")
+                except ValueError:
+                    h = None
+            if not isinstance(h, (dt.date, dt.datetime)):
+                break                                   # thiếu ngày đến hạn -> không dựng lại được
+            tre = (report_date - (h.date() if isinstance(h, dt.datetime) else h)).days
+            du += v
+            if tre < 0:
+                moi["trong_han"] += v
+            elif tre == 0:
+                moi["den_han"] += v
+            else:
+                moi["qua_han"] += v
+                moi["qh_1_30" if tre <= 30 else "qh_30_90" if tre <= 90
+                    else "qh_90_180" if tre <= 180 else "qh_180p"] += v
+        else:
+            if abs(du - agg["tong"]) <= 1:
+                agg.update(moi)
+                lech = True
 
     return {"n_rows": n_rows, "tong_all": round(agg["tong"] * 1e-9, 9),
             "dong_tong": tot_i + 1,          # số dòng Excel (1-based) đã lấy — đối chiếu với spec
@@ -789,7 +831,7 @@ def derive(path, period, write=False):
         wb.close()
 
     result = (_agg_hanno_tong(rows, _find_cols_xdv(rows)) if mode == "hanno_tong_xdv"
-              else _agg_hanno_tong(rows) if mode == "hanno_tong"
+              else _agg_hanno_tong(rows, report_date=ngay_trong_ten(path)) if mode == "hanno_tong"
               else _agg_hanno(rows, _period_end(period)) if mode == "hanno"
               else _agg_age(rows, _period_end(period)))
     if result is None:
