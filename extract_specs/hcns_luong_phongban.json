@@ -1,0 +1,111 @@
+{
+  "id": "hcns_luong_phongban",
+  "_mo_ta": "LƯƠNG THƯỞNG theo CÔNG TY × KHỐI CHỨC NĂNG × PHÒNG/BAN từng tháng — sheet 'Chi tiết' của HCNS/baocaotienluong/B.9.GR.HCNS.M.<yyyy>.<m>.Bctienluong.xlsx. Nuôi màn 'Lương thưởng & Phúc lợi' (/metrics/hr/payroll) và chỉ số #27 Tổng quan, thay cho phiếu lương HRM. amount = Tổng thu nhập, amount2 = Tổng thực lĩnh (ĐỒNG). dim1 = Khối chức năng, dim2 = Phòng/Ban, dim3 = Công ty — đều NGUYÊN VĂN file.",
+  "_bay": [
+    "VÌ SAO KHÔNG ĐỌC SHEET PIVOT 'Bao cao tien luong' NHƯ tools/import_hcns_db.py (HCNS_LUONG): cả 6 file tháng là CÙNG một workbook, chỉ khác bộ lọc 'Tháng' của pivot — và file T5 bị QUÊN đổi bộ lọc, pivot vẫn hiện số THÁNG 4. HCNS_LUONG kỳ 2026-05 vì vậy là bản sao của 2026-04 (lệch cả 7 công ty, vd Thịnh Cường thu nhập lệch 550 triệu). Sheet 'Chi tiết' thì đúng ở mọi file.",
+    "MỘT FILE MỖI THÁNG nhưng sheet 'Chi tiết' chứa CẢ CÁC THÁNG TỪ ĐẦU NĂM (cột A = ngày đầu tháng) -> kỳ lấy từ CỘT A, không phải tên file; và `moi_ky_lay_file_moi_nhat: mot_file` để không ghi cùng dữ liệu 6 lần. Cùng cách xử lý với hcns_nhansu_phongban. `mot_file` chỉ chặn NẠP bản cũ, không xoá dòng của file cũ đã nạp — nên bên đọc (app/services/hrm_payroll_service.py) tự lấy, cho từng kỳ, dòng của file MỚI NHẤT có kỳ đó.",
+    "HEADER Ở DÒNG 3 (dòng 1-2 trống), khác file nhân sự (header dòng 1). Ô 'Công ty' có dấu cách hai đầu (' Công ty ') — dò theo tên đã chuẩn hoá nên không sao.",
+    "Ô SỐ DÍNH NBSP: 19 ô '\\xa0' (= trống) và 5 ô '\\xa01'/'\\xa02' (số gõ kèm dấu cách cứng). `kieu: so` strip được cả hai. Pivot của HCNS thì coi '\\xa01' là chữ -> Hưng Thịnh T4 pivot ghi 8 người, đọc đúng là 9.",
+    "TÊN KHỐI KHÔNG NHẤT QUÁN ('Khối Hỗ trợ' / 'Khối Hỗ trợ ' / 'Khối hỗ trợ' / 'Khối hố trợ'; 'Vinfast B2B' vs 'Khối Kinh doanh B2B'). Giữ nguyên văn ở dim1; ánh xạ sang khối của bộ lọc nằm ở tc-admin-api app/data/khoi_map.json (khoá `hcns_khoi`).",
+    "'Tổng BHXH' và 'Thuế TNCN' KHÔNG cộng ra được 'Tổng thực lĩnh' ở Xanh Vĩnh Phúc: các Depot có thực lĩnh chỉ ~41-50% (thu nhập + thưởng), các công ty khác ~88-95%. Chưa rõ khoản trừ nào — cần HCNS xác nhận; spec chép nguyên số.",
+    "TỪ T7/2026 HCNS KHÔNG PHÁT HÀNH Bctienluong NỮA (đo 17/10/2026). Kỳ thiếu được lấp bằng 'Bảng lương all' qua scripts/derive_hcns_bangluong.py (report_type HCNS_LUONG_BL); tc-admin-api ưu tiên HCNS_LUONG_PB cho kỳ nào có cả hai. File 'B.9.GR.HCNS.M.2026.<m>.Bctienluong.xlsx' trong thư mục 'BANG LUONG NAM 2026 - …' là khuôn 'BC LƯƠNG' KHÁC, cùng tên — spec này chỉ đọc HCNS/baocaotienluong nên không lẫn."
+  ],
+  "_kiem_chung": [
+    "Σ 7 công ty T6/2026: 2.625 người · thu nhập 31,917 tỷ · thưởng 0,093 tỷ · BHXH 4,038 tỷ · thực lĩnh 23,600 tỷ = đúng ô Grand Total pivot file T6.",
+    "T5/2026 (đúng, từ Chi tiết): 2.547 người · thu nhập 32,48 tỷ · thực lĩnh 25,25 tỷ — KHÁC số pivot file T5 (là số T4: 2.520 · 32,07 · 26,64)."
+  ],
+  "report_type": "HCNS_LUONG_PB",
+  "row_index_base": 7885000,
+  "nguon": {
+    "folder": "HCNS/baocaotienluong",
+    "file_glob": "B.9.GR.HCNS.M.*.Bctienluong.xlsx",
+    "sheet": {
+      "ten": "Chi tiết"
+    }
+  },
+  "moi_ky_lay_file_moi_nhat": "mot_file",
+  "header": {
+    "dong": 3
+  },
+  "dong_bat_dau": 4,
+  "kiem_tra_o": [
+    {
+      "o": "D3",
+      "bang": "Khối chức năng"
+    },
+    {
+      "o": "E3",
+      "bang": "Phòng/Ban"
+    },
+    {
+      "o": "K3",
+      "bang": "Tổng thu nhập"
+    },
+    {
+      "o": "O3",
+      "bang": "Tổng thực lĩnh"
+    }
+  ],
+  "cot": {
+    "ngay": {
+      "header": "Tháng",
+      "kieu": "date"
+    },
+    "dim1": {
+      "header": "Khối chức năng"
+    },
+    "dim2": {
+      "header": "Phòng/Ban"
+    },
+    "dim3": {
+      "header": "Công ty"
+    },
+    "amount": {
+      "header": "Tổng thu nhập",
+      "kieu": "so"
+    },
+    "amount2": {
+      "header": "Tổng thực lĩnh",
+      "kieu": "so"
+    },
+    "payload.thuong": {
+      "header": "Tổng thưởng",
+      "kieu": "so"
+    },
+    "payload.bhxh": {
+      "header": "Tổng BHXH",
+      "kieu": "so"
+    },
+    "payload.thueTncn": {
+      "header": "Thuế TNCN",
+      "kieu": "so",
+      "bat_buoc": false
+    },
+    "payload.lvCuoiKy": {
+      "header": "NS đang làm việc cuối thág",
+      "kieu": "so"
+    },
+    "payload.lvDauKy": {
+      "header": "Nhân sự đang làm việc đầu kỳ",
+      "kieu": "so",
+      "bat_buoc": false
+    }
+  },
+  "loc": [
+    {
+      "cot": "ngay",
+      "dieu_kien": "khac_rong"
+    },
+    {
+      "cot": "dim3",
+      "dieu_kien": "khac_rong"
+    }
+  ],
+  "payload_them": {
+    "unit": "dong"
+  },
+  "ky_tu_ten_file": {
+    "regex_nam": "\\.M\\.(\\d{4})\\.",
+    "regex_thang": "\\.M\\.\\d{4}\\.(\\d{1,2})\\."
+  }
+}
