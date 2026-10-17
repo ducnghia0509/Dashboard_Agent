@@ -240,7 +240,9 @@ _RE_FILE_NGAY = re.compile(r"\.D[.\d]")
 # Mã kỳ ĐỦ 8 CHỮ SỐ sau '.M'/'.D' là một NGÀY, bất kể chữ M hay D: 09/10/2026 sáu đơn vị (Showroom,
 # Trạm sạc, Dự án, Xe tải, An Taxi…) phát hành tuổi nợ NGÀY mà vẫn ghi `.M.20261005`/`M20261006`, chỉ
 # khối Xanh ghi `.D.`. Bản tháng luôn 6 chữ số (`.M.202609`, `M202501`) nên không đụng nhau.
-_RE_NGAY_TEN = re.compile(r"\.[MD]\.?(\d{4})(\d{2})(\d{2})(?!\d)", re.I)
+# `\.?` giữa tháng và ngày (17/10/2026): Hưng Thịnh từ 07/10 đặt `B5.HT.TCKT.M.202610.14.` — 6 số
+# tháng + chấm + ĐÚNG 2 số ngày, không mơ hồ. Trước đó cron bỏ qua câm cả 07→14/10.
+_RE_NGAY_TEN = re.compile(r"\.[MD]\.?(\d{4})(\d{2})\.?(\d{2})(?!\d)", re.I)
 
 
 def ngay_trong_ten(path):
