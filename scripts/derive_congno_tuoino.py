@@ -534,7 +534,7 @@ def _agg_hanno(rows, report_date=None):
     agg = {k: 0.0 for k in keys}
     age_agg = {"b1": 0.0, "b13": 0.0, "b36": 0.0, "b6p": 0.0}
     ngay_i = cols.get("ngay")
-    n_rows = 0
+    n_rows = n_dai_sai = 0
     for r in rows[cols["data_start"]:]:
         if not r or cols["ma"] >= len(r) or not r[cols["ma"]]:
             continue
@@ -552,6 +552,15 @@ def _agg_hanno(rows, report_date=None):
                 continue
             vals["tong"] = sum(v or 0.0 for v in phan)
         n_rows += 1
+        # 4 DẢI QUÁ HẠN LÀ PHẦN CHIA CỦA CHÍNH CỘT "QUÁ HẠN" (17/10/2026). File tuổi nợ ngày Hưng
+        # Thịnh từ 07/10 chép số "trong hạn" sang cột chi tiết "1-30 ngày" ở MỌI dòng chưa quá hạn
+        # (dòng ghi quá hạn = 0 mà 1-30 = trong hạn) -> donut kỳ hạn thu 14/10 ra 116,5 thay vì
+        # 58,43 tỷ. Dòng tự khai quá hạn = 0 thì không thể có dải quá hạn nào: đặt dải về 0, đếm lại.
+        _dai = ("qh_1_30", "qh_30_90", "qh_90_180", "qh_180p")
+        if not vals["qua_han"] and any(vals[k] for k in _dai):
+            n_dai_sai += 1
+            for k in _dai:
+                vals[k] = 0.0
         for k in keys:
             agg[k] += vals[k] or 0.0
         if report_date is not None and ngay_i is not None:
@@ -569,7 +578,8 @@ def _agg_hanno(rows, report_date=None):
     if report_date is not None and ngay_i is not None:
         payload.update({"tuoi_no_1t": round(age_agg["b1"] * 1e-9, 9), "aging_13": round(age_agg["b13"] * 1e-9, 9),
                          "aging_36": round(age_agg["b36"] * 1e-9, 9), "aging_6p": round(age_agg["b6p"] * 1e-9, 9)})
-    return {"n_rows": n_rows, "tong_all": tong_all, "agg_ty": {k: round(v * 1e-9, 9) for k, v in agg.items()},
+    return {"n_rows": n_rows, "tong_all": tong_all,
+            **({"dong_dai_quahan_sai": n_dai_sai} if n_dai_sai else {}), "agg_ty": {k: round(v * 1e-9, 9) for k, v in agg.items()},
             "payload": payload}
 
 
@@ -637,6 +647,22 @@ def _agg_hanno_tong(rows, cols=None):
         for d in (agg, chi_tiet):
             d["qua_han"] = d["qh_1_30"] + d["qh_30_90"] + d["qh_90_180"] + d["qh_180p"]
     lech = any(abs(agg[k] - chi_tiet[k]) > 1 for k in _HANNO_KEYS)
+
+    # DẢI QUÁ HẠN CỦA DÒNG TỔNG SAI THÌ DỰNG LẠI TỪ CHI TIẾT (17/10/2026). File Hưng Thịnh từ 07/10
+    # chép "trong hạn" sang cột "1-30 ngày" ở mọi dòng chưa quá hạn, dòng tổng cộng theo -> Σ 4 dải
+    # (58,43) lớn hơn hẳn "quá hạn" (0,32) và donut kỳ hạn thu 14/10 ra 116,5 tỷ. Dải là phần chia
+    # của "quá hạn": dòng tự khai quá hạn trống/0 không thể có dải nào. Chỉ thay khi bản dựng lại
+    # KHỚP cột quá hạn của dòng tổng — không khớp thì giữ dòng tổng như spec.
+    dai = ("qh_1_30", "qh_30_90", "qh_90_180", "qh_180p")
+    if cols["qua_han"] is not None and abs(sum(agg[k] for k in dai) - agg["qua_han"]) > 1:
+        sua = {k: 0.0 for k in dai}
+        for r in rows[cols["data_start"]:]:
+            if r and _has_num(r, cols["tong"]) and _cell(r, cols["qua_han"]):
+                for k in dai:
+                    sua[k] += _cell(r, cols[k])
+        if abs(sum(sua.values()) - agg["qua_han"]) <= 1:
+            agg.update(sua)
+            lech = True
 
     return {"n_rows": n_rows, "tong_all": round(agg["tong"] * 1e-9, 9),
             "dong_tong": tot_i + 1,          # số dòng Excel (1-based) đã lấy — đối chiếu với spec
